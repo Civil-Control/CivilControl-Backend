@@ -16,7 +16,7 @@ public class Address {
     private String street;
 
     @Column(nullable = false)
-    private String number;
+    private Integer number;
 
     @Column(nullable = false)
     private String city;
