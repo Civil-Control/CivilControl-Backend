@@ -1,5 +1,6 @@
 package PSG.backEnd.service.implementation;
 
+import PSG.backEnd.exception.supplier.SupplierAlreadyExistsException;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.model.dto.SupplierDTO;
 import PSG.backEnd.model.dto.SupplierFilterDTO;
@@ -38,6 +39,21 @@ public class SupplierService implements ISupplierService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<SupplierResponseDTO> getAllSuppliers(SupplierFilterDTO filterDTO, Pageable pageable) {
+        return supplierRepository.findAllWithFilters(
+                filterDTO.cuit(),
+                filterDTO.legalName(),
+                filterDTO.tradeName(),
+                filterDTO.city(),
+                filterDTO.minDiscountPercentage(),
+                filterDTO.maxDiscountPercentage(),
+                filterDTO.active(),
+                pageable
+        ).map(supplierMapper::toResponseDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public SupplierResponseDTO getSupplierById(Long id) {
         return supplierRepository.findByIdAndDeletedFalse(id)
                 .map(supplierMapper::toResponseDto)
@@ -67,25 +83,16 @@ public class SupplierService implements ISupplierService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<SupplierResponseDTO> getAllSuppliers(SupplierFilterDTO filterDTO, Pageable pageable) {
-        return supplierRepository.findAllWithFilters(
-                filterDTO.cuit(),
-                filterDTO.legalName(),
-                filterDTO.tradeName(),
-                filterDTO.city(),
-                filterDTO.minDiscountPercentage(),
-                filterDTO.maxDiscountPercentage(),
-                filterDTO.active(),
-                pageable
-        ).map(supplierMapper::toResponseDto);
+    public boolean existsById(Long id) {
+        return supplierRepository.existsById(id);
     }
 
     private void validateNewSupplier(SupplierDTO supplierDTO) {
         if (supplierRepository.existsByCuitAndDeletedFalse(supplierDTO.cuit())) {
-            throw new RuntimeException("Ya existe un proveedor activo con el CUIT: " + supplierDTO.cuit());
+            throw new SupplierAlreadyExistsException("There is already an active supplier with the CUIT: " + supplierDTO.cuit());
         }
         if (supplierRepository.existsByLegalNameAndDeletedFalse(supplierDTO.legalName())) {
-            throw new RuntimeException("Ya existe un proveedor activo con el nombre legal: " + supplierDTO.legalName());
+            throw new SupplierAlreadyExistsException("There is already an active supplier with the CUIT: " + supplierDTO.legalName());
         }
     }
 
@@ -107,5 +114,12 @@ public class SupplierService implements ISupplierService {
         Supplier supplier = supplierMapper.toEntity(supplierDTO);
         supplier.setDeleted(false);
         return supplierMapper.toResponseDto(supplierRepository.save(supplier));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Supplier getEntityById(Long id) {
+        return supplierRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new SupplierNotFoundException(id));
     }
 }

@@ -3,6 +3,7 @@ package PSG.backEnd.service.port;
 import PSG.backEnd.model.dto.SupplierDTO;
 import PSG.backEnd.model.dto.SupplierFilterDTO;
 import PSG.backEnd.model.dto.SupplierResponseDTO;
+import PSG.backEnd.model.entity.Supplier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -12,4 +13,7 @@ public interface ISupplierService {
     SupplierResponseDTO updateSupplier(Long id, SupplierDTO supplierDTO);
     void deleteSupplier(Long id);
     Page<SupplierResponseDTO> getAllSuppliers(SupplierFilterDTO filterDTO, Pageable pageable);
+    Supplier getEntityById(Long id);
+
+    boolean existsById(Long id);
 }
