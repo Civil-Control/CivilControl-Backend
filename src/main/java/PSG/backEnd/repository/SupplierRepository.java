@@ -20,6 +20,7 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
     Optional<Supplier> findByLegalNameAndDeletedTrue(String legalName);
     boolean existsByCuitAndDeletedFalse(String cuit);
     boolean existsByLegalNameAndDeletedFalse(String legalName);
+    boolean existsByIdAndDeletedFalse(Long id);
 
     @Query("""
             SELECT s FROM Supplier s
