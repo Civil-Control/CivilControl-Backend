@@ -24,12 +24,12 @@ import java.math.BigDecimal;
 @CrossOrigin(origins = "*")
 public class SupplierController {
 
-    private final ISupplierService supplierService;
+    private final ISupplierService iSupplierService;
 
     @PostMapping
     public ResponseEntity<SupplierResponseDTO> createSupplier(
             @Validated(OnCreate.class) @RequestBody SupplierDTO supplierDTO) {
-        SupplierResponseDTO createdSupplier = supplierService.createSupplier(supplierDTO);
+        SupplierResponseDTO createdSupplier = iSupplierService.createSupplier(supplierDTO);
         return new ResponseEntity<>(createdSupplier, HttpStatus.CREATED);
     }
 
@@ -55,24 +55,24 @@ public class SupplierController {
                 minDiscountPercentage, maxDiscountPercentage, active
         );
 
-        return ResponseEntity.ok(supplierService.getAllSuppliers(filterDTO, pageable));
+        return ResponseEntity.ok(iSupplierService.getAllSuppliers(filterDTO, pageable));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<SupplierResponseDTO> getSupplierById(@PathVariable Long id) {
-        return ResponseEntity.ok(supplierService.getSupplierById(id));
+        return ResponseEntity.ok(iSupplierService.getSupplierById(id));
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<SupplierResponseDTO> updateSupplier(
             @PathVariable Long id,
             @Validated(OnUpdate.class) @RequestBody SupplierDTO supplierDTO) {
-        return ResponseEntity.ok(supplierService.updateSupplier(id, supplierDTO));
+        return ResponseEntity.ok(iSupplierService.updateSupplier(id, supplierDTO));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSupplier(@PathVariable Long id) {
-        supplierService.deleteSupplier(id);
+        iSupplierService.deleteSupplier(id);
         return ResponseEntity.noContent().build();
     }
 }

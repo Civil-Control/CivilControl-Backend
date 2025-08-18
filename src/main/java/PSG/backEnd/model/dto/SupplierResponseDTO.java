@@ -14,5 +14,6 @@ public record SupplierResponseDTO(
     ContactInfoResponseDTO contactInfo,
     BigDecimal pendingBalance,
     BigDecimal defaultDiscountPercentage,
-    String comment
+    String comment,
+    boolean active
 ) {}
