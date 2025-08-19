@@ -17,8 +17,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
     List<TransactionalDocument> findByDeletedFalse();
     Optional<TransactionalDocument> findByIdAndDeletedFalse(Long id);
     Optional<TransactionalDocument> findByBranchCodeAndDocumentNumberAndDeletedTrue(String branchCode, String documentNumber);
-    boolean existsByBranchCodeAndDocumentNumberAndDeletedFalse(String branchCode, String documentNumber);
-
+    boolean existsByBranchCodeAndDocumentNumberAndSupplierIdAndDeletedFalse(String branchCode, String documentNumber, Long supplierId);
     @Query("""
             SELECT td FROM TransactionalDocument td
             WHERE (:documentNumber IS NULL OR td.documentNumber LIKE %:documentNumber%)
