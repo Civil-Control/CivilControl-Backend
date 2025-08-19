@@ -23,7 +23,7 @@ public interface SupplierMapper {
 
     @AfterMapping
     default void handleCollections(@MappingTarget Supplier supplier, SupplierDTO updateDTO) {
-        if (updateDTO.allowedPaymentMethods() != null && !updateDTO.allowedPaymentMethods().isEmpty()) {
+        if (updateDTO.allowedPaymentMethods() != null) {
             supplier.setAllowedPaymentMethods(updateDTO.allowedPaymentMethods());
         }
     }

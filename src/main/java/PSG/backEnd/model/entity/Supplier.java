@@ -3,6 +3,7 @@ package PSG.backEnd.model.entity;
 import PSG.backEnd.model.enums.PaymentMethod;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.persistence.*;
@@ -30,9 +31,12 @@ public class Supplier {
     @Column(name = "trade_name")
     private String tradeName;
 
+    @ElementCollection(targetClass = PaymentMethod.class, fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
-    @Column(name = "allowed_payment_methods", nullable = false)
-    private List<PaymentMethod> allowedPaymentMethods;
+    @CollectionTable(name = "supplier_allowed_payment_methods",
+            joinColumns = @JoinColumn(name = "supplier_id"))
+    @Column(name = "payment_method", nullable = false)
+    private List<PaymentMethod> allowedPaymentMethods = new ArrayList<>();
 
     @Embedded
     private Address address;
