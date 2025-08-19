@@ -5,6 +5,8 @@ import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentAlreadyA
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
 import PSG.backEnd.model.dto.*;
 import PSG.backEnd.model.entity.*;
+import PSG.backEnd.model.enums.DocumentType;
+import PSG.backEnd.model.enums.PaymentMethod;
 import PSG.backEnd.model.mapper.TransactionalDocumentMapper;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.ISupplierService;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -37,10 +40,15 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         String documentKey = dto.branchCode() + " - " + dto.documentNumber();
 
         // Check if an active document with the same branch code and document number already exists
-        if (transactionalDocumentRepository.existsByBranchCodeAndDocumentNumberAndDeletedFalse(
-                dto.branchCode(), dto.documentNumber())) {
+        if (transactionalDocumentRepository
+                .existsByBranchCodeAndDocumentNumberAndSupplierIdAndDeletedFalse(
+                        dto.branchCode(),
+                        dto.documentNumber(),
+                        dto.supplierId())) {
             throw new TransactionalDocumentAlreadyActiveException(
-                    "There is already an active transactional document with the number: " + documentKey);
+                    "There is already an active transactional document with number "
+                            + dto.branchCode() + "-" + dto.documentNumber()
+                            + " for supplierId " + dto.supplierId());
         }
 
         // Check if a deleted document with the same branch code and document number exists
@@ -114,7 +122,25 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         TransactionalDocument document = transactionalDocumentMapper.toEntity(dto);
         document.setDeleted(false);
 
-        initializeMonetaryValues(document);
+        Supplier supplier = iSupplierService.getEntityById(dto.supplierId());
+        document.setSupplier(supplier);
+
+        if (isInvoice(document.getDocumentType())) {
+            List<PaymentMethod> methods = supplier.getAllowedPaymentMethods();
+            boolean paid = methods != null
+                    && methods.size() == 1
+                    && methods.contains(PaymentMethod.CASH);
+            document.setPaid(paid);
+
+            if (!paid) {
+                BigDecimal pendingBalance = supplier.getPendingBalance() != null
+                        ? supplier.getPendingBalance()
+                        : BigDecimal.ZERO;
+                supplier.setPendingBalance(pendingBalance.add(document.getTotal()));
+            }
+        } else {
+            document.setPaid(true);
+        }
 
         return document;
     }
@@ -126,17 +152,17 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         return document;
     }
 
-    private void initializeMonetaryValues(TransactionalDocument document) {
-        document.setNetTotal(BigDecimal.ZERO);
-        document.setIvaTotal(BigDecimal.ZERO);
-        document.setIvaExemptTotal(BigDecimal.ZERO);
-        document.setTotal(BigDecimal.ZERO);
-    }
-
     private void validateNewDocument(TransactionalDocumentDTO dto) {
         Supplier supplier = iSupplierService.getEntityById(dto.supplierId());
         if (supplier == null) {
             throw new SupplierNotFoundException(dto.supplierId());
         }
     }
+
+    private boolean isInvoice(DocumentType type) {
+        return type == DocumentType.BILL_A
+                || type == DocumentType.BILL_B
+                || type == DocumentType.BILL_C;
+    }
+
 }
