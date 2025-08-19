@@ -9,8 +9,12 @@ import java.time.LocalDate;
 
 
 @Entity
-@Table(name = "transactional_documents")
-@AllArgsConstructor
+@Table(
+        name = "transactional_documents",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"branch_code", "document_number", "supplier_id"})
+        }
+)@AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
@@ -39,24 +43,28 @@ public class TransactionalDocument {
     private Supplier supplier;
 
     @Column(name = "other_taxes", nullable = false)
-    private BigDecimal otherTaxes = BigDecimal.ZERO;
+    private BigDecimal otherTaxes;
 
     @Column(name = "net_total", nullable = false)
-    private BigDecimal netTotal = BigDecimal.ZERO;
+    private BigDecimal netTotal;
 
     @Column(name = "iva_total", nullable = false)
-    private BigDecimal ivaTotal = BigDecimal.ZERO;
+    private BigDecimal ivaTotal;
 
     @Column(name = "iva_exempt_total", nullable = false)
-    private BigDecimal ivaExemptTotal = BigDecimal.ZERO;
+    private BigDecimal ivaExemptTotal;
 
     @Column(nullable = false)
-    private BigDecimal total = BigDecimal.ZERO;
+    private BigDecimal total;
 
     @Column(name = "discount_percentage", nullable = false)
-    private BigDecimal discountPercentage = BigDecimal.ZERO;
+    private BigDecimal discountPercentage;
 
+    @Column
     private String comment;
+
+    @Column(nullable = false)
+    private Boolean paid;
 
     @Column(nullable = false)
     private Boolean deleted = false;

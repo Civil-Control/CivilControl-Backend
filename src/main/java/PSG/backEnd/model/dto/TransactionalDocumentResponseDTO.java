@@ -17,5 +17,6 @@ public record TransactionalDocumentResponseDTO(
     BigDecimal total,
     BigDecimal discountPercentage,
     String comment,
+    boolean paid,
     boolean deleted
 ) {}

@@ -36,6 +36,22 @@ public record TransactionalDocumentDTO(
     @Digits(integer = 12, fraction = 2, message = "Other taxes must have up to 12 digits and 2 decimals", groups = {OnCreate.class, OnUpdate.class})
     BigDecimal otherTaxes,
 
+    @NotNull(message = "Net total is required", groups = OnCreate.class)
+    @DecimalMin(value = "0.00", message = "Net total cannot be negative", groups = {OnCreate.class, OnUpdate.class})
+    BigDecimal netTotal,
+
+    @NotNull(message = "Iva total is required", groups = OnCreate.class)
+    @DecimalMin(value = "0.00", message = "Net total cannot be negative", groups = {OnCreate.class, OnUpdate.class})
+    BigDecimal ivaTotal,
+
+    @NotNull(message = "Iva exempt total is required", groups = OnCreate.class)
+    @DecimalMin(value = "0.00", message = "Net total cannot be negative", groups = {OnCreate.class, OnUpdate.class})
+    BigDecimal ivaExemptTotal,
+
+    @NotNull(message = "Total is required", groups = OnCreate.class)
+    @DecimalMin(value = "0.00", message = "Net total cannot be negative", groups = {OnCreate.class, OnUpdate.class})
+    BigDecimal total,
+
     @NotNull(message = "Discount percentage is required", groups = OnCreate.class)
     @DecimalMin(value = "0.00", inclusive = true, message = "Discount percentage cannot be negative", groups = {OnCreate.class, OnUpdate.class})
     @DecimalMax(value = "100.00", inclusive = true, message = "Discount percentage cannot exceed 100", groups = {OnCreate.class, OnUpdate.class})
