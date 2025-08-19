@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @Service
@@ -92,7 +93,7 @@ public class SupplierService implements ISupplierService {
             throw new SupplierAlreadyExistsException("There is already an active supplier with the CUIT: " + supplierDTO.cuit());
         }
         if (supplierRepository.existsByLegalNameAndDeletedFalse(supplierDTO.legalName())) {
-            throw new SupplierAlreadyExistsException("There is already an active supplier with the CUIT: " + supplierDTO.legalName());
+            throw new SupplierAlreadyExistsException("There is already an active supplier with the legalName: " + supplierDTO.legalName());
         }
     }
 
@@ -113,6 +114,7 @@ public class SupplierService implements ISupplierService {
     private SupplierResponseDTO createNewSupplier(SupplierDTO supplierDTO) {
         Supplier supplier = supplierMapper.toEntity(supplierDTO);
         supplier.setDeleted(false);
+        supplier.setPendingBalance(BigDecimal.ZERO);
         return supplierMapper.toResponseDto(supplierRepository.save(supplier));
     }
 
