@@ -1,4 +1,4 @@
-package PSG.backEnd.model.dto;
+package PSG.backEnd.model.dto.supplier;
 
 import java.math.BigDecimal;
 

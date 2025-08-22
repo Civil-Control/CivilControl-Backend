@@ -1,5 +1,7 @@
-package PSG.backEnd.model.dto;
+package PSG.backEnd.model.dto.supplier;
 
+import PSG.backEnd.model.dto.address.AddressDTO;
+import PSG.backEnd.model.dto.contactInfo.ContactInfoDTO;
 import PSG.backEnd.model.enums.PaymentMethod;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;

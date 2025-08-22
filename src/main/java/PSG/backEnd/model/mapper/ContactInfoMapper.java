@@ -1,7 +1,7 @@
 package PSG.backEnd.model.mapper;
 
-import PSG.backEnd.model.dto.ContactInfoDTO;
-import PSG.backEnd.model.dto.ContactInfoResponseDTO;
+import PSG.backEnd.model.dto.contactInfo.ContactInfoDTO;
+import PSG.backEnd.model.dto.contactInfo.ContactInfoResponseDTO;
 import PSG.backEnd.model.entity.ContactInfo;
 import org.mapstruct.*;
 

@@ -1,4 +1,4 @@
-package PSG.backEnd.model.dto;
+package PSG.backEnd.model.dto.address;
 
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;

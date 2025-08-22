@@ -18,9 +18,13 @@ public class ContactInfo {
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     private Long id;
 
-    @Column
+    @ElementCollection
+    @CollectionTable(name = "contact_info_emails", joinColumns = @JoinColumn(name = "contact_info_id"))
+    @Column(name = "email")
     private List<String> email;
 
-    @Column
+    @ElementCollection
+    @CollectionTable(name = "contact_info_phones", joinColumns = @JoinColumn(name = "contact_info_id"))
+    @Column(name = "phone_number")
     private List<String> phoneNumber;
 }

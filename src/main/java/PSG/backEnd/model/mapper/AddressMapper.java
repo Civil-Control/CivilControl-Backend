@@ -1,7 +1,7 @@
 package PSG.backEnd.model.mapper;
 
-import PSG.backEnd.model.dto.AddressDTO;
-import PSG.backEnd.model.dto.AddressResponseDTO;
+import PSG.backEnd.model.dto.address.AddressDTO;
+import PSG.backEnd.model.dto.address.AddressResponseDTO;
 import PSG.backEnd.model.entity.Address;
 import org.mapstruct.*;
 

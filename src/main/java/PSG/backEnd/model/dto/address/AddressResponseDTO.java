@@ -1,6 +1,4 @@
-package PSG.backEnd.model.dto;
-
-import jakarta.validation.constraints.*;
+package PSG.backEnd.model.dto.address;
 
 public record AddressResponseDTO(
 
