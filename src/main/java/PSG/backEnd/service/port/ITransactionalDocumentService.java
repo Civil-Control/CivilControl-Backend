@@ -1,11 +1,13 @@
 package PSG.backEnd.service.port;
 
-import PSG.backEnd.model.dto.TransactionalDocumentDTO;
-import PSG.backEnd.model.dto.TransactionalDocumentFilterDTO;
-import PSG.backEnd.model.dto.TransactionalDocumentResponseDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentFilterDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.math.BigDecimal;
 
 public interface ITransactionalDocumentService {
 
@@ -13,6 +15,7 @@ public interface ITransactionalDocumentService {
     Page<TransactionalDocumentResponseDTO> getAllTransactionalDocuments(TransactionalDocumentFilterDTO filterDTO, Pageable pageable);
     TransactionalDocumentResponseDTO getTransactionalDocumentById(Long id);
     TransactionalDocumentResponseDTO updateTransactionalDocument(Long id, TransactionalDocumentDTO transactionalDocumentDTO);
+    void updateTransactionalDocumentStatus(Long documentId, Long supplierId, BigDecimal amount);
     void deleteTransactionalDocument(Long id);
     TransactionalDocument getEntityById(Long id);
 }

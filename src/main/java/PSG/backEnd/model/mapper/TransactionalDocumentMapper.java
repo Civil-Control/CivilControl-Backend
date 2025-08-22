@@ -1,7 +1,7 @@
 package PSG.backEnd.model.mapper;
 
-import PSG.backEnd.model.dto.TransactionalDocumentDTO;
-import PSG.backEnd.model.dto.TransactionalDocumentResponseDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import org.mapstruct.*;
 

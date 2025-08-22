@@ -31,6 +31,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             AND (:totalAmount IS NULL OR td.total = :totalAmount)
             AND (:fromDate IS NULL OR td.date >= :fromDate)
             AND (:toDate IS NULL OR td.date <= :toDate)
+            AND (:paid IS NULL OR td.paid = :paid)
             AND td.deleted = false
            """)
     Page<TransactionalDocument> findAllWithFilters(
@@ -42,6 +43,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             @Param("totalAmount") BigDecimal totalAmount,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
+            @Param("paid") Boolean paid,
             Pageable pageable
     );
 }

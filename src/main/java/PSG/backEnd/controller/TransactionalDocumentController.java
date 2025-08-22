@@ -1,6 +1,8 @@
 package PSG.backEnd.controller;
 
-import PSG.backEnd.model.dto.*;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentFilterDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
 import PSG.backEnd.model.validation.ValidationGroups;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +43,7 @@ public class TransactionalDocumentController {
             @RequestParam(required = false) BigDecimal totalAmount,
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
+            @RequestParam(required = false) Boolean paid,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -49,12 +52,11 @@ public class TransactionalDocumentController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        TransactionalDocumentFilterDTO filterDTO = new TransactionalDocumentFilterDTO(
+        TransactionalDocumentFilterDTO filter = new TransactionalDocumentFilterDTO(
                 documentNumber, supplierCuit, supplierName, minTotalAmount,
-                maxTotalAmount, totalAmount, fromDate, toDate
+                maxTotalAmount, totalAmount, fromDate, toDate, paid
         );
-
-        return ResponseEntity.ok(iTransactionalDocumentService.getAllTransactionalDocuments(filterDTO, pageable));
+        return ResponseEntity.ok(iTransactionalDocumentService.getAllTransactionalDocuments(filter, pageable));
     }
 
     @GetMapping("/{id}")

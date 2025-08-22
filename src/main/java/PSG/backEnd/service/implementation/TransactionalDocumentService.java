@@ -3,7 +3,9 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentAlreadyActiveException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
-import PSG.backEnd.model.dto.*;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentFilterDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
 import PSG.backEnd.model.entity.*;
 import PSG.backEnd.model.enums.DocumentType;
 import PSG.backEnd.model.enums.PaymentMethod;
@@ -35,9 +37,6 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     public TransactionalDocumentResponseDTO createTransactionalDocument(TransactionalDocumentDTO dto) {
         // Validate the DTO and check for existing documents
         validateNewDocument(dto);
-
-        // Create a unique key for the document based on branch code and document number
-        String documentKey = dto.branchCode() + " - " + dto.documentNumber();
 
         // Check if an active document with the same branch code and document number already exists
         if (transactionalDocumentRepository
@@ -77,6 +76,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 filterDTO.totalAmount(),
                 filterDTO.fromDate(),
                 filterDTO.toDate(),
+                filterDTO.paid(),
                 pageable
         ).map(transactionalDocumentMapper::toResponseDto);
     }
@@ -105,6 +105,23 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
         TransactionalDocument savedDocument = transactionalDocumentRepository.save(existingDocument);
         return transactionalDocumentMapper.toResponseDto(savedDocument);
+    }
+
+    @Override
+    @Transactional
+    public void updateTransactionalDocumentStatus(Long documentId, Long supplierId, BigDecimal amount) {
+        TransactionalDocument document = getEntityById(documentId);
+
+        // Si el monto es cero, revertir el estado (marcar como no pagado)
+        if (amount.compareTo(BigDecimal.ZERO) == 0) {
+            revertDocumentPaymentStatus(document, supplierId);
+        } else {
+            // Lógica normal: marcar como pagado
+            validateDocumentForPayment(document, supplierId, amount);
+            document.setPaid(true);
+        }
+
+        transactionalDocumentRepository.save(document);
     }
 
     @Override
@@ -165,4 +182,47 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 || type == DocumentType.BILL_C;
     }
 
+    private void validateDocumentForPayment(TransactionalDocument document, Long supplierId, BigDecimal amount) {
+        validateDocumentIsInvoice(document);
+        validateSupplierMatch(document, supplierId);
+        validateDocumentNotAlreadyPaid(document);
+        validatePaymentAmount(document, amount);
+    }
+
+    private void validateDocumentIsInvoice(TransactionalDocument document) {
+        if (!isInvoice(document.getDocumentType())) {
+            throw new IllegalStateException("Only invoices can be marked as paid");
+        }
+    }
+
+    private void validateSupplierMatch(TransactionalDocument document, Long supplierId) {
+        if (!document.getSupplier().getId().equals(supplierId)) {
+            throw new IllegalArgumentException("Supplier ID does not match the document's supplier");
+        }
+    }
+
+    private void validateDocumentNotAlreadyPaid(TransactionalDocument document) {
+        if (document.getPaid()) {
+            throw new IllegalStateException("Document is already marked as paid");
+        }
+    }
+
+    private void validatePaymentAmount(TransactionalDocument document, BigDecimal amount) {
+        if (amount.compareTo(document.getTotal()) < 0) {
+            throw new IllegalArgumentException("Payment amount is less than the document total");
+        }
+    }
+
+    /**
+     * Revierte el estado de pago de un documento
+     */
+    private void revertDocumentPaymentStatus(TransactionalDocument document, Long supplierId) {
+        validateSupplierMatch(document, supplierId);
+
+        if (!document.getPaid()) {
+            throw new IllegalStateException("Document is not marked as paid, cannot revert");
+        }
+
+        document.setPaid(false);
+    }
 }
