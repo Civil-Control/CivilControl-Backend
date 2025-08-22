@@ -1,7 +1,7 @@
 package PSG.backEnd.model.mapper;
 
-import PSG.backEnd.model.dto.SupplierDTO;
-import PSG.backEnd.model.dto.SupplierResponseDTO;
+import PSG.backEnd.model.dto.supplier.SupplierDTO;
+import PSG.backEnd.model.dto.supplier.SupplierResponseDTO;
 import PSG.backEnd.model.entity.Supplier;
 import org.mapstruct.*;
 

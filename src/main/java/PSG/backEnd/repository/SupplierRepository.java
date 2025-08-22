@@ -22,17 +22,15 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
     boolean existsByLegalNameAndDeletedFalse(String legalName);
     boolean existsByIdAndDeletedFalse(Long id);
 
-    @Query("""
-            SELECT s FROM Supplier s
-            WHERE (:cuit IS NULL OR s.cuit LIKE %:cuit%)
-            AND (:legalName IS NULL OR LOWER(s.legalName) LIKE LOWER(CONCAT('%', :legalName, '%')))
-            AND (:tradeName IS NULL OR LOWER(s.tradeName) LIKE LOWER(CONCAT('%', :tradeName, '%')))
-            AND (:city IS NULL OR LOWER(s.address.city) LIKE LOWER(CONCAT('%', :city, '%')))
-            AND (:minDiscountPercentage IS NULL OR s.defaultDiscountPercentage >= :minDiscountPercentage)
-            AND (:maxDiscountPercentage IS NULL OR s.defaultDiscountPercentage <= :maxDiscountPercentage)
-            AND (:active IS NULL OR s.active = :active)
-            AND s.deleted = false
-            """)
+    @Query("SELECT s FROM Supplier s " +
+            "WHERE (:cuit IS NULL OR s.cuit LIKE %:cuit%) " +
+            "AND (:legalName IS NULL OR LOWER(s.legalName) LIKE LOWER(CONCAT('%', :legalName, '%'))) " +
+            "AND (:tradeName IS NULL OR LOWER(s.tradeName) LIKE LOWER(CONCAT('%', :tradeName, '%'))) " +
+            "AND (:city IS NULL OR LOWER(s.address.city) LIKE LOWER(CONCAT('%', :city, '%'))) " +
+            "AND (:minDiscountPercentage IS NULL OR s.defaultDiscountPercentage >= :minDiscountPercentage) " +
+            "AND (:maxDiscountPercentage IS NULL OR s.defaultDiscountPercentage <= :maxDiscountPercentage) " +
+            "AND (:active IS NULL OR s.active = :active) " +
+            "AND s.deleted = false")
     Page<Supplier> findAllWithFilters(
             @Param("cuit") String cuit,
             @Param("legalName") String legalName,

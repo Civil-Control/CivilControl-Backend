@@ -1,8 +1,8 @@
 package PSG.backEnd.controller;
 
-import PSG.backEnd.model.dto.SupplierDTO;
-import PSG.backEnd.model.dto.SupplierFilterDTO;
-import PSG.backEnd.model.dto.SupplierResponseDTO;
+import PSG.backEnd.model.dto.supplier.SupplierDTO;
+import PSG.backEnd.model.dto.supplier.SupplierFilterDTO;
+import PSG.backEnd.model.dto.supplier.SupplierResponseDTO;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.ISupplierService;

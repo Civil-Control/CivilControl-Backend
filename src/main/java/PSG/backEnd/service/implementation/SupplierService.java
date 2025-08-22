@@ -2,9 +2,9 @@ package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.supplier.SupplierAlreadyExistsException;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
-import PSG.backEnd.model.dto.SupplierDTO;
-import PSG.backEnd.model.dto.SupplierFilterDTO;
-import PSG.backEnd.model.dto.SupplierResponseDTO;
+import PSG.backEnd.model.dto.supplier.SupplierDTO;
+import PSG.backEnd.model.dto.supplier.SupplierFilterDTO;
+import PSG.backEnd.model.dto.supplier.SupplierResponseDTO;
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.mapper.SupplierMapper;
 import PSG.backEnd.repository.SupplierRepository;
@@ -70,6 +70,15 @@ public class SupplierService implements ISupplierService {
         supplierMapper.partialUpdate(supplierDTO, existingSupplier);
         Supplier updatedSupplier = supplierRepository.save(existingSupplier);
         return supplierMapper.toResponseDto(updatedSupplier);
+    }
+
+    @Override
+    @Transactional
+    public void updateSupplierBalance(Long supplierId, BigDecimal amount) {
+        Supplier supplier = supplierRepository.findByIdAndDeletedFalse(supplierId)
+                .orElseThrow(() -> new SupplierNotFoundException(supplierId));
+        supplier.setPendingBalance(supplier.getPendingBalance().subtract(amount));
+        supplierRepository.save(supplier);
     }
 
     @Override
