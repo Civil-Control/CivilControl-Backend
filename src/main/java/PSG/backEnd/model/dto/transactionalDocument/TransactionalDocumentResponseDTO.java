@@ -10,6 +10,7 @@ public record TransactionalDocumentResponseDTO(
     String branchCode,
     String documentNumber,
     Long supplierId,
+    String supplierName,
     BigDecimal otherTaxes,
     BigDecimal netTotal,
     BigDecimal ivaTotal,

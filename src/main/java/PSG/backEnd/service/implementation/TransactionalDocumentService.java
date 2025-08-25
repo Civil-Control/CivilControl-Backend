@@ -101,7 +101,27 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     public TransactionalDocumentResponseDTO updateTransactionalDocument(Long id, TransactionalDocumentDTO dto) {
         TransactionalDocument existingDocument = getEntityById(id);
 
-        transactionalDocumentMapper.partialUpdate(dto, existingDocument);
+        // If the document is an unpaid invoice, we need to recalculate the supplier's balance
+        if (isInvoice(existingDocument.getDocumentType()) && !existingDocument.getPaid()) {
+            Supplier supplier = existingDocument.getSupplier();
+
+            // Revert the previous amount with discounts
+            BigDecimal previousDiscountedAmount = calculateDiscountedAmount(existingDocument, supplier);
+            BigDecimal currentBalance = supplier.getPendingBalance() != null
+                ? supplier.getPendingBalance()
+                : BigDecimal.ZERO;
+            supplier.setPendingBalance(currentBalance.subtract(previousDiscountedAmount));
+
+            // Update the document with new values
+            transactionalDocumentMapper.partialUpdate(dto, existingDocument);
+
+            // Calculate and apply the new amount with discounts
+            BigDecimal newDiscountedAmount = calculateDiscountedAmount(existingDocument, supplier);
+            supplier.setPendingBalance(supplier.getPendingBalance().add(newDiscountedAmount));
+        } else {
+            // For paid documents or non-invoices, just update without affecting balance
+            transactionalDocumentMapper.partialUpdate(dto, existingDocument);
+        }
 
         TransactionalDocument savedDocument = transactionalDocumentRepository.save(existingDocument);
         return transactionalDocumentMapper.toResponseDto(savedDocument);
@@ -112,11 +132,11 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     public void updateTransactionalDocumentStatus(Long documentId, Long supplierId, BigDecimal amount) {
         TransactionalDocument document = getEntityById(documentId);
 
-        // Si el monto es cero, revertir el estado (marcar como no pagado)
+        // If amount is zero, revert the status (mark as unpaid)
         if (amount.compareTo(BigDecimal.ZERO) == 0) {
             revertDocumentPaymentStatus(document, supplierId);
         } else {
-            // Lógica normal: marcar como pagado
+            // Normal logic: mark as paid
             validateDocumentForPayment(document, supplierId, amount);
             document.setPaid(true);
         }
@@ -128,12 +148,23 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     @Transactional
     public void deleteTransactionalDocument(Long id) {
         TransactionalDocument document = getEntityById(id);
-        document.setDeleted(true);
 
+        // If the document is an unpaid invoice, we need to revert its impact on the balance
+        if (isInvoice(document.getDocumentType()) && !document.getPaid()) {
+            Supplier supplier = document.getSupplier();
+            BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
+
+            BigDecimal currentBalance = supplier.getPendingBalance() != null
+                ? supplier.getPendingBalance()
+                : BigDecimal.ZERO;
+            supplier.setPendingBalance(currentBalance.subtract(discountedAmount));
+        }
+
+        document.setDeleted(true);
         transactionalDocumentRepository.save(document);
     }
 
-    /// private auxiliary methods
+    /// Private auxiliary methods
 
     private TransactionalDocument createNewDocument(TransactionalDocumentDTO dto) {
         TransactionalDocument document = transactionalDocumentMapper.toEntity(dto);
@@ -150,16 +181,60 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             document.setPaid(paid);
 
             if (!paid) {
+                // Calculate the amount with applied discounts
+                BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
+
                 BigDecimal pendingBalance = supplier.getPendingBalance() != null
                         ? supplier.getPendingBalance()
                         : BigDecimal.ZERO;
-                supplier.setPendingBalance(pendingBalance.add(document.getTotal()));
+                supplier.setPendingBalance(pendingBalance.add(discountedAmount));
             }
         } else {
             document.setPaid(true);
         }
 
         return document;
+    }
+
+    /**
+     * Calculates the final amount of an invoice applying all discounts:
+     * 1. Supplier's default discount (defaultDiscountPercentage)
+     * 2. Document-specific discount (discountPercentage)
+     *
+     * @param document The transactional document
+     * @param supplier The associated supplier
+     * @return The amount with applied discounts
+     */
+    private BigDecimal calculateDiscountedAmount(TransactionalDocument document, Supplier supplier) {
+        BigDecimal originalAmount = document.getTotal();
+
+        // Apply supplier's default discount
+        BigDecimal supplierDiscountPercentage = supplier.getDefaultDiscountPercentage() != null
+            ? supplier.getDefaultDiscountPercentage()
+            : BigDecimal.ZERO;
+
+        // Apply document-specific discount
+        BigDecimal documentDiscountPercentage = document.getDiscountPercentage() != null
+            ? document.getDiscountPercentage()
+            : BigDecimal.ZERO;
+
+        // Calculate combined total discount
+        // Formula: amount * (1 - discount1/100) * (1 - discount2/100)
+        BigDecimal supplierDiscountFactor = BigDecimal.ONE.subtract(
+            supplierDiscountPercentage.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)
+        );
+
+        BigDecimal documentDiscountFactor = BigDecimal.ONE.subtract(
+            documentDiscountPercentage.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)
+        );
+
+        // Apply both discounts
+        BigDecimal discountedAmount = originalAmount
+            .multiply(supplierDiscountFactor)
+            .multiply(documentDiscountFactor)
+            .setScale(2, java.math.RoundingMode.HALF_UP);
+
+        return discountedAmount;
     }
 
     private TransactionalDocument reactivateExistingDocument(TransactionalDocument document, TransactionalDocumentDTO dto) {
@@ -214,13 +289,26 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     }
 
     /**
-     * Revierte el estado de pago de un documento
+     * Reverts the payment status of a document.
+     * When a document is marked as unpaid, its amount (with discounts)
+     * should be added back to the supplier's pending balance.
      */
     private void revertDocumentPaymentStatus(TransactionalDocument document, Long supplierId) {
         validateSupplierMatch(document, supplierId);
 
         if (!document.getPaid()) {
             throw new IllegalStateException("Document is not marked as paid, cannot revert");
+        }
+
+        // If it's an invoice, add the discounted amount to the pending balance
+        if (isInvoice(document.getDocumentType())) {
+            Supplier supplier = document.getSupplier();
+            BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
+
+            BigDecimal currentBalance = supplier.getPendingBalance() != null
+                ? supplier.getPendingBalance()
+                : BigDecimal.ZERO;
+            supplier.setPendingBalance(currentBalance.add(discountedAmount));
         }
 
         document.setPaid(false);

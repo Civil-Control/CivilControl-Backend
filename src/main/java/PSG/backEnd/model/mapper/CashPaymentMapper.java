@@ -19,6 +19,6 @@ public interface CashPaymentMapper {
     void updateEntityFromDto(CashPaymentDTO dto, @MappingTarget CashPayment entity);
 
     @Mapping(target = "paymentDetails", source = "paymentDetails")
-    @Mapping(target = "type", constant = "CASH")
+    @Mapping(target = "type", constant = "efectivo")
     CashPaymentResponseDTO toResponse(CashPayment entity);
 }

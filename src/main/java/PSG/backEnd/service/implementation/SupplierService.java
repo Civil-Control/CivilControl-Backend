@@ -117,12 +117,14 @@ public class SupplierService implements ISupplierService {
     private SupplierResponseDTO reactivateSupplier(Supplier supplier, SupplierDTO supplierDTO) {
         supplierMapper.partialUpdate(supplierDTO, supplier);
         supplier.setDeleted(false);
+        supplier.setActive(true);
         return supplierMapper.toResponseDto(supplierRepository.save(supplier));
     }
 
     private SupplierResponseDTO createNewSupplier(SupplierDTO supplierDTO) {
         Supplier supplier = supplierMapper.toEntity(supplierDTO);
         supplier.setDeleted(false);
+        supplier.setActive(true);
         supplier.setPendingBalance(BigDecimal.ZERO);
         return supplierMapper.toResponseDto(supplierRepository.save(supplier));
     }

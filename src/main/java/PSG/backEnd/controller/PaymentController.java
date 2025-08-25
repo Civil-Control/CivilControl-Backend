@@ -2,6 +2,8 @@ package PSG.backEnd.controller;
 
 import PSG.backEnd.model.dto.payment.*;
 import PSG.backEnd.model.enums.PaymentMethod;
+import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
+import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.IPaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -10,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -23,17 +26,20 @@ public class PaymentController {
     private final IPaymentService paymentService;
 
     @PostMapping("/cash")
-    public CashPaymentResponseDTO createCash(@RequestBody CashPaymentDTO dto) {
+    public CashPaymentResponseDTO createCash(
+            @Validated(OnCreate.class) @RequestBody CashPaymentDTO dto) {
         return paymentService.createCash(dto);
     }
 
     @PostMapping("/transfer")
-    public TransferPaymentResponseDTO createTransfer(@RequestBody TransferPaymentDTO dto) {
+    public TransferPaymentResponseDTO createTransfer(
+            @Validated(OnCreate.class) @RequestBody TransferPaymentDTO dto) {
         return paymentService.createTransfer(dto);
     }
 
     @PostMapping("/check")
-    public CheckPaymentResponseDTO createCheck(@RequestBody CheckPaymentDTO dto) {
+    public CheckPaymentResponseDTO createCheck(
+            @Validated(OnCreate.class) @RequestBody CheckPaymentDTO dto) {
         return paymentService.createCheck(dto);
     }
 
@@ -76,20 +82,23 @@ public class PaymentController {
     }
 
     @PatchMapping("/cash/{id}")
-    public CashPaymentResponseDTO updateCash(@PathVariable Long id,
-                                             @RequestBody CashPaymentDTO dto) {
+    public CashPaymentResponseDTO updateCash(
+            @Validated(OnUpdate.class) @PathVariable Long id,
+            @RequestBody CashPaymentDTO dto) {
         return paymentService.updateCash(id, dto);
     }
 
     @PatchMapping("/transfer/{id}")
-    public TransferPaymentResponseDTO updateTransfer(@PathVariable Long id,
-                                                     @RequestBody TransferPaymentDTO dto) {
+    public TransferPaymentResponseDTO updateTransfer(
+            @Validated(OnUpdate.class) @PathVariable Long id,
+            @RequestBody TransferPaymentDTO dto) {
         return paymentService.updateTransfer(id, dto);
     }
 
     @PatchMapping("/check/{id}")
-    public CheckPaymentResponseDTO updateCheck(@PathVariable Long id,
-                                               @RequestBody CheckPaymentDTO dto) {
+    public CheckPaymentResponseDTO updateCheck(
+            @Validated(OnUpdate.class) @PathVariable Long id,
+            @RequestBody CheckPaymentDTO dto) {
         return paymentService.updateCheck(id, dto);
     }
 

@@ -18,6 +18,6 @@ public interface TransferPaymentMapper {
     void updateEntityFromDto(TransferPaymentDTO dto, @MappingTarget TransferPayment entity);
 
     @Mapping(target = "paymentDetails", source = "paymentDetails")
-    @Mapping(target = "type", constant = "TRANSFER")
+    @Mapping(target = "type", constant = "transferencia")
     TransferPaymentResponseDTO toResponse(TransferPayment entity);
 }

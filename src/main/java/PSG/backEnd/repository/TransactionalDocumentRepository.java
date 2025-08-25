@@ -14,12 +14,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface TransactionalDocumentRepository extends JpaRepository<TransactionalDocument, Long> {
+    @Query("SELECT td FROM TransactionalDocument td JOIN FETCH td.supplier WHERE td.deleted = false")
     List<TransactionalDocument> findByDeletedFalse();
-    Optional<TransactionalDocument> findByIdAndDeletedFalse(Long id);
+
+    @Query("SELECT td FROM TransactionalDocument td JOIN FETCH td.supplier WHERE td.id = :id AND td.deleted = false")
+    Optional<TransactionalDocument> findByIdAndDeletedFalse(@Param("id") Long id);
+
     Optional<TransactionalDocument> findByBranchCodeAndDocumentNumberAndDeletedTrue(String branchCode, String documentNumber);
     boolean existsByBranchCodeAndDocumentNumberAndSupplierIdAndDeletedFalse(String branchCode, String documentNumber, Long supplierId);
+
     @Query("""
-            SELECT td FROM TransactionalDocument td
+            SELECT td FROM TransactionalDocument td JOIN FETCH td.supplier
             WHERE (:documentNumber IS NULL OR td.documentNumber LIKE %:documentNumber%)
             AND (:supplierCuit IS NULL OR td.supplier.cuit LIKE %:supplierCuit%)
             AND (:supplierName IS NULL OR 

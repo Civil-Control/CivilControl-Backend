@@ -17,9 +17,9 @@ public interface TransactionalDocumentMapper {
     TransactionalDocument toEntity(TransactionalDocumentDTO dto);
 
     @Mapping(source = "supplier.id", target = "supplierId")
+    @Mapping(source = "supplier.legalName", target = "supplierName")
+    @Mapping(expression = "java(entity.getDocumentType().getDisplayName())", target = "documentType")
     TransactionalDocumentResponseDTO toResponseDto(TransactionalDocument entity);
-
-    TransactionalDocumentDTO toDto(TransactionalDocument entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)

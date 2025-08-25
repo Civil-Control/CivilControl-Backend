@@ -1,9 +1,12 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.payment.PaymentNotFoundException;
+import PSG.backEnd.exception.payment.InvalidPaymentMethodException;
 import PSG.backEnd.model.dto.payment.*;
 import PSG.backEnd.model.entity.payment.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
+import PSG.backEnd.model.entity.Supplier;
+import PSG.backEnd.model.enums.PaymentMethod;
 import PSG.backEnd.model.mapper.*;
 import PSG.backEnd.repository.PaymentRepository.CashPaymentRepository;
 import PSG.backEnd.repository.PaymentRepository.CheckPaymentRepository;
@@ -75,8 +78,8 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Template method que maneja la lógica común de creación de pagos
-     * Respeta el principio DRY y SRP
+     * Template method that handles common payment creation logic.
+     * Respects DRY principle and SRP.
      */
     private <T, R extends PaymentResponseDTO, D> R createPayment(
         PaymentDetailsDTO paymentDetails,
@@ -85,77 +88,122 @@ public class PaymentService implements IPaymentService {
         Function<T, R> responseMapper,
         D dto
     ) {
-        // 1. Crear la entidad específica del tipo de pago
+        // 1. Validate that the payment method is compatible with the supplier
+        PaymentMethod paymentMethod = determinePaymentMethod(dto);
+        validatePaymentMethodAllowed(paymentDetails.supplierId(), paymentMethod);
+
+        // 2. Create the specific payment type entity
         T entity = entityMapper.apply(dto);
 
-        // 2. Ejecutar lógica de negocio común (aplicar Information Expert - GRASP)
+        // 3. Execute common business logic (apply Information Expert - GRASP)
         executePaymentBusinessLogic(paymentDetails);
 
-        // 3. Guardar y retornar respuesta
+        // 4. Save and return response
         T savedEntity = repository.apply(entity);
         return responseMapper.apply(savedEntity);
     }
 
     /**
-     * Método que encapsula toda la lógica de negocio común
-     * Respeta el principio de Information Expert (GRASP)
+     * Determines the payment method type based on the DTO type.
+     */
+    private <D> PaymentMethod determinePaymentMethod(D dto) {
+        if (dto instanceof CashPaymentDTO) {
+            return PaymentMethod.CASH;
+        } else if (dto instanceof TransferPaymentDTO) {
+            return PaymentMethod.TRANSFER;
+        } else if (dto instanceof CheckPaymentDTO) {
+            return PaymentMethod.CHECK;
+        } else {
+            throw new IllegalArgumentException("Unrecognized payment type: " + dto.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Validates that the payment method is allowed for the supplier.
+     * Respects Single Responsibility principle.
+     */
+    private void validatePaymentMethodAllowed(Long supplierId, PaymentMethod paymentMethod) {
+        Supplier supplier = iSupplierService.getEntityById(supplierId);
+
+        if (supplier.getAllowedPaymentMethods() == null || supplier.getAllowedPaymentMethods().isEmpty()) {
+            throw new InvalidPaymentMethodException(
+                String.format("Supplier with ID %d has no configured payment methods", supplierId)
+            );
+        }
+
+        if (!supplier.getAllowedPaymentMethods().contains(paymentMethod)) {
+            throw new InvalidPaymentMethodException(
+                String.format("Payment method %s is not allowed for supplier with ID %d. " +
+                             "Allowed methods: %s",
+                             paymentMethod.getDisplayName(),
+                             supplierId,
+                             supplier.getAllowedPaymentMethods().stream()
+                                 .map(PaymentMethod::getDisplayName)
+                                 .toList())
+            );
+        }
+    }
+
+    /**
+     * Method that encapsulates all common business logic.
+     * Respects Information Expert principle (GRASP).
      */
     private void executePaymentBusinessLogic(PaymentDetailsDTO paymentDetails) {
-        // Actualizar balance del proveedor
+        // Update supplier balance
         iSupplierService.updateSupplierBalance(
             paymentDetails.supplierId(),
             paymentDetails.amount()
         );
 
-        // Actualizar estado de documentos pagados
+        // Update paid documents status
         updatePaidDocuments(paymentDetails);
     }
 
     /**
-     * Revierte los efectos de un pago en el sistema
-     * Usado para UPDATE y DELETE operations
+     * Reverts the effects of a payment in the system.
+     * Used for UPDATE and DELETE operations.
      */
     private void revertPaymentBusinessLogic(PaymentDetailsDTO originalPaymentDetails) {
-        // Revertir balance del proveedor (restar el monto del pago)
+        // Revert supplier balance (subtract payment amount)
         iSupplierService.updateSupplierBalance(
             originalPaymentDetails.supplierId(),
-            originalPaymentDetails.amount().negate() // Negativo para restar
+            originalPaymentDetails.amount().negate() // Negative to subtract
         );
 
-        // Revertir estado de documentos (marcarlos como no pagados)
+        // Revert document status (mark as unpaid)
         revertPaidDocuments(originalPaymentDetails);
     }
 
     /**
-     * Marca documentos como no pagados (revierte el pago)
-     * Respeta SRP - Single Responsibility Principle
+     * Marks documents as unpaid (reverts the payment).
+     * Respects SRP - Single Responsibility Principle.
      */
     private void revertPaidDocuments(PaymentDetailsDTO paymentDetails) {
-        // Verificar si hay documentos para revertir (pagos independientes no tienen documentos)
+        // Check if there are documents to revert (independent payments have no documents)
         if (paymentDetails.paidDocumentIds() != null && !paymentDetails.paidDocumentIds().isEmpty()) {
             for (Long documentId : paymentDetails.paidDocumentIds()) {
                 try {
-                    // Revertir directamente usando monto 0 para indicar reversión
+                    // Revert directly using amount 0 to indicate reversion
                     iTransactionalDocumentService.updateTransactionalDocumentStatus(
                         documentId,
                         paymentDetails.supplierId(),
-                        BigDecimal.ZERO // Monto 0 indica revertir
+                        BigDecimal.ZERO // Amount 0 indicates revert
                     );
                 } catch (Exception e) {
-                    // Log error pero continúa con otros documentos
+                    // Log error but continue with other documents
                     System.err.println("Error reverting document " + documentId + ": " + e.getMessage());
                 }
             }
         }
-        // Si paidDocumentIds es null o vacío, es un pago independiente - no revierte documentos
+        // If paidDocumentIds is null or empty, it's an independent payment - no documents to revert
     }
 
     /**
-     * Método responsable de actualizar los documentos pagados
-     * Respeta SRP - Single Responsibility Principle
+     * Method responsible for updating paid documents.
+     * Respects SRP - Single Responsibility Principle.
      */
     private void updatePaidDocuments(PaymentDetailsDTO paymentDetails) {
-        // Verificar si hay documentos para actualizar (pagos independientes no tienen documentos)
+        // Check if there are documents to update (independent payments have no documents)
         if (paymentDetails.paidDocumentIds() != null && !paymentDetails.paidDocumentIds().isEmpty()) {
             for (Long documentId : paymentDetails.paidDocumentIds()) {
                 iTransactionalDocumentService.updateTransactionalDocumentStatus(
@@ -165,7 +213,7 @@ public class PaymentService implements IPaymentService {
                 );
             }
         }
-        // Si paidDocumentIds es null o vacío, es un pago independiente - no hace nada con documentos
+        // If paidDocumentIds is null or empty, it's an independent payment - no action on documents
     }
 
     @Override
@@ -184,8 +232,8 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Factory method para mapear PaymentDetails a PaymentResponseDTO
-     * Respeta el patrón Factory y OCP
+     * Factory method to map PaymentDetails to PaymentResponseDTO.
+     * Respects Factory pattern and OCP.
      */
     private PaymentResponseDTO mapToPaymentResponse(PaymentDetails paymentDetails) {
         if (paymentDetails.getCashPayment() != null) {
@@ -207,9 +255,9 @@ public class PaymentService implements IPaymentService {
             cashPaymentRepository,
             "Cash payment not found",
             entity -> {
-                // Obtener datos originales antes de la actualización
+                // Get original data before update
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
-                // Actualizar la entidad
+                // Update the entity
                 cashPaymentMapper.updateEntityFromDto(dto, entity);
                 return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails());
             },
@@ -250,7 +298,7 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Clase auxiliar para transportar información de actualización
+     * Auxiliary class to transport update information.
      */
     private static class PaymentUpdateInfo<T> {
         final T entity;
@@ -265,7 +313,7 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Template method para operaciones de actualización con lógica de negocio
+     * Template method for update operations with business logic.
      */
     private <T, R extends PaymentResponseDTO> R updatePaymentWithBusinessLogic(
         Long id,
@@ -287,16 +335,24 @@ public class PaymentService implements IPaymentService {
             })
             .orElseThrow(() -> new PaymentNotFoundException(errorMessage));
 
-        // Ejecutar actualización y obtener información
+        // Execute update and get information
         PaymentUpdateInfo<T> updateInfo = updateFunction.apply(existing);
 
-        // Solo aplicar lógica de negocio si hay cambios significativos
+        // Validate supplier change if necessary
+        PaymentDetailsDTO mergedDetails = mergePaymentDetails(updateInfo.originalDetails, updateInfo.newDetails);
+        if (!updateInfo.originalDetails.supplierId().equals(mergedDetails.supplierId())) {
+            // If supplier changed, validate that the new supplier supports this payment type
+            PaymentMethod paymentMethod = determinePaymentMethodFromEntity(existing);
+            validatePaymentMethodAllowed(mergedDetails.supplierId(), paymentMethod);
+        }
+
+        // Only apply business logic if there are significant changes
         if (hasSignificantChanges(updateInfo.originalDetails, updateInfo.newDetails)) {
-            // 1. Revertir efectos del pago original
+            // 1. Revert original payment effects
             revertPaymentBusinessLogic(updateInfo.originalDetails);
 
-            // 2. Aplicar efectos del pago actualizado
-            executePaymentBusinessLogic(mergePaymentDetails(updateInfo.originalDetails, updateInfo.newDetails));
+            // 2. Apply updated payment effects
+            executePaymentBusinessLogic(mergedDetails);
         }
 
         T savedEntity = repository.save(updateInfo.entity);
@@ -304,8 +360,21 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Método responsable de eliminar pagos en efectivo
-     * Revierte todos los efectos del pago antes de marcarlo como eliminado
+     * Determines payment method type based on payment entity.
+     */
+    private <T> PaymentMethod determinePaymentMethodFromEntity(T paymentEntity) {
+        String className = paymentEntity.getClass().getSimpleName();
+        return switch (className) {
+            case "CashPayment" -> PaymentMethod.CASH;
+            case "TransferPayment" -> PaymentMethod.TRANSFER;
+            case "CheckPayment" -> PaymentMethod.CHECK;
+            default -> throw new IllegalArgumentException("Unrecognized payment entity type: " + className);
+        };
+    }
+
+    /**
+     * Method responsible for deleting cash payments.
+     * Reverts all payment effects before marking it as deleted.
      */
     @Override
     @Transactional
@@ -314,8 +383,8 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Método responsable de eliminar pagos por transferencia
-     * Revierte todos los efectos del pago antes de marcarlo como eliminado
+     * Method responsible for deleting transfer payments.
+     * Reverts all payment effects before marking it as deleted.
      */
     @Override
     @Transactional
@@ -324,8 +393,8 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Método responsable de eliminar pagos por cheque
-     * Revierte todos los efectos del pago antes de marcarlo como eliminado
+     * Method responsible for deleting check payments.
+     * Reverts all payment effects before marking it as deleted.
      */
     @Override
     @Transactional
@@ -334,8 +403,8 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Template method para operaciones de eliminación con lógica de negocio
-     * Revierte todos los efectos del pago antes de marcarlo como eliminado
+     * Template method for delete operations with business logic.
+     * Reverts all payment effects before marking it as deleted.
      */
     private <T> void deletePaymentWithBusinessLogic(Long id, JpaRepository<T, Long> repository, String errorMessage) {
         T existing = repository.findById(id)
@@ -351,13 +420,13 @@ public class PaymentService implements IPaymentService {
             })
             .orElseThrow(() -> new PaymentNotFoundException(errorMessage));
 
-        // 1. Extraer información del pago antes de eliminarlo
+        // 1. Extract payment information before deleting it
         PaymentDetailsDTO paymentDetails = extractPaymentDetails(existing);
 
-        // 2. Revertir todos los efectos del pago en el sistema
+        // 2. Revert all payment effects in the system
         revertPaymentBusinessLogic(paymentDetails);
 
-        // 3. Marcar como eliminado
+        // 3. Mark as deleted
         try {
             var setDeletedMethod = existing.getClass().getDeclaredMethod("setDeleted", Boolean.class);
             setDeletedMethod.setAccessible(true);
@@ -370,16 +439,16 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Extrae PaymentDetailsDTO de cualquier tipo de entidad de pago
+     * Extracts PaymentDetailsDTO from any payment entity type.
      */
     private <T> PaymentDetailsDTO extractPaymentDetails(T paymentEntity) {
         try {
-            // Usar reflexión para obtener paymentDetails
+            // Use reflection to get paymentDetails
             var paymentDetailsField = paymentEntity.getClass().getDeclaredMethod("getPaymentDetails");
             paymentDetailsField.setAccessible(true);
             PaymentDetails details = (PaymentDetails) paymentDetailsField.invoke(paymentEntity);
 
-            // Manejar pagos independientes sin documentos asociados
+            // Handle independent payments without associated documents
             List<Long> documentIds = null;
             if (details.getPaidDocuments() != null && !details.getPaidDocuments().isEmpty()) {
                 documentIds = details.getPaidDocuments().stream()
@@ -392,7 +461,7 @@ public class PaymentService implements IPaymentService {
                 details.getSupplier().getId(),
                 details.getAmount(),
                 details.getComment(),
-                documentIds // Puede ser null para pagos independientes
+                documentIds // Can be null for independent payments
             );
         } catch (Exception e) {
             throw new RuntimeException("Error extracting payment details", e);
@@ -400,15 +469,15 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Verifica si hay cambios significativos que requieren actualización de lógica de negocio
+     * Verifies if there are significant changes that require business logic update.
      */
     private boolean hasSignificantChanges(PaymentDetailsDTO original, PaymentDetailsDTO updated) {
-        // Obtener valores finales para comparación
+        // Get final values for comparison
         Long finalSupplierId = getValueOrOriginal(updated.supplierId(), original.supplierId());
         BigDecimal finalAmount = getValueOrOriginal(updated.amount(), original.amount());
         List<Long> finalPaidDocumentIds = getValueOrOriginal(updated.paidDocumentIds(), original.paidDocumentIds());
 
-        // Cambios en campos que afectan la lógica de negocio
+        // Changes in fields that affect business logic
         boolean supplierChanged = !original.supplierId().equals(finalSupplierId);
         boolean amountChanged = !original.amount().equals(finalAmount);
         boolean documentsChanged = !areDocumentListsEqual(original.paidDocumentIds(), finalPaidDocumentIds);
@@ -417,7 +486,7 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Compara dos listas de IDs de documentos, manejando casos null
+     * Compares two document ID lists, handling null cases.
      */
     private boolean areDocumentListsEqual(List<Long> list1, List<Long> list2) {
         if (list1 == null && list2 == null) return true;
@@ -427,7 +496,7 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Combina detalles originales con actualizaciones (solo campos no-null)
+     * Combines original details with updates (only non-null fields).
      */
     private PaymentDetailsDTO mergePaymentDetails(PaymentDetailsDTO original, PaymentDetailsDTO updated) {
         return new PaymentDetailsDTO(
@@ -440,7 +509,7 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Retorna el valor actualizado si no es null, sino el original
+     * Returns the updated value if not null, otherwise the original.
      */
     private <V> V getValueOrOriginal(V updatedValue, V originalValue) {
         return updatedValue != null ? updatedValue : originalValue;
@@ -465,8 +534,8 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Template method para operaciones de consulta por ID
-     * Centraliza la lógica de búsqueda y mapeo
+     * Template method for ID-based query operations.
+     * Centralizes search and mapping logic.
      */
     private <T, R extends PaymentResponseDTO> R getPayment(
         Long id,

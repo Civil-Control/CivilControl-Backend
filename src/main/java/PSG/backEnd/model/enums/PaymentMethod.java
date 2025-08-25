@@ -1,9 +1,9 @@
 package PSG.backEnd.model.enums;
 
 public enum PaymentMethod {
-    CASH("Cash"),
-    TRANSFER("Transfer"),
-    CHECK("Check");
+    CASH("efectivo"),
+    TRANSFER("transferencia"),
+    CHECK("cheque"),;
 
     private final String displayName;
 

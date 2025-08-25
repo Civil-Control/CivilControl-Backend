@@ -23,6 +23,5 @@ public record PaymentDetailsDTO(
         @Size(max = 500, message = "Comment cannot exceed 500 characters", groups = {OnCreate.class, OnUpdate.class})
         String comment,
 
-        // Ahora es opcional - puede ser null o lista vacía para pagos independientes
         List<Long> paidDocumentIds
 ) {}

@@ -17,7 +17,7 @@ public record CheckPaymentDTO(
         LocalDate dueDate,
 
         @NotBlank(message = "Check number is required", groups = OnCreate.class)
-        @Size(max = 50, message = "Check number cannot exceed 50 characters", groups = {OnCreate.class, OnUpdate.class})
+        @Pattern(regexp = "^\\d{8,9}$", message = "Check number must contain only digits and be 8 or 9 characters long", groups = {OnCreate.class, OnUpdate.class})
         String checkNumber,
 
         @NotBlank(message = "Bank name is required", groups = OnCreate.class)

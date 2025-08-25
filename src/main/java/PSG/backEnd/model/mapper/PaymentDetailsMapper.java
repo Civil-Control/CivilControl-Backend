@@ -33,7 +33,7 @@ public interface PaymentDetailsMapper {
     @Mapping(target = "paidDocumentIds", source = "paidDocuments")
     PaymentDetailsResponseDTO toResponse(PaymentDetails entity);
 
-    // Mapeo personalizado para convertir Long a Supplier
+    // Custom mapping to convert Long to Supplier
     default Supplier mapSupplier(Long supplierId) {
         if (supplierId == null) {
             return null;
@@ -43,7 +43,7 @@ public interface PaymentDetailsMapper {
         return supplier;
     }
 
-    // Mapeo personalizado para convertir List<Long> a List<TransactionalDocument>
+    // Custom mapping to convert List<Long> to List<TransactionalDocument>
     default List<TransactionalDocument> mapPaidDocuments(List<Long> paidDocumentIds) {
         if (paidDocumentIds == null) {
             return null;
@@ -57,7 +57,7 @@ public interface PaymentDetailsMapper {
                 .collect(Collectors.toList());
     }
 
-    // Mapeo personalizado para convertir List<TransactionalDocument> a List<Long>
+    // Custom mapping to convert List<TransactionalDocument> to List<Long>
     default List<Long> mapPaidDocumentIds(List<TransactionalDocument> paidDocuments) {
         if (paidDocuments == null) {
             return null;

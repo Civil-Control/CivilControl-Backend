@@ -20,6 +20,6 @@ public interface CheckPaymentMapper {
     void updateEntityFromDto(CheckPaymentDTO dto, @MappingTarget CheckPayment entity);
 
     @Mapping(target = "paymentDetails", source = "paymentDetails")
-    @Mapping(target = "type", constant = "CHECK")
+    @Mapping(target = "type", constant = "cheque")
     CheckPaymentResponseDTO toResponse(CheckPayment entity);
 }
