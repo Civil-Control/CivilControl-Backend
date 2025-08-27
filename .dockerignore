@@ -1,0 +1,6 @@
+# Ignora todo
+**
+
+# Whitelist de lo que sí necesitamos para compilar
+!pom.xml
+!src/**
