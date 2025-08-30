@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.transactionalDocument;
 
+import PSG.backEnd.model.dto.item.ItemDetailDTO;
 import PSG.backEnd.model.enums.DocumentType;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
@@ -9,6 +10,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public record TransactionalDocumentDTO(
 
@@ -61,5 +63,9 @@ public record TransactionalDocumentDTO(
     @Size(max = 500, message = "Comment cannot exceed 500 characters", groups = {OnCreate.class, OnUpdate.class})
     String comment,
 
-    boolean deleted
+    boolean deleted,
+
+    @Valid
+    @NotNull(groups = OnCreate.class, message = "Items list cannot be null")
+    List<ItemDetailDTO> items
 ) {}

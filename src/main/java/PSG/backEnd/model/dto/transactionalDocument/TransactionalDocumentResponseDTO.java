@@ -1,6 +1,9 @@
 package PSG.backEnd.model.dto.transactionalDocument;
 
+import PSG.backEnd.model.dto.item.ItemDetailResponseDTO;
+
 import java.math.BigDecimal;
+import java.util.List;
 
 public record TransactionalDocumentResponseDTO(
 
@@ -19,5 +22,6 @@ public record TransactionalDocumentResponseDTO(
     BigDecimal discountPercentage,
     String comment,
     boolean paid,
-    boolean deleted
+    boolean deleted,
+    List<ItemDetailResponseDTO> items
 ) {}

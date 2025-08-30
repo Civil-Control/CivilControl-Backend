@@ -6,6 +6,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 
 @Entity
@@ -68,4 +70,20 @@ public class TransactionalDocument {
 
     @Column(nullable = false)
     private Boolean deleted = false;
+
+    @OneToMany(mappedBy = "document", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
+    @Builder.Default
+    private List<ItemDetail> items = new ArrayList<>();
+
+    // Helper method to maintain bidirectional relationship
+    public void addItemDetail(ItemDetail itemDetail) {
+        items.add(itemDetail);
+        itemDetail.setDocument(this);
+    }
+
+    // Helper method to remove item detail
+    public void removeItemDetail(ItemDetail itemDetail) {
+        items.remove(itemDetail);
+        itemDetail.setDocument(null);
+    }
 }

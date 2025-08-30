@@ -1,15 +1,20 @@
 package PSG.backEnd.service.implementation;
 
+import PSG.backEnd.exception.NotFoundException;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentAlreadyActiveException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
+import PSG.backEnd.model.dto.item.ItemDetailDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentFilterDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
 import PSG.backEnd.model.entity.*;
 import PSG.backEnd.model.enums.DocumentType;
 import PSG.backEnd.model.enums.PaymentMethod;
+import PSG.backEnd.model.mapper.ItemDetailMapper;
 import PSG.backEnd.model.mapper.TransactionalDocumentMapper;
+import PSG.backEnd.repository.ItemDetailRepository;
+import PSG.backEnd.repository.ItemRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
@@ -18,17 +23,23 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
+import java.math.RoundingMode;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Validated
 public class TransactionalDocumentService implements ITransactionalDocumentService {
 
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final TransactionalDocumentMapper transactionalDocumentMapper;
+    private final ItemRepository itemRepository;
+    private final ItemDetailRepository itemDetailRepository;
+    private final ItemDetailMapper itemDetailMapper;
 
     private final ISupplierService iSupplierService;
 
@@ -112,19 +123,121 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 : BigDecimal.ZERO;
             supplier.setPendingBalance(currentBalance.subtract(previousDiscountedAmount));
 
-            // Update the document with new values
-            transactionalDocumentMapper.partialUpdate(dto, existingDocument);
+            // Update the document with new values (including items if provided)
+            updateDocumentFromDTO(existingDocument, dto);
 
             // Calculate and apply the new amount with discounts
             BigDecimal newDiscountedAmount = calculateDiscountedAmount(existingDocument, supplier);
             supplier.setPendingBalance(supplier.getPendingBalance().add(newDiscountedAmount));
         } else {
             // For paid documents or non-invoices, just update without affecting balance
-            transactionalDocumentMapper.partialUpdate(dto, existingDocument);
+            updateDocumentFromDTO(existingDocument, dto);
         }
 
         TransactionalDocument savedDocument = transactionalDocumentRepository.save(existingDocument);
         return transactionalDocumentMapper.toResponseDto(savedDocument);
+    }
+
+    /**
+     * Updates a TransactionalDocument from DTO, handling ItemDetails correctly
+     */
+    private void updateDocumentFromDTO(TransactionalDocument document, TransactionalDocumentDTO dto) {
+        // Update basic fields using mapper
+        transactionalDocumentMapper.partialUpdate(dto, document);
+
+        // Handle ItemDetails updates if provided
+        if (dto.items() != null) {
+            updateItemDetails(document, dto.items());
+        }
+    }
+
+    /**
+     * Updates ItemDetails intelligently to avoid unnecessary deletions and recreations
+     */
+    private void updateItemDetails(TransactionalDocument document, List<ItemDetailDTO> newItemDetailDTOs) {
+        List<ItemDetail> existingItems = document.getItems();
+
+        // Create a map of existing items by their ID for quick lookup
+        Map<Long, ItemDetail> existingItemsMap = existingItems.stream()
+                .filter(item -> item.getId() != null)
+                .collect(Collectors.toMap(ItemDetail::getId, item -> item));
+
+        // Track which existing items should be kept
+        Set<Long> itemsToKeep = new HashSet<>();
+
+        // Process each item from the DTO
+        for (ItemDetailDTO itemDetailDTO : newItemDetailDTOs) {
+            if (itemDetailDTO.id() != null && existingItemsMap.containsKey(itemDetailDTO.id())) {
+                // UPDATE: Item exists, update its fields
+                ItemDetail existingItem = existingItemsMap.get(itemDetailDTO.id());
+                updateExistingItemDetail(existingItem, itemDetailDTO);
+                itemsToKeep.add(itemDetailDTO.id());
+            } else {
+                // CREATE: New item, add it to the document
+                ItemDetail newItem = createNewItemDetail(itemDetailDTO);
+                document.addItemDetail(newItem);
+            }
+        }
+
+        // REMOVE: Remove items that are not in the new list
+        existingItems.removeIf(item ->
+            item.getId() != null && !itemsToKeep.contains(item.getId()));
+    }
+
+    /**
+     * Updates an existing ItemDetail with new values from DTO
+     */
+    private void updateExistingItemDetail(ItemDetail existingItem, ItemDetailDTO dto) {
+        // Update item reference if changed
+        if (dto.itemId() != null && !dto.itemId().equals(existingItem.getItem().getId())) {
+            Item newItem = itemRepository.findById(dto.itemId())
+                    .orElseThrow(() -> new NotFoundException("Item not found with id: " + dto.itemId()));
+            existingItem.setItem(newItem);
+        }
+
+        // Update other fields
+        if (dto.unitAmount() != null) {
+            existingItem.setUnitAmount(dto.unitAmount());
+        }
+        if (dto.quantity() != null) {
+            existingItem.setQuantity(dto.quantity());
+        }
+        if (dto.ivaPercentage() != null) {
+            existingItem.setIvaPercentage(dto.ivaPercentage());
+        }
+
+        // Recalculate total amount
+        existingItem.setTotalAmount(computeTotal(
+            existingItem.getUnitAmount(),
+            existingItem.getQuantity(),
+            existingItem.getIvaPercentage()
+        ));
+    }
+
+    /**
+     * Creates a new ItemDetail from DTO
+     */
+    private ItemDetail createNewItemDetail(ItemDetailDTO itemDetailDTO) {
+        // Load the complete Item from database
+        Item item = itemRepository.findById(itemDetailDTO.itemId())
+                .orElseThrow(() -> new NotFoundException("Item not found with id: " + itemDetailDTO.itemId()));
+
+        // Create ItemDetail manually to ensure Item reference is complete
+        ItemDetail itemDetail = ItemDetail.builder()
+                .item(item)  // Complete Item with all fields loaded
+                .unitAmount(itemDetailDTO.unitAmount())
+                .quantity(itemDetailDTO.quantity())
+                .ivaPercentage(itemDetailDTO.ivaPercentage())
+                .build();
+
+        // Calculate total amount
+        itemDetail.setTotalAmount(computeTotal(
+            itemDetailDTO.unitAmount(),
+            itemDetailDTO.quantity(),
+            itemDetailDTO.ivaPercentage()
+        ));
+
+        return itemDetail;
     }
 
     @Override
@@ -173,6 +286,11 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         Supplier supplier = iSupplierService.getEntityById(dto.supplierId());
         document.setSupplier(supplier);
 
+        // Process ItemDetails if present
+        if (dto.items() != null && !dto.items().isEmpty()) {
+            processItemDetails(document, dto.items());
+        }
+
         if (isInvoice(document.getDocumentType())) {
             List<PaymentMethod> methods = supplier.getAllowedPaymentMethods();
             boolean paid = methods != null
@@ -194,6 +312,35 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         }
 
         return document;
+    }
+
+    /**
+     * Processes ItemDetails for a TransactionalDocument, validating items and calculating totals
+     */
+    private void processItemDetails(TransactionalDocument document, List<ItemDetailDTO> itemDetailDTOs) {
+        for (ItemDetailDTO itemDetailDTO : itemDetailDTOs) {
+            // Load the complete Item from database (not just validate existence)
+            Item item = itemRepository.findById(itemDetailDTO.itemId())
+                    .orElseThrow(() -> new NotFoundException("Item not found with id: " + itemDetailDTO.itemId()));
+
+            // Create ItemDetail manually instead of using mapper to ensure Item reference is complete
+            ItemDetail itemDetail = ItemDetail.builder()
+                    .item(item)  // Complete Item with all fields loaded
+                    .unitAmount(itemDetailDTO.unitAmount())
+                    .quantity(itemDetailDTO.quantity())
+                    .ivaPercentage(itemDetailDTO.ivaPercentage())
+                    .build();
+
+            // Calculate total amount
+            itemDetail.setTotalAmount(computeTotal(
+                itemDetailDTO.unitAmount(),
+                itemDetailDTO.quantity(),
+                itemDetailDTO.ivaPercentage()
+            ));
+
+            // Use helper method to maintain bidirectional relationship
+            document.addItemDetail(itemDetail);
+        }
     }
 
     /**
@@ -238,9 +385,8 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     }
 
     private TransactionalDocument reactivateExistingDocument(TransactionalDocument document, TransactionalDocumentDTO dto) {
-        transactionalDocumentMapper.partialUpdate(dto, document);
+        updateDocumentFromDTO(document, dto);
         document.setDeleted(false);
-
         return document;
     }
 
@@ -312,5 +458,20 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         }
 
         document.setPaid(false);
+    }
+
+    /**
+     * Computes the total amount for an ItemDetail using BigDecimal arithmetic.
+     * Formula: unitAmount * quantity * (1 + ivaPercentage/100)
+     */
+    private BigDecimal computeTotal(BigDecimal unitAmount, Integer quantity, BigDecimal ivaPercentage) {
+        if (unitAmount == null || quantity == null || ivaPercentage == null) {
+            throw new IllegalArgumentException("Unit amount, quantity, and IVA percentage are required for total calculation");
+        }
+
+        BigDecimal subtotal = unitAmount.multiply(BigDecimal.valueOf(quantity));
+        BigDecimal ivaFactor = BigDecimal.ONE.add(ivaPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+
+        return subtotal.multiply(ivaFactor).setScale(2, RoundingMode.HALF_UP);
     }
 }
