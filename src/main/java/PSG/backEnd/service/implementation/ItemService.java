@@ -2,11 +2,10 @@ package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.NotFoundException;
 import PSG.backEnd.model.dto.item.ItemDTO;
+import PSG.backEnd.model.dto.item.ItemFilterDTO;
 import PSG.backEnd.model.dto.item.ItemResponseDTO;
 import PSG.backEnd.model.entity.Item;
 import PSG.backEnd.model.mapper.ItemMapper;
-import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
-import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.repository.ItemRepository;
 import PSG.backEnd.service.port.IItemService;
 import lombok.RequiredArgsConstructor;
@@ -26,16 +25,16 @@ public class ItemService implements IItemService {
     private final ItemMapper itemMapper;
 
     @Override
-    @Validated(OnCreate.class)
-    public ItemResponseDTO create(@Validated(OnCreate.class) ItemDTO dto) {
+    @Transactional
+    public ItemResponseDTO create(ItemDTO dto) {
         Item item = itemMapper.toEntity(dto);
         Item savedItem = itemRepository.save(item);
         return itemMapper.toResponse(savedItem);
     }
 
     @Override
-    @Validated(OnUpdate.class)
-    public ItemResponseDTO update(Long id, @Validated(OnUpdate.class) ItemDTO dto) {
+    @Transactional
+    public ItemResponseDTO update(Long id, ItemDTO dto) {
         Item existingItem = itemRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Item not found with id: " + id));
 
@@ -52,6 +51,7 @@ public class ItemService implements IItemService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         if (!itemRepository.existsById(id)) {
             throw new NotFoundException("Item not found with id: " + id);
@@ -69,14 +69,12 @@ public class ItemService implements IItemService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ItemResponseDTO> list(String nameFilter, Pageable pageable) {
-        Page<Item> items;
-
-        if (nameFilter != null && !nameFilter.trim().isEmpty()) {
-            items = itemRepository.findByNameContainingIgnoreCase(nameFilter.trim(), pageable);
-        } else {
-            items = itemRepository.findAll(pageable);
-        }
+    public Page<ItemResponseDTO> list(ItemFilterDTO filterDTO, Pageable pageable) {
+        Page<Item> items = itemRepository.findAllWithFilters(
+                filterDTO.name(),
+                filterDTO.description(),
+                pageable
+        );
 
         return items.map(itemMapper::toResponse);
     }

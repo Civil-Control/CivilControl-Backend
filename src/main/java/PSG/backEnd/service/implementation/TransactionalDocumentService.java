@@ -206,12 +206,18 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             existingItem.setIvaPercentage(dto.ivaPercentage());
         }
 
-        // Recalculate total amount
-        existingItem.setTotalAmount(computeTotal(
-            existingItem.getUnitAmount(),
-            existingItem.getQuantity(),
-            existingItem.getIvaPercentage()
-        ));
+        // Handle total amount - use provided value or calculate it
+        if (dto.totalAmount() != null) {
+            // Use the provided total amount
+            existingItem.setTotalAmount(dto.totalAmount());
+        } else {
+            // Calculate total amount using current values
+            existingItem.setTotalAmount(computeTotal(
+                existingItem.getUnitAmount(),
+                existingItem.getQuantity(),
+                existingItem.getIvaPercentage()
+            ));
+        }
     }
 
     /**
@@ -230,12 +236,18 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 .ivaPercentage(itemDetailDTO.ivaPercentage())
                 .build();
 
-        // Calculate total amount
-        itemDetail.setTotalAmount(computeTotal(
-            itemDetailDTO.unitAmount(),
-            itemDetailDTO.quantity(),
-            itemDetailDTO.ivaPercentage()
-        ));
+        // Handle total amount - use provided value or calculate it
+        if (itemDetailDTO.totalAmount() != null) {
+            // Use the provided total amount
+            itemDetail.setTotalAmount(itemDetailDTO.totalAmount());
+        } else {
+            // Calculate total amount
+            itemDetail.setTotalAmount(computeTotal(
+                itemDetailDTO.unitAmount(),
+                itemDetailDTO.quantity(),
+                itemDetailDTO.ivaPercentage()
+            ));
+        }
 
         return itemDetail;
     }
@@ -331,12 +343,18 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                     .ivaPercentage(itemDetailDTO.ivaPercentage())
                     .build();
 
-            // Calculate total amount
-            itemDetail.setTotalAmount(computeTotal(
-                itemDetailDTO.unitAmount(),
-                itemDetailDTO.quantity(),
-                itemDetailDTO.ivaPercentage()
-            ));
+            // Handle total amount - use provided value or calculate it
+            if (itemDetailDTO.totalAmount() != null) {
+                // Use the provided total amount
+                itemDetail.setTotalAmount(itemDetailDTO.totalAmount());
+            } else {
+                // Calculate total amount
+                itemDetail.setTotalAmount(computeTotal(
+                    itemDetailDTO.unitAmount(),
+                    itemDetailDTO.quantity(),
+                    itemDetailDTO.ivaPercentage()
+                ));
+            }
 
             // Use helper method to maintain bidirectional relationship
             document.addItemDetail(itemDetail);

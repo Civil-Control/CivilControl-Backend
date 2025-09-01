@@ -9,11 +9,12 @@ public record TransactionalDocumentResponseDTO(
 
     Long id,
     String date,
+    Long supplierId,
+    String supplierName,
     String documentType,
     String branchCode,
     String documentNumber,
-    Long supplierId,
-    String supplierName,
+    List<ItemDetailResponseDTO> items,
     BigDecimal otherTaxes,
     BigDecimal netTotal,
     BigDecimal ivaTotal,
@@ -22,6 +23,5 @@ public record TransactionalDocumentResponseDTO(
     BigDecimal discountPercentage,
     String comment,
     boolean paid,
-    boolean deleted,
-    List<ItemDetailResponseDTO> items
+    boolean deleted
 ) {}

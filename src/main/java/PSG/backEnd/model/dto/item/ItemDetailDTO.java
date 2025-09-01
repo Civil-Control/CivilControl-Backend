@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 
 public record ItemDetailDTO(
 
-    @NotNull(groups = OnUpdate.class, message = "ID is required for update operations")
     Long id,
 
     @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "Item ID is required")
@@ -27,5 +26,9 @@ public record ItemDetailDTO(
     @DecimalMin(value = "0.00", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "IVA percentage must be at least 0")
     @DecimalMax(value = "100.00", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "IVA percentage must not exceed 100")
     @Digits(integer = 3, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "IVA percentage must have at most 2 decimal places")
-    BigDecimal ivaPercentage
+    BigDecimal ivaPercentage,
+
+    @DecimalMin(value = "0.01", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "Total amount must be greater than 0")
+    @Digits(integer = 19, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "Total amount must have at most 2 decimal places")
+    BigDecimal totalAmount
 ) {}

@@ -42,7 +42,8 @@ public class ItemDetail {
     @PrePersist
     @PreUpdate
     private void calculateTotalAmount() {
-        if (unitAmount != null && quantity != null && ivaPercentage != null) {
+        // Calculate totalAmount if not set
+        if (this.totalAmount == null) {
             BigDecimal subtotal = unitAmount.multiply(BigDecimal.valueOf(quantity));
             BigDecimal ivaFactor = BigDecimal.ONE.add(ivaPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
             this.totalAmount = subtotal.multiply(ivaFactor).setScale(2, RoundingMode.HALF_UP);
