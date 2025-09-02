@@ -24,12 +24,18 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
     boolean existsByBranchCodeAndDocumentNumberAndSupplierIdAndDeletedFalse(String branchCode, String documentNumber, Long supplierId);
 
     @Query("""
-            SELECT td FROM TransactionalDocument td JOIN FETCH td.supplier
+            SELECT td FROM TransactionalDocument td 
+            JOIN FETCH td.supplier 
+            LEFT JOIN FETCH td.projectArea
             WHERE (:documentNumber IS NULL OR td.documentNumber LIKE %:documentNumber%)
             AND (:supplierCuit IS NULL OR td.supplier.cuit LIKE %:supplierCuit%)
             AND (:supplierName IS NULL OR 
                  LOWER(td.supplier.legalName) LIKE LOWER(CONCAT('%', :supplierName, '%')) OR
                  LOWER(td.supplier.tradeName) LIKE LOWER(CONCAT('%', :supplierName, '%'))
+            )
+            AND (:projectAreaId IS NULL OR td.projectArea.id = :projectAreaId)
+            AND (:projectAreaName IS NULL OR 
+                 LOWER(td.projectArea.name) LIKE LOWER(CONCAT('%', :projectAreaName, '%'))
             )
             AND (:maxTotalAmount IS NULL OR td.total <= :maxTotalAmount)
             AND (:minTotalAmount IS NULL OR td.total >= :minTotalAmount)
@@ -43,6 +49,8 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             @Param("documentNumber") String documentNumber,
             @Param("supplierCuit") String supplierCuit,
             @Param("supplierName") String supplierName,
+            @Param("projectAreaId") Long projectAreaId,
+            @Param("projectAreaName") String projectAreaName,
             @Param("maxTotalAmount") BigDecimal maxTotalAmount,
             @Param("minTotalAmount") BigDecimal minTotalAmount,
             @Param("totalAmount") BigDecimal totalAmount,

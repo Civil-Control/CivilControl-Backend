@@ -7,6 +7,8 @@ public record TransactionalDocumentFilterDTO(
     String documentNumber,
     String supplierCuit,
     String supplierName,
+    Long projectAreaId,
+    String projectAreaName,
     BigDecimal minTotalAmount,
     BigDecimal maxTotalAmount,
     BigDecimal totalAmount,

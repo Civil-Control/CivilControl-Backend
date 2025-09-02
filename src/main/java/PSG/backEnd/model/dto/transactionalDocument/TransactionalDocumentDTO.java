@@ -33,6 +33,8 @@ public record TransactionalDocumentDTO(
     @NotNull(message = "Supplier is required", groups = OnCreate.class)
     Long supplierId,
 
+    Long projectAreaId,
+
     @NotNull(message = "Other taxes amount is required", groups = OnCreate.class)
     @DecimalMin(value = "0.00", inclusive = true, message = "Other taxes cannot be negative", groups = {OnCreate.class, OnUpdate.class})
     @Digits(integer = 12, fraction = 2, message = "Other taxes must have up to 12 digits and 2 decimals", groups = {OnCreate.class, OnUpdate.class})

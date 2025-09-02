@@ -16,6 +16,7 @@ import PSG.backEnd.model.mapper.TransactionalDocumentMapper;
 import PSG.backEnd.repository.ItemDetailRepository;
 import PSG.backEnd.repository.ItemRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
+import PSG.backEnd.service.port.IProjectAreaService;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final ItemDetailRepository itemDetailRepository;
     private final ItemDetailMapper itemDetailMapper;
 
+    private final IProjectAreaService iProjectAreaService;
     private final ISupplierService iSupplierService;
 
     @Override
@@ -82,6 +84,8 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 filterDTO.documentNumber(),
                 filterDTO.supplierCuit(),
                 filterDTO.supplierName(),
+                filterDTO.projectAreaId(),
+                filterDTO.projectAreaName(),
                 filterDTO.maxTotalAmount(),
                 filterDTO.minTotalAmount(),
                 filterDTO.totalAmount(),
@@ -300,6 +304,12 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
         // Process ItemDetails if present
         if (dto.items() != null && !dto.items().isEmpty()) {
+        // Set ProjectArea if provided
+        if (dto.projectAreaId() != null) {
+            ProjectArea projectArea = iProjectAreaService.getEntityById(dto.projectAreaId());
+            document.setProjectArea(projectArea);
+        }
+
             processItemDetails(document, dto.items());
         }
 

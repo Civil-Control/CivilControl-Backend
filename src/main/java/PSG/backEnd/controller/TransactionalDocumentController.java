@@ -38,6 +38,8 @@ public class TransactionalDocumentController {
             @RequestParam(required = false) String documentNumber,
             @RequestParam(required = false) String supplierCuit,
             @RequestParam(required = false) String supplierName,
+            @RequestParam(required = false) Long projectAreaId,
+            @RequestParam(required = false) String projectAreaName,
             @RequestParam(required = false) BigDecimal minTotalAmount,
             @RequestParam(required = false) BigDecimal maxTotalAmount,
             @RequestParam(required = false) BigDecimal totalAmount,
@@ -53,7 +55,7 @@ public class TransactionalDocumentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         TransactionalDocumentFilterDTO filter = new TransactionalDocumentFilterDTO(
-                documentNumber, supplierCuit, supplierName, minTotalAmount,
+                documentNumber, supplierCuit, supplierName, projectAreaId, projectAreaName, minTotalAmount,
                 maxTotalAmount, totalAmount, fromDate, toDate, paid
         );
         return ResponseEntity.ok(iTransactionalDocumentService.getAllTransactionalDocuments(filter, pageable));

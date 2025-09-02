@@ -75,6 +75,10 @@ public class TransactionalDocument {
     @Builder.Default
     private List<ItemDetail> items = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_id")
+    private ProjectArea projectArea;
+
     // Helper method to maintain bidirectional relationship
     public void addItemDetail(ItemDetail itemDetail) {
         items.add(itemDetail);

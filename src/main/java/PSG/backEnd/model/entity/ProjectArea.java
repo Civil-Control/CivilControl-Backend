@@ -3,6 +3,9 @@ package PSG.backEnd.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "project_areas")
 @AllArgsConstructor
@@ -27,4 +30,8 @@ public class ProjectArea {
 
     @Column
     private Boolean deleted;
+
+    @OneToMany(mappedBy = "projectArea", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<TransactionalDocument> transactionalDocuments = new ArrayList<>();
 }

@@ -21,6 +21,8 @@ public record TransactionalDocumentResponseDTO(
     BigDecimal ivaExemptTotal,
     BigDecimal total,
     BigDecimal discountPercentage,
+    Long projectAreaId,
+    String projectAreaName,
     String comment,
     boolean paid,
     boolean deleted
