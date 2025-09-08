@@ -25,6 +25,7 @@ public class PaymentController {
 
     private final IPaymentService paymentService;
 
+
     @PostMapping("/cash")
     public CashPaymentResponseDTO createCash(
             @Validated(OnCreate.class) @RequestBody CashPaymentDTO dto) {

@@ -21,7 +21,6 @@ import java.net.URI;
 @RestController
 @RequestMapping("/api/v1/items")
 @RequiredArgsConstructor
-@Validated
 public class ItemController {
 
     private final IItemService itemService;

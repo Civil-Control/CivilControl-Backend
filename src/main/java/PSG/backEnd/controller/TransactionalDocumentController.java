@@ -21,7 +21,6 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/v1/transactional-documents")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class TransactionalDocumentController {
 
     private final ITransactionalDocumentService iTransactionalDocumentService;

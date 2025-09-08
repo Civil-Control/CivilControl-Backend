@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/project-areas")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class ProjectAreaController {
 
     private final IProjectAreaService iProjectAreaService;

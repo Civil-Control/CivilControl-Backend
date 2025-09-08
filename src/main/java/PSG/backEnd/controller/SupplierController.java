@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 @RestController
 @RequestMapping("/api/v1/suppliers")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class SupplierController {
 
     private final ISupplierService iSupplierService;
