@@ -24,7 +24,7 @@ services:
       start_period: 30s   # espera inicial
 
   api:
-    image: mi-backend:0.1
+    image: mi-backend:0.2    
     container_name: psg-api
     restart: unless-stopped
     depends_on:
@@ -32,15 +32,15 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/appdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/psg_backend?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: appuser
-      SPRING_DATASOURCE_PASSWORD: super-secreta
+      SPRING_DATASOURCE_PASSWORD: app_pass_123
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
       SERVER_PORT: 8080
     ports:
-      - "8080:8080"
+      - "8081:8080"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q 'UP'"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health | grep -q 'UP'"]
       interval: 30s
       timeout: 3s
       retries: 5

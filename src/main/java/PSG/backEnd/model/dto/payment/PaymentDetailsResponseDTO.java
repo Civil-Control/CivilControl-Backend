@@ -8,6 +8,7 @@ public record PaymentDetailsResponseDTO(
         Long id,
         LocalDate paymentDate,
         Long supplierId,
+        String supplierName,
         BigDecimal amount,
         String comment,
         List<Long> paidDocumentIds

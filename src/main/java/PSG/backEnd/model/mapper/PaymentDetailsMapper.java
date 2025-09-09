@@ -30,6 +30,7 @@ public interface PaymentDetailsMapper {
     void updateEntityFromDto(PaymentDetailsDTO dto, @MappingTarget PaymentDetails entity);
 
     @Mapping(target = "supplierId", source = "supplier.id")
+    @Mapping(target = "supplierName", source = "supplier.legalName")
     @Mapping(target = "paidDocumentIds", source = "paidDocuments")
     PaymentDetailsResponseDTO toResponse(PaymentDetails entity);
 

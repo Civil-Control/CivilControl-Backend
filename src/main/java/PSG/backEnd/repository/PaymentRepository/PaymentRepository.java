@@ -15,7 +15,9 @@ import java.time.LocalDate;
 @Repository
 public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
 
-    @Query("SELECT pd FROM PaymentDetails pd WHERE " +
+    @Query("SELECT pd FROM PaymentDetails pd " +
+            "LEFT JOIN FETCH pd.supplier " +
+            "WHERE " +
             "(:paymentMethod IS NULL OR " +
             "  (EXISTS (SELECT 1 FROM CashPayment cp WHERE cp.paymentDetails.id = pd.id AND :paymentMethod = 'CASH') OR " +
             "   EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND :paymentMethod = 'CHECK') OR " +
