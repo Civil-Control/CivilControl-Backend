@@ -110,8 +110,31 @@ public class InsurancePolicyController {
     }
 
     @GetMapping("/{insurancePolicyId}/vehicles")
-    public ResponseEntity<List<PolicyVehicleResponseDTO>> getVehiclesByInsurancePolicyId(@PathVariable Long insurancePolicyId) {
-        List<PolicyVehicleResponseDTO> vehicles = policyVehicleService.getByInsurancePolicyId(insurancePolicyId);
+    public ResponseEntity<Page<PolicyVehicleResponseDTO>> getVehiclesByInsurancePolicyId(
+            @PathVariable Long insurancePolicyId,
+            @RequestParam(required = false) String licensePlate,
+            @RequestParam(required = false) String vehicleBrand,
+            @RequestParam(required = false) String vehicleModel,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromStart,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromEnd,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToStart,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToEnd,
+            @RequestParam(required = false) Boolean isCancelled,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+            ? Sort.by(sortBy).descending()
+            : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<PolicyVehicleResponseDTO> vehicles = policyVehicleService.getAllPolicyVehiclesByInsurancePolicy(
+                null, insurancePolicyId, licensePlate, vehicleBrand, vehicleModel,
+                null, effectiveFromStart, effectiveFromEnd, effectiveToStart,
+                effectiveToEnd, isCancelled, pageable);
         return ResponseEntity.ok(vehicles);
     }
 
