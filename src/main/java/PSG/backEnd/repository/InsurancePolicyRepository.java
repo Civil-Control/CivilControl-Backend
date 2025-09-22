@@ -1,0 +1,57 @@
+package PSG.backEnd.repository;
+
+import PSG.backEnd.model.entity.insurance.InsurancePolicy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface InsurancePolicyRepository extends JpaRepository<InsurancePolicy, Long> {
+
+    List<InsurancePolicy> findAllByOrderByIdDesc();
+    Optional<InsurancePolicy> findByIdAndDeletedFalse(Long id);
+    Optional<InsurancePolicy> findByPolicyNumberAndDeletedFalse(String policyNumber);
+    Optional<InsurancePolicy> findByPolicyNumberAndDeletedTrue(String policyNumber);
+    boolean existsByPolicyNumberAndDeletedFalse(String policyNumber);
+    boolean existsByIdAndDeletedFalse(Long id);
+
+    @Query("SELECT ip FROM InsurancePolicy ip " +
+            "WHERE (:policyNumber IS NULL OR LOWER(ip.policyNumber) LIKE LOWER(CONCAT('%', :policyNumber, '%'))) " +
+            "AND (:termNumber IS NULL OR LOWER(ip.termNumber) LIKE LOWER(CONCAT('%', :termNumber, '%'))) " +
+            "AND (:policyType IS NULL OR ip.policyType = :policyType) " +
+            "AND (:policyStatus IS NULL OR ip.policyStatus = :policyStatus) " +
+            "AND (:paymentFrequency IS NULL OR ip.paymentFrequency = :paymentFrequency) " +
+            "AND (:issueDateFrom IS NULL OR ip.issueDate >= :issueDateFrom) " +
+            "AND (:issueDateTo IS NULL OR ip.issueDate <= :issueDateTo) " +
+            "AND (:effectiveFromStart IS NULL OR ip.effectiveFrom >= :effectiveFromStart) " +
+            "AND (:effectiveFromEnd IS NULL OR ip.effectiveFrom <= :effectiveFromEnd) " +
+            "AND (:effectiveToStart IS NULL OR ip.effectiveTo >= :effectiveToStart) " +
+            "AND (:effectiveToEnd IS NULL OR ip.effectiveTo <= :effectiveToEnd) " +
+            "AND (:isCancelled IS NULL OR " +
+            "     (:isCancelled = true AND ip.cancellationDate IS NOT NULL) OR " +
+            "     (:isCancelled = false AND ip.cancellationDate IS NULL)) " +
+            "AND ip.deleted = false " +
+            "ORDER BY ip.id DESC")
+    Page<InsurancePolicy> findAllWithFilters(
+            @Param("policyNumber") String policyNumber,
+            @Param("termNumber") String termNumber,
+            @Param("policyType") String policyType,
+            @Param("policyStatus") String policyStatus,
+            @Param("paymentFrequency") String paymentFrequency,
+            @Param("issueDateFrom") LocalDate issueDateFrom,
+            @Param("issueDateTo") LocalDate issueDateTo,
+            @Param("effectiveFromStart") LocalDate effectiveFromStart,
+            @Param("effectiveFromEnd") LocalDate effectiveFromEnd,
+            @Param("effectiveToStart") LocalDate effectiveToStart,
+            @Param("effectiveToEnd") LocalDate effectiveToEnd,
+            @Param("isCancelled") Boolean isCancelled,
+            Pageable pageable
+    );
+}
