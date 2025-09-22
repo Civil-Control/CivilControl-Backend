@@ -1,5 +1,9 @@
 package PSG.backEnd.exception.handler;
 
+import PSG.backEnd.exception.gasStation.DuplicateTicketException;
+import PSG.backEnd.exception.gasStation.FuelLoadNotFoundException;
+import PSG.backEnd.exception.gasStation.FuelTypeNotAvailableException;
+import PSG.backEnd.exception.gasStation.GasStationNotFoundException;
 import PSG.backEnd.exception.payment.InvalidPaymentMethodException;
 import PSG.backEnd.exception.supplier.SupplierAlreadyExistsException;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
@@ -173,6 +177,50 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                 ResponseMessage.builder()
                         .message("An unexpected error occurred: " + ex.getMessage())
                         .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(GasStationNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleGasStationNotFoundException(GasStationNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(DuplicateTicketException.class)
+    public ResponseEntity<ResponseMessage> handleDuplicateTicketException(DuplicateTicketException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(FuelLoadNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleFuelLoadNotFoundException(FuelLoadNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(FuelTypeNotAvailableException.class)
+    public ResponseEntity<ResponseMessage> handleFuelTypeNotAvailableException(FuelTypeNotAvailableException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
                         .timestamp(LocalDateTime.now())
                         .build()
         );
