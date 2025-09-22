@@ -16,15 +16,17 @@ services:
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
-      # usa 127.0.0.1 y pasa usuario/clave explícitos
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -prootpass || exit 1"]
       interval: 5s
       timeout: 3s
-      retries: 60         # hasta 5 minutos
-      start_period: 30s   # espera inicial
+      retries: 60
+      start_period: 30s
 
   api:
-    image: mi-backend:0.2    
+    image: mi-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: psg-api
     restart: unless-stopped
     depends_on:
@@ -38,9 +40,9 @@ services:
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
       SERVER_PORT: 8080
     ports:
-      - "8081:8080"
+      - "8081:8080"   # publica 8081 en el host -> 8080 del contenedor
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health | grep -q 'UP'"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q 'UP'"]
       interval: 30s
       timeout: 3s
       retries: 5
