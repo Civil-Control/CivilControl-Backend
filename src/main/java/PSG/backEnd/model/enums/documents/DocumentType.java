@@ -1,4 +1,4 @@
-package PSG.backEnd.model.enums;
+package PSG.backEnd.model.enums.documents;
 
 public enum DocumentType {
     BILL_A("factura A"),

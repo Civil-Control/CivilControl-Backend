@@ -1,4 +1,4 @@
-package PSG.backEnd.model.enums;
+package PSG.backEnd.model.enums.vehicle;
 
 public enum VehicleType {
     CAMION("camion"),
