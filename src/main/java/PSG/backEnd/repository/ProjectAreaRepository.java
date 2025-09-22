@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface ProjectAreaRepository extends JpaRepository<ProjectArea, Long> {
     boolean existsByName(String name);
     boolean existsByNameAndDeletedFalse(String name);
+    boolean existsByIdAndDeletedFalse(Long id);
     Optional<ProjectArea> findByIdAndDeletedFalse(Long id);
     Optional<ProjectArea> findByNameAndDeletedTrue(String name);
 

@@ -6,7 +6,7 @@ import PSG.backEnd.model.dto.payment.*;
 import PSG.backEnd.model.entity.payment.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Supplier;
-import PSG.backEnd.model.enums.PaymentMethod;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.mapper.*;
 import PSG.backEnd.repository.PaymentRepository.CashPaymentRepository;
 import PSG.backEnd.repository.PaymentRepository.CheckPaymentRepository;

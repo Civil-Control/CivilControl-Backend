@@ -1,6 +1,6 @@
 package PSG.backEnd.model.entity;
 
-import PSG.backEnd.model.enums.DocumentType;
+import PSG.backEnd.model.enums.documents.DocumentType;
 import jakarta.persistence.*;
 import lombok.*;
 

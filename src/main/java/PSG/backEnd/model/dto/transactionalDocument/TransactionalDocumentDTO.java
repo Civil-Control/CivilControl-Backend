@@ -1,7 +1,7 @@
 package PSG.backEnd.model.dto.transactionalDocument;
 
 import PSG.backEnd.model.dto.item.ItemDetailDTO;
-import PSG.backEnd.model.enums.DocumentType;
+import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import jakarta.validation.Valid;

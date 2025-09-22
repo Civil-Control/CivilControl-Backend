@@ -2,7 +2,7 @@ package PSG.backEnd.model.dto.supplier;
 
 import PSG.backEnd.model.dto.contactInfo.ContactInfoResponseDTO;
 import PSG.backEnd.model.dto.address.AddressResponseDTO;
-import PSG.backEnd.model.enums.PaymentMethod;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import java.math.BigDecimal;
 import java.util.List;
 

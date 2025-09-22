@@ -1,6 +1,6 @@
 package PSG.backEnd.model.dto.vehicle;
 
-import PSG.backEnd.model.enums.VehicleType;
+import PSG.backEnd.model.enums.vehicle.VehicleType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import jakarta.validation.constraints.*;

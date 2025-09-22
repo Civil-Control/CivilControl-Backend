@@ -1,7 +1,7 @@
 package PSG.backEnd.repository.PaymentRepository;
 
 import PSG.backEnd.model.entity.payment.PaymentDetails;
-import PSG.backEnd.model.enums.PaymentMethod;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

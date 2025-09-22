@@ -1,6 +1,6 @@
 package PSG.backEnd.model.entity;
 
-import PSG.backEnd.model.enums.PaymentMethod;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

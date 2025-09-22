@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity;
 
+import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,4 +35,8 @@ public class ProjectArea {
     @OneToMany(mappedBy = "projectArea", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<TransactionalDocument> transactionalDocuments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "projectArea", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<FuelLoad> fuelLoads = new ArrayList<>();
 }

@@ -1,7 +1,7 @@
 package PSG.backEnd.controller;
 
 import PSG.backEnd.model.dto.payment.*;
-import PSG.backEnd.model.enums.PaymentMethod;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.IPaymentService;
