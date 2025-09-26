@@ -20,7 +20,6 @@ public interface GasStationMapper {
     @Mapping(target = "supplierId", source = "supplierId")
     GasStation toEntity(GasStationDTO gasStationDTO);
 
-    @Mapping(target = "supplierName", source = "supplierId", qualifiedByName = "supplierIdToName")
     @Mapping(target = "fuelTypes", source = "prices", qualifiedByName = "extractFuelTypesFromPrices")
     @Mapping(target = "prices", source = ".", qualifiedByName = "mapPricesToResponseDTO")
     GasStationResponseDTO toResponseDto(GasStation gasStation);
@@ -31,11 +30,6 @@ public interface GasStationMapper {
     @Mapping(target = "fuelLoads", ignore = true)
     @Mapping(target = "prices", source = "prices")
     void partialUpdate(GasStationDTO updateDTO, @MappingTarget GasStation gasStation);
-
-    @Named("supplierIdToName")
-    default String supplierIdToName(Long supplierId) {
-        return "Supplier " + supplierId;
-    }
 
     @Named("extractFuelTypesFromPrices")
     default List<String> extractFuelTypesFromPrices(List<GasStationPrice> prices) {

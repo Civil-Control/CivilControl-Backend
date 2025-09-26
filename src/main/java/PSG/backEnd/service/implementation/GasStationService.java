@@ -4,7 +4,9 @@ import PSG.backEnd.exception.gasStation.GasStationNotFoundException;
 import PSG.backEnd.model.dto.gasStation.GasStationDTO;
 import PSG.backEnd.model.dto.gasStation.GasStationFilterDTO;
 import PSG.backEnd.model.dto.gasStation.GasStationResponseDTO;
+import PSG.backEnd.model.dto.gasStation.GasStationPriceResponseDTO;
 import PSG.backEnd.model.entity.gasStation.GasStation;
+import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.mapper.GasStationMapper;
 import PSG.backEnd.repository.GasStationRepository;
 import PSG.backEnd.repository.SupplierRepository;
@@ -14,6 +16,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +42,7 @@ public class GasStationService implements IGasStationService {
         // Guardar una sola vez - los precios se guardan automáticamente como componentes embebidos
         GasStation savedGasStation = gasStationRepository.save(gasStation);
 
-        return gasStationMapper.toResponseDto(savedGasStation);
+        return enrichResponseWithSupplierName(gasStationMapper.toResponseDto(savedGasStation));
     }
 
     @Override
@@ -46,7 +51,7 @@ public class GasStationService implements IGasStationService {
         GasStation gasStation = gasStationRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new GasStationNotFoundException(id));
 
-        return gasStationMapper.toResponseDto(gasStation);
+        return enrichResponseWithSupplierName(gasStationMapper.toResponseDto(gasStation));
     }
 
     @Override
@@ -58,7 +63,7 @@ public class GasStationService implements IGasStationService {
                 pageable
         );
 
-        return gasStations.map(gasStationMapper::toResponseDto);
+        return gasStations.map(gasStation -> enrichResponseWithSupplierName(gasStationMapper.toResponseDto(gasStation)));
     }
 
     @Override
@@ -75,7 +80,7 @@ public class GasStationService implements IGasStationService {
         gasStationMapper.partialUpdate(gasStationDTO, gasStation);
         GasStation updatedGasStation = gasStationRepository.save(gasStation);
 
-        return gasStationMapper.toResponseDto(updatedGasStation);
+        return enrichResponseWithSupplierName(gasStationMapper.toResponseDto(updatedGasStation));
     }
 
     @Override
@@ -85,5 +90,44 @@ public class GasStationService implements IGasStationService {
 
         gasStation.setDeleted(true);
         gasStationRepository.save(gasStation);
+    }
+
+    /**
+     * Enriquece la respuesta con el nombre real del proveedor en lugar del texto genérico
+     */
+    private GasStationResponseDTO enrichResponseWithSupplierName(GasStationResponseDTO responseDTO) {
+        String supplierName = getSupplierNameById(responseDTO.supplierId());
+
+        // Crear nueva lista de precios con el nombre real del proveedor
+        List<GasStationPriceResponseDTO> enrichedPrices = responseDTO.prices().stream()
+                .map(price -> new GasStationPriceResponseDTO(
+                    supplierName,
+                    price.fuelType(),
+                    price.price()
+                ))
+                .collect(Collectors.toList());
+
+        // Crear nuevo DTO con el nombre real del proveedor
+        return new GasStationResponseDTO(
+            responseDTO.id(),
+            responseDTO.supplierId(),
+            supplierName,
+            responseDTO.fuelTypes(),
+            enrichedPrices,
+            false
+        );
+    }
+
+    /**
+     * Obtiene el nombre legal del proveedor por su ID
+     */
+    private String getSupplierNameById(Long supplierId) {
+        if (supplierId == null) {
+            return "Proveedor no especificado";
+        }
+
+        return supplierRepository.findByIdAndDeletedFalse(supplierId)
+                .map(Supplier::getLegalName)
+                .orElse("Proveedor no encontrado");
     }
 }
