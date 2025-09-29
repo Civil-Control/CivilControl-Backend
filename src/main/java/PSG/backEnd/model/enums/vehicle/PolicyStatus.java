@@ -1,11 +1,11 @@
 package PSG.backEnd.model.enums.vehicle;
 
 public enum PolicyStatus {
-    QUOTED("cotizado"),
-    ACTIVE("activo"),
-    LAPSED("vencido"),
-    CANCELLED("cancelado"),
-    EXPIRED("expirado");
+    COTIZADO("cotizado"),
+    ACTIVO("activo"),
+    VENCIDO("vencido"),
+    CANCELADO("cancelado"),
+    EXPIRADO("expirado");
 
     private final String displayName;
 

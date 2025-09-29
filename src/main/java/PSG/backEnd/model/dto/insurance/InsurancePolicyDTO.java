@@ -3,6 +3,7 @@ package PSG.backEnd.model.dto.insurance;
 import PSG.backEnd.model.enums.vehicle.PaymentFrequency;
 import PSG.backEnd.model.enums.vehicle.PolicyStatus;
 import PSG.backEnd.model.enums.vehicle.PolicyType;
+import PSG.backEnd.model.validation.ValidEffectiveDates;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import jakarta.validation.constraints.*;
@@ -10,6 +11,7 @@ import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+@ValidEffectiveDates
 public record InsurancePolicyDTO(
 
         @NotBlank(message = "Policy number is required.", groups = OnCreate.class)
@@ -37,11 +39,9 @@ public record InsurancePolicyDTO(
         LocalDate issueDate,
 
         @NotNull(message = "Effective from date is required.", groups = OnCreate.class)
-        @FutureOrPresent(message = "Effective from date must be today or in the future.", groups = {OnCreate.class, OnUpdate.class})
         LocalDate effectiveFrom,
 
         @NotNull(message = "Effective to date is required.", groups = OnCreate.class)
-        @Future(message = "Effective to date must be in the future.", groups = {OnCreate.class, OnUpdate.class})
         LocalDate effectiveTo,
 
         LocalDate cancellationDate,

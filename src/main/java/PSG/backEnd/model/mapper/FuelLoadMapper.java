@@ -21,7 +21,7 @@ public interface FuelLoadMapper {
     FuelLoad toEntity(FuelLoadDTO fuelLoadDTO);
 
     @Mapping(target = "date", source = "date", dateFormat = "yyyy-MM-dd")
-    @Mapping(target = "fuelType", source = "fuelType.displayName")
+    @Mapping(target = "fuelType", source = "fuelType")
     @Mapping(target = "vehicleId", source = "vehicle.id")
     @Mapping(target = "vehicleLicensePlate", source = "vehicle.licensePlate")
     @Mapping(target = "projectAreaId", source = "projectArea.id")

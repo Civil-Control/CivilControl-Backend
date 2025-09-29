@@ -1,12 +1,12 @@
 package PSG.backEnd.model.enums.vehicle;
 
 public enum PaymentFrequency {
-    MONTHLY("mensual"),
-    BIMONTHLY("bimestral"),
-    QUARTERLY("trimestral"),
-    SEMIANNUAL("semestral"),
-    ANNUAL("anual"),
-    SINGLE_PAYMENT("pago unico");
+    MENSUAL("mensual"),
+    BIMESTRAL("bimestral"),
+    TRIMESTRAL("trimestral"),
+    SEMI_ANUAL("semianual"),
+    ANUAL("anual"),
+    PAGO_UNICO("pago unico");
 
     private final String displayName;
 

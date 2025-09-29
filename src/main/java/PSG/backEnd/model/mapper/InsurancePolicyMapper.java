@@ -13,9 +13,9 @@ public interface InsurancePolicyMapper {
     @Mapping(target = "autoPolicy", ignore = true)
     InsurancePolicy toEntity(InsurancePolicyDTO insurancePolicyDTO);
 
-    @Mapping(target = "policyType", expression = "java(insurancePolicy.getPolicyType() != null ? insurancePolicy.getPolicyType().getDisplayName() : null)")
-    @Mapping(target = "policyStatus", expression = "java(insurancePolicy.getPolicyStatus() != null ? insurancePolicy.getPolicyStatus().getDisplayName() : null)")
-    @Mapping(target = "paymentFrequency", expression = "java(insurancePolicy.getPaymentFrequency() != null ? insurancePolicy.getPaymentFrequency().getDisplayName() : null)")
+    @Mapping(target = "policyType", source = "insurancePolicy.policyType")
+    @Mapping(target = "policyStatus", source = "insurancePolicy.policyStatus")
+    @Mapping(target = "paymentFrequency", source = "insurancePolicy.paymentFrequency")
     InsurancePolicyResponseDTO toResponseDto(InsurancePolicy insurancePolicy);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

@@ -1,7 +1,7 @@
 package PSG.backEnd.model.enums.vehicle;
 
 public enum PolicyType {
-    AUTO("automotor");
+    AUTOMOTOR("automotor");
 
     private final String displayName;
 
