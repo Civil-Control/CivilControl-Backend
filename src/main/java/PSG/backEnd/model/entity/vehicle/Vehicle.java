@@ -1,6 +1,8 @@
-package PSG.backEnd.model.entity;
+package PSG.backEnd.model.entity.vehicle;
 
+import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
+import PSG.backEnd.model.enums.vehicle.JurisdictionType;
 import PSG.backEnd.model.enums.vehicle.VehicleType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -53,6 +55,9 @@ public class Vehicle {
 
     @Column(name = "vtv_expiration_date")
     private LocalDate vtvExpirationDate;
+
+    @Column(name = "jurisdiction_type")
+    private JurisdictionType jurisdictionType;
 
     @Column
     private boolean deleted;

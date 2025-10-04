@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.vehicle;
 
+import PSG.backEnd.model.enums.vehicle.JurisdictionType;
 import PSG.backEnd.model.enums.vehicle.VehicleType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -41,5 +42,7 @@ public record VehicleDTO(
         String storedIn,
 
         @FutureOrPresent(message = "VTV expiration date must be today or in the future.", groups = {OnCreate.class, OnUpdate.class})
-        LocalDate vtvExpirationDate
+        LocalDate vtvExpirationDate,
+
+        JurisdictionType jurisdictionType
 ) {}

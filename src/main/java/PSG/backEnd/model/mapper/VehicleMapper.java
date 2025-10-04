@@ -2,7 +2,7 @@ package PSG.backEnd.model.mapper;
 
 import PSG.backEnd.model.dto.vehicle.VehicleDTO;
 import PSG.backEnd.model.dto.vehicle.VehicleResponseDTO;
-import PSG.backEnd.model.entity.Vehicle;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.entity.ProjectArea;
 import org.mapstruct.*;
 
@@ -17,6 +17,7 @@ public interface VehicleMapper {
 
     @Mapping(target = "projectAreaName", source = "projectArea.name")
     @Mapping(target = "vehicleType", source = "vehicleType")
+    @Mapping(target = "jurisdictionType", source = "jurisdictionType")
     VehicleResponseDTO toResponseDto(Vehicle vehicle);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

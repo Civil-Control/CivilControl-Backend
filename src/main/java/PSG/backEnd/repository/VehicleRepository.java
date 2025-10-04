@@ -1,6 +1,6 @@
 package PSG.backEnd.repository;
 
-import PSG.backEnd.model.entity.Vehicle;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,6 +32,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             "AND (:projectAreaName IS NULL OR LOWER(pa.name) LIKE LOWER(CONCAT('%', :projectAreaName, '%'))) " +
             "AND (:storedIn IS NULL OR LOWER(v.storedIn) LIKE LOWER(CONCAT('%', :storedIn, '%'))) " +
             "AND (:vtvExpirationDate IS NULL OR v.vtvExpirationDate = :vtvExpirationDate) " +
+            "AND (:jurisdictionType IS NULL OR LOWER(CAST(v.jurisdictionType AS string)) LIKE LOWER(CONCAT('%', :jurisdictionType, '%'))) " +
             "AND v.deleted = false")
     Page<Vehicle> findAllWithFilters(
             @Param("licensePlate") String licensePlate,
@@ -44,6 +45,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             @Param("projectAreaName") String projectAreaName,
             @Param("storedIn") String storedIn,
             @Param("vtvExpirationDate") LocalDate vtvExpirationDate,
+            @Param("jurisdictionType") String jurisdictionType,
             Pageable pageable
     );
 }

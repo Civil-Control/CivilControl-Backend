@@ -4,7 +4,7 @@ import PSG.backEnd.model.dto.gasStation.FuelLoadDTO;
 import PSG.backEnd.model.dto.gasStation.FuelLoadResponseDTO;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.entity.gasStation.GasStation;
-import PSG.backEnd.model.entity.Vehicle;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.entity.ProjectArea;
 import org.mapstruct.*;
 

@@ -44,6 +44,7 @@ public class VehicleController {
             @RequestParam(required = false) String projectAreaName,
             @RequestParam(required = false) String storedIn,
             @RequestParam(required = false) LocalDate vtvExpirationDate,
+            @RequestParam(required = false) String jurisdictionType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -54,7 +55,7 @@ public class VehicleController {
 
         VehicleFilterDTO filterDTO = new VehicleFilterDTO(
                 licensePlate, brand, model, year, color, nickName,
-                vehicleType, projectAreaName, storedIn, vtvExpirationDate
+                vehicleType, projectAreaName, storedIn, vtvExpirationDate, jurisdictionType
         );
 
         return ResponseEntity.ok(iVehicleService.getAllVehicles(filterDTO, pageable));

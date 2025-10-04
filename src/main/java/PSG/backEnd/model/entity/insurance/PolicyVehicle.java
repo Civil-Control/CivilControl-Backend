@@ -1,6 +1,6 @@
 package PSG.backEnd.model.entity.insurance;
 
-import PSG.backEnd.model.entity.Vehicle;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
 import jakarta.persistence.*;
 import lombok.*;
 

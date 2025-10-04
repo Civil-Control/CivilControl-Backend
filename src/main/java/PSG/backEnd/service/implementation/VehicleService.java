@@ -6,7 +6,7 @@ import PSG.backEnd.exception.vehicle.ProjectAreaNotValidException;
 import PSG.backEnd.model.dto.vehicle.VehicleDTO;
 import PSG.backEnd.model.dto.vehicle.VehicleFilterDTO;
 import PSG.backEnd.model.dto.vehicle.VehicleResponseDTO;
-import PSG.backEnd.model.entity.Vehicle;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.mapper.VehicleMapper;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
@@ -56,6 +56,7 @@ public class VehicleService implements IVehicleService {
                 filterDTO.projectAreaName(),
                 filterDTO.storedIn(),
                 filterDTO.vtvExpirationDate(),
+                filterDTO.jurisdictionType(),
                 pageable
         ).map(vehicleMapper::toResponseDto);
     }

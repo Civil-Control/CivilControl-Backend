@@ -4,7 +4,7 @@ import PSG.backEnd.model.dto.insurance.PolicyVehicleDTO;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleResponseDTO;
 import PSG.backEnd.model.entity.insurance.PolicyVehicle;
 import PSG.backEnd.model.entity.insurance.AutoPolicy;
-import PSG.backEnd.model.entity.Vehicle;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
 import org.mapstruct.*;
 
 @Mapper(componentModel = "spring")

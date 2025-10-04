@@ -13,5 +13,6 @@ public record VehicleResponseDTO(
         String vehicleType,
         String projectAreaName,
         String storedIn,
-        LocalDate vtvExpirationDate
+        LocalDate vtvExpirationDate,
+        String jurisdictionType
 ) {}
