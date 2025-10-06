@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.insurance.DuplicateVehicleInPolicyException;
+import PSG.backEnd.exception.insurance.InsurancePolicyNotFoundException;
 import PSG.backEnd.exception.insurance.PolicyVehicleNotFoundException;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleDTO;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleResponseDTO;
@@ -228,6 +229,11 @@ public class PolicyVehicleService implements IPolicyVehicleService {
 
         Long autoPolicyId = null;
         if (insurancePolicyId != null) {
+
+            if (!insurancePolicyService.existsById(insurancePolicyId)) {
+                throw new InsurancePolicyNotFoundException(insurancePolicyId);
+            }
+
             Optional<AutoPolicy> autoPolicy = autoPolicyRepository.findByInsurancePolicyId(insurancePolicyId);
             autoPolicyId = autoPolicy.map(AutoPolicy::getId).orElse(null);
         }
