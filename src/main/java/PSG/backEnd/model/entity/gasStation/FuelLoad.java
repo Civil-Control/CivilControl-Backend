@@ -1,7 +1,7 @@
 package PSG.backEnd.model.entity.gasStation;
 
 import PSG.backEnd.model.entity.ProjectArea;
-import PSG.backEnd.model.entity.Vehicle;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.enums.vehicle.FuelType;
 import jakarta.persistence.*;
 import lombok.*;

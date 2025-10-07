@@ -12,5 +12,6 @@ public record VehicleFilterDTO(
         String vehicleType,
         String projectAreaName,
         String storedIn,
-        LocalDate vtvExpirationDate
+        LocalDate vtvExpirationDate,
+        String jurisdictionType
 ) {}
