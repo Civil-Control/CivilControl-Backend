@@ -1,0 +1,40 @@
+package PSG.backEnd.repository;
+
+import PSG.backEnd.model.entity.Stock;
+import PSG.backEnd.model.enums.StockCategory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface StockRepository extends JpaRepository<Stock, Long> {
+    List<Stock> findByDeletedFalse();
+    Optional<Stock> findByIdAndDeletedFalse(Long id);
+    Optional<Stock> findByNameAndDeletedTrue(String name);
+    boolean existsByNameAndDeletedFalse(String name);
+    boolean existsByIdAndDeletedFalse(Long id);
+
+    @Query("SELECT s FROM Stock s " +
+            "WHERE (:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+            "AND (:location IS NULL OR LOWER(s.location) LIKE LOWER(CONCAT('%', :location, '%'))) " +
+            "AND (:stockCategory IS NULL OR s.stockCategory = :stockCategory) " +
+            "AND (:minQuantity IS NULL OR s.quantity >= :minQuantity) " +
+            "AND (:maxQuantity IS NULL OR s.quantity <= :maxQuantity) " +
+            "AND s.deleted = false")
+    Page<Stock> findAllWithFilters(
+            @Param("name") String name,
+            @Param("location") String location,
+            @Param("stockCategory") StockCategory stockCategory,
+            @Param("minQuantity") BigDecimal minQuantity,
+            @Param("maxQuantity") BigDecimal maxQuantity,
+            Pageable pageable
+    );
+}
+
