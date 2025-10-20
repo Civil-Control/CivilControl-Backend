@@ -1,18 +1,60 @@
 package PSG.backEnd.model.dto.vehicle;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDate;
 
+@Schema(description = "Response DTO containing complete information about a vehicle, " +
+        "including related project area details.")
 public record VehicleResponseDTO(
+
+        @Schema(description = "Unique identifier of the vehicle.",
+                example = "15")
         Long id,
+
+        @Schema(description = "Vehicle license plate number.",
+                example = "ABC 123")
         String licensePlate,
+
+        @Schema(description = "Vehicle brand or manufacturer name.",
+                example = "Toyota")
         String brand,
+
+        @Schema(description = "Vehicle model name.",
+                example = "Corolla")
         String model,
+
+        @Schema(description = "Manufacturing year of the vehicle.",
+                example = "2020")
         Integer year,
+
+        @Schema(description = "Vehicle color.",
+                example = "Blue")
         String color,
+
+        @Schema(description = "Friendly nickname for the vehicle.",
+                example = "The Blue Runner")
         String nickName,
+
+        @Schema(description = "Type of vehicle.",
+                example = "CAR",
+                allowableValues = {"CAR", "TRUCK", "VAN", "MOTORCYCLE", "BUS"})
         String vehicleType,
+
+        @Schema(description = "Name of the project area to which this vehicle is assigned.",
+                example = "Operations Department")
         String projectAreaName,
+
+        @Schema(description = "Physical location where the vehicle is stored or parked.",
+                example = "Main Warehouse - Bay 3")
         String storedIn,
+
+        @Schema(description = "VTV (Technical Vehicle Verification) expiration date.",
+                example = "2025-12-31")
         LocalDate vtvExpirationDate,
+
+        @Schema(description = "Type of jurisdiction where the vehicle is registered.",
+                example = "PROVINCIAL",
+                allowableValues = {"PROVINCIAL", "MUNICIPAL", "NATIONAL"})
         String jurisdictionType
 ) {}
