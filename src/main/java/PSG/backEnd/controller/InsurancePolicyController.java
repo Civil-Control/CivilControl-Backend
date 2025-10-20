@@ -12,6 +12,11 @@ import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.IInsurancePolicyService;
 import PSG.backEnd.service.port.IPolicyVehicleService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,6 +34,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/insurance-policies")
 @RequiredArgsConstructor
+@Tag(name = "Insurance Policies", description = "API for managing insurance policies and their associated vehicles. Handles policy registration, coverage details, and vehicle assignments.")
 public class InsurancePolicyController {
 
     private final IInsurancePolicyService insurancePolicyService;
@@ -37,6 +43,12 @@ public class InsurancePolicyController {
     // ========== INSURANCE POLICY ENDPOINTS ==========
 
     @PostMapping
+    @Operation(summary = "Create a new insurance policy",
+            description = "Registers a new insurance policy with coverage details, effective dates, and payment terms. Validates that effective dates are in proper order.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Insurance policy successfully created"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error (e.g., effectiveFrom after effectiveTo)")
+    })
     public ResponseEntity<InsurancePolicyResponseDTO> createInsurancePolicy(
             @Validated(OnCreate.class) @RequestBody InsurancePolicyDTO insurancePolicyDTO) {
         InsurancePolicyResponseDTO createdPolicy = insurancePolicyService.createInsurancePolicy(insurancePolicyDTO);
@@ -44,154 +56,194 @@ public class InsurancePolicyController {
     }
 
     @GetMapping
+    @Operation(summary = "Get all insurance policies with filters",
+            description = "Retrieves a paginated list of insurance policies with optional filtering by policy number, type, status, dates, and cancellation status. Supports sorting and pagination.")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved insurance policy list")
     public ResponseEntity<Page<InsurancePolicyResponseDTO>> getInsurancePolicies(
-            @RequestParam(required = false) String policyNumber,
-            @RequestParam(required = false) String termNumber,
-            @RequestParam(required = false) PolicyType policyType,
-            @RequestParam(required = false) PolicyStatus policyStatus,
-            @RequestParam(required = false) PaymentFrequency paymentFrequency,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate issueDateFrom,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate issueDateTo,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromStart,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromEnd,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToStart,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToEnd,
-            @RequestParam(required = false) Boolean isCancelled,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase("desc")
-            ? Sort.by(sortBy).descending()
-            : Sort.by(sortBy).ascending();
-
+            @Parameter(description = "Filter by policy number (partial match)") @RequestParam(required = false) String policyNumber,
+            @Parameter(description = "Filter by term number (partial match)") @RequestParam(required = false) String termNumber,
+            @Parameter(description = "Filter by policy type") @RequestParam(required = false) PolicyType policyType,
+            @Parameter(description = "Filter by policy status") @RequestParam(required = false) PolicyStatus policyStatus,
+            @Parameter(description = "Filter by payment frequency") @RequestParam(required = false) PaymentFrequency paymentFrequency,
+            @Parameter(description = "Filter policies issued from this date (inclusive)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate issueDateFrom,
+            @Parameter(description = "Filter policies issued to this date (inclusive)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate issueDateTo,
+            @Parameter(description = "Filter policies with effective from date starting from this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromStart,
+            @Parameter(description = "Filter policies with effective from date ending at this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromEnd,
+            @Parameter(description = "Filter policies with effective to date starting from this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToStart,
+            @Parameter(description = "Filter policies with effective to date ending at this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToEnd,
+            @Parameter(description = "Filter by cancellation status") @RequestParam(required = false) Boolean isCancelled,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-
-        InsurancePolicyFilterDTO filterDTO = new InsurancePolicyFilterDTO(
-                policyNumber, termNumber, policyType, policyStatus, paymentFrequency,
-                issueDateFrom, issueDateTo, effectiveFromStart, effectiveFromEnd,
-                effectiveToStart, effectiveToEnd, isCancelled
-        );
-
+        InsurancePolicyFilterDTO filterDTO = new InsurancePolicyFilterDTO(policyNumber, termNumber, policyType, policyStatus, paymentFrequency, issueDateFrom, issueDateTo, effectiveFromStart, effectiveFromEnd, effectiveToStart, effectiveToEnd, isCancelled);
         Page<InsurancePolicyResponseDTO> policies = insurancePolicyService.getAllInsurancePolicies(filterDTO, pageable);
         return ResponseEntity.ok(policies);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<InsurancePolicyResponseDTO> getInsurancePolicyById(@PathVariable Long id) {
+    @Operation(summary = "Get insurance policy by ID",
+            description = "Retrieves detailed information about a specific insurance policy by its unique identifier.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Insurance policy found"),
+            @ApiResponse(responseCode = "404", description = "Insurance policy not found")
+    })
+    public ResponseEntity<InsurancePolicyResponseDTO> getInsurancePolicyById(
+            @Parameter(description = "Insurance policy unique identifier", required = true) @PathVariable Long id) {
         InsurancePolicyResponseDTO policy = insurancePolicyService.getInsurancePolicyById(id);
         return ResponseEntity.ok(policy);
     }
 
     @PatchMapping("/{id}")
+    @Operation(summary = "Update insurance policy",
+            description = "Updates an existing insurance policy. Only provided fields will be updated. Validates that effective dates remain in proper order.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Insurance policy successfully updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "404", description = "Insurance policy not found")
+    })
     public ResponseEntity<InsurancePolicyResponseDTO> updateInsurancePolicy(
-            @PathVariable Long id,
+            @Parameter(description = "Insurance policy unique identifier", required = true) @PathVariable Long id,
             @Validated(OnUpdate.class) @RequestBody InsurancePolicyDTO insurancePolicyDTO) {
         InsurancePolicyResponseDTO updatedPolicy = insurancePolicyService.updateInsurancePolicy(id, insurancePolicyDTO);
         return ResponseEntity.ok(updatedPolicy);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteInsurancePolicy(@PathVariable Long id) {
+    @Operation(summary = "Delete insurance policy",
+            description = "Deletes an insurance policy from the system. This operation cannot be undone. Policies with associated vehicles may have restrictions.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Insurance policy successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "Insurance policy not found"),
+            @ApiResponse(responseCode = "409", description = "Insurance policy has associated records and cannot be deleted")
+    })
+    public ResponseEntity<Void> deleteInsurancePolicy(
+            @Parameter(description = "Insurance policy unique identifier", required = true) @PathVariable Long id) {
         insurancePolicyService.deleteInsurancePolicy(id);
         return ResponseEntity.noContent().build();
     }
 
-    // ========== POLICY VEHICLE ENDPOINTS (GESTIONADOS A TRAVÉS DE INSURANCE POLICY) ==========
+    // ========== POLICY VEHICLE ENDPOINTS ==========
 
     @PostMapping("/{insurancePolicyId}/vehicles")
+    @Operation(summary = "Add vehicle to insurance policy",
+            description = "Associates a vehicle with an insurance policy. Automatically creates or retrieves the AutoPolicy if the policy type is AUTO. Includes coverage dates for the specific vehicle.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Vehicle successfully added to policy"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "404", description = "Insurance policy or vehicle not found")
+    })
     public ResponseEntity<PolicyVehicleResponseDTO> addVehicleToPolicy(
-            @PathVariable Long insurancePolicyId,
+            @Parameter(description = "Insurance policy unique identifier", required = true) @PathVariable Long insurancePolicyId,
             @Validated(OnCreate.class) @RequestBody PolicyVehicleDTO policyVehicleDTO) {
-        // El servicio se encargará de obtener o crear automáticamente el AutoPolicy
         PolicyVehicleResponseDTO createdVehicle = policyVehicleService.addVehicleToInsurancePolicy(insurancePolicyId, policyVehicleDTO);
         return new ResponseEntity<>(createdVehicle, HttpStatus.CREATED);
     }
 
     @GetMapping("/{insurancePolicyId}/vehicles")
+    @Operation(summary = "Get vehicles by insurance policy",
+            description = "Retrieves all vehicles associated with a specific insurance policy with optional filtering by vehicle details, dates, and cancellation status.")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved vehicle list for the policy")
     public ResponseEntity<Page<PolicyVehicleResponseDTO>> getVehiclesByInsurancePolicyId(
-            @PathVariable Long insurancePolicyId,
-            @RequestParam(required = false) String licensePlate,
-            @RequestParam(required = false) String vehicleBrand,
-            @RequestParam(required = false) String vehicleModel,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromStart,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromEnd,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToStart,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToEnd,
-            @RequestParam(required = false) Boolean isCancelled,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase("desc")
-            ? Sort.by(sortBy).descending()
-            : Sort.by(sortBy).ascending();
-
+            @Parameter(description = "Insurance policy unique identifier", required = true) @PathVariable Long insurancePolicyId,
+            @Parameter(description = "Filter by vehicle license plate (partial match)") @RequestParam(required = false) String licensePlate,
+            @Parameter(description = "Filter by vehicle brand (partial match)") @RequestParam(required = false) String vehicleBrand,
+            @Parameter(description = "Filter by vehicle model (partial match)") @RequestParam(required = false) String vehicleModel,
+            @Parameter(description = "Filter vehicles with effective from date starting from this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromStart,
+            @Parameter(description = "Filter vehicles with effective from date ending at this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromEnd,
+            @Parameter(description = "Filter vehicles with effective to date starting from this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToStart,
+            @Parameter(description = "Filter vehicles with effective to date ending at this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToEnd,
+            @Parameter(description = "Filter by cancellation status") @RequestParam(required = false) Boolean isCancelled,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<PolicyVehicleResponseDTO> vehicles = policyVehicleService.getAllPolicyVehiclesByInsurancePolicy(
-                null, insurancePolicyId, licensePlate, vehicleBrand, vehicleModel,
-                null, effectiveFromStart, effectiveFromEnd, effectiveToStart,
-                effectiveToEnd, isCancelled, pageable);
+        Page<PolicyVehicleResponseDTO> vehicles = policyVehicleService.getAllPolicyVehiclesByInsurancePolicy(null, insurancePolicyId, licensePlate, vehicleBrand, vehicleModel, null, effectiveFromStart, effectiveFromEnd, effectiveToStart, effectiveToEnd, isCancelled, pageable);
         return ResponseEntity.ok(vehicles);
     }
 
     @GetMapping("/vehicles")
+    @Operation(summary = "Get all policy vehicles with filters",
+            description = "Retrieves a paginated list of all policy-vehicle associations with optional filtering by vehicle, policy, dates, and cancellation status.")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved policy vehicle list")
     public ResponseEntity<Page<PolicyVehicleResponseDTO>> getPolicyVehicles(
-            @RequestParam(required = false) Long vehicleId,
-            @RequestParam(required = false) Long insurancePolicyId,
-            @RequestParam(required = false) String licensePlate,
-            @RequestParam(required = false) String vehicleBrand,
-            @RequestParam(required = false) String vehicleModel,
-            @RequestParam(required = false) String policyNumber,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromStart,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromEnd,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToStart,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToEnd,
-            @RequestParam(required = false) Boolean isCancelled,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-
-        Sort sort = sortDir.equalsIgnoreCase("desc")
-            ? Sort.by(sortBy).descending()
-            : Sort.by(sortBy).ascending();
-
+            @Parameter(description = "Filter by vehicle ID") @RequestParam(required = false) Long vehicleId,
+            @Parameter(description = "Filter by insurance policy ID") @RequestParam(required = false) Long insurancePolicyId,
+            @Parameter(description = "Filter by vehicle license plate (partial match)") @RequestParam(required = false) String licensePlate,
+            @Parameter(description = "Filter by vehicle brand (partial match)") @RequestParam(required = false) String vehicleBrand,
+            @Parameter(description = "Filter by vehicle model (partial match)") @RequestParam(required = false) String vehicleModel,
+            @Parameter(description = "Filter by policy number (partial match)") @RequestParam(required = false) String policyNumber,
+            @Parameter(description = "Filter vehicles with effective from date starting from this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromStart,
+            @Parameter(description = "Filter vehicles with effective from date ending at this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveFromEnd,
+            @Parameter(description = "Filter vehicles with effective to date starting from this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToStart,
+            @Parameter(description = "Filter vehicles with effective to date ending at this date") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate effectiveToEnd,
+            @Parameter(description = "Filter by cancellation status") @RequestParam(required = false) Boolean isCancelled,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<PolicyVehicleResponseDTO> vehicles = policyVehicleService.getAllPolicyVehiclesByInsurancePolicy(
-                vehicleId, insurancePolicyId, licensePlate, vehicleBrand, vehicleModel,
-                policyNumber, effectiveFromStart, effectiveFromEnd, effectiveToStart,
-                effectiveToEnd, isCancelled, pageable);
+        Page<PolicyVehicleResponseDTO> vehicles = policyVehicleService.getAllPolicyVehiclesByInsurancePolicy(vehicleId, insurancePolicyId, licensePlate, vehicleBrand, vehicleModel, policyNumber, effectiveFromStart, effectiveFromEnd, effectiveToStart, effectiveToEnd, isCancelled, pageable);
         return ResponseEntity.ok(vehicles);
     }
 
     @GetMapping("/vehicles/by-vehicle/{vehicleId}")
-    public ResponseEntity<List<PolicyVehicleResponseDTO>> getPoliciesByVehicleId(@PathVariable Long vehicleId) {
+    @Operation(summary = "Get all policies for a vehicle",
+            description = "Retrieves all insurance policies associated with a specific vehicle, including historical and active policies.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved policy list for the vehicle"),
+            @ApiResponse(responseCode = "404", description = "Vehicle not found")
+    })
+    public ResponseEntity<List<PolicyVehicleResponseDTO>> getPoliciesByVehicleId(
+            @Parameter(description = "Vehicle unique identifier", required = true) @PathVariable Long vehicleId) {
         List<PolicyVehicleResponseDTO> policies = policyVehicleService.getByVehicleId(vehicleId);
         return ResponseEntity.ok(policies);
     }
 
     @GetMapping("/vehicles/{policyVehicleId}")
-    public ResponseEntity<PolicyVehicleResponseDTO> getPolicyVehicleById(@PathVariable Long policyVehicleId) {
+    @Operation(summary = "Get policy vehicle by ID",
+            description = "Retrieves detailed information about a specific policy-vehicle association by its unique identifier.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Policy vehicle found"),
+            @ApiResponse(responseCode = "404", description = "Policy vehicle not found")
+    })
+    public ResponseEntity<PolicyVehicleResponseDTO> getPolicyVehicleById(
+            @Parameter(description = "Policy vehicle unique identifier", required = true) @PathVariable Long policyVehicleId) {
         PolicyVehicleResponseDTO vehicle = policyVehicleService.getPolicyVehicleById(policyVehicleId);
         return ResponseEntity.ok(vehicle);
     }
 
     @PatchMapping("/vehicles/{policyVehicleId}")
+    @Operation(summary = "Update policy vehicle",
+            description = "Updates an existing policy-vehicle association. Can update coverage dates and cancellation status.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Policy vehicle successfully updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "404", description = "Policy vehicle not found")
+    })
     public ResponseEntity<PolicyVehicleResponseDTO> updatePolicyVehicle(
-            @PathVariable Long policyVehicleId,
+            @Parameter(description = "Policy vehicle unique identifier", required = true) @PathVariable Long policyVehicleId,
             @Validated(OnUpdate.class) @RequestBody PolicyVehicleDTO policyVehicleDTO) {
         PolicyVehicleResponseDTO updatedVehicle = policyVehicleService.updatePolicyVehicle(policyVehicleId, policyVehicleDTO);
         return ResponseEntity.ok(updatedVehicle);
     }
 
     @DeleteMapping("/vehicles/{policyVehicleId}")
-    public ResponseEntity<Void> removePolicyVehicle(@PathVariable Long policyVehicleId) {
+    @Operation(summary = "Remove vehicle from policy",
+            description = "Removes a vehicle from an insurance policy. This operation cannot be undone.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Vehicle successfully removed from policy"),
+            @ApiResponse(responseCode = "404", description = "Policy vehicle not found")
+    })
+    public ResponseEntity<Void> deletePolicyVehicle(
+            @Parameter(description = "Policy vehicle unique identifier", required = true) @PathVariable Long policyVehicleId) {
         policyVehicleService.deletePolicyVehicle(policyVehicleId);
         return ResponseEntity.noContent().build();
     }
 }
+
