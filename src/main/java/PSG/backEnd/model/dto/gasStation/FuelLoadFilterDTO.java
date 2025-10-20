@@ -1,16 +1,60 @@
 package PSG.backEnd.model.dto.gasStation;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDate;
 
+@Schema(description = "Filter criteria for querying fuel load transactions. All fields are optional and can be combined.")
 public record FuelLoadFilterDTO(
+
+        @Schema(description = "Filter fuel loads from this date (inclusive).",
+                example = "2024-01-01",
+                nullable = true)
         LocalDate dateFrom,
+
+        @Schema(description = "Filter fuel loads to this date (inclusive).",
+                example = "2024-12-31",
+                nullable = true)
         LocalDate dateTo,
+
+        @Schema(description = "Filter by branch code. Partial matches are supported.",
+                example = "12345",
+                nullable = true)
         String branchCode,
+
+        @Schema(description = "Filter by ticket number. Partial matches are supported.",
+                example = "87654321",
+                nullable = true)
         String ticketNumber,
+
+        @Schema(description = "Filter by fuel type.",
+                example = "NAFTA_SUPER",
+                allowableValues = {"NAFTA_SUPER", "NAFTA_COMUN", "DIESEL", "GNC"},
+                nullable = true)
         String fuelType,
+
+        @Schema(description = "Filter by vehicle ID.",
+                example = "25",
+                nullable = true)
         Long vehicleId,
+
+        @Schema(description = "Filter by vehicle license plate. Partial matches are supported.",
+                example = "ABC 123",
+                nullable = true)
         String vehicleLicensePlate,
+
+        @Schema(description = "Filter by project area ID.",
+                example = "10",
+                nullable = true)
         Long projectAreaId,
+
+        @Schema(description = "Filter by project area name. Partial matches are supported.",
+                example = "Operations",
+                nullable = true)
         String projectAreaName,
+
+        @Schema(description = "Filter by gas station ID.",
+                example = "5",
+                nullable = true)
         Long gasStationId
 ) {}
