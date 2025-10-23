@@ -1,10 +1,16 @@
 package PSG.backEnd.exception.handler;
 
+import PSG.backEnd.exception.employee.EmployeeAlreadyExistsException;
+import PSG.backEnd.exception.employee.EmployeeNotFoundException;
+import PSG.backEnd.exception.employee.EmployeeNotValidException;
 import PSG.backEnd.exception.gasStation.DuplicateTicketException;
 import PSG.backEnd.exception.gasStation.FuelLoadNotFoundException;
 import PSG.backEnd.exception.gasStation.FuelTypeNotAvailableException;
 import PSG.backEnd.exception.gasStation.GasStationNotFoundException;
 import PSG.backEnd.exception.payment.InvalidPaymentMethodException;
+import PSG.backEnd.exception.salaryPayment.DuplicateSalaryPaymentException;
+import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotFoundException;
+import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotValidException;
 import PSG.backEnd.exception.supplier.SupplierAlreadyExistsException;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentAlreadyActiveException;
@@ -170,6 +176,72 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                         .build()
         );
     }
+
+    @ExceptionHandler(EmployeeNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleEmployeeNotFoundException(EmployeeNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(EmployeeAlreadyExistsException.class)
+    public ResponseEntity<ResponseMessage> handleEmployeeAlreadyExistsException(EmployeeAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(EmployeeNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleEmployeeNotValidException(EmployeeNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(SalaryPaymentNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleSalaryPaymentNotFoundException(SalaryPaymentNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(SalaryPaymentNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleSalaryPaymentNotValidException(SalaryPaymentNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+    @ExceptionHandler(DuplicateSalaryPaymentException.class)
+    public ResponseEntity<ResponseMessage> handleDuplicateSalaryPaymentException(DuplicateSalaryPaymentException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ResponseMessage> handleGenericException(Exception ex) {
