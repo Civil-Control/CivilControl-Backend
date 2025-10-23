@@ -37,7 +37,7 @@ public interface GasStationMapper {
             return List.of();
         }
         return prices.stream()
-                .map(price -> price.getFuelType().getDisplayName())
+                .map(price -> price.getFuelType().name())
                 .distinct()
                 .collect(Collectors.toList());
     }
@@ -51,7 +51,7 @@ public interface GasStationMapper {
         return gasStation.getPrices().stream()
                 .map(price -> new GasStationPriceResponseDTO(
                     supplierName,
-                    price.getFuelType().getDisplayName(),
+                    price.getFuelType().name(),
                     price.getPrice().doubleValue()
                 ))
                 .collect(Collectors.toList());

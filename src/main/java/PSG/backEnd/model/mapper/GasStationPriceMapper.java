@@ -10,8 +10,8 @@ public interface GasStationPriceMapper {
 
     GasStationPrice toEntity(GasStationPriceDTO gasStationPriceDTO);
 
-    @Mapping(target = "supplierName", ignore = true) // Se establecerá en el contexto del GasStation
-    @Mapping(target = "fuelType", source = "fuelType.displayName")
+    @Mapping(target = "supplierName", ignore = true)
+    @Mapping(target = "fuelType", source = "fuelType")
     GasStationPriceResponseDTO toResponseDto(GasStationPrice gasStationPrice);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

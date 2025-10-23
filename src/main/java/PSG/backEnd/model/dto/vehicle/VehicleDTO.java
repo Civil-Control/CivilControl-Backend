@@ -4,6 +4,7 @@ import PSG.backEnd.model.enums.vehicle.JurisdictionType;
 import PSG.backEnd.model.enums.vehicle.VehicleType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
+import PSG.backEnd.model.validation.ValidTruckEquipment;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
@@ -11,6 +12,7 @@ import java.time.LocalDate;
 
 @Schema(description = "Data Transfer Object for creating or updating a vehicle. " +
         "Represents the complete information of a vehicle including identification, specifications, and administrative details.")
+@ValidTruckEquipment(groups = {OnCreate.class, OnUpdate.class})
 public record VehicleDTO(
 
         @Schema(description = "Vehicle license plate number. Must follow specific format patterns: 'AA 123 BB' (old format) or 'AAA 123' (new format). " +
@@ -94,5 +96,13 @@ public record VehicleDTO(
                 example = "PROVINCIAL",
                 allowableValues = {"PROVINCIAL", "MUNICIPAL", "NATIONAL"},
                 nullable = true)
-        JurisdictionType jurisdictionType
+        JurisdictionType jurisdictionType,
+
+        @Schema(description = "Type of truck equipment. Only required and valid for vehicles of type CAMION. " +
+                "Valid values: NADA (no equipment), HIDROELEVADOR (hydraulic lift), HIDROGRUA (hydraulic crane). " +
+                "This field must be specified for trucks and cannot be specified for other vehicle types.",
+                example = "HIDROELEVADOR",
+                allowableValues = {"NADA", "HIDROELEVADOR", "HIDROGRUA"},
+                nullable = true)
+        String truckEquipment
 ) {}

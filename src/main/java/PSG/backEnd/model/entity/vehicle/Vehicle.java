@@ -3,6 +3,7 @@ package PSG.backEnd.model.entity.vehicle;
 import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.enums.vehicle.JurisdictionType;
+import PSG.backEnd.model.enums.vehicle.TruckEquipment;
 import PSG.backEnd.model.enums.vehicle.VehicleType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -58,6 +59,10 @@ public class Vehicle {
 
     @Column(name = "jurisdiction_type")
     private JurisdictionType jurisdictionType;
+
+    @Column(name = "truck_equipment")
+    @Enumerated(EnumType.STRING)
+    private TruckEquipment truckEquipment;
 
     @Column
     private boolean deleted;

@@ -18,6 +18,7 @@ public interface VehicleMapper {
     @Mapping(target = "projectAreaName", source = "projectArea.name")
     @Mapping(target = "vehicleType", source = "vehicleType")
     @Mapping(target = "jurisdictionType", source = "jurisdictionType")
+    @Mapping(target = "truckEquipment", source = "truckEquipment")
     VehicleResponseDTO toResponseDto(Vehicle vehicle);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

@@ -50,7 +50,7 @@ public class VehicleController {
     @GetMapping
     @Operation(summary = "Get all vehicles with filters",
             description = "Retrieves a paginated list of vehicles with optional filtering by license plate, brand, model, year, color, " +
-                    "nickname, vehicle type, project area, storage location, VTV expiration date, and jurisdiction. Supports sorting and pagination.")
+                    "nickname, vehicle type, project area, storage location, VTV expiration date, jurisdiction, and truck equipment. Supports sorting and pagination.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved vehicle list")
     public ResponseEntity<Page<VehicleResponseDTO>> getVehicles(
             @Parameter(description = "Filter by license plate (partial match)") @RequestParam(required = false) String licensePlate,
@@ -64,6 +64,7 @@ public class VehicleController {
             @Parameter(description = "Filter by storage location (partial match)") @RequestParam(required = false) String storedIn,
             @Parameter(description = "Filter by VTV expiration date") @RequestParam(required = false) LocalDate vtvExpirationDate,
             @Parameter(description = "Filter by jurisdiction type") @RequestParam(required = false) String jurisdictionType,
+            @Parameter(description = "Filter by truck equipment type (only for CAMION vehicles)") @RequestParam(required = false) String truckEquipment,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
@@ -74,7 +75,7 @@ public class VehicleController {
 
         VehicleFilterDTO filterDTO = new VehicleFilterDTO(
                 licensePlate, brand, model, year, color, nickName,
-                vehicleType, projectAreaName, storedIn, vtvExpirationDate, jurisdictionType
+                vehicleType, projectAreaName, storedIn, vtvExpirationDate, jurisdictionType, truckEquipment
         );
 
         return ResponseEntity.ok(iVehicleService.getAllVehicles(filterDTO, pageable));

@@ -62,5 +62,11 @@ public record VehicleFilterDTO(
                 example = "PROVINCIAL",
                 allowableValues = {"PROVINCIAL", "MUNICIPAL", "NATIONAL"},
                 nullable = true)
-        String jurisdictionType
+        String jurisdictionType,
+
+        @Schema(description = "Filter by truck equipment type. Only applicable for vehicles of type CAMION.",
+                example = "HIDROELEVADOR",
+                allowableValues = {"NADA", "HIDROELEVADOR", "HIDROGRUA"},
+                nullable = true)
+        String truckEquipment
 ) {}

@@ -33,6 +33,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             "AND (:storedIn IS NULL OR LOWER(v.storedIn) LIKE LOWER(CONCAT('%', :storedIn, '%'))) " +
             "AND (:vtvExpirationDate IS NULL OR v.vtvExpirationDate = :vtvExpirationDate) " +
             "AND (:jurisdictionType IS NULL OR LOWER(CAST(v.jurisdictionType AS string)) LIKE LOWER(CONCAT('%', :jurisdictionType, '%'))) " +
+            "AND (:truckEquipment IS NULL OR LOWER(CAST(v.truckEquipment AS string)) LIKE LOWER(CONCAT('%', :truckEquipment, '%'))) " +
             "AND v.deleted = false")
     Page<Vehicle> findAllWithFilters(
             @Param("licensePlate") String licensePlate,
@@ -46,6 +47,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             @Param("storedIn") String storedIn,
             @Param("vtvExpirationDate") LocalDate vtvExpirationDate,
             @Param("jurisdictionType") String jurisdictionType,
+            @Param("truckEquipment") String truckEquipment,
             Pageable pageable
     );
 }

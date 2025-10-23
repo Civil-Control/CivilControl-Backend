@@ -56,5 +56,10 @@ public record VehicleResponseDTO(
         @Schema(description = "Type of jurisdiction where the vehicle is registered.",
                 example = "PROVINCIAL",
                 allowableValues = {"PROVINCIAL", "MUNICIPAL", "NATIONAL"})
-        String jurisdictionType
+        String jurisdictionType,
+
+        @Schema(description = "Type of truck equipment. Only present for vehicles of type CAMION.",
+                example = "HIDROELEVADOR",
+                allowableValues = {"NADA", "HIDROELEVADOR", "HIDROGRUA"})
+        String truckEquipment
 ) {}
