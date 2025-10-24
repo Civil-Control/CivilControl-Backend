@@ -2,21 +2,39 @@ package PSG.backEnd.model.dto.employee;
 
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
+@Schema(description = "Data Transfer Object for emergency contact. " +
+        "Represents contact information for a person to be notified in case of an employee emergency.")
 public record EmergencyContactDTO(
+    @Schema(description = "Full name of the emergency contact person. Minimum 2 characters, maximum 100 characters.",
+            example = "María González",
+            minLength = 2,
+            maxLength = 100,
+            requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Emergency contact name cannot be blank", groups = OnCreate.class)
     @Size(min = 2, max = 100, message = "Emergency contact name must be between 2 and 100 characters", groups = {OnCreate.class, OnUpdate.class})
     String name,
 
+    @Schema(description = "Phone number of the emergency contact. Can include country code, area code, and must be in valid phone format. " +
+            "This number will be used to reach the contact in case of emergency situations.",
+            example = "+54 9 11 9876-5432",
+            requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Emergency contact phone number cannot be blank", groups = OnCreate.class)
     @Pattern(regexp = "^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
              message = "Invalid phone number format",
              groups = {OnCreate.class, OnUpdate.class})
     String phoneNumber,
 
+    @Schema(description = "Relationship of the contact person to the employee. Examples: spouse, parent, sibling, friend, etc. " +
+            "Minimum 2 characters, maximum 50 characters.",
+            example = "Spouse",
+            minLength = 2,
+            maxLength = 50,
+            requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Relationship cannot be blank", groups = OnCreate.class)
     @Size(min = 2, max = 50, message = "Relationship must be between 2 and 50 characters", groups = {OnCreate.class, OnUpdate.class})
     String relationship
