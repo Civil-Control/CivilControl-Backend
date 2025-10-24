@@ -7,6 +7,11 @@ import PSG.backEnd.model.enums.employee.ActionType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.IDisciplinaryActionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,11 +27,21 @@ import java.time.LocalDate;
 @RestController
 @RequestMapping("/api/v1/disciplinary-actions")
 @RequiredArgsConstructor
+@Tag(name = "Disciplinary Actions", description = "API for managing employee disciplinary actions. Handles recording, tracking, and managing disciplinary measures such as warnings, suspensions, and terminations applied to employees.")
 public class DisciplinaryActionController {
 
     private final IDisciplinaryActionService iDisciplinaryActionService;
 
     @PostMapping
+    @Operation(summary = "Create a new disciplinary action",
+            description = "Registers a new disciplinary action for an employee. Includes action type (warning, suspension, termination), " +
+                    "reason, action date, optional end date for temporary measures, and additional notes.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Disciplinary action successfully created"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "404", description = "Employee not found"),
+            @ApiResponse(responseCode = "409", description = "Conflict with existing disciplinary action")
+    })
     public ResponseEntity<DisciplinaryActionResponseDTO> createDisciplinaryAction(
             @Validated(OnCreate.class) @RequestBody DisciplinaryActionDTO disciplinaryActionDTO) {
         DisciplinaryActionResponseDTO createdAction = iDisciplinaryActionService.createDisciplinaryAction(disciplinaryActionDTO);
@@ -34,17 +49,21 @@ public class DisciplinaryActionController {
     }
 
     @GetMapping
+    @Operation(summary = "Get all disciplinary actions with filters",
+            description = "Retrieves a paginated list of disciplinary actions with optional filtering by employee, action type, " +
+                    "action date range, and end date range. Supports sorting and pagination. Useful for employee disciplinary history tracking.")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved disciplinary actions list")
     public ResponseEntity<Page<DisciplinaryActionResponseDTO>> getDisciplinaryActions(
-            @RequestParam(required = false) Long employeeId,
-            @RequestParam(required = false) ActionType actionType,
-            @RequestParam(required = false) LocalDate actionDateFrom,
-            @RequestParam(required = false) LocalDate actionDateTo,
-            @RequestParam(required = false) LocalDate endDateFrom,
-            @RequestParam(required = false) LocalDate endDateTo,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "actionDate") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir
+            @Parameter(description = "Filter by employee ID") @RequestParam(required = false) Long employeeId,
+            @Parameter(description = "Filter by action type (WARNING, SUSPENSION, TERMINATION)") @RequestParam(required = false) ActionType actionType,
+            @Parameter(description = "Filter by minimum action date") @RequestParam(required = false) LocalDate actionDateFrom,
+            @Parameter(description = "Filter by maximum action date") @RequestParam(required = false) LocalDate actionDateTo,
+            @Parameter(description = "Filter by minimum end date") @RequestParam(required = false) LocalDate endDateFrom,
+            @Parameter(description = "Filter by maximum end date") @RequestParam(required = false) LocalDate endDateTo,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "actionDate") String sortBy,
+            @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir
     ) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -58,19 +77,44 @@ public class DisciplinaryActionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DisciplinaryActionResponseDTO> getDisciplinaryActionById(@PathVariable Long id) {
+    @Operation(summary = "Get disciplinary action by ID",
+            description = "Retrieves detailed information about a specific disciplinary action by its unique identifier.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Disciplinary action found"),
+            @ApiResponse(responseCode = "404", description = "Disciplinary action not found")
+    })
+    public ResponseEntity<DisciplinaryActionResponseDTO> getDisciplinaryActionById(
+            @Parameter(description = "Disciplinary action unique identifier", required = true) @PathVariable Long id) {
         return ResponseEntity.ok(iDisciplinaryActionService.getDisciplinaryActionById(id));
     }
 
     @PatchMapping("/{id}")
+    @Operation(summary = "Update disciplinary action",
+            description = "Updates an existing disciplinary action record. Only provided fields will be updated. Allows updating action type, " +
+                    "reason, dates, and notes.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Disciplinary action successfully updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "404", description = "Disciplinary action or employee not found"),
+            @ApiResponse(responseCode = "409", description = "Update conflict")
+    })
     public ResponseEntity<DisciplinaryActionResponseDTO> updateDisciplinaryAction(
-            @PathVariable Long id,
+            @Parameter(description = "Disciplinary action unique identifier", required = true) @PathVariable Long id,
             @Validated(OnUpdate.class) @RequestBody DisciplinaryActionDTO disciplinaryActionDTO) {
         return ResponseEntity.ok(iDisciplinaryActionService.updateDisciplinaryAction(id, disciplinaryActionDTO));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDisciplinaryAction(@PathVariable Long id) {
+    @Operation(summary = "Delete disciplinary action",
+            description = "Deletes a disciplinary action record from the system. This operation cannot be undone. " +
+                    "Use with caution as it removes the disciplinary history record.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Disciplinary action successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "Disciplinary action not found"),
+            @ApiResponse(responseCode = "409", description = "Cannot delete disciplinary action due to constraints")
+    })
+    public ResponseEntity<Void> deleteDisciplinaryAction(
+            @Parameter(description = "Disciplinary action unique identifier", required = true) @PathVariable Long id) {
         iDisciplinaryActionService.deleteDisciplinaryAction(id);
         return ResponseEntity.noContent().build();
     }
