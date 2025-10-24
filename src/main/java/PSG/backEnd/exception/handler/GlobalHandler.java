@@ -8,6 +8,8 @@ import PSG.backEnd.exception.gasStation.FuelLoadNotFoundException;
 import PSG.backEnd.exception.gasStation.FuelTypeNotAvailableException;
 import PSG.backEnd.exception.gasStation.GasStationNotFoundException;
 import PSG.backEnd.exception.payment.InvalidPaymentMethodException;
+import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotFoundException;
+import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotValidException;
 import PSG.backEnd.exception.salaryPayment.DuplicateSalaryPaymentException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotFoundException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotValidException;
@@ -242,6 +244,27 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(DisciplinaryActionNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleDisciplinaryActionNotFoundException(DisciplinaryActionNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(DisciplinaryActionNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleDisciplinaryActionNotValidException(DisciplinaryActionNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ResponseMessage> handleGenericException(Exception ex) {
