@@ -6,9 +6,11 @@ import PSG.backEnd.exception.stock.StockNotValidException;
 import PSG.backEnd.model.dto.stock.StockDTO;
 import PSG.backEnd.model.dto.stock.StockFilterDTO;
 import PSG.backEnd.model.dto.stock.StockResponseDTO;
+import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.mapper.StockMapper;
 import PSG.backEnd.repository.StockRepository;
+import PSG.backEnd.service.port.IBuildingService;
 import PSG.backEnd.service.port.IStockService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,6 +27,7 @@ public class StockService implements IStockService {
 
     private final StockRepository stockRepository;
     private final StockMapper stockMapper;
+    private final IBuildingService buildingService;
 
     @Override
     @Transactional
@@ -44,7 +47,7 @@ public class StockService implements IStockService {
     public Page<StockResponseDTO> getAllStocks(StockFilterDTO filterDTO, Pageable pageable) {
         return stockRepository.findAllWithFilters(
                 filterDTO.name(),
-                filterDTO.location(),
+                filterDTO.buildingId(),
                 filterDTO.stockCategory(),
                 filterDTO.minQuantity(),
                 filterDTO.maxQuantity(),
@@ -68,6 +71,13 @@ public class StockService implements IStockService {
 
         validateStockUpdate(id, stockDTO);
         stockMapper.partialUpdate(stockDTO, existingStock);
+
+        // Update building if provided
+        if (stockDTO.buildingId() != null) {
+            Building building = buildingService.getEntityById(stockDTO.buildingId());
+            existingStock.setBuilding(building);
+        }
+
         Stock updatedStock = stockRepository.save(existingStock);
         return stockMapper.toResponseDto(updatedStock);
     }
@@ -128,6 +138,13 @@ public class StockService implements IStockService {
         if (stockDTO.stockCategory() == null) {
             throw new StockNotValidException("Stock category cannot be null");
         }
+        if (stockDTO.buildingId() == null) {
+            throw new StockNotValidException("Building ID cannot be null");
+        }
+        // Validate that building exists and is active
+        if (!buildingService.existsById(stockDTO.buildingId())) {
+            throw new StockNotValidException("Building with ID " + stockDTO.buildingId() + " does not exist");
+        }
     }
 
     private void validateStockUpdate(Long id, StockDTO stockDTO) {
@@ -142,6 +159,12 @@ public class StockService implements IStockService {
         if (stockDTO.quantity() != null && stockDTO.quantity().compareTo(BigDecimal.ZERO) < 0) {
             throw new StockNotValidException("Quantity cannot be negative");
         }
+        // Validate building if provided
+        if (stockDTO.buildingId() != null) {
+            if (!buildingService.existsById(stockDTO.buildingId())) {
+                throw new StockNotValidException("Building with ID " + stockDTO.buildingId() + " does not exist");
+            }
+        }
     }
 
     private Optional<Stock> findDeletedStock(StockDTO stockDTO) {
@@ -151,12 +174,20 @@ public class StockService implements IStockService {
     private StockResponseDTO reactivateStock(Stock stock, StockDTO stockDTO) {
         stockMapper.partialUpdate(stockDTO, stock);
         stock.setDeleted(false);
+        // Update building if provided
+        if (stockDTO.buildingId() != null) {
+            Building building = buildingService.getEntityById(stockDTO.buildingId());
+            stock.setBuilding(building);
+        }
         return stockMapper.toResponseDto(stockRepository.save(stock));
     }
 
     private StockResponseDTO createNewStock(StockDTO stockDTO) {
         Stock stock = stockMapper.toEntity(stockDTO);
         stock.setDeleted(false);
+        // Set building relationship
+        Building building = buildingService.getEntityById(stockDTO.buildingId());
+        stock.setBuilding(building);
         return stockMapper.toResponseDto(stockRepository.save(stock));
     }
 }

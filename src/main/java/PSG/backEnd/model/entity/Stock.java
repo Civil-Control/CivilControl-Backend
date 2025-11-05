@@ -25,8 +25,6 @@ public class Stock {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal quantity;
 
-    @Column(length = 200)
-    private String location;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "stock_category", nullable = false)
@@ -35,4 +33,8 @@ public class Stock {
     @Column(nullable = false)
     @Builder.Default
     private Boolean deleted = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "building_id")
+    private Building building;
 }

@@ -23,14 +23,14 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
 
     @Query("SELECT s FROM Stock s " +
             "WHERE (:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-            "AND (:location IS NULL OR LOWER(s.location) LIKE LOWER(CONCAT('%', :location, '%'))) " +
+            "AND (:buildingId IS NULL OR s.building.id = :buildingId) " +
             "AND (:stockCategory IS NULL OR s.stockCategory = :stockCategory) " +
             "AND (:minQuantity IS NULL OR s.quantity >= :minQuantity) " +
             "AND (:maxQuantity IS NULL OR s.quantity <= :maxQuantity) " +
             "AND s.deleted = false")
     Page<Stock> findAllWithFilters(
             @Param("name") String name,
-            @Param("location") String location,
+            @Param("buildingId") Long buildingId,
             @Param("stockCategory") StockCategory stockCategory,
             @Param("minQuantity") BigDecimal minQuantity,
             @Param("maxQuantity") BigDecimal maxQuantity,

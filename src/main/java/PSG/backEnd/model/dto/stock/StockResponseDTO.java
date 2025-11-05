@@ -21,9 +21,8 @@ public record StockResponseDTO(
             example = "25.50")
     BigDecimal quantity,
 
-    @Schema(description = "Physical location where the item is stored.",
-            example = "Warehouse A - Shelf 5")
-    String location,
+    @Schema(description = "Building where the stock item is stored. Contains building details.")
+    BuildingStockDTO building,
 
     @Schema(description = "Category of the stock item.",
             example = "HERRAMIENTAS_MANUALES",

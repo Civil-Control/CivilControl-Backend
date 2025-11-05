@@ -98,11 +98,11 @@ public class StockController {
 
     @GetMapping
     @Operation(summary = "Get all stock items with filters",
-            description = "Retrieves a paginated list of stock items with optional filtering by name, location, category, and quantity range. Supports sorting by any field.")
+            description = "Retrieves a paginated list of stock items with optional filtering by name, building, category, and quantity range. Supports sorting by any field.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved stock item list")
     public ResponseEntity<Page<StockResponseDTO>> getStocks(
             @Parameter(description = "Filter by item name (partial match)") @RequestParam(required = false) String name,
-            @Parameter(description = "Filter by storage location (partial match)") @RequestParam(required = false) String location,
+            @Parameter(description = "Filter by building ID where stock is stored") @RequestParam(required = false) Long buildingId,
             @Parameter(description = "Filter by stock category") @RequestParam(required = false) StockCategory stockCategory,
             @Parameter(description = "Minimum quantity threshold") @RequestParam(required = false) BigDecimal minQuantity,
             @Parameter(description = "Maximum quantity threshold") @RequestParam(required = false) BigDecimal maxQuantity,
@@ -114,7 +114,7 @@ public class StockController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        StockFilterDTO filterDTO = new StockFilterDTO(name, location, stockCategory, minQuantity, maxQuantity);
+        StockFilterDTO filterDTO = new StockFilterDTO(name, buildingId, stockCategory, minQuantity, maxQuantity);
 
         return ResponseEntity.ok(stockService.getAllStocks(filterDTO, pageable));
     }

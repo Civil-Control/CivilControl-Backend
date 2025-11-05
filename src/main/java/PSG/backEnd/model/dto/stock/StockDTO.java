@@ -28,11 +28,12 @@ public record StockDTO(
     @Digits(integer = 8, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "Quantity must have at most 8 integer digits and 2 decimal places")
     BigDecimal quantity,
 
-    @Schema(description = "Physical location where the item is stored. Optional field for warehouse organization.",
-            example = "Warehouse A - Shelf 5",
-            maxLength = 200)
-    @Size(max = 200, groups = {OnCreate.class, OnUpdate.class}, message = "Location must not exceed 200 characters")
-    String location,
+    @Schema(description = "ID of the building where the stock item is stored. References the building entity.",
+            example = "1",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(groups = OnCreate.class, message = "Building ID is required")
+    @Positive(groups = {OnCreate.class, OnUpdate.class}, message = "Building ID must be positive")
+    Long buildingId,
 
     @Schema(description = "Category of the stock item for classification purposes. Valid values: " +
             "HERRAMIENTAS_MANUALES (Hand tools), HERRAMIENTAS_ELECTRICAS (Power tools), EQUIPOS_PESADOS (Heavy equipment), " +

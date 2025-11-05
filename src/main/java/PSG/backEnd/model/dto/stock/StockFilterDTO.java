@@ -12,9 +12,9 @@ public record StockFilterDTO(
             example = "Hammer")
     String name,
 
-    @Schema(description = "Filter by storage location. Partial match search.",
-            example = "Warehouse A")
-    String location,
+    @Schema(description = "Filter by building ID where the stock is stored.",
+            example = "1")
+    Long buildingId,
 
     @Schema(description = "Filter by stock category.",
             example = "HERRAMIENTAS_MANUALES",
