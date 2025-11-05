@@ -1,5 +1,8 @@
 package PSG.backEnd.exception.handler;
 
+import PSG.backEnd.exception.building.BuildingAlreadyExistsException;
+import PSG.backEnd.exception.building.BuildingNotFoundException;
+import PSG.backEnd.exception.building.BuildingNotValidException;
 import PSG.backEnd.exception.employee.EmployeeAlreadyExistsException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.employee.EmployeeNotValidException;
@@ -257,6 +260,39 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DisciplinaryActionNotValidException.class)
     public ResponseEntity<ResponseMessage> handleDisciplinaryActionNotValidException(DisciplinaryActionNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(BuildingNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleBuildingNotFoundException(BuildingNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(BuildingAlreadyExistsException.class)
+    public ResponseEntity<ResponseMessage> handleBuildingAlreadyExistsException(BuildingAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(BuildingNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleBuildingNotValidException(BuildingNotValidException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 ResponseMessage.builder()
                         .message(ex.getMessage())
