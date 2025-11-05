@@ -1,0 +1,53 @@
+package PSG.backEnd.model.dto.building;
+
+import PSG.backEnd.model.dto.address.AddressDTO;
+import PSG.backEnd.model.enums.BuildingType;
+import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
+import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+@Schema(description = "Data Transfer Object for creating or updating buildings. " +
+        "Represents physical facilities used in construction projects, including plants, warehouses, offices, and branches.")
+public record BuildingDTO(
+
+    @Schema(description = "Name of the building. Must be descriptive and unique.",
+            example = "Planta Central Cordoba",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            maxLength = 100)
+    @NotBlank(groups = OnCreate.class, message = "Name is required")
+    @Size(max = 100, groups = {OnCreate.class, OnUpdate.class}, message = "Name must not exceed 100 characters")
+    String name,
+
+    @Schema(description = "Unique code for the building. Used for internal identification and references.",
+            example = "PLT-CBA-001",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            maxLength = 50)
+    @NotBlank(groups = OnCreate.class, message = "Code is required")
+    @Size(max = 50, groups = {OnCreate.class, OnUpdate.class}, message = "Code must not exceed 50 characters")
+    String code,
+
+    @Schema(description = "Complete address of the building including street, number, city, state, country, and zip code.",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(groups = OnCreate.class, message = "Address is required")
+    @Valid
+    AddressDTO address,
+
+    @Schema(description = "Type of the building for classification purposes. Valid values: " +
+            "PLANTA (Plant/Factory), DEPOSITO (Warehouse/Storage), OFICINA (Office), " +
+            "SUCURSAL (Branch), OTRO (Other).",
+            example = "PLANTA",
+            requiredMode = Schema.RequiredMode.REQUIRED,
+            allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "OTRO"})
+    @NotNull(groups = OnCreate.class, message = "Building type is required")
+    BuildingType buildingType,
+
+    @Schema(description = "Indicates if the building is active or inactive. Active buildings can be used for operations.",
+            example = "true",
+            defaultValue = "true")
+    Boolean active
+) {}
+
