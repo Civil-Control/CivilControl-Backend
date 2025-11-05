@@ -9,7 +9,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "service_payments")
+@Table(name = "service_payments",
+       uniqueConstraints = {
+           @UniqueConstraint(columnNames = "reference_number", name = "uk_service_payment_reference_number")
+       })
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

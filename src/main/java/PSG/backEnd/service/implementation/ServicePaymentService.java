@@ -1,7 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.building.BuildingNotFoundException;
-import PSG.backEnd.exception.serviceSupplier.DuplicateServicePaymentException;
+import PSG.backEnd.exception.serviceSupplier.DuplicateReferenceNumberException;
 import PSG.backEnd.exception.serviceSupplier.ServicePaymentNotFoundException;
 import PSG.backEnd.exception.serviceSupplier.ServicePaymentNotValidException;
 import PSG.backEnd.exception.serviceSupplier.ServiceSupplierNotFoundException;
@@ -41,8 +41,7 @@ public class ServicePaymentService implements IServicePaymentService {
         validateBuildingExists(servicePaymentDTO.buildingId());
         validateServiceTypeProvidedBySupplier(servicePaymentDTO.serviceSupplierId(), servicePaymentDTO.serviceType());
         validateBusinessRules(servicePaymentDTO);
-        validateDuplicatePayment(servicePaymentDTO.serviceSupplierId(), servicePaymentDTO.buildingId(),
-                servicePaymentDTO.serviceType(), servicePaymentDTO.paymentDate(), null);
+        validateUniqueReferenceNumber(servicePaymentDTO.referenceNumber(), null);
 
         ServiceSupplier serviceSupplier = serviceSupplierRepository.findByIdAndDeletedFalse(servicePaymentDTO.serviceSupplierId())
                 .orElseThrow(() -> new ServiceSupplierNotFoundException(servicePaymentDTO.serviceSupplierId()));
@@ -91,12 +90,6 @@ public class ServicePaymentService implements IServicePaymentService {
         ServicePayment existingServicePayment = servicePaymentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ServicePaymentNotFoundException(id));
 
-        boolean needsDuplicateValidation = false;
-        Long finalServiceSupplierId = existingServicePayment.getServiceSupplier().getId();
-        Long finalBuildingId = existingServicePayment.getBuilding().getId();
-        PSG.backEnd.model.enums.ServiceType finalServiceType = existingServicePayment.getServiceType();
-        LocalDate finalPaymentDate = existingServicePayment.getPaymentDate();
-
         if (servicePaymentDTO.serviceSupplierId() != null) {
             validateServiceSupplierExists(servicePaymentDTO.serviceSupplierId());
 
@@ -107,8 +100,6 @@ public class ServicePaymentService implements IServicePaymentService {
                     validateServiceTypeProvidedBySupplier(servicePaymentDTO.serviceSupplierId(), existingServicePayment.getServiceType());
                 }
                 updateServiceSupplierRelation(existingServicePayment, servicePaymentDTO.serviceSupplierId());
-                finalServiceSupplierId = servicePaymentDTO.serviceSupplierId();
-                needsDuplicateValidation = true;
             }
         }
 
@@ -117,8 +108,6 @@ public class ServicePaymentService implements IServicePaymentService {
 
             if (!existingServicePayment.getBuilding().getId().equals(servicePaymentDTO.buildingId())) {
                 updateBuildingRelation(existingServicePayment, servicePaymentDTO.buildingId());
-                finalBuildingId = servicePaymentDTO.buildingId();
-                needsDuplicateValidation = true;
             }
         }
 
@@ -128,21 +117,14 @@ public class ServicePaymentService implements IServicePaymentService {
                     existingServicePayment.getServiceSupplier().getId(),
                     servicePaymentDTO.serviceType()
             );
-            finalServiceType = servicePaymentDTO.serviceType();
-            needsDuplicateValidation = true;
         }
 
-        if (servicePaymentDTO.paymentDate() != null &&
-            !existingServicePayment.getPaymentDate().equals(servicePaymentDTO.paymentDate())) {
-            finalPaymentDate = servicePaymentDTO.paymentDate();
-            needsDuplicateValidation = true;
+        if (servicePaymentDTO.referenceNumber() != null &&
+            !servicePaymentDTO.referenceNumber().equals(existingServicePayment.getReferenceNumber())) {
+            validateUniqueReferenceNumber(servicePaymentDTO.referenceNumber(), id);
         }
 
         validateBusinessRulesForUpdate(servicePaymentDTO);
-
-        if (needsDuplicateValidation) {
-            validateDuplicatePayment(finalServiceSupplierId, finalBuildingId, finalServiceType, finalPaymentDate, id);
-        }
 
         servicePaymentMapper.partialUpdate(servicePaymentDTO, existingServicePayment);
         return servicePaymentMapper.toResponseDto(servicePaymentRepository.save(existingServicePayment));
@@ -213,19 +195,18 @@ public class ServicePaymentService implements IServicePaymentService {
         }
     }
 
-    private void validateDuplicatePayment(Long serviceSupplierId, Long buildingId,
-                                          PSG.backEnd.model.enums.ServiceType serviceType,
-                                          LocalDate paymentDate, Long excludePaymentId) {
-        int year = paymentDate.getYear();
-        int month = paymentDate.getMonthValue();
+    private void validateUniqueReferenceNumber(String referenceNumber, Long excludePaymentId) {
+        if (referenceNumber != null && !referenceNumber.trim().isEmpty()) {
+            boolean exists;
+            if (excludePaymentId != null) {
+                exists = servicePaymentRepository.existsByReferenceNumberAndDeletedFalseExcludingId(referenceNumber, excludePaymentId);
+            } else {
+                exists = servicePaymentRepository.existsByReferenceNumberAndDeletedFalse(referenceNumber);
+            }
 
-        boolean paymentExists = servicePaymentRepository.existsPaymentForServiceInMonth(
-                serviceSupplierId, buildingId, serviceType, year, month, excludePaymentId);
-
-        if (paymentExists) {
-            throw new DuplicateServicePaymentException(
-                    String.format("A payment for service type %s in building %d already exists for %d-%02d",
-                            serviceType, buildingId, year, month));
+            if (exists) {
+                throw new DuplicateReferenceNumberException(referenceNumber);
+            }
         }
     }
 

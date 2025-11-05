@@ -22,6 +22,16 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
     boolean existsByIdAndDeletedFalse(Long id);
     List<ServicePayment> findByServiceSupplierIdAndDeletedFalse(Long serviceSupplierId);
     List<ServicePayment> findByBuildingIdAndDeletedFalse(Long buildingId);
+    boolean existsByReferenceNumberAndDeletedFalse(String referenceNumber);
+
+    @Query("SELECT COUNT(sp) > 0 FROM ServicePayment sp " +
+            "WHERE sp.referenceNumber = :referenceNumber " +
+            "AND sp.deleted = false " +
+            "AND (:excludePaymentId IS NULL OR sp.id != :excludePaymentId)")
+    boolean existsByReferenceNumberAndDeletedFalseExcludingId(
+            @Param("referenceNumber") String referenceNumber,
+            @Param("excludePaymentId") Long excludePaymentId
+    );
 
     @Query("SELECT sp FROM ServicePayment sp " +
             "WHERE sp.deleted = false " +

@@ -39,12 +39,12 @@ public class ServicePaymentController {
     @Operation(summary = "Create a new service payment",
             description = "Registers a new payment for a utility service (electricity, water, gas, etc.) for a specific building. " +
                     "Associates the payment with a service supplier and validates that the service type is provided by that supplier. " +
-                    "Prevents duplicate payments for the same service, building, and month.")
+                    "The reference number must be unique across all service payments.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Service payment successfully created"),
             @ApiResponse(responseCode = "400", description = "Invalid input data, payment date in future, or service type not provided by supplier"),
             @ApiResponse(responseCode = "404", description = "Service supplier or building not found"),
-            @ApiResponse(responseCode = "409", description = "Duplicate payment: A payment for this service already exists for the same month")
+            @ApiResponse(responseCode = "409", description = "Duplicate reference number: A payment with this reference number already exists")
     })
     public ResponseEntity<ServicePaymentResponseDTO> createServicePayment(
             @Validated(OnCreate.class) @RequestBody ServicePaymentDTO servicePaymentDTO) {
@@ -123,13 +123,13 @@ public class ServicePaymentController {
     @PatchMapping("/{id}")
     @Operation(summary = "Update service payment",
             description = "Updates an existing service payment record. Only provided fields will be updated. " +
-                    "Validates that the new service supplier provides the service type, and that no duplicate payment exists " +
-                    "if the service supplier, building, service type, or date are changed.")
+                    "Validates that the new service supplier provides the service type if any of these fields are changed. " +
+                    "If updating the reference number, it must be unique across all service payments.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Service payment successfully updated"),
             @ApiResponse(responseCode = "400", description = "Invalid input data, payment date in future, or service type not provided by new supplier"),
             @ApiResponse(responseCode = "404", description = "Service payment, service supplier, or building not found"),
-            @ApiResponse(responseCode = "409", description = "Duplicate payment: A payment for this service already exists for the new month")
+            @ApiResponse(responseCode = "409", description = "Duplicate reference number: A payment with this reference number already exists")
     })
     public ResponseEntity<ServicePaymentResponseDTO> updateServicePayment(
             @Parameter(description = "Service payment unique identifier", required = true)
