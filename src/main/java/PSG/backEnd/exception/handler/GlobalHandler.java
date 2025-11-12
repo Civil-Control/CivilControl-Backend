@@ -344,6 +344,15 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(EppDeliveryNotValidException.class)
     public ResponseEntity<ResponseMessage> handleEppDeliveryNotValidException(EppDeliveryNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
     @ExceptionHandler(InvalidReportFilterException.class)
     public ResponseEntity<ResponseMessage> handleInvalidReportFilterException(InvalidReportFilterException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
