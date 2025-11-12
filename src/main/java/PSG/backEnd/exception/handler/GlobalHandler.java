@@ -6,6 +6,8 @@ import PSG.backEnd.exception.building.BuildingNotValidException;
 import PSG.backEnd.exception.employee.EmployeeAlreadyExistsException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.employee.EmployeeNotValidException;
+import PSG.backEnd.exception.employeeVacation.EmployeeVacationNotFoundException;
+import PSG.backEnd.exception.employeeVacation.EmployeeVacationNotValidException;
 import PSG.backEnd.exception.eppDelivery.EppDeliveryNotFoundException;
 import PSG.backEnd.exception.eppDelivery.EppDeliveryNotValidException;
 import PSG.backEnd.exception.gasStation.DuplicateTicketException;
@@ -208,6 +210,28 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(EmployeeNotValidException.class)
     public ResponseEntity<ResponseMessage> handleEmployeeNotValidException(EmployeeNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(EmployeeVacationNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleEmployeeVacationNotFoundException(EmployeeVacationNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(EmployeeVacationNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleEmployeeVacationNotValidException(EmployeeVacationNotValidException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 ResponseMessage.builder()
                         .message(ex.getMessage())
