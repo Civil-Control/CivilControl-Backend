@@ -6,6 +6,8 @@ import PSG.backEnd.exception.building.BuildingNotValidException;
 import PSG.backEnd.exception.employee.EmployeeAlreadyExistsException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.employee.EmployeeNotValidException;
+import PSG.backEnd.exception.eppDelivery.EppDeliveryNotFoundException;
+import PSG.backEnd.exception.eppDelivery.EppDeliveryNotValidException;
 import PSG.backEnd.exception.gasStation.DuplicateTicketException;
 import PSG.backEnd.exception.gasStation.FuelLoadNotFoundException;
 import PSG.backEnd.exception.gasStation.FuelTypeNotAvailableException;
@@ -293,6 +295,28 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BuildingNotValidException.class)
     public ResponseEntity<ResponseMessage> handleBuildingNotValidException(BuildingNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(EppDeliveryNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleEppDeliveryNotFoundException(EppDeliveryNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(EppDeliveryNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleEppDeliveryNotValidException(EppDeliveryNotValidException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 ResponseMessage.builder()
                         .message(ex.getMessage())
