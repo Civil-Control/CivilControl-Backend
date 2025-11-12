@@ -17,6 +17,9 @@ import PSG.backEnd.exception.gasStation.GasStationNotFoundException;
 import PSG.backEnd.exception.payment.InvalidPaymentMethodException;
 import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotFoundException;
 import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotValidException;
+import PSG.backEnd.exception.report.InvalidReportFilterException;
+import PSG.backEnd.exception.report.InvalidReportFormatException;
+import PSG.backEnd.exception.report.ReportGenerationException;
 import PSG.backEnd.exception.salaryPayment.DuplicateSalaryPaymentException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotFoundException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotValidException;
@@ -341,10 +344,34 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(EppDeliveryNotValidException.class)
     public ResponseEntity<ResponseMessage> handleEppDeliveryNotValidException(EppDeliveryNotValidException ex) {
+    @ExceptionHandler(InvalidReportFilterException.class)
+    public ResponseEntity<ResponseMessage> handleInvalidReportFilterException(InvalidReportFilterException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
                 ResponseMessage.builder()
                         .message(ex.getMessage())
                         .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(InvalidReportFormatException.class)
+    public ResponseEntity<ResponseMessage> handleInvalidReportFormatException(InvalidReportFormatException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(ReportGenerationException.class)
+    public ResponseEntity<ResponseMessage> handleReportGenerationException(ReportGenerationException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                         .timestamp(LocalDateTime.now())
                         .build()
         );
