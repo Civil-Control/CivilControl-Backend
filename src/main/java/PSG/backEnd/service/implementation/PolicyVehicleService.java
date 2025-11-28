@@ -54,17 +54,17 @@ public class PolicyVehicleService implements IPolicyVehicleService {
 
         validateBusinessRulesInternal(policyVehicleDTO, autoPolicyId);
 
-        // Validar duplicación solo si cambió el vehículo (si vehicleId está presente en el DTO)
+        // Validate vehicle change only if vehicleId is provided and different
         if (policyVehicleDTO.vehicleId() != null &&
             !existingPolicyVehicle.getVehicle().getId().equals(policyVehicleDTO.vehicleId())) {
             validateVehicleNotInPolicy(policyVehicleDTO.vehicleId(), autoPolicyId, id);
 
-            // Si se cambia el vehículo, cargar la nueva entidad Vehicle completa
+            // If vehicleId is changing, fetch and set the new Vehicle entity
             Vehicle newVehicle = vehicleService.getEntityById(policyVehicleDTO.vehicleId());
             existingPolicyVehicle.setVehicle(newVehicle);
         }
 
-        // Actualizar solo los campos permitidos sin tocar las relaciones
+        // Update only allowed fields without touching relationships
         policyVehicleMapper.partialUpdate(policyVehicleDTO, existingPolicyVehicle);
 
         PolicyVehicle updatedPolicyVehicle = policyVehicleRepository.save(existingPolicyVehicle);
@@ -154,12 +154,12 @@ public class PolicyVehicleService implements IPolicyVehicleService {
 
         AutoPolicy autoPolicy = getOrCreateAutoPolicy(insurancePolicyId);
 
-        // Verificar si existe un PolicyVehicle eliminado con el mismo vehículo y autoPolicy para reactivarlo
+        // Check if there's a deleted PolicyVehicle with the same vehicle and autoPolicy to reactivate it
         Optional<PolicyVehicle> deletedPolicyVehicle = policyVehicleRepository
                 .findByVehicleIdAndAutoPolicyIdAndDeletedTrue(policyVehicleDTO.vehicleId(), autoPolicy.getId());
 
         if (deletedPolicyVehicle.isPresent()) {
-            // Reactivar el PolicyVehicle existente
+            // Reactivate existing PolicyVehicle
             return reactivatePolicyVehicle(deletedPolicyVehicle.get(), policyVehicleDTO);
         }
 
@@ -167,18 +167,18 @@ public class PolicyVehicleService implements IPolicyVehicleService {
     }
 
     private PolicyVehicleResponseDTO reactivatePolicyVehicle(PolicyVehicle deletedPolicyVehicle, PolicyVehicleDTO newData) {
-        // Validar reglas de negocio con los nuevos datos
+        // Validate business rules with new data
         validateBusinessRulesInternal(newData, deletedPolicyVehicle.getAutoPolicy().getId());
 
-        // Log para debug - verificar que tenemos el ID original
+        // Debug log - verify we have the original ID
         System.out.println("Reactivating policy vehicle with ID: " + deletedPolicyVehicle.getId());
 
-        // Actualizar el PolicyVehicle eliminado con los nuevos datos
+        // Update the deleted PolicyVehicle with new data
         Long originalId = deletedPolicyVehicle.getId();
 
         policyVehicleMapper.partialUpdate(newData, deletedPolicyVehicle);
 
-        // Asegurar que el ID no se perdió
+        // Ensure the ID wasn't lost
         deletedPolicyVehicle.setId(originalId);
 
         // Reactivar el PolicyVehicle

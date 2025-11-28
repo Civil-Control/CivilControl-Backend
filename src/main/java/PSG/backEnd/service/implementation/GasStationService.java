@@ -31,15 +31,15 @@ public class GasStationService implements IGasStationService {
 
     @Override
     public GasStationResponseDTO createGasStation(GasStationDTO gasStationDTO) {
-        // Verificar que el supplier existe
+        // Verify that the supplier exists
         if (!supplierRepository.existsByIdAndDeletedFalse(gasStationDTO.supplierId())) {
             throw new RuntimeException("Supplier not found with id: " + gasStationDTO.supplierId());
         }
 
-        // Crear la estación CON los precios usando MapStruct - mucho más simple ahora
+        // Create the station WITH prices using MapStruct - much simpler now
         GasStation gasStation = gasStationMapper.toEntity(gasStationDTO);
 
-        // Guardar una sola vez - los precios se guardan automáticamente como componentes embebidos
+        // Save once - prices are saved automatically as embedded components
         GasStation savedGasStation = gasStationRepository.save(gasStation);
 
         return enrichResponseWithSupplierName(gasStationMapper.toResponseDto(savedGasStation));
@@ -71,7 +71,7 @@ public class GasStationService implements IGasStationService {
         GasStation gasStation = gasStationRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new GasStationNotFoundException(id));
 
-        // Verificar que el supplier existe si se está actualizando
+        // Verify that the supplier exists if being updated
         if (gasStationDTO.supplierId() != null &&
             !supplierRepository.existsByIdAndDeletedFalse(gasStationDTO.supplierId())) {
             throw new RuntimeException("Supplier not found with id: " + gasStationDTO.supplierId());
@@ -93,12 +93,12 @@ public class GasStationService implements IGasStationService {
     }
 
     /**
-     * Enriquece la respuesta con el nombre real del proveedor en lugar del texto genérico
+     * Enriches the response with the actual supplier name instead of generic text
      */
     private GasStationResponseDTO enrichResponseWithSupplierName(GasStationResponseDTO responseDTO) {
         String supplierName = getSupplierNameById(responseDTO.supplierId());
 
-        // Crear nueva lista de precios con el nombre real del proveedor
+        // Create new price list with the actual supplier name
         List<GasStationPriceResponseDTO> enrichedPrices = responseDTO.prices().stream()
                 .map(price -> new GasStationPriceResponseDTO(
                     supplierName,
@@ -107,7 +107,7 @@ public class GasStationService implements IGasStationService {
                 ))
                 .collect(Collectors.toList());
 
-        // Crear nuevo DTO con el nombre real del proveedor
+        // Create new DTO with the actual supplier name
         return new GasStationResponseDTO(
             responseDTO.id(),
             responseDTO.supplierId(),
@@ -119,15 +119,15 @@ public class GasStationService implements IGasStationService {
     }
 
     /**
-     * Obtiene el nombre legal del proveedor por su ID
+     * Gets the supplier's legal name by its ID
      */
     private String getSupplierNameById(Long supplierId) {
         if (supplierId == null) {
-            return "Proveedor no especificado";
+            return "Supplier not specified";
         }
 
         return supplierRepository.findByIdAndDeletedFalse(supplierId)
                 .map(Supplier::getLegalName)
-                .orElse("Proveedor no encontrado");
+                .orElse("Supplier not found");
     }
 }

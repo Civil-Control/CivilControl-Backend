@@ -27,20 +27,20 @@ public class InsurancePolicyService implements IInsurancePolicyService {
 
     @Override
     public InsurancePolicyResponseDTO createInsurancePolicy(InsurancePolicyDTO insurancePolicyDTO) {
-        // Verificar si existe una póliza eliminada con el mismo número para reactivarla
+        // Check if there's a deleted policy with the same number to reactivate it
         Optional<InsurancePolicy> deletedPolicy = insurancePolicyRepository
                 .findByPolicyNumberAndDeletedTrue(insurancePolicyDTO.policyNumber());
 
         if (deletedPolicy.isPresent()) {
-            // Reactivar la póliza existente
+            // Reactivate existing policy
             return reactivateInsurancePolicy(deletedPolicy.get(), insurancePolicyDTO);
         }
 
-        // Si no existe póliza eliminada, validar que no hay duplicados activos
+        // If no deleted policy exists, validate there are no active duplicates
         validatePolicyNumber(insurancePolicyDTO.policyNumber(), null);
         validateBusinessRules(insurancePolicyDTO);
 
-        // Crear nueva póliza
+        // Create new policy
         InsurancePolicy insurancePolicy = insurancePolicyMapper.toEntity(insurancePolicyDTO);
         InsurancePolicy savedPolicy = insurancePolicyRepository.save(insurancePolicy);
 
@@ -48,31 +48,31 @@ public class InsurancePolicyService implements IInsurancePolicyService {
     }
 
     private InsurancePolicyResponseDTO reactivateInsurancePolicy(InsurancePolicy deletedPolicy, InsurancePolicyDTO newData) {
-        // Validar reglas de negocio con los nuevos datos
+        // Validate business rules with new data
         validateBusinessRules(newData);
 
-        // Log para debug - verificar que tenemos el ID original
+        // Debug log - verify we have the original ID
         System.out.println("Reactivating policy with ID: " + deletedPolicy.getId());
 
-        // Actualizar la póliza eliminada con los nuevos datos
-        // Asegurar que mantenemos el ID original
+        // Update the deleted policy with new data
+        // Ensure we keep the original ID
         Long originalId = deletedPolicy.getId();
 
         insurancePolicyMapper.partialUpdate(newData, deletedPolicy);
 
-        // Asegurar que el ID no se perdió
+        // Ensure the ID wasn't lost
         deletedPolicy.setId(originalId);
 
-        // Reactivar la póliza
+        // Reactivate the policy
         deletedPolicy.setDeleted(false);
 
-        // Log para debug - verificar que seguimos teniendo el ID original
+        // Debug log - verify we still have the original ID
         System.out.println("About to save policy with ID: " + deletedPolicy.getId());
 
-        // Guardar la póliza reactivada (debe actualizar, no crear nuevo registro)
+        // Save the reactivated policy (should update, not create a new record)
         InsurancePolicy reactivatedPolicy = insurancePolicyRepository.save(deletedPolicy);
 
-        // Log para debug - verificar el ID después de save
+        // Debug log - verify the ID after save
         System.out.println("Saved policy with ID: " + reactivatedPolicy.getId());
 
         return insurancePolicyMapper.toResponseDto(reactivatedPolicy);
@@ -89,7 +89,7 @@ public class InsurancePolicyService implements IInsurancePolicyService {
     public InsurancePolicyResponseDTO updateInsurancePolicy(Long id, InsurancePolicyDTO insurancePolicyDTO) {
         InsurancePolicy existingPolicy = getEntityById(id);
 
-        // Validar número de póliza si cambió
+        // Validate policy number if it changed
         if (!existingPolicy.getPolicyNumber().equals(insurancePolicyDTO.policyNumber())) {
             validatePolicyNumber(insurancePolicyDTO.policyNumber(), id);
         }
@@ -105,7 +105,7 @@ public class InsurancePolicyService implements IInsurancePolicyService {
     @Override
     public void deleteInsurancePolicy(Long id) {
         InsurancePolicy insurancePolicy = getEntityById(id);
-        // Soft delete - no eliminamos físicamente
+        // Soft delete - don't physically delete
         insurancePolicy.setDeleted(true);
         insurancePolicyRepository.save(insurancePolicy);
     }
@@ -147,12 +147,12 @@ public class InsurancePolicyService implements IInsurancePolicyService {
 
     @Override
     public void validatePolicyNumber(String policyNumber, Long excludeId) {
-        // Buscar si existe una póliza activa (no eliminada) con el mismo número
+        // Check if there's an active policy (not deleted) with the same number
         boolean exists = insurancePolicyRepository.existsByPolicyNumberAndDeletedFalse(policyNumber);
         if (exists) {
-            // Si hay un ID a excluir, verificar que no sea el mismo registro
+            // If there's an ID to exclude, verify it's not the same record
             if (excludeId != null) {
-                // Buscar la póliza activa específica con ese número
+                // Find the specific active policy with that number
                 Optional<InsurancePolicy> existing = insurancePolicyRepository.findByPolicyNumberAndDeletedFalse(policyNumber);
                 if (existing.isPresent() && !existing.get().getId().equals(excludeId)) {
                     throw new DuplicatePolicyNumberException(policyNumber);
@@ -164,14 +164,14 @@ public class InsurancePolicyService implements IInsurancePolicyService {
     }
 
     private void validateBusinessRules(InsurancePolicyDTO dto) {
-        // Validar que la fecha de vigencia desde sea anterior a la fecha hasta
+        // Validate that effective from date is before effective to date
         if (dto.effectiveFrom() != null && dto.effectiveTo() != null) {
             if (dto.effectiveFrom().isAfter(dto.effectiveTo())) {
                 throw new IllegalArgumentException("Effective from date must be before effective to date");
             }
         }
 
-        // Validar que la fecha de cancelación no sea anterior a la fecha de vigencia
+        // Validate that cancellation date is not before effective from date
         if (dto.cancellationDate() != null && dto.effectiveFrom() != null) {
             if (dto.cancellationDate().isBefore(dto.effectiveFrom())) {
                 throw new IllegalArgumentException("Cancellation date cannot be before effective from date");
