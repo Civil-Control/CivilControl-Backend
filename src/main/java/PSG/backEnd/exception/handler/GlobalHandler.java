@@ -1,8 +1,12 @@
 package PSG.backEnd.exception.handler;
 
+import PSG.backEnd.exception.auth.InvalidCredentialsException;
+import PSG.backEnd.exception.auth.InvalidTokenException;
 import PSG.backEnd.exception.building.BuildingAlreadyExistsException;
 import PSG.backEnd.exception.building.BuildingNotFoundException;
 import PSG.backEnd.exception.building.BuildingNotValidException;
+import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotFoundException;
+import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotValidException;
 import PSG.backEnd.exception.employee.EmployeeAlreadyExistsException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.employee.EmployeeNotValidException;
@@ -15,11 +19,13 @@ import PSG.backEnd.exception.gasStation.FuelLoadNotFoundException;
 import PSG.backEnd.exception.gasStation.FuelTypeNotAvailableException;
 import PSG.backEnd.exception.gasStation.GasStationNotFoundException;
 import PSG.backEnd.exception.payment.InvalidPaymentMethodException;
-import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotFoundException;
-import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotValidException;
+import PSG.backEnd.exception.permission.PermissionNotFoundException;
 import PSG.backEnd.exception.report.InvalidReportFilterException;
 import PSG.backEnd.exception.report.InvalidReportFormatException;
 import PSG.backEnd.exception.report.ReportGenerationException;
+import PSG.backEnd.exception.role.RoleAlreadyExistsException;
+import PSG.backEnd.exception.role.RoleNotFoundException;
+import PSG.backEnd.exception.role.RoleNotValidException;
 import PSG.backEnd.exception.salaryPayment.DuplicateSalaryPaymentException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotFoundException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotValidException;
@@ -28,6 +34,9 @@ import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentAlreadyActiveException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotDeletedException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
+import PSG.backEnd.exception.user.UserAlreadyExistsException;
+import PSG.backEnd.exception.user.UserNotFoundException;
+import PSG.backEnd.exception.user.UserNotValidException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -110,6 +119,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
             new String[0];
     }
 
+    // ==================== General Exceptions ====================
+
     @ExceptionHandler(SQLException.class)
     public ResponseEntity<ResponseMessage> handleSQLException(SQLException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
@@ -120,6 +131,126 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                         .build()
         );
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ResponseMessage> handleGenericException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                ResponseMessage.builder()
+                        .message("An unexpected error occurred: " + ex.getMessage())
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // ==================== Authentication & Authorization Exceptions ====================
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ResponseMessage> handleInvalidCredentialsException(InvalidCredentialsException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ResponseMessage> handleInvalidTokenException(InvalidTokenException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // ==================== User Exceptions ====================
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleUserNotFoundException(UserNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ResponseMessage> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(UserNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleUserNotValidException(UserNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // ==================== Role Exceptions ====================
+
+    @ExceptionHandler(RoleNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleRoleNotFoundException(RoleNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(RoleAlreadyExistsException.class)
+    public ResponseEntity<ResponseMessage> handleRoleAlreadyExistsException(RoleAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(RoleNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleRoleNotValidException(RoleNotValidException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // ==================== Permission Exceptions ====================
+
+    @ExceptionHandler(PermissionNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handlePermissionNotFoundException(PermissionNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // ==================== Supplier Exceptions ====================
 
     @ExceptionHandler(SupplierNotFoundException.class)
     public ResponseEntity<ResponseMessage> handleSupplierNotFoundException(SupplierNotFoundException ex) {
@@ -143,6 +274,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    // ==================== TransactionalDocument Exceptions ====================
+
     @ExceptionHandler(TransactionalDocumentNotFoundException.class)
     public ResponseEntity<ResponseMessage> handleTransactionalDocumentNotFoundException(TransactionalDocumentNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -165,10 +298,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
-
     @ExceptionHandler(TransactionalDocumentNotDeletedException.class)
-    public ResponseEntity<ResponseMessage> handleTransactionalDocumentNotDeletedException(
-            TransactionalDocumentNotDeletedException ex) {
+    public ResponseEntity<ResponseMessage> handleTransactionalDocumentNotDeletedException(TransactionalDocumentNotDeletedException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 ResponseMessage.builder()
                         .message(ex.getMessage())
@@ -177,6 +308,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                         .build()
         );
     }
+
+    // ==================== Payment Exceptions ====================
 
     @ExceptionHandler(InvalidPaymentMethodException.class)
     public ResponseEntity<ResponseMessage> handleInvalidPaymentMethodException(InvalidPaymentMethodException ex) {
@@ -188,6 +321,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                         .build()
         );
     }
+
+    // ==================== Employee Exceptions ====================
 
     @ExceptionHandler(EmployeeNotFoundException.class)
     public ResponseEntity<ResponseMessage> handleEmployeeNotFoundException(EmployeeNotFoundException ex) {
@@ -222,6 +357,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    // ==================== EmployeeVacation Exceptions ====================
+
     @ExceptionHandler(EmployeeVacationNotFoundException.class)
     public ResponseEntity<ResponseMessage> handleEmployeeVacationNotFoundException(EmployeeVacationNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -244,6 +381,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    // ==================== SalaryPayment Exceptions ====================
+
     @ExceptionHandler(SalaryPaymentNotFoundException.class)
     public ResponseEntity<ResponseMessage> handleSalaryPaymentNotFoundException(SalaryPaymentNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -265,6 +404,7 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                         .build()
         );
     }
+
     @ExceptionHandler(DuplicateSalaryPaymentException.class)
     public ResponseEntity<ResponseMessage> handleDuplicateSalaryPaymentException(DuplicateSalaryPaymentException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
@@ -275,6 +415,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                         .build()
         );
     }
+
+    // ==================== DisciplinaryAction Exceptions ====================
 
     @ExceptionHandler(DisciplinaryActionNotFoundException.class)
     public ResponseEntity<ResponseMessage> handleDisciplinaryActionNotFoundException(DisciplinaryActionNotFoundException ex) {
@@ -297,6 +439,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                         .build()
         );
     }
+
+    // ==================== Building Exceptions ====================
 
     @ExceptionHandler(BuildingNotFoundException.class)
     public ResponseEntity<ResponseMessage> handleBuildingNotFoundException(BuildingNotFoundException ex) {
@@ -331,6 +475,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    // ==================== EppDelivery Exceptions ====================
+
     @ExceptionHandler(EppDeliveryNotFoundException.class)
     public ResponseEntity<ResponseMessage> handleEppDeliveryNotFoundException(EppDeliveryNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -352,6 +498,8 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                         .build()
         );
     }
+
+    // ==================== Report Exceptions ====================
 
     @ExceptionHandler(InvalidReportFilterException.class)
     public ResponseEntity<ResponseMessage> handleInvalidReportFilterException(InvalidReportFilterException ex) {
@@ -386,16 +534,7 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ResponseMessage> handleGenericException(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                ResponseMessage.builder()
-                        .message("An unexpected error occurred: " + ex.getMessage())
-                        .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                        .timestamp(LocalDateTime.now())
-                        .build()
-        );
-    }
+    // ==================== GasStation & FuelLoad Exceptions ====================
 
     @ExceptionHandler(GasStationNotFoundException.class)
     public ResponseEntity<ResponseMessage> handleGasStationNotFoundException(GasStationNotFoundException ex) {
@@ -441,3 +580,4 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 }
+
