@@ -28,7 +28,7 @@ public class CorsTraceFilter {
             }
         };
         FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>(f);
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 1); // justo DETRÁS del CorsFilter global
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 1); // Right after the global CorsFilter
         return bean;
     }
 }

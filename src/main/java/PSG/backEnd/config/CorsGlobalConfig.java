@@ -18,7 +18,7 @@ public class CorsGlobalConfig {
         CorsConfiguration cfg = new CorsConfiguration();
 
         cfg.setAllowedOrigins(List.of(
-                "24.232.204.224::4200",
+                "http://24.232.204.224:4200",
                 "http://localhost:8080",
                 "http://localhost:4200",
                 "http://72.60.15.234:8080",
@@ -32,7 +32,7 @@ public class CorsGlobalConfig {
         cfg.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // registra por si acaso dos patrones (algunos proxys cambian context-path)
+        // Register multiple patterns (some proxies change context-path)
         source.registerCorsConfiguration("/**", cfg);
         source.registerCorsConfiguration("/api/**", cfg);
         source.registerCorsConfiguration("/api/v1/**", cfg);
