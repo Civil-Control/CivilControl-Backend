@@ -3,6 +3,7 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.report.InvalidReportFilterException;
 import PSG.backEnd.exception.report.InvalidReportFormatException;
 import PSG.backEnd.model.dto.report.MoneyOutflowReportDTO;
+import PSG.backEnd.model.dto.report.MoneyOutflowReportPreviewDTO;
 import PSG.backEnd.model.dto.report.ReportFilterDTO;
 import PSG.backEnd.model.dto.report.ReportItemDTO;
 import PSG.backEnd.model.entity.TransactionalDocument;
@@ -159,6 +160,44 @@ public class ReportService implements IReportService {
 
     @Override
     @Transactional(readOnly = true)
+    public MoneyOutflowReportPreviewDTO generateMoneyOutflowReportPreview(ReportFilterDTO filters) {
+        log.info("Generating money outflow report preview with filters: {}", filters);
+
+        // Validate filters
+        validateFilters(filters);
+
+        // Collect data from all sources (we still need to collect items to calculate statistics)
+        List<ReportItemDTO> items = collectMoneyOutflows(filters);
+
+        // Calculate totals and summary
+        BigDecimal totalAmount = calculateTotalAmount(items);
+        BigDecimal averageAmount = items.isEmpty()
+                ? BigDecimal.ZERO
+                : totalAmount.divide(BigDecimal.valueOf(items.size()), 2, java.math.RoundingMode.HALF_UP);
+
+        Map<MoneyOutflowCategory, BigDecimal> summaryByCategory = calculateSummaryByCategory(items);
+        Map<MoneyOutflowCategory, Integer> countByCategory = calculateCountByCategory(items);
+
+        // Build preview (without items list)
+        MoneyOutflowReportPreviewDTO preview = MoneyOutflowReportPreviewDTO.builder()
+                .filters(filters)
+                .totalAmount(totalAmount)
+                .totalCount(items.size())
+                .averageAmount(averageAmount)
+                .generatedAt(LocalDateTime.now())
+                .summaryByCategory(summaryByCategory)
+                .countByCategory(countByCategory)
+                .periodDescription(buildPeriodDescription(filters))
+                .build();
+
+        log.info("Preview generated successfully: {} items, total amount: ${}, average: ${}",
+                 items.size(), totalAmount, averageAmount);
+
+        return preview;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ReportItemDTO> collectMoneyOutflows(ReportFilterDTO filters) {
         log.debug("Collecting money outflows with filters: {}", filters);
 
@@ -267,6 +306,17 @@ public class ReportService implements IReportService {
                                 ReportItemDTO::amount,
                                 BigDecimal::add
                         )
+                ));
+    }
+
+    /**
+     * Calculates the count of items grouped by category.
+     */
+    private Map<MoneyOutflowCategory, Integer> calculateCountByCategory(List<ReportItemDTO> items) {
+        return items.stream()
+                .collect(Collectors.groupingBy(
+                        ReportItemDTO::category,
+                        Collectors.summingInt(item -> 1)
                 ));
     }
 

@@ -1,6 +1,7 @@
 package PSG.backEnd.controller;
 
 import PSG.backEnd.model.dto.report.MoneyOutflowReportDTO;
+import PSG.backEnd.model.dto.report.MoneyOutflowReportPreviewDTO;
 import PSG.backEnd.model.dto.report.ReportFilterDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
@@ -207,43 +208,48 @@ public class ReportController {
             summary = "Preview report statistics",
             description = "Returns quick statistics about the report that would be generated with the given filters. " +
                     "Useful for showing users a preview before generating the full report. " +
-                    "Returns total count, total amount, and summary by category without the detailed items."
+                    "Returns total count, total amount, average amount, and summary by category WITHOUT the detailed items list. " +
+                    "This endpoint is optimized for performance and returns only aggregated data."
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Preview statistics generated successfully"
+                    description = "Preview statistics generated successfully",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = MoneyOutflowReportPreviewDTO.class)
+                    )
             ),
             @ApiResponse(
                     responseCode = "400",
                     description = "Invalid filter parameters"
             )
     })
-    public ResponseEntity<MoneyOutflowReportDTO> previewReport(
-            @Parameter(description = "Start date of the report period", example = "2024-01-01")
+    public ResponseEntity<MoneyOutflowReportPreviewDTO> previewReport(
+            @Parameter(description = "Start date of the report period (inclusive). Format: yyyy-MM-dd", example = "2024-01-01")
             @RequestParam(required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd")
             LocalDate startDate,
 
-            @Parameter(description = "End date of the report period", example = "2024-12-31")
+            @Parameter(description = "End date of the report period (inclusive). Format: yyyy-MM-dd", example = "2024-12-31")
             @RequestParam(required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd")
             LocalDate endDate,
 
-            @Parameter(description = "List of categories to filter by. Can specify multiple categories.",
+            @Parameter(description = "List of categories to filter by. Can specify multiple categories. If not provided, includes all categories.",
                     example = "[\"PAYMENT\", \"SALARY\"]")
             @RequestParam(required = false)
             List<MoneyOutflowCategory> categories,
 
-            @Parameter(description = "Minimum amount", example = "1000.00")
+            @Parameter(description = "Minimum amount to filter (inclusive)", example = "1000.00")
             @RequestParam(required = false)
             BigDecimal minAmount,
 
-            @Parameter(description = "Maximum amount", example = "50000.00")
+            @Parameter(description = "Maximum amount to filter (inclusive)", example = "50000.00")
             @RequestParam(required = false)
             BigDecimal maxAmount
     ) {
-        log.info("Preview report: startDate={}, endDate={}, categories={}", startDate, endDate, categories);
+        log.info("Generating preview: startDate={}, endDate={}, categories={}", startDate, endDate, categories);
 
         ReportFilterDTO filters = new ReportFilterDTO(
                 startDate,
@@ -255,12 +261,12 @@ public class ReportController {
                 "desc"
         );
 
-        MoneyOutflowReportDTO report = reportService.generateMoneyOutflowReport(filters);
+        MoneyOutflowReportPreviewDTO preview = reportService.generateMoneyOutflowReportPreview(filters);
 
-        // Return report with summary but you could optimize to return only totals
-        log.info("Preview generated: {} items, total: ${}", report.totalCount(), report.totalAmount());
+        log.info("Preview generated: {} items, total: ${}, average: ${}",
+                 preview.totalCount(), preview.totalAmount(), preview.averageAmount());
 
-        return ResponseEntity.ok(report);
+        return ResponseEntity.ok(preview);
     }
 }
 

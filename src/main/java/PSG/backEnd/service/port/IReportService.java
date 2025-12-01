@@ -1,6 +1,7 @@
 package PSG.backEnd.service.port;
 
 import PSG.backEnd.model.dto.report.MoneyOutflowReportDTO;
+import PSG.backEnd.model.dto.report.MoneyOutflowReportPreviewDTO;
 import PSG.backEnd.model.dto.report.ReportFilterDTO;
 import PSG.backEnd.model.dto.report.ReportItemDTO;
 import PSG.backEnd.model.enums.ReportFormat;
@@ -32,6 +33,16 @@ public interface IReportService {
      * @return ResponseEntity containing the file as byte array with proper content-type and headers
      */
     ResponseEntity<byte[]> generateMoneyOutflowReportFile(ReportFilterDTO filters, ReportFormat format);
+
+    /**
+     * Generates a preview/summary of a money outflow report based on the provided filters.
+     * This method only calculates statistics and totals without fetching the detailed items list.
+     * Much faster than generating the full report, ideal for previews.
+     *
+     * @param filters The filter criteria to apply to the report
+     * @return A preview DTO with totals and summary statistics (no items list)
+     */
+    MoneyOutflowReportPreviewDTO generateMoneyOutflowReportPreview(ReportFilterDTO filters);
 
     /**
      * Collects all money outflow items based on the provided filters.
