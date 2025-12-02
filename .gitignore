@@ -32,6 +32,18 @@ build/
 ### VS Code ###
 .vscode/
 
+### Environment Variables & Secrets ###
+.env
+.env.prod
+.env.local
+.env.*.local
+*.env
+!.env.*.template
+secrets/
+*.secret
+*.key
+*.pem
+
 # Compiled class file
 *.class
 
