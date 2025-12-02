@@ -5,12 +5,9 @@ import PSG.backEnd.exception.auth.InvalidTokenException;
 import PSG.backEnd.model.dto.auth.AuthResponseDTO;
 import PSG.backEnd.model.dto.auth.LoginRequestDTO;
 import PSG.backEnd.model.dto.auth.RefreshTokenRequestDTO;
-import PSG.backEnd.model.dto.security.UserRequestDTO;
-import PSG.backEnd.model.dto.security.UserResponseDTO;
 import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IAuthService;
-import PSG.backEnd.service.port.IUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Implementation of authentication service.
- * Handles login, registration, token refresh, and logout operations.
+ * Handles login, token refresh, and logout operations.
  */
 @Service
 @RequiredArgsConstructor
@@ -35,7 +32,6 @@ public class AuthService implements IAuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
-    private final IUserService userService;
 
     @Override
     @Transactional(readOnly = true)
@@ -74,26 +70,6 @@ public class AuthService implements IAuthService {
         }
     }
 
-    @Override
-    @Transactional
-    public AuthResponseDTO register(UserRequestDTO userRequest) {
-        log.info("Registration attempt for username: {}", userRequest.credentials().username());
-
-        // Create user (UserService handles all validations)
-        UserResponseDTO createdUser = userService.createUser(userRequest);
-
-        // Load user details for token generation
-        User user = userRepository.findByCredentialsUsernameAndDeletedFalse(userRequest.credentials().username())
-                .orElseThrow(() -> new RuntimeException("User not found after creation"));
-
-        // Generate tokens
-        String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
-
-        log.info("User registered successfully: {}", userRequest.credentials().username());
-
-        return buildAuthResponse(user, accessToken, refreshToken);
-    }
 
     @Override
     @Transactional(readOnly = true)
