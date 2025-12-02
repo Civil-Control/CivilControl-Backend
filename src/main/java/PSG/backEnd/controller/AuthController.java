@@ -3,7 +3,6 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.auth.AuthResponseDTO;
 import PSG.backEnd.model.dto.auth.LoginRequestDTO;
 import PSG.backEnd.model.dto.auth.RefreshTokenRequestDTO;
-import PSG.backEnd.model.dto.security.UserRequestDTO;
 import PSG.backEnd.service.port.IAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * REST controller for authentication operations.
- * Handles login, registration, token refresh, and logout.
+ * Handles login, token refresh, and logout.
  */
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -40,23 +39,6 @@ public class AuthController {
     })
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
         AuthResponseDTO response = authService.login(loginRequest);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/register")
-    @Operation(summary = "User registration",
-            description = "Registers a new user in the system. " +
-                         "User must have at least one role assigned. " +
-                         "Password is automatically encrypted. " +
-                         "Returns JWT tokens upon successful registration.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Registration successful"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
-            @ApiResponse(responseCode = "404", description = "One or more role IDs not found"),
-            @ApiResponse(responseCode = "409", description = "Username or email already exists")
-    })
-    public ResponseEntity<AuthResponseDTO> register(@Valid @RequestBody UserRequestDTO userRequest) {
-        AuthResponseDTO response = authService.register(userRequest);
         return ResponseEntity.ok(response);
     }
 
