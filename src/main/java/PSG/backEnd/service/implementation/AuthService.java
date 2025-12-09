@@ -134,7 +134,8 @@ public class AuthService implements IAuthService {
                 "Bearer",
                 jwtService.getAccessTokenExpiration(),
                 user.getUsername(),
-                user.getFullName(),
+                user.getFirstName(),
+                user.getLastName(),
                 user.getEmail()
         );
     }

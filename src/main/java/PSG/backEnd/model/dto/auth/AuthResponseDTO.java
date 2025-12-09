@@ -28,10 +28,14 @@ public record AuthResponseDTO(
                 example = "jgarcia")
         String username,
         
-        @Schema(description = "User full name", 
-                example = "Juan García")
-        String fullName,
-        
+        @Schema(description = "User first name",
+                example = "Juan")
+        String firstName,
+
+        @Schema(description = "User last name",
+                example = "García")
+        String lastName,
+
         @Schema(description = "User email", 
                 example = "juan.garcia@esea.com.ar")
         String email
