@@ -8,7 +8,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "Authentication response with access and refresh tokens")
 public record AuthResponseDTO(
         
-        @Schema(description = "JWT access token", 
+        @Schema(description = "User ID",
+                example = "1")
+        Long userId,
+
+        @Schema(description = "JWT access token",
                 example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
         String accessToken,
         

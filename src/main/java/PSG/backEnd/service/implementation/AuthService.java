@@ -129,6 +129,7 @@ public class AuthService implements IAuthService {
      */
     private AuthResponseDTO buildAuthResponse(User user, String accessToken, String refreshToken) {
         return new AuthResponseDTO(
+                user.getId(),
                 accessToken,
                 refreshToken,
                 "Bearer",
