@@ -1,6 +1,9 @@
 package PSG.backEnd.model.dto.auth;
 
+import PSG.backEnd.model.dto.security.RoleResponseDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.Set;
 
 /**
  * DTO for authentication response containing JWT tokens.
@@ -42,6 +45,9 @@ public record AuthResponseDTO(
 
         @Schema(description = "User email", 
                 example = "juan.garcia@esea.com.ar")
-        String email
+        String email,
+
+        @Schema(description = "User roles with their permissions")
+        Set<RoleResponseDTO> roles
 ) {}
 

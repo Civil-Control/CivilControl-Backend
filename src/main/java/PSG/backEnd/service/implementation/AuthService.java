@@ -5,7 +5,9 @@ import PSG.backEnd.exception.auth.InvalidTokenException;
 import PSG.backEnd.model.dto.auth.AuthResponseDTO;
 import PSG.backEnd.model.dto.auth.LoginRequestDTO;
 import PSG.backEnd.model.dto.auth.RefreshTokenRequestDTO;
+import PSG.backEnd.model.dto.security.RoleResponseDTO;
 import PSG.backEnd.model.entity.security.User;
+import PSG.backEnd.model.mapper.RoleMapper;
 import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IAuthService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of authentication service.
@@ -32,6 +37,7 @@ public class AuthService implements IAuthService {
     private final UserRepository userRepository;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final RoleMapper roleMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -128,6 +134,12 @@ public class AuthService implements IAuthService {
      * Builds the authentication response DTO.
      */
     private AuthResponseDTO buildAuthResponse(User user, String accessToken, String refreshToken) {
+        // Convert only active and non-deleted roles
+        Set<RoleResponseDTO> roleDTOs = user.getRoles().stream()
+                .filter(role -> role.getActive() && !role.getDeleted())
+                .map(roleMapper::toResponseDto)
+                .collect(Collectors.toSet());
+
         return new AuthResponseDTO(
                 user.getId(),
                 accessToken,
@@ -137,7 +149,8 @@ public class AuthService implements IAuthService {
                 user.getUsername(),
                 user.getFirstName(),
                 user.getLastName(),
-                user.getEmail()
+                user.getEmail(),
+                roleDTOs
         );
     }
 }
