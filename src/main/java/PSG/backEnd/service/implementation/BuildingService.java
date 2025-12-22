@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.building.BuildingAlreadyExistsException;
+import PSG.backEnd.exception.building.BuildingDataConflictException;
 import PSG.backEnd.exception.building.BuildingNotFoundException;
 import PSG.backEnd.exception.building.BuildingNotValidException;
 import PSG.backEnd.model.dto.building.BuildingDTO;
@@ -11,6 +12,7 @@ import PSG.backEnd.model.mapper.BuildingMapper;
 import PSG.backEnd.repository.BuildingRepository;
 import PSG.backEnd.service.port.IBuildingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -65,9 +67,15 @@ public class BuildingService implements IBuildingService {
                 .orElseThrow(() -> new BuildingNotFoundException(id));
 
         validateBuildingUpdate(id, buildingDTO);
-        buildingMapper.partialUpdate(buildingDTO, existingBuilding);
-        Building updatedBuilding = buildingRepository.save(existingBuilding);
-        return buildingMapper.toResponseDto(updatedBuilding);
+
+        try {
+            buildingMapper.partialUpdate(buildingDTO, existingBuilding);
+            Building updatedBuilding = buildingRepository.save(existingBuilding);
+            return buildingMapper.toResponseDto(updatedBuilding);
+        } catch (DataIntegrityViolationException e) {
+            handleDataIntegrityViolation(e, buildingDTO);
+            throw e;
+        }
     }
 
     @Override
@@ -196,6 +204,24 @@ public class BuildingService implements IBuildingService {
         building.setDeleted(false);
         // The mapper sets active with default value
         return buildingMapper.toResponseDto(buildingRepository.save(building));
+    }
+
+    private void handleDataIntegrityViolation(DataIntegrityViolationException e, BuildingDTO buildingDTO) {
+        String errorMessage = e.getMessage().toLowerCase();
+
+        // Detectar violación de constraint de name
+        if (errorMessage.contains("name") || errorMessage.contains("uk_") && errorMessage.contains("name")) {
+            throw new BuildingDataConflictException(
+                "Cannot update building: Building name '" + buildingDTO.name() + "' is already in use by another building",
+                e
+            );
+        }
+
+        // Si es una violación de integridad pero no podemos determinar el campo específico
+        throw new BuildingDataConflictException(
+            "Cannot update building due to a data integrity violation. Please verify that the building name is not already in use",
+            e
+        );
     }
 }
 

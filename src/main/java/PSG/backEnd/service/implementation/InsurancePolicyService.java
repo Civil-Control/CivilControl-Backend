@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.insurance.DuplicatePolicyNumberException;
+import PSG.backEnd.exception.insurance.InsurancePolicyDataConflictException;
 import PSG.backEnd.exception.insurance.InsurancePolicyNotFoundException;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyDTO;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyFilterDTO;
@@ -10,6 +11,7 @@ import PSG.backEnd.model.mapper.InsurancePolicyMapper;
 import PSG.backEnd.repository.InsurancePolicyRepository;
 import PSG.backEnd.service.port.IInsurancePolicyService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -96,10 +98,14 @@ public class InsurancePolicyService implements IInsurancePolicyService {
 
         validateBusinessRules(insurancePolicyDTO);
 
-        insurancePolicyMapper.partialUpdate(insurancePolicyDTO, existingPolicy);
-        InsurancePolicy updatedPolicy = insurancePolicyRepository.save(existingPolicy);
-
-        return insurancePolicyMapper.toResponseDto(updatedPolicy);
+        try {
+            insurancePolicyMapper.partialUpdate(insurancePolicyDTO, existingPolicy);
+            InsurancePolicy updatedPolicy = insurancePolicyRepository.save(existingPolicy);
+            return insurancePolicyMapper.toResponseDto(updatedPolicy);
+        } catch (DataIntegrityViolationException e) {
+            handleDataIntegrityViolation(e, insurancePolicyDTO);
+            throw e;
+        }
     }
 
     @Override
@@ -177,5 +183,23 @@ public class InsurancePolicyService implements IInsurancePolicyService {
                 throw new IllegalArgumentException("Cancellation date cannot be before effective from date");
             }
         }
+    }
+
+    private void handleDataIntegrityViolation(DataIntegrityViolationException e, InsurancePolicyDTO insurancePolicyDTO) {
+        String errorMessage = e.getMessage().toLowerCase();
+
+        // Detectar violación de constraint de policyNumber
+        if (errorMessage.contains("policy_number") || errorMessage.contains("uk_") && errorMessage.contains("policy")) {
+            throw new InsurancePolicyDataConflictException(
+                "Cannot update insurance policy: Policy number '" + insurancePolicyDTO.policyNumber() + "' is already in use by another policy",
+                e
+            );
+        }
+
+        // Si es una violación de integridad pero no podemos determinar el campo específico
+        throw new InsurancePolicyDataConflictException(
+            "Cannot update insurance policy due to a data integrity violation. Please verify that the policy number is not already in use",
+            e
+        );
     }
 }

@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException;
+import PSG.backEnd.exception.vehicle.VehicleDataConflictException;
 import PSG.backEnd.exception.vehicle.VehicleNotFoundException;
 import PSG.backEnd.exception.vehicle.ProjectAreaNotValidException;
 import PSG.backEnd.model.dto.vehicle.VehicleDTO;
@@ -11,6 +12,7 @@ import PSG.backEnd.model.mapper.VehicleMapper;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.service.port.IVehicleService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -80,9 +82,16 @@ public class VehicleService implements IVehicleService {
             validateProjectAreaExists(vehicleDTO.projectAreaId());
         }
 
-        vehicleMapper.partialUpdate(vehicleDTO, existingVehicle);
-        Vehicle updatedVehicle = vehicleRepository.save(existingVehicle);
-        return vehicleMapper.toResponseDto(updatedVehicle);
+        validateUniqueFieldsForUpdate(vehicleDTO, existingVehicle);
+
+        try {
+            vehicleMapper.partialUpdate(vehicleDTO, existingVehicle);
+            Vehicle updatedVehicle = vehicleRepository.save(existingVehicle);
+            return vehicleMapper.toResponseDto(updatedVehicle);
+        } catch (DataIntegrityViolationException e) {
+            handleDataIntegrityViolation(e, vehicleDTO);
+            throw e;
+        }
     }
 
     @Override
@@ -134,5 +143,32 @@ public class VehicleService implements IVehicleService {
         Vehicle vehicle = vehicleMapper.toEntity(vehicleDTO);
         vehicle.setDeleted(false);
         return vehicleMapper.toResponseDto(vehicleRepository.save(vehicle));
+    }
+
+    private void validateUniqueFieldsForUpdate(VehicleDTO vehicleDTO, Vehicle existingVehicle) {
+        // Validar licensePlate si está siendo actualizado
+        if (vehicleDTO.licensePlate() != null && !vehicleDTO.licensePlate().equals(existingVehicle.getLicensePlate())) {
+            if (vehicleRepository.existsByLicensePlateAndDeletedFalse(vehicleDTO.licensePlate())) {
+                throw new VehicleAlreadyExistsException("Cannot update vehicle: There is already an active vehicle with the license plate: " + vehicleDTO.licensePlate());
+            }
+        }
+    }
+
+    private void handleDataIntegrityViolation(DataIntegrityViolationException e, VehicleDTO vehicleDTO) {
+        String errorMessage = e.getMessage().toLowerCase();
+
+        // Detectar violación de constraint de licensePlate
+        if (errorMessage.contains("license_plate") || errorMessage.contains("uk_") && errorMessage.contains("license")) {
+            throw new VehicleDataConflictException(
+                "Cannot update vehicle: License plate '" + vehicleDTO.licensePlate() + "' is already in use by another vehicle",
+                e
+            );
+        }
+
+        // Si es una violación de integridad pero no podemos determinar el campo específico
+        throw new VehicleDataConflictException(
+            "Cannot update vehicle due to a data integrity violation. Please verify that the license plate is not already in use",
+            e
+        );
     }
 }

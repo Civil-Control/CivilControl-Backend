@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.projectarea.ProjectAreaAlreadyExistsException;
+import PSG.backEnd.exception.projectarea.ProjectAreaDataConflictException;
 import PSG.backEnd.exception.projectarea.ProjectAreaNotFoundException;
 import PSG.backEnd.model.dto.projectArea.ProjectAreaDTO;
 import PSG.backEnd.model.dto.projectArea.ProjectAreaFilterDTO;
@@ -10,6 +11,7 @@ import PSG.backEnd.model.mapper.ProjectAreaMapper;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.service.port.IProjectAreaService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -61,9 +63,16 @@ public class ProjectAreaService implements IProjectAreaService {
     public ProjectAreaResponseDTO updateProjectArea(Long id, ProjectAreaDTO projectAreaDTO) {
         ProjectArea existingProjectArea = getEntityById(id);
 
-        projectAreaMapper.partialUpdate(projectAreaDTO, existingProjectArea);
-        ProjectArea updatedProjectArea = projectAreaRepository.save(existingProjectArea);
-        return projectAreaMapper.toResponseDto(updatedProjectArea);
+        validateUniqueFieldsForUpdate(projectAreaDTO, existingProjectArea);
+
+        try {
+            projectAreaMapper.partialUpdate(projectAreaDTO, existingProjectArea);
+            ProjectArea updatedProjectArea = projectAreaRepository.save(existingProjectArea);
+            return projectAreaMapper.toResponseDto(updatedProjectArea);
+        } catch (DataIntegrityViolationException e) {
+            handleDataIntegrityViolation(e, projectAreaDTO);
+            throw e;
+        }
     }
 
     @Override
@@ -111,5 +120,32 @@ public class ProjectAreaService implements IProjectAreaService {
 
         ProjectArea reactivatedProjectArea = projectAreaRepository.save(deletedProjectArea);
         return projectAreaMapper.toResponseDto(reactivatedProjectArea);
+    }
+
+    private void validateUniqueFieldsForUpdate(ProjectAreaDTO projectAreaDTO, ProjectArea existingProjectArea) {
+        // Validar name si está siendo actualizado
+        if (projectAreaDTO.name() != null && !projectAreaDTO.name().equals(existingProjectArea.getName())) {
+            if (projectAreaRepository.existsByNameAndDeletedFalse(projectAreaDTO.name())) {
+                throw new ProjectAreaAlreadyExistsException("Cannot update project area: There is already an active project area with the name: " + projectAreaDTO.name());
+            }
+        }
+    }
+
+    private void handleDataIntegrityViolation(DataIntegrityViolationException e, ProjectAreaDTO projectAreaDTO) {
+        String errorMessage = e.getMessage().toLowerCase();
+
+        // Detectar violación de constraint de name
+        if (errorMessage.contains("name") || errorMessage.contains("uk_") && errorMessage.contains("name")) {
+            throw new ProjectAreaDataConflictException(
+                "Cannot update project area: Name '" + projectAreaDTO.name() + "' is already in use by another project area",
+                e
+            );
+        }
+
+        // Si es una violación de integridad pero no podemos determinar el campo específico
+        throw new ProjectAreaDataConflictException(
+            "Cannot update project area due to a data integrity violation. Please verify that the name is not already in use",
+            e
+        );
     }
 }

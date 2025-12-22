@@ -2,6 +2,7 @@ package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.role.RoleNotFoundException;
 import PSG.backEnd.exception.user.UserAlreadyExistsException;
+import PSG.backEnd.exception.user.UserDataConflictException;
 import PSG.backEnd.exception.user.UserNotFoundException;
 import PSG.backEnd.exception.user.UserNotValidException;
 import PSG.backEnd.model.dto.security.UserFilterDTO;
@@ -18,6 +19,7 @@ import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -153,10 +155,14 @@ public class UserService implements IUserService {
             existingUser.setRoles(roles);
         }
 
-        User updatedUser = userRepository.save(existingUser);
-        log.info("User updated successfully: {}", updatedUser.getUsername());
-
-        return userMapper.toResponseDto(updatedUser);
+        try {
+            User updatedUser = userRepository.save(existingUser);
+            log.info("User updated successfully: {}", updatedUser.getUsername());
+            return userMapper.toResponseDto(updatedUser);
+        } catch (DataIntegrityViolationException e) {
+            handleDataIntegrityViolation(e, requestDTO);
+            throw e;
+        }
     }
 
     @Override
@@ -518,6 +524,33 @@ public class UserService implements IUserService {
                 savedUser.getUsername(), savedUser.getRoles().size());
 
         return userMapper.toResponseDto(savedUser);
+    }
+
+    private void handleDataIntegrityViolation(DataIntegrityViolationException e, UserRequestDTO requestDTO) {
+        String errorMessage = e.getMessage().toLowerCase();
+
+        // Detectar violación de constraint de username (en Credentials)
+        if (errorMessage.contains("username") || errorMessage.contains("uk_") && errorMessage.contains("username")) {
+            String username = requestDTO.credentials() != null ? requestDTO.credentials().username() : "unknown";
+            throw new UserDataConflictException(
+                "Cannot update user: Username '" + username + "' is already in use by another user",
+                e
+            );
+        }
+
+        // Detectar violación de constraint de email
+        if (errorMessage.contains("email") || errorMessage.contains("uk_") && errorMessage.contains("email")) {
+            throw new UserDataConflictException(
+                "Cannot update user: Email '" + requestDTO.email() + "' is already in use by another user",
+                e
+            );
+        }
+
+        // Si es una violación de integridad pero no podemos determinar el campo específico
+        throw new UserDataConflictException(
+            "Cannot update user due to a data integrity violation. Please verify that all unique fields (username, email) are not already in use",
+            e
+        );
     }
 }
 

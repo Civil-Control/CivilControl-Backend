@@ -2,6 +2,7 @@ package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.permission.PermissionNotFoundException;
 import PSG.backEnd.exception.role.RoleAlreadyExistsException;
+import PSG.backEnd.exception.role.RoleDataConflictException;
 import PSG.backEnd.exception.role.RoleNotFoundException;
 import PSG.backEnd.exception.role.RoleNotValidException;
 import PSG.backEnd.model.dto.security.*;
@@ -14,6 +15,7 @@ import PSG.backEnd.repository.RoleRepository;
 import PSG.backEnd.service.port.IRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -115,10 +117,14 @@ public class RoleService implements IRoleService {
             existingRole.setPermissions(permissions);
         }
 
-        Role updatedRole = roleRepository.save(existingRole);
-        log.info("Role updated successfully: {}", updatedRole.getName());
-
-        return roleMapper.toResponseDto(updatedRole);
+        try {
+            Role updatedRole = roleRepository.save(existingRole);
+            log.info("Role updated successfully: {}", updatedRole.getName());
+            return roleMapper.toResponseDto(updatedRole);
+        } catch (DataIntegrityViolationException e) {
+            handleDataIntegrityViolation(e, requestDTO);
+            throw e;
+        }
     }
 
     @Override
@@ -335,5 +341,23 @@ public class RoleService implements IRoleService {
         log.info("Role reactivated successfully: {}", reactivatedRole.getName());
 
         return roleMapper.toResponseDto(reactivatedRole);
+    }
+
+    private void handleDataIntegrityViolation(DataIntegrityViolationException e, RoleRequestDTO requestDTO) {
+        String errorMessage = e.getMessage().toLowerCase();
+
+        // Detectar violación de constraint de name
+        if (errorMessage.contains("name") || errorMessage.contains("uk_") && errorMessage.contains("name")) {
+            throw new RoleDataConflictException(
+                "Cannot update role: Role name '" + requestDTO.name() + "' is already in use by another role",
+                e
+            );
+        }
+
+        // Si es una violación de integridad pero no podemos determinar el campo específico
+        throw new RoleDataConflictException(
+            "Cannot update role due to a data integrity violation. Please verify that the role name is not already in use",
+            e
+        );
     }
 }

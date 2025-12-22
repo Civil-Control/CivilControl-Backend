@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.employee.EmployeeAlreadyExistsException;
+import PSG.backEnd.exception.employee.EmployeeDataConflictException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.employee.EmployeeNotValidException;
 import PSG.backEnd.exception.projectarea.ProjectAreaNotFoundException;
@@ -14,6 +15,7 @@ import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.service.port.IEmployeeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -84,10 +86,16 @@ public class EmployeeService implements IEmployeeService {
         }
 
         validateBusinessRulesForUpdate(employeeDTO, existingEmployee);
+        validateUniqueFieldsForUpdate(employeeDTO, existingEmployee);
 
-        employeeMapper.partialUpdate(employeeDTO, existingEmployee);
-        Employee updatedEmployee = employeeRepository.save(existingEmployee);
-        return employeeMapper.toResponseDto(updatedEmployee);
+        try {
+            employeeMapper.partialUpdate(employeeDTO, existingEmployee);
+            Employee updatedEmployee = employeeRepository.save(existingEmployee);
+            return employeeMapper.toResponseDto(updatedEmployee);
+        } catch (DataIntegrityViolationException e) {
+            handleDataIntegrityViolation(e, employeeDTO);
+            throw e; // This line won't be reached but is needed for compilation
+        }
     }
 
     @Override
@@ -209,6 +217,48 @@ public class EmployeeService implements IEmployeeService {
         employee.setProjectArea(projectArea);
         employee.setDeleted(false);
         return employeeMapper.toResponseDto(employeeRepository.save(employee));
+    }
+
+    private void validateUniqueFieldsForUpdate(EmployeeDTO employeeDTO, Employee existingEmployee) {
+        // Validar DNI si está siendo actualizado
+        if (employeeDTO.dni() != null && !employeeDTO.dni().equals(existingEmployee.getDni())) {
+            if (employeeRepository.existsByDniAndDeletedFalse(employeeDTO.dni())) {
+                throw new EmployeeAlreadyExistsException("Cannot update employee: There is already an active employee with the DNI: " + employeeDTO.dni());
+            }
+        }
+
+        // Validar CUIL si está siendo actualizado
+        if (employeeDTO.cuil() != null && !employeeDTO.cuil().equals(existingEmployee.getCuil())) {
+            if (employeeRepository.existsByCuilAndDeletedFalse(employeeDTO.cuil())) {
+                throw new EmployeeAlreadyExistsException("Cannot update employee: There is already an active employee with the CUIL: " + employeeDTO.cuil());
+            }
+        }
+    }
+
+    private void handleDataIntegrityViolation(DataIntegrityViolationException e, EmployeeDTO employeeDTO) {
+        String errorMessage = e.getMessage().toLowerCase();
+
+        // Detectar violación de constraint de DNI
+        if (errorMessage.contains("dni") || errorMessage.contains("uk_") && errorMessage.contains("dni")) {
+            throw new EmployeeDataConflictException(
+                "Cannot update employee: DNI '" + employeeDTO.dni() + "' is already in use by another employee",
+                e
+            );
+        }
+
+        // Detectar violación de constraint de CUIL
+        if (errorMessage.contains("cuil") || errorMessage.contains("uk_") && errorMessage.contains("cuil")) {
+            throw new EmployeeDataConflictException(
+                "Cannot update employee: CUIL '" + employeeDTO.cuil() + "' is already in use by another employee",
+                e
+            );
+        }
+
+        // Si es una violación de integridad pero no podemos determinar el campo específico
+        throw new EmployeeDataConflictException(
+            "Cannot update employee due to a data integrity violation. Please verify that all unique fields (DNI, CUIL) are not already in use",
+            e
+        );
     }
 }
 

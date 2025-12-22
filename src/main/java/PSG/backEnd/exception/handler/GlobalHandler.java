@@ -3,11 +3,13 @@ package PSG.backEnd.exception.handler;
 import PSG.backEnd.exception.auth.InvalidCredentialsException;
 import PSG.backEnd.exception.auth.InvalidTokenException;
 import PSG.backEnd.exception.building.BuildingAlreadyExistsException;
+import PSG.backEnd.exception.building.BuildingDataConflictException;
 import PSG.backEnd.exception.building.BuildingNotFoundException;
 import PSG.backEnd.exception.building.BuildingNotValidException;
 import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotFoundException;
 import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotValidException;
 import PSG.backEnd.exception.employee.EmployeeAlreadyExistsException;
+import PSG.backEnd.exception.employee.EmployeeDataConflictException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.employee.EmployeeNotValidException;
 import PSG.backEnd.exception.employeeVacation.EmployeeVacationNotFoundException;
@@ -24,17 +26,20 @@ import PSG.backEnd.exception.report.InvalidReportFilterException;
 import PSG.backEnd.exception.report.InvalidReportFormatException;
 import PSG.backEnd.exception.report.ReportGenerationException;
 import PSG.backEnd.exception.role.RoleAlreadyExistsException;
+import PSG.backEnd.exception.role.RoleDataConflictException;
 import PSG.backEnd.exception.role.RoleNotFoundException;
 import PSG.backEnd.exception.role.RoleNotValidException;
 import PSG.backEnd.exception.salaryPayment.DuplicateSalaryPaymentException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotFoundException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotValidException;
 import PSG.backEnd.exception.supplier.SupplierAlreadyExistsException;
+import PSG.backEnd.exception.supplier.SupplierDataConflictException;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentAlreadyActiveException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotDeletedException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
 import PSG.backEnd.exception.user.UserAlreadyExistsException;
+import PSG.backEnd.exception.user.UserDataConflictException;
 import PSG.backEnd.exception.user.UserNotFoundException;
 import PSG.backEnd.exception.user.UserNotValidException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
@@ -202,6 +207,17 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(UserDataConflictException.class)
+    public ResponseEntity<ResponseMessage> handleUserDataConflictException(UserDataConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
     // ==================== Role Exceptions ====================
 
     @ExceptionHandler(RoleNotFoundException.class)
@@ -237,6 +253,17 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(RoleDataConflictException.class)
+    public ResponseEntity<ResponseMessage> handleRoleDataConflictException(RoleDataConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
     // ==================== Permission Exceptions ====================
 
     @ExceptionHandler(PermissionNotFoundException.class)
@@ -265,6 +292,17 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(SupplierAlreadyExistsException.class)
     public ResponseEntity<ResponseMessage> handleSupplierAlreadyExistsException(SupplierAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(SupplierDataConflictException.class)
+    public ResponseEntity<ResponseMessage> handleSupplierDataConflictException(SupplierDataConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 ResponseMessage.builder()
                         .message(ex.getMessage())
@@ -352,6 +390,17 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                 ResponseMessage.builder()
                         .message(ex.getMessage())
                         .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(EmployeeDataConflictException.class)
+    public ResponseEntity<ResponseMessage> handleEmployeeDataConflictException(EmployeeDataConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
                         .timestamp(LocalDateTime.now())
                         .build()
         );
@@ -475,6 +524,17 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         );
     }
 
+    @ExceptionHandler(BuildingDataConflictException.class)
+    public ResponseEntity<ResponseMessage> handleBuildingDataConflictException(BuildingDataConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
     // ==================== EppDelivery Exceptions ====================
 
     @ExceptionHandler(EppDeliveryNotFoundException.class)
@@ -575,6 +635,111 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
                 ResponseMessage.builder()
                         .message(ex.getMessage())
                         .status(HttpStatus.BAD_REQUEST.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // ==================== Vehicle Exceptions ====================
+
+    @ExceptionHandler(PSG.backEnd.exception.vehicle.VehicleNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleVehicleNotFoundException(PSG.backEnd.exception.vehicle.VehicleNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException.class)
+    public ResponseEntity<ResponseMessage> handleVehicleAlreadyExistsException(PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(PSG.backEnd.exception.vehicle.VehicleDataConflictException.class)
+    public ResponseEntity<ResponseMessage> handleVehicleDataConflictException(PSG.backEnd.exception.vehicle.VehicleDataConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // ==================== ProjectArea Exceptions ====================
+
+    @ExceptionHandler(PSG.backEnd.exception.projectarea.ProjectAreaNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleProjectAreaNotFoundException(PSG.backEnd.exception.projectarea.ProjectAreaNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(PSG.backEnd.exception.projectarea.ProjectAreaAlreadyExistsException.class)
+    public ResponseEntity<ResponseMessage> handleProjectAreaAlreadyExistsException(PSG.backEnd.exception.projectarea.ProjectAreaAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(PSG.backEnd.exception.projectarea.ProjectAreaDataConflictException.class)
+    public ResponseEntity<ResponseMessage> handleProjectAreaDataConflictException(PSG.backEnd.exception.projectarea.ProjectAreaDataConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    // ==================== InsurancePolicy Exceptions ====================
+
+    @ExceptionHandler(PSG.backEnd.exception.insurance.InsurancePolicyNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleInsurancePolicyNotFoundException(PSG.backEnd.exception.insurance.InsurancePolicyNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.NOT_FOUND.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(PSG.backEnd.exception.insurance.DuplicatePolicyNumberException.class)
+    public ResponseEntity<ResponseMessage> handleDuplicatePolicyNumberException(PSG.backEnd.exception.insurance.DuplicatePolicyNumberException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+        );
+    }
+
+    @ExceptionHandler(PSG.backEnd.exception.insurance.InsurancePolicyDataConflictException.class)
+    public ResponseEntity<ResponseMessage> handleInsurancePolicyDataConflictException(PSG.backEnd.exception.insurance.InsurancePolicyDataConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                ResponseMessage.builder()
+                        .message(ex.getMessage())
+                        .status(HttpStatus.CONFLICT.value())
                         .timestamp(LocalDateTime.now())
                         .build()
         );

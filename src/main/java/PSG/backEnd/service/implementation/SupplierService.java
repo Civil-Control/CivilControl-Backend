@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.supplier.SupplierAlreadyExistsException;
+import PSG.backEnd.exception.supplier.SupplierDataConflictException;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.model.dto.supplier.SupplierDTO;
 import PSG.backEnd.model.dto.supplier.SupplierFilterDTO;
@@ -10,6 +11,7 @@ import PSG.backEnd.model.mapper.SupplierMapper;
 import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.service.port.ISupplierService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -67,9 +69,16 @@ public class SupplierService implements ISupplierService {
         Supplier existingSupplier = supplierRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
 
-        supplierMapper.partialUpdate(supplierDTO, existingSupplier);
-        Supplier updatedSupplier = supplierRepository.save(existingSupplier);
-        return supplierMapper.toResponseDto(updatedSupplier);
+        validateUniqueFieldsForUpdate(supplierDTO, existingSupplier);
+
+        try {
+            supplierMapper.partialUpdate(supplierDTO, existingSupplier);
+            Supplier updatedSupplier = supplierRepository.save(existingSupplier);
+            return supplierMapper.toResponseDto(updatedSupplier);
+        } catch (DataIntegrityViolationException e) {
+            handleDataIntegrityViolation(e, supplierDTO);
+            throw e;
+        }
     }
 
     @Override
@@ -134,5 +143,47 @@ public class SupplierService implements ISupplierService {
     public Supplier getEntityById(Long id) {
         return supplierRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
+    }
+
+    private void validateUniqueFieldsForUpdate(SupplierDTO supplierDTO, Supplier existingSupplier) {
+        // Validar CUIT si está siendo actualizado
+        if (supplierDTO.cuit() != null && !supplierDTO.cuit().equals(existingSupplier.getCuit())) {
+            if (supplierRepository.existsByCuitAndDeletedFalse(supplierDTO.cuit())) {
+                throw new SupplierAlreadyExistsException("Cannot update supplier: There is already an active supplier with the CUIT: " + supplierDTO.cuit());
+            }
+        }
+
+        // Validar legalName si está siendo actualizado
+        if (supplierDTO.legalName() != null && !supplierDTO.legalName().equals(existingSupplier.getLegalName())) {
+            if (supplierRepository.existsByLegalNameAndDeletedFalse(supplierDTO.legalName())) {
+                throw new SupplierAlreadyExistsException("Cannot update supplier: There is already an active supplier with the legal name: " + supplierDTO.legalName());
+            }
+        }
+    }
+
+    private void handleDataIntegrityViolation(DataIntegrityViolationException e, SupplierDTO supplierDTO) {
+        String errorMessage = e.getMessage().toLowerCase();
+
+        // Detectar violación de constraint de CUIT
+        if (errorMessage.contains("cuit") || errorMessage.contains("uk_") && errorMessage.contains("cuit")) {
+            throw new SupplierDataConflictException(
+                "Cannot update supplier: CUIT '" + supplierDTO.cuit() + "' is already in use by another supplier",
+                e
+            );
+        }
+
+        // Detectar violación de constraint de legalName
+        if (errorMessage.contains("legal_name") || errorMessage.contains("uk_") && errorMessage.contains("legal")) {
+            throw new SupplierDataConflictException(
+                "Cannot update supplier: Legal name '" + supplierDTO.legalName() + "' is already in use by another supplier",
+                e
+            );
+        }
+
+        // Si es una violación de integridad pero no podemos determinar el campo específico
+        throw new SupplierDataConflictException(
+            "Cannot update supplier due to a data integrity violation. Please verify that all unique fields (CUIT, Legal Name) are not already in use",
+            e
+        );
     }
 }
