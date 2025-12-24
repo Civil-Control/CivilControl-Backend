@@ -36,9 +36,24 @@ public class Permission {
     private String module;
 
     /**
+     * Work module representing the general area of the system.
+     * Examples: "services", "vehicles", "personal", "administration"
+     * Used for high-level grouping in the UI.
+     */
+    @Column(length = 50)
+    private String workModule;
+
+    /**
      * Human-readable description of the permission to display in the UI.
      */
     @Column(length = 255)
     private String description;
+
+    /**
+     * Spanish translation of the permission name for frontend display.
+     * Example: "Estación de Servicios - Lectura"
+     */
+    @Column(length = 150)
+    private String spanishTranslation;
 }
 

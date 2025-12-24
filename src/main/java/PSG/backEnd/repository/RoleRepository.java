@@ -58,9 +58,11 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
 
     /**
      * Search with filters.
+     * Excludes the 'root' role from results as it's reserved for developers.
      */
     @Query("SELECT r FROM Role r " +
             "WHERE r.deleted = false " +
+            "AND LOWER(r.name) != 'root' " +
             "AND (:name IS NULL OR LOWER(r.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
             "AND (:active IS NULL OR r.active = :active)")
     Page<Role> findAllWithFilters(

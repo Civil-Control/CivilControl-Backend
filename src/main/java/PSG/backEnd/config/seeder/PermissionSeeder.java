@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Seeder that synchronizes permissions defined in AppPermissions with the database.
@@ -39,6 +40,27 @@ public class PermissionSeeder implements CommandLineRunner {
      * This allows grouping permissions in the frontend UI.
      */
     private static final Map<String, String> MODULE_MAP = new HashMap<>();
+
+    /**
+     * Map that defines Spanish translations for module names.
+     */
+    private static final Map<String, String> MODULE_SPANISH_MAP = new HashMap<>();
+
+    /**
+     * Map that defines Spanish translations for action types.
+     */
+    private static final Map<String, String> ACTION_SPANISH_MAP = new HashMap<>();
+
+    /**
+     * Map that defines which work module (general area) each permission prefix belongs to.
+     * Work modules represent high-level groupings of system functionality.
+     */
+    private static final Map<String, String> WORK_MODULE_MAP = new HashMap<>();
+
+    /**
+     * Map that defines Spanish translations for work modules.
+     */
+    private static final Map<String, String> WORK_MODULE_SPANISH_MAP = new HashMap<>();
 
     static {
         MODULE_MAP.put("EMPLOYEE_VACATION_", "Employee Vacations");
@@ -67,14 +89,112 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("ROLE_", "System");
         MODULE_MAP.put("SYSTEM_", "System");
         MODULE_MAP.put("AUDIT_", "System");
+
+        // Spanish translations for modules
+        MODULE_SPANISH_MAP.put("EMPLOYEE_VACATION_", "Vacaciones de Empleados");
+        MODULE_SPANISH_MAP.put("EMPLOYEE_", "Empleados");
+        MODULE_SPANISH_MAP.put("DISCIPLINARY_ACTION_", "Acciones Disciplinarias");
+        MODULE_SPANISH_MAP.put("SALARY_PAYMENT_", "Pagos de Salarios");
+        MODULE_SPANISH_MAP.put("EPP_DELIVERY_", "Entrega de EPP");
+        MODULE_SPANISH_MAP.put("VEHICLE_", "Vehículos");
+        MODULE_SPANISH_MAP.put("REPAIR_", "Reparaciones");
+        MODULE_SPANISH_MAP.put("INSURANCE_POLICY_", "Pólizas de Seguro");
+        MODULE_SPANISH_MAP.put("LICENCE_PLATE_PAYMENT_", "Pagos de Patentes");
+        MODULE_SPANISH_MAP.put("GAS_STATION_", "Estación de Servicios");
+        MODULE_SPANISH_MAP.put("FUEL_LOAD_", "Cargas de Combustible");
+        MODULE_SPANISH_MAP.put("ITEM_", "Inventario");
+        MODULE_SPANISH_MAP.put("STOCK_", "Stock");
+        MODULE_SPANISH_MAP.put("SUPPLIER_", "Proveedores");
+        MODULE_SPANISH_MAP.put("SERVICE_SUPPLIER_", "Proveedores de Servicios");
+        MODULE_SPANISH_MAP.put("SERVICE_PAYMENT_", "Pagos de Servicios");
+        MODULE_SPANISH_MAP.put("PAYMENT_", "Pagos");
+        MODULE_SPANISH_MAP.put("TRANSACTIONAL_DOCUMENT_", "Documentos Transaccionales");
+        MODULE_SPANISH_MAP.put("BUILDING_", "Edificios");
+        MODULE_SPANISH_MAP.put("PROJECT_AREA_", "Áreas de Proyecto");
+        MODULE_SPANISH_MAP.put("REPORT_", "Reportes");
+        MODULE_SPANISH_MAP.put("DATA_", "Sistema");
+        MODULE_SPANISH_MAP.put("USER_", "Sistema");
+        MODULE_SPANISH_MAP.put("ROLE_", "Sistema");
+        MODULE_SPANISH_MAP.put("SYSTEM_", "Sistema");
+        MODULE_SPANISH_MAP.put("AUDIT_", "Sistema");
+
+        // Spanish translations for actions
+        ACTION_SPANISH_MAP.put("READ", "Lectura");
+        ACTION_SPANISH_MAP.put("WRITE", "Escritura");
+        ACTION_SPANISH_MAP.put("DELETE", "Eliminación");
+        ACTION_SPANISH_MAP.put("CREATE", "Creación");
+        ACTION_SPANISH_MAP.put("VIEW", "Vista");
+        ACTION_SPANISH_MAP.put("MANAGE", "Gestión");
+        ACTION_SPANISH_MAP.put("MANAGEMENT", "Gestión");
+        ACTION_SPANISH_MAP.put("APPROVE", "Aprobación");
+        ACTION_SPANISH_MAP.put("CANCEL", "Cancelación");
+        ACTION_SPANISH_MAP.put("EXPORT", "Exportación");
+        ACTION_SPANISH_MAP.put("ASSIGN", "Asignación");
+        ACTION_SPANISH_MAP.put("CERTIFY", "Certificación");
+        ACTION_SPANISH_MAP.put("FINANCIAL", "Financiero");
+        ACTION_SPANISH_MAP.put("CONFIG", "Configuración");
+
+        // Work module mappings (high-level groupings)
+        // services: serviceSupplier, servicePayment
+        WORK_MODULE_MAP.put("SERVICE_SUPPLIER_", "services");
+        WORK_MODULE_MAP.put("SERVICE_PAYMENT_", "services");
+
+        // documents: transactionalDocument, payment
+        WORK_MODULE_MAP.put("TRANSACTIONAL_DOCUMENT_", "documents");
+        WORK_MODULE_MAP.put("PAYMENT_", "documents");
+
+        // vehicles: vehicle, fuelLoad, gasStation, licencePlatePayment, insurancePolicy, repair
+        WORK_MODULE_MAP.put("VEHICLE_", "vehicles");
+        WORK_MODULE_MAP.put("FUEL_LOAD_", "vehicles");
+        WORK_MODULE_MAP.put("GAS_STATION_", "vehicles");
+        WORK_MODULE_MAP.put("LICENCE_PLATE_PAYMENT_", "vehicles");
+        WORK_MODULE_MAP.put("INSURANCE_POLICY_", "vehicles");
+
+        // personal: employee, salaryPayment, disciplinaryAction, eppDelivery, employeeVacation
+        WORK_MODULE_MAP.put("EMPLOYEE_VACATION_", "personal");
+        WORK_MODULE_MAP.put("EMPLOYEE_", "personal");
+        WORK_MODULE_MAP.put("DISCIPLINARY_ACTION_", "personal");
+        WORK_MODULE_MAP.put("SALARY_PAYMENT_", "personal");
+        WORK_MODULE_MAP.put("EPP_DELIVERY_", "personal");
+
+        // mechanic: repair, stock
+        WORK_MODULE_MAP.put("REPAIR_", "mechanic");
+        WORK_MODULE_MAP.put("STOCK_", "mechanic");
+
+        // report: report
+        WORK_MODULE_MAP.put("REPORT_", "report");
+
+        // company: supplier, item, building, projectArea
+        WORK_MODULE_MAP.put("SUPPLIER_", "company");
+        WORK_MODULE_MAP.put("ITEM_", "company");
+        WORK_MODULE_MAP.put("BUILDING_", "company");
+        WORK_MODULE_MAP.put("PROJECT_AREA_", "company");
+
+        // administration: user, role, permission
+        WORK_MODULE_MAP.put("USER_", "administration");
+        WORK_MODULE_MAP.put("ROLE_", "administration");
+        WORK_MODULE_MAP.put("DATA_", "administration");
+        WORK_MODULE_MAP.put("SYSTEM_", "administration");
+        WORK_MODULE_MAP.put("AUDIT_", "administration");
+
+        // Spanish translations for work modules
+        WORK_MODULE_SPANISH_MAP.put("services", "Servicios");
+        WORK_MODULE_SPANISH_MAP.put("documents", "Documentos");
+        WORK_MODULE_SPANISH_MAP.put("vehicles", "Vehículos");
+        WORK_MODULE_SPANISH_MAP.put("personal", "Personal");
+        WORK_MODULE_SPANISH_MAP.put("mechanic", "Mecánica");
+        WORK_MODULE_SPANISH_MAP.put("report", "Reportes");
+        WORK_MODULE_SPANISH_MAP.put("company", "Empresa");
+        WORK_MODULE_SPANISH_MAP.put("administration", "Administración");
     }
 
     @Override
     @Transactional
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         log.info("=== Starting permission synchronization ===");
 
         int createdCount = 0;
+        int updatedCount = 0;
         int existingCount = 0;
 
         // Get all constants from AppPermissions using reflection
@@ -91,19 +211,45 @@ public class PermissionSeeder implements CommandLineRunner {
                     String permissionName = (String) field.get(null);
 
                     // Check if permission already exists in DB
-                    if (!permissionRepository.existsByName(permissionName)) {
+                    Optional<Permission> existingPermission = permissionRepository.findByName(permissionName);
+
+                    if (!existingPermission.isPresent()) {
                         // Create new permission
                         Permission permission = Permission.builder()
                                 .name(permissionName)
                                 .module(getModuleForPermission(permissionName))
+                                .workModule(getWorkModuleForPermission(permissionName))
                                 .description(generateDescription(permissionName))
+                                .spanishTranslation(generateSpanishTranslation(permissionName))
                                 .build();
 
                         permissionRepository.save(permission);
                         createdCount++;
-                        log.debug("Permission created: {} - Module: {}", permissionName, permission.getModule());
+                        log.debug("Permission created: {} - Module: {} - WorkModule: {} - Spanish: {}",
+                                permissionName, permission.getModule(), permission.getWorkModule(), permission.getSpanishTranslation());
                     } else {
-                        existingCount++;
+                        // Update existing permission if spanish translation or work module is missing
+                        Permission permission = existingPermission.get();
+                        boolean updated = false;
+
+                        if (permission.getSpanishTranslation() == null || permission.getSpanishTranslation().isEmpty()) {
+                            permission.setSpanishTranslation(generateSpanishTranslation(permissionName));
+                            updated = true;
+                        }
+
+                        if (permission.getWorkModule() == null || permission.getWorkModule().isEmpty()) {
+                            permission.setWorkModule(getWorkModuleForPermission(permissionName));
+                            updated = true;
+                        }
+
+                        if (updated) {
+                            permissionRepository.save(permission);
+                            updatedCount++;
+                            log.debug("Permission updated: {} - WorkModule: {} - Spanish: {}",
+                                    permissionName, permission.getWorkModule(), permission.getSpanishTranslation());
+                        } else {
+                            existingCount++;
+                        }
                     }
                 } catch (IllegalAccessException e) {
                     log.error("Error accessing field {}: {}", field.getName(), e.getMessage());
@@ -113,6 +259,7 @@ public class PermissionSeeder implements CommandLineRunner {
 
         log.info("=== Permission synchronization completed ===");
         log.info("New permissions created: {}", createdCount);
+        log.info("Permissions updated with translations: {}", updatedCount);
         log.info("Existing permissions: {}", existingCount);
         log.info("Total permissions in system: {}", permissionRepository.count());
     }
@@ -127,6 +274,19 @@ public class PermissionSeeder implements CommandLineRunner {
             }
         }
         return "General"; // Default module if no prefix matches
+    }
+
+    /**
+     * Determines which work module (general area) a permission belongs to based on its prefix.
+     * Returns the high-level grouping like "vehicles", "personal", "administration", etc.
+     */
+    private String getWorkModuleForPermission(String permissionName) {
+        for (Map.Entry<String, String> entry : WORK_MODULE_MAP.entrySet()) {
+            if (permissionName.startsWith(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return "general"; // Default work module if no prefix matches
     }
 
     /**
@@ -170,6 +330,47 @@ public class PermissionSeeder implements CommandLineRunner {
         }
 
         return String.format("Allows to %s %s", actionDescription, module);
+    }
+
+    /**
+     * Generates a Spanish translation for a permission based on its name.
+     * Converts GAS_STATION_READ to "Estación de Servicios - Lectura", etc.
+     */
+    private String generateSpanishTranslation(String permissionName) {
+        // First, try to find the module prefix
+        String moduleSpanish = null;
+        String actionSpanish = null;
+
+        for (Map.Entry<String, String> entry : MODULE_SPANISH_MAP.entrySet()) {
+            if (permissionName.startsWith(entry.getKey())) {
+                moduleSpanish = entry.getValue();
+                // Extract the action part (everything after the module prefix)
+                String actionPart = permissionName.substring(entry.getKey().length());
+                actionSpanish = ACTION_SPANISH_MAP.getOrDefault(actionPart, actionPart);
+                break;
+            }
+        }
+
+        // If no module prefix matched, try to parse it manually
+        if (moduleSpanish == null) {
+            String[] parts = permissionName.split("_");
+            if (parts.length >= 2) {
+                String lastPart = parts[parts.length - 1];
+                actionSpanish = ACTION_SPANISH_MAP.getOrDefault(lastPart, lastPart);
+
+                // Build module name from remaining parts
+                StringBuilder moduleBuilder = new StringBuilder();
+                for (int i = 0; i < parts.length - 1; i++) {
+                    if (i > 0) moduleBuilder.append(" ");
+                    moduleBuilder.append(parts[i]);
+                }
+                moduleSpanish = moduleBuilder.toString();
+            } else {
+                return permissionName;
+            }
+        }
+
+        return String.format("%s - %s", moduleSpanish, actionSpanish);
     }
 }
 

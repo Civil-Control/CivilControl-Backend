@@ -22,8 +22,17 @@ public record PermissionDTO(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         String module,
 
+        @Schema(description = "Work module representing the general area of the system",
+                example = "vehicles",
+                allowableValues = {"services", "documents", "vehicles", "personal", "mechanic", "report", "company", "administration"})
+        String workModule,
+
         @Schema(description = "Human-readable permission description",
                 example = "Allows viewing projects and construction sites")
-        String description
+        String description,
+
+        @Schema(description = "Spanish translation for frontend display",
+                example = "Estación de Servicios - Lectura")
+        String spanishTranslation
 ) {}
 

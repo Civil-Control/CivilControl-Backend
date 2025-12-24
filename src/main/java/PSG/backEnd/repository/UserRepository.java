@@ -78,9 +78,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * Search with filters.
+     * Excludes the root user (ID 1) from results as it's reserved for developers.
      */
     @Query("SELECT u FROM User u " +
             "WHERE u.deleted = false " +
+            "AND u.id != 1 " +
             "AND (:username IS NULL OR LOWER(u.credentials.username) LIKE LOWER(CONCAT('%', :username, '%'))) " +
             "AND (:email IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%'))) " +
             "AND (:firstName IS NULL OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :firstName, '%'))) " +
