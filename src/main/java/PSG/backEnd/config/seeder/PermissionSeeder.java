@@ -221,14 +221,16 @@ public class PermissionSeeder implements CommandLineRunner {
                                 .workModule(getWorkModuleForPermission(permissionName))
                                 .description(generateDescription(permissionName))
                                 .spanishTranslation(generateSpanishTranslation(permissionName))
+                                .spanishDescription(generateSpanishDescription(permissionName))
                                 .build();
 
                         permissionRepository.save(permission);
                         createdCount++;
-                        log.debug("Permission created: {} - Module: {} - WorkModule: {} - Spanish: {}",
-                                permissionName, permission.getModule(), permission.getWorkModule(), permission.getSpanishTranslation());
+                        log.debug("Permission created: {} - Module: {} - WorkModule: {} - Spanish: {} - SpanishDesc: {}",
+                                permissionName, permission.getModule(), permission.getWorkModule(),
+                                permission.getSpanishTranslation(), permission.getSpanishDescription());
                     } else {
-                        // Update existing permission if spanish translation or work module is missing
+                        // Update existing permission if spanish translation, work module or spanish description is missing
                         Permission permission = existingPermission.get();
                         boolean updated = false;
 
@@ -242,11 +244,17 @@ public class PermissionSeeder implements CommandLineRunner {
                             updated = true;
                         }
 
+                        if (permission.getSpanishDescription() == null || permission.getSpanishDescription().isEmpty()) {
+                            permission.setSpanishDescription(generateSpanishDescription(permissionName));
+                            updated = true;
+                        }
+
                         if (updated) {
                             permissionRepository.save(permission);
                             updatedCount++;
-                            log.debug("Permission updated: {} - WorkModule: {} - Spanish: {}",
-                                    permissionName, permission.getWorkModule(), permission.getSpanishTranslation());
+                            log.debug("Permission updated: {} - WorkModule: {} - Spanish: {} - SpanishDesc: {}",
+                                    permissionName, permission.getWorkModule(),
+                                    permission.getSpanishTranslation(), permission.getSpanishDescription());
                         } else {
                             existingCount++;
                         }
@@ -371,6 +379,100 @@ public class PermissionSeeder implements CommandLineRunner {
         }
 
         return String.format("%s - %s", moduleSpanish, actionSpanish);
+    }
+
+    /**
+     * Generates a Spanish description for a permission based on its name.
+     * Converts GAS_STATION_READ to "Permite visualizar estaciones de servicios", etc.
+     */
+    private String generateSpanishDescription(String permissionName) {
+        // Map for Spanish action descriptions
+        Map<String, String> actionDescriptionMap = new HashMap<>();
+        actionDescriptionMap.put("READ", "visualizar");
+        actionDescriptionMap.put("WRITE", "crear y editar");
+        actionDescriptionMap.put("DELETE", "eliminar");
+        actionDescriptionMap.put("CREATE", "crear");
+        actionDescriptionMap.put("VIEW", "visualizar");
+        actionDescriptionMap.put("MANAGE", "gestionar");
+        actionDescriptionMap.put("MANAGEMENT", "gestionar");
+        actionDescriptionMap.put("APPROVE", "aprobar");
+        actionDescriptionMap.put("CANCEL", "cancelar");
+        actionDescriptionMap.put("EXPORT", "exportar");
+        actionDescriptionMap.put("ASSIGN", "asignar");
+        actionDescriptionMap.put("CERTIFY", "certificar");
+        actionDescriptionMap.put("FINANCIAL", "gestionar información financiera de");
+        actionDescriptionMap.put("CONFIG", "configurar");
+
+        // Find the module prefix and extract action
+        String moduleSpanish = null;
+        String actionVerb = null;
+
+        for (Map.Entry<String, String> entry : MODULE_SPANISH_MAP.entrySet()) {
+            if (permissionName.startsWith(entry.getKey())) {
+                moduleSpanish = entry.getValue();
+                // Extract the action part (everything after the module prefix)
+                String actionPart = permissionName.substring(entry.getKey().length());
+                actionVerb = actionDescriptionMap.getOrDefault(actionPart, actionPart.toLowerCase());
+                break;
+            }
+        }
+
+        // If no module prefix matched, try to parse it manually
+        if (moduleSpanish == null) {
+            String[] parts = permissionName.split("_");
+            if (parts.length >= 2) {
+                String lastPart = parts[parts.length - 1];
+                actionVerb = actionDescriptionMap.getOrDefault(lastPart, lastPart.toLowerCase());
+
+                // Build module name from remaining parts
+                StringBuilder moduleBuilder = new StringBuilder();
+                for (int i = 0; i < parts.length - 1; i++) {
+                    if (i > 0) moduleBuilder.append(" ");
+                    moduleBuilder.append(parts[i].toLowerCase());
+                }
+                moduleSpanish = moduleBuilder.toString();
+            } else {
+                return "Permiso del sistema";
+            }
+        }
+
+        // Adjust module name for proper Spanish grammar
+        String adjustedModule = adjustModuleForSpanishDescription(moduleSpanish);
+
+        return String.format("Permite %s %s", actionVerb, adjustedModule);
+    }
+
+    /**
+     * Adjusts module names for proper Spanish grammar in descriptions.
+     * Converts from nominative case to appropriate form after verbs.
+     */
+    private String adjustModuleForSpanishDescription(String module) {
+        // Map specific modules to their proper Spanish forms in descriptions
+        Map<String, String> adjustmentMap = new HashMap<>();
+        adjustmentMap.put("Vacaciones de Empleados", "vacaciones de empleados");
+        adjustmentMap.put("Empleados", "empleados");
+        adjustmentMap.put("Acciones Disciplinarias", "acciones disciplinarias");
+        adjustmentMap.put("Pagos de Salarios", "pagos de salarios");
+        adjustmentMap.put("Entrega de EPP", "entregas de EPP");
+        adjustmentMap.put("Vehículos", "vehículos");
+        adjustmentMap.put("Reparaciones", "reparaciones");
+        adjustmentMap.put("Pólizas de Seguro", "pólizas de seguro");
+        adjustmentMap.put("Pagos de Patentes", "pagos de patentes");
+        adjustmentMap.put("Estación de Servicios", "estaciones de servicios");
+        adjustmentMap.put("Cargas de Combustible", "cargas de combustible");
+        adjustmentMap.put("Inventario", "inventario");
+        adjustmentMap.put("Stock", "stock");
+        adjustmentMap.put("Proveedores", "proveedores");
+        adjustmentMap.put("Proveedores de Servicios", "proveedores de servicios");
+        adjustmentMap.put("Pagos de Servicios", "pagos de servicios");
+        adjustmentMap.put("Pagos", "pagos");
+        adjustmentMap.put("Documentos Transaccionales", "documentos transaccionales");
+        adjustmentMap.put("Edificios", "edificios");
+        adjustmentMap.put("Áreas de Proyecto", "áreas de proyecto");
+        adjustmentMap.put("Reportes", "reportes");
+        adjustmentMap.put("Sistema", "sistema");
+
+        return adjustmentMap.getOrDefault(module, module.toLowerCase());
     }
 }
 

@@ -33,6 +33,10 @@ public record PermissionDTO(
 
         @Schema(description = "Spanish translation for frontend display",
                 example = "Estación de Servicios - Lectura")
-        String spanishTranslation
+        String spanishTranslation,
+
+        @Schema(description = "Spanish description for frontend display",
+                example = "Permite visualizar estaciones de servicios")
+        String spanishDescription
 ) {}
 

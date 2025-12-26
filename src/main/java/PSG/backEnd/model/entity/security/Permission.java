@@ -55,5 +55,12 @@ public class Permission {
      */
     @Column(length = 150)
     private String spanishTranslation;
+
+    /**
+     * Spanish translation of the permission description for frontend display.
+     * Example: "Permite visualizar estaciones de servicios"
+     */
+    @Column(length = 255)
+    private String spanishDescription;
 }
 
