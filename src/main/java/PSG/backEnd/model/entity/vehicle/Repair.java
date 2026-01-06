@@ -35,7 +35,7 @@ public class Repair {
     private String description;
 
     // if the repair was done by an employee
-    @Column
+    @Column(columnDefinition = "VARCHAR(100)")
     private String employee;
 
     // if the repair was done by an external supplier

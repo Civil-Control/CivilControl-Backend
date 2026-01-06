@@ -25,10 +25,10 @@ public class FuelLoad {
     @Column(nullable = false)
     private LocalDate date;
 
-    @Column(name = "branch_code", nullable = false)
+    @Column(name = "branch_code", nullable = false, columnDefinition = "VARCHAR(10)")
     private String branchCode;
 
-    @Column(name = "ticket_number", nullable = false)
+    @Column(name = "ticket_number", nullable = false, columnDefinition = "VARCHAR(50)")
     private String ticketNumber;
 
     @Column(name = "fuel_type", nullable = false)

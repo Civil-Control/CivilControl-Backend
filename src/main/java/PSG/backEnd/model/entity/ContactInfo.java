@@ -20,11 +20,11 @@ public class ContactInfo {
 
     @ElementCollection
     @CollectionTable(name = "contact_info_emails", joinColumns = @JoinColumn(name = "contact_info_id"))
-    @Column(name = "email")
+    @Column(name = "email", columnDefinition = "VARCHAR(100)")
     private List<String> email;
 
     @ElementCollection
     @CollectionTable(name = "contact_info_phones", joinColumns = @JoinColumn(name = "contact_info_id"))
-    @Column(name = "phone_number")
+    @Column(name = "phone_number", columnDefinition = "VARCHAR(30)")
     private List<String> phoneNumber;
 }

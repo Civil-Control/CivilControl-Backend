@@ -20,10 +20,10 @@ public class ProjectArea {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, columnDefinition = "VARCHAR(100)")
     private String name;
 
-    @Column
+    @Column(columnDefinition = "VARCHAR(500)")
     private String description;
 
     @Column

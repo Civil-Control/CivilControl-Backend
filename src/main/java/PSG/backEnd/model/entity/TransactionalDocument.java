@@ -62,7 +62,7 @@ public class TransactionalDocument {
     @Column(name = "discount_percentage", nullable = false)
     private BigDecimal discountPercentage;
 
-    @Column
+    @Column(columnDefinition = "VARCHAR(500)")
     private String comment;
 
     @Column(nullable = false)

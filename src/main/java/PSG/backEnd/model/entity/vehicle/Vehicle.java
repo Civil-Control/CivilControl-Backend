@@ -51,7 +51,7 @@ public class Vehicle {
     @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
 
-    @Column(name = "stored_in")
+    @Column(name = "stored_in", columnDefinition = "VARCHAR(100)")
     private String storedIn;
 
     @Column(name = "vtv_expiration_date")

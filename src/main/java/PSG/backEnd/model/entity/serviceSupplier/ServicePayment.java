@@ -42,10 +42,10 @@ public class ServicePayment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
-    @Column(name = "reference_number")
+    @Column(name = "reference_number", columnDefinition = "VARCHAR(100)")
     private String referenceNumber;
 
-    @Column(length = 500)
+    @Column(length = 500, columnDefinition = "VARCHAR(500)")
     private String comment;
 
     @Column(nullable = false)

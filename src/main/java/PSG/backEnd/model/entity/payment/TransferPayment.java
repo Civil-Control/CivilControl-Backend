@@ -20,10 +20,10 @@ public class TransferPayment {
     @MapsId
     private PaymentDetails paymentDetails;
 
-    @Column(name = "transaction_number", length = 100)
+    @Column(name = "transaction_number", length = 100, columnDefinition = "VARCHAR(100)")
     private String transactionNumber;
 
-    @Column(name = "bank_name", length = 100)
+    @Column(name = "bank_name", length = 100, columnDefinition = "VARCHAR(100)")
     private String bankName;
 
     @Column(nullable = false)

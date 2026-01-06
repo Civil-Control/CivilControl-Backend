@@ -51,7 +51,7 @@ public class Supplier {
     @Column(name = "default_discount_percentage")
     private BigDecimal defaultDiscountPercentage;
 
-    @Column
+    @Column(columnDefinition = "VARCHAR(500)")
     private String comment;
 
     @Column(nullable = false)

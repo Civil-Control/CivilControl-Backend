@@ -27,7 +27,7 @@ public class DisciplinaryAction {
     @Column(name = "action_type", nullable = false)
     private ActionType actionType;
 
-    @Column(name = "reason", nullable = false, length = 500)
+    @Column(name = "reason", nullable = false, length = 500, columnDefinition = "VARCHAR(500)")
     private String reason;
 
     @Column(name = "action_date", nullable = false)
@@ -36,6 +36,6 @@ public class DisciplinaryAction {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(name = "notes", length = 1000)
+    @Column(name = "notes", length = 1000, columnDefinition = "VARCHAR(1000)")
     private String notes;
 }

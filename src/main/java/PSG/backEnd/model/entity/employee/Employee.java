@@ -45,10 +45,10 @@ public class Employee {
     @Column(name = "birth_date")
     private LocalDate birthDate;
 
-    @Column(name = "phone_number")
+    @Column(name = "phone_number", columnDefinition = "VARCHAR(30)")
     private String phoneNumber;
 
-    @Column
+    @Column(columnDefinition = "VARCHAR(100)")
     private String email;
 
     @Embedded

@@ -21,10 +21,10 @@ public class CheckPayment {
     @MapsId
     private PaymentDetails paymentDetails;
 
-    @Column(name = "check_number", length = 50)
+    @Column(name = "check_number", length = 50, columnDefinition = "VARCHAR(50)")
     private String checkNumber;
 
-    @Column(name = "bank_name", length = 100)
+    @Column(name = "bank_name", length = 100, columnDefinition = "VARCHAR(100)")
     private String bankName;
 
     @Column(name = "issue_date")

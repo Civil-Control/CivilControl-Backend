@@ -19,7 +19,7 @@ public class Stock {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 100, columnDefinition = "VARCHAR(100)")
     private String name;
 
     @Column(nullable = false, precision = 10, scale = 2)

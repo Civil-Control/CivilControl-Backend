@@ -23,13 +23,13 @@ public class Credentials {
     /**
      * Unique username for login.
      */
-    @Column(nullable = false, unique = true, length = 50)
+    @Column(nullable = false, unique = true, length = 50, columnDefinition = "VARCHAR(50)")
     private String username;
 
     /**
      * Hashed password (BCrypt).
      */
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 255, columnDefinition = "VARCHAR(255)")
     private String password;
 
     /**

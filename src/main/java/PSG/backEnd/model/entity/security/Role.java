@@ -3,7 +3,6 @@ package PSG.backEnd.model.entity.security;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -34,7 +33,7 @@ public class Role {
     /**
      * Description of the role and its responsibilities.
      */
-    @Column(length = 500)
+    @Column(length = 500, columnDefinition = "VARCHAR(500)")
     private String description;
 
     /**

@@ -38,25 +38,25 @@ public class User implements UserDetails {
     /**
      * Unique user email.
      */
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, unique = true, length = 100, columnDefinition = "VARCHAR(100)")
     private String email;
 
     /**
      * User's first name.
      */
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 50, columnDefinition = "VARCHAR(50)")
     private String firstName;
 
     /**
      * User's last name.
      */
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 50, columnDefinition = "VARCHAR(50)")
     private String lastName;
 
     /**
      * User's job title or position (for display purposes, not related to security).
      */
-    @Column(length = 100)
+    @Column(length = 100, columnDefinition = "VARCHAR(100)")
     private String jobTitle;
 
     /**
