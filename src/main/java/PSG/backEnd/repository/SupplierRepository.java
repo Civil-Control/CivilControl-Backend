@@ -24,9 +24,9 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
 
     @Query("SELECT s FROM Supplier s " +
             "WHERE (:cuit IS NULL OR s.cuit LIKE %:cuit%) " +
-            "AND (:legalName IS NULL OR LOWER(s.legalName) LIKE LOWER(CONCAT('%', :legalName, '%'))) " +
-            "AND (:tradeName IS NULL OR LOWER(s.tradeName) LIKE LOWER(CONCAT('%', :tradeName, '%'))) " +
-            "AND (:city IS NULL OR LOWER(s.address.city) LIKE LOWER(CONCAT('%', :city, '%'))) " +
+            "AND (:legalName IS NULL OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:legalName AS string), '%'))) " +
+            "AND (:tradeName IS NULL OR LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:tradeName AS string), '%'))) " +
+            "AND (:city IS NULL OR LOWER(CAST(s.address.city AS string)) LIKE LOWER(CONCAT('%', CAST(:city AS string), '%'))) " +
             "AND (:minDiscountPercentage IS NULL OR s.defaultDiscountPercentage >= :minDiscountPercentage) " +
             "AND (:maxDiscountPercentage IS NULL OR s.defaultDiscountPercentage <= :maxDiscountPercentage) " +
             "AND (:active IS NULL OR s.active = :active) " +

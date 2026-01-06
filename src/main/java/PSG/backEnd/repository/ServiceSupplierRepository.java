@@ -25,8 +25,8 @@ public interface ServiceSupplierRepository extends JpaRepository<ServiceSupplier
             "JOIN ss.supplier s " +
             "LEFT JOIN ss.providedServices ps " +
             "WHERE (:supplierName IS NULL OR " +
-            "       LOWER(s.legalName) LIKE LOWER(CONCAT('%', :supplierName, '%')) OR " +
-            "       LOWER(s.tradeName) LIKE LOWER(CONCAT('%', :supplierName, '%'))) " +
+            "       LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR " +
+            "       LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
             "AND (:serviceType IS NULL OR :serviceType IN (SELECT ps2 FROM ss.providedServices ps2)) " +
             "AND (:cuit IS NULL OR s.cuit LIKE %:cuit%) " +
             "AND ss.deleted = false")

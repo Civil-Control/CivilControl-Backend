@@ -34,8 +34,8 @@ public interface BuildingRepository extends JpaRepository<Building, Long> {
 
     @Query("SELECT b FROM Building b " +
             "WHERE b.deleted = false " +
-            "AND (:name IS NULL OR LOWER(b.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-            "AND (:code IS NULL OR LOWER(b.code) LIKE LOWER(CONCAT('%', :code, '%'))) " +
+            "AND (:name IS NULL OR LOWER(CAST(b.name AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))) " +
+            "AND (:code IS NULL OR LOWER(CAST(b.code AS string)) LIKE LOWER(CONCAT('%', CAST(:code AS string), '%'))) " +
             "AND (:buildingType IS NULL OR b.buildingType = :buildingType) " +
             "AND (:active IS NULL OR b.active = :active)")
     Page<Building> findAllWithFilters(

@@ -22,7 +22,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     boolean existsByIdAndDeletedFalse(Long id);
 
     @Query("SELECT s FROM Stock s " +
-            "WHERE (:name IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+            "WHERE (:name IS NULL OR LOWER(CAST(s.name AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))) " +
             "AND (:buildingId IS NULL OR s.building.id = :buildingId) " +
             "AND (:stockCategory IS NULL OR s.stockCategory = :stockCategory) " +
             "AND (:minQuantity IS NULL OR s.quantity >= :minQuantity) " +

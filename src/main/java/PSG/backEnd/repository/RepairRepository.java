@@ -25,13 +25,13 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             "WHERE (:dateFrom IS NULL OR r.date >= :dateFrom) " +
             "AND (:dateTo IS NULL OR r.date <= :dateTo) " +
             "AND (:vehicleId IS NULL OR r.vehicle.id = :vehicleId) " +
-            "AND (:licensePlate IS NULL OR LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%'))) " +
+            "AND (:licensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS string), '%'))) " +
             "AND (:minCost IS NULL OR r.cost >= :minCost) " +
             "AND (:maxCost IS NULL OR r.cost <= :maxCost) " +
-            "AND (:employee IS NULL OR LOWER(r.employee) LIKE LOWER(CONCAT('%', :employee, '%'))) " +
+            "AND (:employee IS NULL OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:employee AS string), '%'))) " +
             "AND (:supplierId IS NULL OR r.supplier.id = :supplierId) " +
-            "AND (:supplierName IS NULL OR LOWER(s.legalName) LIKE LOWER(CONCAT('%', :supplierName, '%'))) " +
-            "AND (:repairType IS NULL OR LOWER(CAST(r.repairType AS string)) LIKE LOWER(CONCAT('%', :repairType, '%')))")
+            "AND (:supplierName IS NULL OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
+            "AND (:repairType IS NULL OR LOWER(CAST(r.repairType AS string)) LIKE LOWER(CONCAT('%', CAST(:repairType AS string), '%')))")
     Page<Repair> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,

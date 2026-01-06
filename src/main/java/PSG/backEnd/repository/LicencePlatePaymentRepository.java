@@ -25,7 +25,7 @@ public interface LicencePlatePaymentRepository extends JpaRepository<LicencePlat
             "AND (:maxAmount IS NULL OR lpp.amount <= :maxAmount) " +
             "AND (:year IS NULL OR lpp.year = :year) " +
             "AND (:period IS NULL OR lpp.period = :period) " +
-            "AND (:jurisdictionType IS NULL OR LOWER(CAST(lpp.jurisdictionType AS string)) LIKE LOWER(CONCAT('%', :jurisdictionType, '%')))")
+            "AND (:jurisdictionType IS NULL OR LOWER(CAST(lpp.jurisdictionType AS string)) LIKE LOWER(CONCAT('%', CAST(:jurisdictionType AS string), '%')))")
     Page<LicencePlatePayment> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,

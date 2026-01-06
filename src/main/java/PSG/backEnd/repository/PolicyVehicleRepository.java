@@ -29,10 +29,10 @@ public interface PolicyVehicleRepository extends JpaRepository<PolicyVehicle, Lo
             "JOIN ap.insurancePolicy ip " +
             "WHERE (:vehicleId IS NULL OR pv.vehicle.id = :vehicleId) " +
             "AND (:autoPolicyId IS NULL OR pv.autoPolicy.id = :autoPolicyId) " +
-            "AND (:licensePlate IS NULL OR LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%'))) " +
-            "AND (:vehicleBrand IS NULL OR LOWER(v.brand) LIKE LOWER(CONCAT('%', :vehicleBrand, '%'))) " +
-            "AND (:vehicleModel IS NULL OR LOWER(v.model) LIKE LOWER(CONCAT('%', :vehicleModel, '%'))) " +
-            "AND (:policyNumber IS NULL OR LOWER(ip.policyNumber) LIKE LOWER(CONCAT('%', :policyNumber, '%'))) " +
+            "AND (:licensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS string), '%'))) " +
+            "AND (:vehicleBrand IS NULL OR LOWER(CAST(v.brand AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleBrand AS string), '%'))) " +
+            "AND (:vehicleModel IS NULL OR LOWER(CAST(v.model AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleModel AS string), '%'))) " +
+            "AND (:policyNumber IS NULL OR LOWER(CAST(ip.policyNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:policyNumber AS string), '%'))) " +
             "AND (:effectiveFromStart IS NULL OR pv.effectiveFrom >= :effectiveFromStart) " +
             "AND (:effectiveFromEnd IS NULL OR pv.effectiveFrom <= :effectiveFromEnd) " +
             "AND (:effectiveToStart IS NULL OR pv.effectiveTo >= :effectiveToStart) " +

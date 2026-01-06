@@ -23,7 +23,7 @@ public interface AutoPolicyRepository extends JpaRepository<AutoPolicy, Long> {
     @Query("SELECT ap FROM AutoPolicy ap " +
             "JOIN ap.insurancePolicy ip " +
             "WHERE (:insurancePolicyId IS NULL OR ap.insurancePolicy.id = :insurancePolicyId) " +
-            "AND (:policyNumber IS NULL OR LOWER(ip.policyNumber) LIKE LOWER(CONCAT('%', :policyNumber, '%'))) " +
+            "AND (:policyNumber IS NULL OR LOWER(CAST(ip.policyNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:policyNumber AS string), '%'))) " +
             "ORDER BY ap.id DESC")
     Page<AutoPolicy> findAllWithFilters(
             @Param("insurancePolicyId") Long insurancePolicyId,

@@ -83,10 +83,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u " +
             "WHERE u.deleted = false " +
             "AND u.id != 1 " +
-            "AND (:username IS NULL OR LOWER(u.credentials.username) LIKE LOWER(CONCAT('%', :username, '%'))) " +
-            "AND (:email IS NULL OR LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%'))) " +
-            "AND (:firstName IS NULL OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', :firstName, '%'))) " +
-            "AND (:lastName IS NULL OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :lastName, '%'))) " +
+            "AND (:username IS NULL OR LOWER(CAST(u.credentials.username AS string)) LIKE LOWER(CONCAT('%', CAST(:username AS string), '%'))) " +
+            "AND (:email IS NULL OR LOWER(CAST(u.email AS string)) LIKE LOWER(CONCAT('%', CAST(:email AS string), '%'))) " +
+            "AND (:firstName IS NULL OR LOWER(CAST(u.firstName AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
+            "AND (:lastName IS NULL OR LOWER(CAST(u.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
             "AND (:enabled IS NULL OR u.enabled = :enabled)")
     Page<User> findAllWithFilters(
             @Param("username") String username,

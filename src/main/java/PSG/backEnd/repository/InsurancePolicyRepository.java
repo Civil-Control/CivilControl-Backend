@@ -23,8 +23,8 @@ public interface InsurancePolicyRepository extends JpaRepository<InsurancePolicy
     boolean existsByIdAndDeletedFalse(Long id);
 
     @Query("SELECT ip FROM InsurancePolicy ip " +
-            "WHERE (:policyNumber IS NULL OR LOWER(ip.policyNumber) LIKE LOWER(CONCAT('%', :policyNumber, '%'))) " +
-            "AND (:termNumber IS NULL OR LOWER(ip.termNumber) LIKE LOWER(CONCAT('%', :termNumber, '%'))) " +
+            "WHERE (:policyNumber IS NULL OR LOWER(CAST(ip.policyNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:policyNumber AS string), '%'))) " +
+            "AND (:termNumber IS NULL OR LOWER(CAST(ip.termNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:termNumber AS string), '%'))) " +
             "AND (:policyType IS NULL OR CAST(ip.policyType AS string) = :policyType) " +
             "AND (:policyStatus IS NULL OR CAST(ip.policyStatus AS string) = :policyStatus) " +
             "AND (:paymentFrequency IS NULL OR CAST(ip.paymentFrequency AS string) = :paymentFrequency) " +

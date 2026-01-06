@@ -42,7 +42,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             "AND (:endDate IS NULL OR sp.paymentDate <= :endDate) " +
             "AND (:minAmount IS NULL OR sp.amount >= :minAmount) " +
             "AND (:maxAmount IS NULL OR sp.amount <= :maxAmount) " +
-            "AND (:referenceNumber IS NULL OR LOWER(sp.referenceNumber) LIKE LOWER(CONCAT('%', :referenceNumber, '%')))")
+            "AND (:referenceNumber IS NULL OR LOWER(CAST(sp.referenceNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:referenceNumber AS string), '%')))")
     Page<ServicePayment> findAllWithFilters(
             @Param("serviceSupplierId") Long serviceSupplierId,
             @Param("buildingId") Long buildingId,

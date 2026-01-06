@@ -25,9 +25,9 @@ public interface EppDeliveryRepository extends JpaRepository<EppDelivery, Long> 
             "AND (:employeeId IS NULL OR ed.employee.id = :employeeId) " +
             "AND (:deliveryDateFrom IS NULL OR ed.deliveryDate >= :deliveryDateFrom) " +
             "AND (:deliveryDateTo IS NULL OR ed.deliveryDate <= :deliveryDateTo) " +
-            "AND (:itemName IS NULL OR LOWER(ed.itemName) LIKE LOWER(CONCAT('%', :itemName, '%'))) " +
-            "AND (:itemType IS NULL OR LOWER(ed.itemType) LIKE LOWER(CONCAT('%', :itemType, '%'))) " +
-            "AND (:brand IS NULL OR LOWER(ed.brand) LIKE LOWER(CONCAT('%', :brand, '%')))")
+            "AND (:itemName IS NULL OR LOWER(CAST(ed.itemName AS string)) LIKE LOWER(CONCAT('%', CAST(:itemName AS string), '%'))) " +
+            "AND (:itemType IS NULL OR LOWER(CAST(ed.itemType AS string)) LIKE LOWER(CONCAT('%', CAST(:itemType AS string), '%'))) " +
+            "AND (:brand IS NULL OR LOWER(CAST(ed.brand AS string)) LIKE LOWER(CONCAT('%', CAST(:brand AS string), '%')))")
     Page<EppDelivery> findAllWithFilters(
             @Param("employeeId") Long employeeId,
             @Param("deliveryDateFrom") LocalDate deliveryDateFrom,

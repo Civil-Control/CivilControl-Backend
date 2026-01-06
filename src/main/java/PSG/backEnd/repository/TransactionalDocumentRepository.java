@@ -30,12 +30,12 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             WHERE (:documentNumber IS NULL OR td.documentNumber LIKE %:documentNumber%)
             AND (:supplierCuit IS NULL OR td.supplier.cuit LIKE %:supplierCuit%)
             AND (:supplierName IS NULL OR 
-                 LOWER(td.supplier.legalName) LIKE LOWER(CONCAT('%', :supplierName, '%')) OR
-                 LOWER(td.supplier.tradeName) LIKE LOWER(CONCAT('%', :supplierName, '%'))
+                 LOWER(CAST(td.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR
+                 LOWER(CAST(td.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))
             )
             AND (:projectAreaId IS NULL OR td.projectArea.id = :projectAreaId)
             AND (:projectAreaName IS NULL OR 
-                 LOWER(td.projectArea.name) LIKE LOWER(CONCAT('%', :projectAreaName, '%'))
+                 LOWER(CAST(td.projectArea.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))
             )
             AND (:maxTotalAmount IS NULL OR td.total <= :maxTotalAmount)
             AND (:minTotalAmount IS NULL OR td.total >= :minTotalAmount)

@@ -26,12 +26,12 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     boolean existsByIdAndDeletedFalse(Long id);
 
     @Query("SELECT e FROM Employee e " +
-            "WHERE (:name IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-            "AND (:lastName IS NULL OR LOWER(e.lastName) LIKE LOWER(CONCAT('%', :lastName, '%'))) " +
+            "WHERE (:name IS NULL OR LOWER(CAST(e.name AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))) " +
+            "AND (:lastName IS NULL OR LOWER(CAST(e.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
             "AND (:dni IS NULL OR e.dni LIKE %:dni%) " +
             "AND (:cuil IS NULL OR e.cuil LIKE %:cuil%) " +
             "AND (:projectAreaId IS NULL OR e.projectArea.id = :projectAreaId) " +
-            "AND (:city IS NULL OR LOWER(e.address.city) LIKE LOWER(CONCAT('%', :city, '%'))) " +
+            "AND (:city IS NULL OR LOWER(CAST(e.address.city AS string)) LIKE LOWER(CONCAT('%', CAST(:city AS string), '%'))) " +
             "AND (:employmentType IS NULL OR e.employmentType = :employmentType) " +
             "AND (:employeeStatus IS NULL OR e.employeeStatus = :employeeStatus) " +
             "AND (:employeeRole IS NULL OR e.employeeRole = :employeeRole) " +
