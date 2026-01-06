@@ -15,7 +15,7 @@
 
 [![Java](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.0-6DB33F?style=for-the-badge&logo=spring&logoColor=white)](https://spring.io/projects/spring-boot)
-[![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-Private-red?style=for-the-badge)](LICENSE)
 
@@ -38,7 +38,7 @@ The API follows industry-standard architectural patterns including **layered arc
 ├─────────────────────────────────────────────┤
 │          Repository Layer                    │  ← Data Access (JPA)
 ├─────────────────────────────────────────────┤
-│           Database Layer                     │  ← MySQL 8.4
+│           Database Layer                     │  ← PostgreSQL 16
 └─────────────────────────────────────────────┘
 ```
 
@@ -117,7 +117,7 @@ The API follows industry-standard architectural patterns including **layered arc
 - **Spring Validation** - Input validation
 
 ### Database
-- **MySQL 8.4** - Relational database with UTF-8MB4 support
+- **PostgreSQL 16** - Advanced relational database with full ACID compliance
 - **Hibernate** - ORM implementation
 - **Connection Pool** - HikariCP (default in Spring Boot)
 
@@ -149,7 +149,7 @@ The API follows industry-standard architectural patterns including **layered arc
 ### Prerequisites
 - **Java 17** or higher
 - **Maven 3.6+**
-- **MySQL 8.0+** (or use Docker Compose)
+- **PostgreSQL 16+** (or use Docker Compose)
 - **Docker** (optional, for containerized deployment)
 
 ### 1. Clone the Repository
@@ -165,10 +165,11 @@ cd PSG-backend
 docker-compose up -d db
 ```
 
-#### Option B: Manual MySQL Setup
+#### Option B: Manual PostgreSQL Setup
 ```sql
-CREATE DATABASE psg_backend CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'your_password';
+CREATE DATABASE psg_backend;
+CREATE USER appuser WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE psg_backend TO appuser;
 GRANT ALL PRIVILEGES ON psg_backend.* TO 'appuser'@'localhost';
 FLUSH PRIVILEGES;
 ```
@@ -352,7 +353,7 @@ docker-compose up -d --build
 
 ### Health Checks
 Both database and API include health checks:
-- **Database**: MySQL ping check every 5s
+- **Database**: PostgreSQL pg_isready check every 5s
 - **API**: Actuator health endpoint check every 30s
 
 ## 📝 Development Scripts
@@ -419,7 +420,7 @@ For technical support or questions, contact the development team.
 
 [![Java](https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.0-6DB33F?style=for-the-badge&logo=spring&logoColor=white)](https://spring.io/projects/spring-boot)
-[![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Licencia](https://img.shields.io/badge/Licencia-Privada-red?style=for-the-badge)](LICENSE)
 
@@ -442,7 +443,7 @@ La API sigue patrones arquitectónicos estándar de la industria incluyendo **ar
 ├─────────────────────────────────────────────┤
 │         Capa de Repositorio                  │  ← Acceso a Datos (JPA)
 ├─────────────────────────────────────────────┤
-│         Capa de Base de Datos                │  ← MySQL 8.4
+│         Capa de Base de Datos                │  ← PostgreSQL 16+
 └─────────────────────────────────────────────┘
 ```
 
@@ -521,7 +522,7 @@ La API sigue patrones arquitectónicos estándar de la industria incluyendo **ar
 - **Spring Validation** - Validación de entrada
 
 ### Base de Datos
-- **MySQL 8.4** - Base de datos relacional con soporte UTF-8MB4
+- **PostgreSQL 16** - Base de datos relacional avanzada con cumplimiento ACID completo
 - **Hibernate** - Implementación ORM
 - **Connection Pool** - HikariCP (por defecto en Spring Boot)
 
@@ -553,7 +554,7 @@ La API sigue patrones arquitectónicos estándar de la industria incluyendo **ar
 ### Requisitos Previos
 - **Java 17** o superior
 - **Maven 3.6+**
-- **MySQL 8.0+** (o usar Docker Compose)
+- **PostgreSQL 16+** (o usar Docker Compose)
 - **Docker** (opcional, para despliegue contenedorizado)
 
 ### 1. Clonar el Repositorio
@@ -569,12 +570,11 @@ cd PSG-backend
 docker-compose up -d db
 ```
 
-#### Opción B: Configuración Manual de MySQL
+#### Opción B: Configuración Manual de PostgreSQL
 ```sql
-CREATE DATABASE psg_backend CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'appuser'@'localhost' IDENTIFIED BY 'tu_contraseña';
-GRANT ALL PRIVILEGES ON psg_backend.* TO 'appuser'@'localhost';
-FLUSH PRIVILEGES;
+CREATE DATABASE psg_backend;
+CREATE USER appuser WITH PASSWORD 'tu_contraseña';
+GRANT ALL PRIVILEGES ON DATABASE psg_backend TO appuser;
 ```
 
 ### 3. Configuración de Entorno
@@ -756,7 +756,7 @@ docker-compose up -d --build
 
 ### Health Checks
 Tanto la base de datos como la API incluyen chequeos de salud:
-- **Base de Datos**: Ping de MySQL cada 5s
+- **Base de Datos**: Chequeo pg_isready de PostgreSQL cada 5s
 - **API**: Chequeo de endpoint de salud de Actuator cada 30s
 
 ## 📝 Scripts de Desarrollo

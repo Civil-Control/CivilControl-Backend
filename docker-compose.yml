@@ -1,22 +1,18 @@
 services:
   db:
-    image: mysql:8.4
-    container_name: mysql-db
+    image: postgres:16-alpine
+    container_name: postgres-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: appdb
-      MYSQL_USER: appuser
-      MYSQL_PASSWORD: super-secreta
-      MYSQL_ROOT_PASSWORD: rootpass
-    command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-      --innodb-flush-log-at-trx-commit=1
-      --skip-log-bin
+      POSTGRES_DB: appdb
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: super-secreta
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -prootpass || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
       interval: 5s
       timeout: 3s
       retries: 60
@@ -36,10 +32,10 @@ services:
       - .env.prod  # Carga variables de entorno desde archivo
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3306/psg_backend?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/psg_backend
       SPRING_DATASOURCE_USERNAME: appuser
       SPRING_DATASOURCE_PASSWORD: app_pass_123
-      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQL8Dialect
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.PostgreSQLDialect
       SERVER_PORT: 8080
       # JWT configuration viene del archivo .env.prod
       JWT_SECRET: ${JWT_SECRET}
