@@ -78,7 +78,13 @@ public class FuelLoadController {
             @Parameter(description = "Filter by gas station ID") @RequestParam(required = false) Long gasStationId,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "date") String sortBy,
+            @Parameter(description = "Field to sort by. Direct fields: id, date, branchCode, ticketNumber, fuelType, liters, pricePerLiter, totalAmount. " +
+                    "For vehicle use: vehicle.licensePlate, vehicle.brand, vehicle.model. " +
+                    "For project area use: projectArea.name. " +
+                    "For gas station use: gasStation.id. " +
+                    "Example: sortBy=vehicle.licensePlate",
+                    example = "date")
+            @RequestParam(defaultValue = "date") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);

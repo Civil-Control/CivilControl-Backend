@@ -63,7 +63,11 @@ public class EmployeeVacationController {
             @Parameter(description = "Filter by maximum total days") @RequestParam(required = false) Integer maxTotalDays,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Field to sort by. Direct fields: id, startDate, endDate, totalDays. " +
+                    "For employee fields use: employee.name, employee.lastName, employee.dni. " +
+                    "Example: sortBy=employee.lastName",
+                    example = "startDate")
+            @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "asc") String sortDir
     ) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);

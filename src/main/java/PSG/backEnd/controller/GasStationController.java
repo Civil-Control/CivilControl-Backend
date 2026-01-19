@@ -54,7 +54,10 @@ public class GasStationController {
             @Parameter(description = "Filter by available fuel types") @RequestParam(required = false) List<String> fuelTypes,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Field to sort by. Available fields: id, supplierId. " +
+                    "Note: Supplier information is not loaded in this query, use id or supplierId only.",
+                    example = "id")
+            @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "asc") String sortDir
     ) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);

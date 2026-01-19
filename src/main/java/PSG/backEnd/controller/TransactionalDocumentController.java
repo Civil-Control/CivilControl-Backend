@@ -102,7 +102,11 @@ public class TransactionalDocumentController {
             @Parameter(description = "Number of items per page", example = "10")
             @RequestParam(defaultValue = "10") int size,
 
-            @Parameter(description = "Field to sort by (e.g., date, total, documentNumber, supplier.legalName)", example = "date")
+            @Parameter(description = "Field to sort by. Direct fields: date, total, documentNumber, branchCode, netTotal, ivaTotal, discountPercentage. " +
+                    "For supplier fields use: supplier.legalName, supplier.tradeName, supplier.cuit. " +
+                    "For project area use: projectArea.name. " +
+                    "Example: sortBy=supplier.legalName",
+                    example = "date")
             @RequestParam(defaultValue = "id") String sortBy,
 
             @Parameter(description = "Sort direction (asc or desc)", example = "desc")

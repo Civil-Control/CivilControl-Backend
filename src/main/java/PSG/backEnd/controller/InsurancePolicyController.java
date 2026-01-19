@@ -74,7 +74,11 @@ public class InsurancePolicyController {
             @Parameter(description = "Filter by cancellation status") @RequestParam(required = false) Boolean isCancelled,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Field to sort by. Available fields: id, policyNumber, termNumber, endorsementSecuence, policyType, policyStatus, " +
+                    "paymentFrequency, sumInsured, issueDate, effectiveFrom, effectiveTo, cancellationDate, numberOfInstallments. " +
+                    "Example: sortBy=effectiveFrom",
+                    example = "effectiveFrom")
+            @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -158,7 +162,11 @@ public class InsurancePolicyController {
             @Parameter(description = "Filter by cancellation status") @RequestParam(required = false) Boolean isCancelled,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Field to sort by. Direct fields: id, effectiveFrom, effectiveTo, cancellationDate. " +
+                    "For vehicle use: vehicle.licensePlate, vehicle.brand, vehicle.model, vehicle.year. " +
+                    "Example: sortBy=vehicle.licensePlate",
+                    example = "effectiveFrom")
+            @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -184,7 +192,12 @@ public class InsurancePolicyController {
             @Parameter(description = "Filter by cancellation status") @RequestParam(required = false) Boolean isCancelled,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Field to sort by. Direct fields: id, effectiveFrom, effectiveTo, cancellationDate. " +
+                    "For vehicle use: vehicle.licensePlate, vehicle.brand, vehicle.model, vehicle.year. " +
+                    "For insurance policy use: insurancePolicy.policyNumber, insurancePolicy.effectiveFrom. " +
+                    "Example: sortBy=vehicle.licensePlate",
+                    example = "effectiveFrom")
+            @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);

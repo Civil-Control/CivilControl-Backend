@@ -107,7 +107,14 @@ public class PaymentController {
             @Parameter(description = "Filter by supplier ID who received the payment", example = "42") @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by (e.g., paymentDate, amount, supplierId)", example = "paymentDate") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Field to sort by. Direct fields: id. " +
+                    "For payment details use: paymentDetails.paymentDate, paymentDetails.amount. " +
+                    "For supplier use: paymentDetails.supplier.id (Note: supplier name not available in this query). " +
+                    "For transfer payments: transactionNumber, bankName. " +
+                    "For check payments: checkNumber, dueDate, bankName. " +
+                    "Example: sortBy=paymentDetails.paymentDate",
+                    example = "paymentDetails.paymentDate")
+            @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)", example = "desc") @RequestParam(defaultValue = "asc") String sortDir) {
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);

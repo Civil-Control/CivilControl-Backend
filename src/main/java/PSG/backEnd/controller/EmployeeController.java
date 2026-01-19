@@ -71,7 +71,12 @@ public class EmployeeController {
             @Parameter(description = "Filter by maximum hire date") @RequestParam(required = false) LocalDate hireDateTo,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "id") String sortBy,
+            @Parameter(description = "Field to sort by. Direct fields: id, name, lastName, dni, cuil, birthDate, hireDate, endDate, " +
+                    "phoneNumber, email, employmentType, employeeStatus, employeeRole. " +
+                    "For project area use: projectArea.name. " +
+                    "Example: sortBy=projectArea.name",
+                    example = "lastName")
+            @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "asc") String sortDir
     ) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);

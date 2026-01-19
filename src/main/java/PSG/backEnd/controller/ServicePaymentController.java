@@ -89,7 +89,11 @@ public class ServicePaymentController {
             @Parameter(description = "Number of items per page")
             @RequestParam(defaultValue = "10") int size,
 
-            @Parameter(description = "Field to sort by (e.g., paymentDate, amount)")
+            @Parameter(description = "Field to sort by. Direct fields: id, paymentDate, amount, serviceType, referenceNumber. " +
+                    "For service supplier use: serviceSupplier.id. " +
+                    "For building use: building.name, building.code. " +
+                    "Example: sortBy=building.name",
+                    example = "paymentDate")
             @RequestParam(defaultValue = "paymentDate") String sortBy,
 
             @Parameter(description = "Sort direction (asc or desc)")

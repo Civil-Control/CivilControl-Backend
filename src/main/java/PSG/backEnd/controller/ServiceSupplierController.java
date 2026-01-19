@@ -68,7 +68,9 @@ public class ServiceSupplierController {
             @Parameter(description = "Number of items per page")
             @RequestParam(defaultValue = "10") int size,
 
-            @Parameter(description = "Field to sort by (e.g., id, supplier.legalName)")
+            @Parameter(description = "Field to sort by. Available fields: id, supplierId. " +
+                    "Note: Supplier information is not loaded in this query, cannot use supplier.legalName.",
+                    example = "id")
             @RequestParam(defaultValue = "id") String sortBy,
 
             @Parameter(description = "Sort direction (asc or desc)")

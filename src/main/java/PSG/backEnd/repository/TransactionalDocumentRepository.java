@@ -25,17 +25,17 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
 
     @Query("""
             SELECT td FROM TransactionalDocument td 
-            JOIN FETCH td.supplier 
-            LEFT JOIN FETCH td.projectArea
+            JOIN td.supplier s
+            LEFT JOIN td.projectArea pa
             WHERE (:documentNumber IS NULL OR td.documentNumber LIKE %:documentNumber%)
-            AND (:supplierCuit IS NULL OR td.supplier.cuit LIKE %:supplierCuit%)
+            AND (:supplierCuit IS NULL OR s.cuit LIKE %:supplierCuit%)
             AND (:supplierName IS NULL OR 
-                 LOWER(CAST(td.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR
-                 LOWER(CAST(td.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))
+                 LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR
+                 LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))
             )
-            AND (:projectAreaId IS NULL OR td.projectArea.id = :projectAreaId)
+            AND (:projectAreaId IS NULL OR pa.id = :projectAreaId)
             AND (:projectAreaName IS NULL OR 
-                 LOWER(CAST(td.projectArea.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))
+                 LOWER(CAST(pa.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))
             )
             AND (:maxTotalAmount IS NULL OR td.total <= :maxTotalAmount)
             AND (:minTotalAmount IS NULL OR td.total >= :minTotalAmount)

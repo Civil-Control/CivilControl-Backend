@@ -62,7 +62,11 @@ public class EppDeliveryController {
             @Parameter(description = "Filter by brand (case-insensitive search)") @RequestParam(required = false) String brand,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "deliveryDate") String sortBy,
+            @Parameter(description = "Field to sort by. Direct fields: id, deliveryDate, itemName, itemType, brand, quantity. " +
+                    "For employee fields use: employee.name, employee.lastName, employee.dni. " +
+                    "Example: sortBy=employee.lastName",
+                    example = "deliveryDate")
+            @RequestParam(defaultValue = "deliveryDate") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir
     ) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
