@@ -65,10 +65,10 @@ public record VehicleDTO(
         @Size(max = 40, message = "Nickname must be at most 40 characters.", groups = {OnCreate.class, OnUpdate.class})
         String nickName,
 
-        @Schema(description = "Type of vehicle. Valid values: CAR (automobile), TRUCK (cargo truck), VAN (utility van), " +
-                "MOTORCYCLE (two-wheeled vehicle), BUS (passenger bus).",
-                example = "CAR",
-                allowableValues = {"CAR", "TRUCK", "VAN", "MOTORCYCLE", "BUS"},
+        @Schema(description = "Type of vehicle. Valid values: CAMION (truck with cargo capacity), CAMIONETA (pickup truck), " +
+                "AUTO (passenger car), MOTO (motorcycle), OTRO (other types).",
+                example = "AUTO",
+                allowableValues = {"CAMION", "CAMIONETA", "AUTO", "MOTO", "OTRO"},
                 nullable = true)
         VehicleType vehicleType,
 
@@ -77,11 +77,11 @@ public record VehicleDTO(
                 nullable = true)
         Long projectAreaId,
 
-        @Schema(description = "Physical location where the vehicle is stored or parked. Maximum 60 characters.",
+        @Schema(description = "Physical location where the vehicle is stored or parked. Maximum 100 characters.",
                 example = "Main Warehouse - Bay 3",
-                maxLength = 60,
+                maxLength = 100,
                 nullable = true)
-        @Size(max = 60, message = "Storage location must be at most 60 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 100, message = "Storage location must be at most 100 characters.", groups = {OnCreate.class, OnUpdate.class})
         String storedIn,
 
         @Schema(description = "VTV (Technical Vehicle Verification) expiration date. Must be today or in the future. " +
@@ -98,10 +98,10 @@ public record VehicleDTO(
                 nullable = true)
         JurisdictionType jurisdictionType,
 
-        @Schema(description = "Type of truck equipment. Only required and valid for vehicles of type CAMION. " +
-                "Valid values: NADA (no equipment), HIDROELEVADOR (hydraulic lift), HIDROGRUA (hydraulic crane). " +
-                "This field must be specified for trucks and cannot be specified for other vehicle types.",
-                example = "HIDROELEVADOR",
+        @Schema(description = "Type of truck equipment. ONLY for vehicles of type CAMION (required for trucks, must be null for other types). " +
+                "Valid values: NADA (no special equipment), HIDROELEVADOR (hydraulic lift platform), HIDROGRUA (hydraulic crane). " +
+                "This field is REQUIRED when vehicleType is CAMION and must NOT be specified for other vehicle types (AUTO, CAMIONETA, MOTO, OTRO).",
+                example = "NADA",
                 allowableValues = {"NADA", "HIDROELEVADOR", "HIDROGRUA"},
                 nullable = true)
         String truckEquipment

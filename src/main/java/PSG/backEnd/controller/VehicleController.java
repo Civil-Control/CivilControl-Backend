@@ -34,10 +34,12 @@ public class VehicleController {
     @PostMapping
     @Operation(summary = "Create a new vehicle",
             description = "Registers a new vehicle in the system. Includes vehicle identification (license plate), specifications (brand, model, year), " +
-                    "and administrative details (project area assignment, storage location, VTV expiration).")
+                    "vehicle type (CAMION, CAMIONETA, AUTO, MOTO, OTRO), and administrative details (project area assignment, storage location, VTV expiration). " +
+                    "IMPORTANT: If vehicleType is CAMION, the truckEquipment field is REQUIRED (NADA, HIDROELEVADOR, or HIDROGRUA). " +
+                    "For other vehicle types (AUTO, CAMIONETA, MOTO, OTRO), truckEquipment must be null or empty.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Vehicle successfully created"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error (e.g., truckEquipment missing for CAMION or specified for non-CAMION types)"),
             @ApiResponse(responseCode = "404", description = "Project area not found"),
             @ApiResponse(responseCode = "409", description = "Vehicle with this license plate already exists")
     })
@@ -96,10 +98,12 @@ public class VehicleController {
     @PatchMapping("/{id}")
     @Operation(summary = "Update vehicle",
             description = "Updates an existing vehicle record. Only provided fields will be updated. Allows updating vehicle specifications, " +
-                    "project area assignment, storage location, and administrative details.")
+                    "project area assignment, storage location, and administrative details. " +
+                    "IMPORTANT: truckEquipment validation applies - if vehicleType is changed to CAMION, truckEquipment becomes required. " +
+                    "If changed to other types (AUTO, CAMIONETA, MOTO, OTRO), truckEquipment must be null or empty.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Vehicle successfully updated"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data (e.g., truckEquipment validation failed for the vehicle type)"),
             @ApiResponse(responseCode = "404", description = "Vehicle or project area not found"),
             @ApiResponse(responseCode = "409", description = "License plate already exists for another vehicle")
     })
