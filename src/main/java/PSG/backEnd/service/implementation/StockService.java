@@ -12,6 +12,7 @@ import PSG.backEnd.model.mapper.StockMapper;
 import PSG.backEnd.repository.StockRepository;
 import PSG.backEnd.service.port.IBuildingService;
 import PSG.backEnd.service.port.IStockService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ public class StockService implements IStockService {
     private final StockRepository stockRepository;
     private final StockMapper stockMapper;
     private final IBuildingService buildingService;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -86,10 +88,10 @@ public class StockService implements IStockService {
     @Transactional
     public void updateStockQuantity(Long stockId, BigDecimal quantity) {
         if (quantity == null) {
-            throw new StockNotValidException("Quantity cannot be null");
+            throw new StockNotValidException(messageSourceHelper.getMessage("stock.quantity.null"));
         }
         if (quantity.compareTo(BigDecimal.ZERO) < 0) {
-            throw new StockNotValidException("Quantity cannot be negative");
+            throw new StockNotValidException(messageSourceHelper.getMessage("stock.quantity.negative"));
         }
 
         Stock stock = stockRepository.findByIdAndDeletedFalse(stockId)
@@ -124,26 +126,26 @@ public class StockService implements IStockService {
     // Private validation methods
     private void validateNewStock(StockDTO stockDTO) {
         if (stockDTO.name() == null || stockDTO.name().trim().isEmpty()) {
-            throw new StockNotValidException("Stock name cannot be empty");
+            throw new StockNotValidException(messageSourceHelper.getMessage("stock.name.empty"));
         }
         if (stockRepository.existsByNameAndDeletedFalse(stockDTO.name())) {
-            throw new StockAlreadyExistsException("There is already an active stock with the name: " + stockDTO.name());
+            throw new StockAlreadyExistsException(messageSourceHelper.getMessage("stock.name.alreadyExists", stockDTO.name()));
         }
         if (stockDTO.quantity() == null) {
-            throw new StockNotValidException("Quantity cannot be null");
+            throw new StockNotValidException(messageSourceHelper.getMessage("stock.quantity.null"));
         }
         if (stockDTO.quantity().compareTo(BigDecimal.ZERO) < 0) {
-            throw new StockNotValidException("Quantity cannot be negative");
+            throw new StockNotValidException(messageSourceHelper.getMessage("stock.quantity.negative"));
         }
         if (stockDTO.stockCategory() == null) {
-            throw new StockNotValidException("Stock category cannot be null");
+            throw new StockNotValidException(messageSourceHelper.getMessage("stock.stockCategory.null"));
         }
         if (stockDTO.buildingId() == null) {
-            throw new StockNotValidException("Building ID cannot be null");
+            throw new StockNotValidException(messageSourceHelper.getMessage("stock.buildingId.null"));
         }
         // Validate that building exists and is active
         if (!buildingService.existsById(stockDTO.buildingId())) {
-            throw new StockNotValidException("Building with ID " + stockDTO.buildingId() + " does not exist");
+            throw new StockNotValidException(messageSourceHelper.getMessage("stock.buildingId.notFound", stockDTO.buildingId()));
         }
     }
 
@@ -152,17 +154,17 @@ public class StockService implements IStockService {
             Optional<Stock> existingWithSameName = stockRepository.findByIdAndDeletedFalse(id);
             if (existingWithSameName.isPresent() && !existingWithSameName.get().getId().equals(id)) {
                 if (stockRepository.existsByNameAndDeletedFalse(stockDTO.name())) {
-                    throw new StockAlreadyExistsException("There is already another stock with the name: " + stockDTO.name());
+                    throw new StockAlreadyExistsException(messageSourceHelper.getMessage("stock.name.alreadyExists", stockDTO.name()));
                 }
             }
         }
         if (stockDTO.quantity() != null && stockDTO.quantity().compareTo(BigDecimal.ZERO) < 0) {
-            throw new StockNotValidException("Quantity cannot be negative");
+            throw new StockNotValidException(messageSourceHelper.getMessage("stock.quantity.negative"));
         }
         // Validate building if provided
         if (stockDTO.buildingId() != null) {
             if (!buildingService.existsById(stockDTO.buildingId())) {
-                throw new StockNotValidException("Building with ID " + stockDTO.buildingId() + " does not exist");
+                throw new StockNotValidException(messageSourceHelper.getMessage("stock.buildingId.notFound", stockDTO.buildingId()));
             }
         }
     }

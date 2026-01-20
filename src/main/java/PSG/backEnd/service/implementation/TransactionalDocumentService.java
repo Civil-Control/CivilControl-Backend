@@ -19,6 +19,7 @@ import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.IProjectAreaService;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -44,6 +45,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
     private final IProjectAreaService iProjectAreaService;
     private final ISupplierService iSupplierService;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -440,25 +442,25 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
     private void validateDocumentIsInvoice(TransactionalDocument document) {
         if (!isInvoice(document.getDocumentType())) {
-            throw new IllegalStateException("Only invoices can be marked as paid");
+            throw new IllegalStateException(messageSourceHelper.getMessage("document.onlyInvoicesPaid"));
         }
     }
 
     private void validateSupplierMatch(TransactionalDocument document, Long supplierId) {
         if (!document.getSupplier().getId().equals(supplierId)) {
-            throw new IllegalArgumentException("Supplier ID does not match the document's supplier");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("document.supplierMismatch"));
         }
     }
 
     private void validateDocumentNotAlreadyPaid(TransactionalDocument document) {
         if (document.getPaid()) {
-            throw new IllegalStateException("Document is already marked as paid");
+            throw new IllegalStateException(messageSourceHelper.getMessage("document.alreadyPaid"));
         }
     }
 
     private void validatePaymentAmount(TransactionalDocument document, BigDecimal amount) {
         if (amount.compareTo(document.getTotal()) < 0) {
-            throw new IllegalArgumentException("Payment amount is less than the document total");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("document.paymentAmountInsufficient"));
         }
     }
 
@@ -471,7 +473,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         validateSupplierMatch(document, supplierId);
 
         if (!document.getPaid()) {
-            throw new IllegalStateException("Document is not marked as paid, cannot revert");
+            throw new IllegalStateException(messageSourceHelper.getMessage("document.notPaid"));
         }
 
         // If it's an invoice, add the discounted amount to the pending balance
@@ -494,7 +496,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
      */
     private BigDecimal computeTotal(BigDecimal unitAmount, Integer quantity, BigDecimal ivaPercentage) {
         if (unitAmount == null || quantity == null || ivaPercentage == null) {
-            throw new IllegalArgumentException("Unit amount, quantity, and IVA percentage are required for total calculation");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("document.totalCalculation.missing"));
         }
 
         BigDecimal subtotal = unitAmount.multiply(BigDecimal.valueOf(quantity));

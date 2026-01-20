@@ -10,6 +10,7 @@ import PSG.backEnd.model.entity.insurance.InsurancePolicy;
 import PSG.backEnd.model.mapper.InsurancePolicyMapper;
 import PSG.backEnd.repository.InsurancePolicyRepository;
 import PSG.backEnd.service.port.IInsurancePolicyService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,7 @@ public class InsurancePolicyService implements IInsurancePolicyService {
 
     private final InsurancePolicyRepository insurancePolicyRepository;
     private final InsurancePolicyMapper insurancePolicyMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     public InsurancePolicyResponseDTO createInsurancePolicy(InsurancePolicyDTO insurancePolicyDTO) {
@@ -173,14 +175,14 @@ public class InsurancePolicyService implements IInsurancePolicyService {
         // Validate that effective from date is before effective to date
         if (dto.effectiveFrom() != null && dto.effectiveTo() != null) {
             if (dto.effectiveFrom().isAfter(dto.effectiveTo())) {
-                throw new IllegalArgumentException("Effective from date must be before effective to date");
+                throw new IllegalArgumentException(messageSourceHelper.getMessage("insurancePolicy.effectiveFrom.beforeEffectiveTo"));
             }
         }
 
         // Validate that cancellation date is not before effective from date
         if (dto.cancellationDate() != null && dto.effectiveFrom() != null) {
             if (dto.cancellationDate().isBefore(dto.effectiveFrom())) {
-                throw new IllegalArgumentException("Cancellation date cannot be before effective from date");
+                throw new IllegalArgumentException(messageSourceHelper.getMessage("insurancePolicy.cancellationDate.beforeEffectiveFrom"));
             }
         }
     }
@@ -191,14 +193,14 @@ public class InsurancePolicyService implements IInsurancePolicyService {
         // Detectar violación de constraint de policyNumber
         if (errorMessage.contains("policy_number") || errorMessage.contains("uk_") && errorMessage.contains("policy")) {
             throw new InsurancePolicyDataConflictException(
-                "Cannot update insurance policy: Policy number '" + insurancePolicyDTO.policyNumber() + "' is already in use by another policy",
+                messageSourceHelper.getMessage("insurancePolicy.update.conflict.policyNumber", insurancePolicyDTO.policyNumber()),
                 e
             );
         }
 
         // Si es una violación de integridad pero no podemos determinar el campo específico
         throw new InsurancePolicyDataConflictException(
-            "Cannot update insurance policy due to a data integrity violation. Please verify that the policy number is not already in use",
+            messageSourceHelper.getMessage("insurancePolicy.update.conflict.generic"),
             e
         );
     }

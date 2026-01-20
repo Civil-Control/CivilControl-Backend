@@ -14,6 +14,7 @@ import PSG.backEnd.model.mapper.EmployeeMapper;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.service.port.IEmployeeService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,7 @@ public class EmployeeService implements IEmployeeService {
     private final EmployeeRepository employeeRepository;
     private final EmployeeMapper employeeMapper;
     private final ProjectAreaRepository projectAreaRepository;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -124,10 +126,10 @@ public class EmployeeService implements IEmployeeService {
 
     private void validateNewEmployee(EmployeeDTO employeeDTO) {
         if (employeeRepository.existsByDniAndDeletedFalse(employeeDTO.dni())) {
-            throw new EmployeeAlreadyExistsException("There is already an active employee with the DNI: " + employeeDTO.dni());
+            throw new EmployeeAlreadyExistsException(messageSourceHelper.getMessage("employee.dni.exists", employeeDTO.dni()));
         }
         if (employeeRepository.existsByCuilAndDeletedFalse(employeeDTO.cuil())) {
-            throw new EmployeeAlreadyExistsException("There is already an active employee with the CUIL: " + employeeDTO.cuil());
+            throw new EmployeeAlreadyExistsException(messageSourceHelper.getMessage("employee.cuil.exists", employeeDTO.cuil()));
         }
     }
 
@@ -139,41 +141,41 @@ public class EmployeeService implements IEmployeeService {
 
     private void validateBusinessRules(EmployeeDTO employeeDTO) {
         if (employeeDTO.hireDate().isAfter(LocalDate.now())) {
-            throw new EmployeeNotValidException("Hire date cannot be in the future");
+            throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.hireDate.future"));
         }
 
         LocalDate eighteenYearsAgo = LocalDate.now().minusYears(18);
         if (employeeDTO.birthDate().isAfter(eighteenYearsAgo)) {
-            throw new EmployeeNotValidException("Employee must be at least 18 years old");
+            throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.age.minimum"));
         }
 
         if (employeeDTO.endDate() != null && employeeDTO.endDate().isBefore(employeeDTO.hireDate())) {
-            throw new EmployeeNotValidException("End date cannot be before hire date");
+            throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.endDate.beforeHireDate"));
         }
 
         String cuilDigits = employeeDTO.cuil().replaceAll("-", "");
         String dniFromCuil = cuilDigits.substring(2, cuilDigits.length() - 1);
         if (!dniFromCuil.equals(employeeDTO.dni())) {
-            throw new EmployeeNotValidException("CUIL and DNI do not match. The DNI in CUIL must match the provided DNI");
+            throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.cuil.mismatch"));
         }
     }
 
     private void validateBusinessRulesForUpdate(EmployeeDTO employeeDTO, Employee existingEmployee) {
         if (employeeDTO.hireDate() != null && employeeDTO.hireDate().isAfter(LocalDate.now())) {
-            throw new EmployeeNotValidException("Hire date cannot be in the future");
+            throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.hireDate.future"));
         }
 
         if (employeeDTO.birthDate() != null) {
             LocalDate eighteenYearsAgo = LocalDate.now().minusYears(18);
             if (employeeDTO.birthDate().isAfter(eighteenYearsAgo)) {
-                throw new EmployeeNotValidException("Employee must be at least 18 years old");
+                throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.age.minimum"));
             }
         }
 
         if (employeeDTO.endDate() != null) {
             LocalDate hireDate = employeeDTO.hireDate() != null ? employeeDTO.hireDate() : existingEmployee.getHireDate();
             if (employeeDTO.endDate().isBefore(hireDate)) {
-                throw new EmployeeNotValidException("End date cannot be before hire date");
+                throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.endDate.beforeHireDate"));
             }
         }
 
@@ -184,7 +186,7 @@ public class EmployeeService implements IEmployeeService {
             String cuilDigits = cuil.replaceAll("-", "");
             String dniFromCuil = cuilDigits.substring(2, cuilDigits.length() - 1);
             if (!dniFromCuil.equals(dni)) {
-                throw new EmployeeNotValidException("CUIL and DNI do not match. The DNI in CUIL must match the provided DNI");
+                throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.cuil.mismatch"));
             }
         }
     }
@@ -223,14 +225,14 @@ public class EmployeeService implements IEmployeeService {
         // Validar DNI si está siendo actualizado
         if (employeeDTO.dni() != null && !employeeDTO.dni().equals(existingEmployee.getDni())) {
             if (employeeRepository.existsByDniAndDeletedFalse(employeeDTO.dni())) {
-                throw new EmployeeAlreadyExistsException("Cannot update employee: There is already an active employee with the DNI: " + employeeDTO.dni());
+                throw new EmployeeAlreadyExistsException(messageSourceHelper.getMessage("employee.dni.exists", employeeDTO.dni()));
             }
         }
 
         // Validar CUIL si está siendo actualizado
         if (employeeDTO.cuil() != null && !employeeDTO.cuil().equals(existingEmployee.getCuil())) {
             if (employeeRepository.existsByCuilAndDeletedFalse(employeeDTO.cuil())) {
-                throw new EmployeeAlreadyExistsException("Cannot update employee: There is already an active employee with the CUIL: " + employeeDTO.cuil());
+                throw new EmployeeAlreadyExistsException(messageSourceHelper.getMessage("employee.cuil.exists", employeeDTO.cuil()));
             }
         }
     }

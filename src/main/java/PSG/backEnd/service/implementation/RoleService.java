@@ -13,6 +13,7 @@ import PSG.backEnd.model.mapper.RoleMapper;
 import PSG.backEnd.repository.PermissionRepository;
 import PSG.backEnd.repository.RoleRepository;
 import PSG.backEnd.service.port.IRoleService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,6 +38,7 @@ public class RoleService implements IRoleService {
     private final PermissionRepository permissionRepository;
     private final RoleMapper roleMapper;
     private final PermissionMapper permissionMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -111,7 +113,7 @@ public class RoleService implements IRoleService {
         // Update permissions if provided
         if (requestDTO.permissionIds() != null) {
             if (requestDTO.permissionIds().isEmpty()) {
-                throw new RoleNotValidException("At least one permission is required");
+                throw new RoleNotValidException(messageSourceHelper.getMessage("role.permissions.required"));
             }
             Set<Permission> permissions = validateAndGetPermissions(requestDTO.permissionIds());
             existingRole.setPermissions(permissions);
@@ -174,10 +176,10 @@ public class RoleService implements IRoleService {
     private void validateNewRole(RoleRequestDTO requestDTO) {
         // Validate name
         if (requestDTO.name() == null || requestDTO.name().trim().isEmpty()) {
-            throw new RoleNotValidException("Role name cannot be empty");
+            throw new RoleNotValidException(messageSourceHelper.getMessage("role.name.empty"));
         }
         if (requestDTO.name().length() > 100) {
-            throw new RoleNotValidException("Role name cannot be longer than 100 characters");
+            throw new RoleNotValidException(messageSourceHelper.getMessage("role.name.tooLong"));
         }
 
         // Validate that the name doesn't exist
@@ -187,12 +189,12 @@ public class RoleService implements IRoleService {
 
         // Validate description length if provided
         if (requestDTO.description() != null && requestDTO.description().length() > 500) {
-            throw new RoleNotValidException("Description cannot be longer than 500 characters");
+            throw new RoleNotValidException(messageSourceHelper.getMessage("role.description.tooLong"));
         }
 
         // Validate that permissions are provided
         if (requestDTO.permissionIds() == null || requestDTO.permissionIds().isEmpty()) {
-            throw new RoleNotValidException("At least one permission is required");
+            throw new RoleNotValidException(messageSourceHelper.getMessage("role.permissions.required"));
         }
 
         // Validate that permissions exist
@@ -206,10 +208,10 @@ public class RoleService implements IRoleService {
         // Validate name if provided
         if (requestDTO.name() != null) {
             if (requestDTO.name().trim().isEmpty()) {
-                throw new RoleNotValidException("Role name cannot be empty");
+                throw new RoleNotValidException(messageSourceHelper.getMessage("role.name.empty"));
             }
             if (requestDTO.name().length() > 100) {
-                throw new RoleNotValidException("Role name cannot be longer than 100 characters");
+                throw new RoleNotValidException(messageSourceHelper.getMessage("role.name.tooLong"));
             }
 
             // Verify that the name is not in use by another role
@@ -218,9 +220,7 @@ public class RoleService implements IRoleService {
                         if (!existing.getId().equals(id)) {
                             if (existing.getDeleted()) {
                                 throw new RoleAlreadyExistsException(
-                                        "Cannot use name '" + requestDTO.name() +
-                                        "' because it belongs to a deleted role (ID: " + existing.getId() +
-                                        "). Please use a different name or permanently remove the deleted role.");
+                                        messageSourceHelper.getMessage("role.name.deletedRole", requestDTO.name(), existing.getId()));
                             } else {
                                 throw new RoleAlreadyExistsException(requestDTO.name());
                             }
@@ -230,13 +230,13 @@ public class RoleService implements IRoleService {
 
         // Validate description length if provided
         if (requestDTO.description() != null && requestDTO.description().length() > 500) {
-            throw new RoleNotValidException("Description cannot be longer than 500 characters");
+            throw new RoleNotValidException(messageSourceHelper.getMessage("role.description.tooLong"));
         }
 
         // Validate permissions if provided
         if (requestDTO.permissionIds() != null) {
             if (requestDTO.permissionIds().isEmpty()) {
-                throw new RoleNotValidException("At least one permission is required");
+                throw new RoleNotValidException(messageSourceHelper.getMessage("role.permissions.required"));
             }
             validatePermissionIds(requestDTO.permissionIds());
         }
@@ -281,7 +281,7 @@ public class RoleService implements IRoleService {
             "ADMIN".equalsIgnoreCase(role.getName()) ||
             "ROLE_ROOT".equalsIgnoreCase(role.getName()) ||
             "ROLE_ADMIN".equalsIgnoreCase(role.getName())) {
-            throw new RoleNotValidException("Cannot delete system role: " + role.getName());
+            throw new RoleNotValidException(messageSourceHelper.getMessage("role.cannotDeleteSystem", role.getName()));
         }
     }
 
@@ -322,10 +322,10 @@ public class RoleService implements IRoleService {
 
         // Ensure provided data is valid for reactivation
         if (requestDTO.permissionIds() == null || requestDTO.permissionIds().isEmpty()) {
-            throw new RoleNotValidException("At least one permission is required to reactivate a role");
+            throw new RoleNotValidException(messageSourceHelper.getMessage("role.permissions.atLeastOne"));
         }
         if (requestDTO.description() != null && requestDTO.description().length() > 500) {
-            throw new RoleNotValidException("Description cannot be longer than 500 characters");
+            throw new RoleNotValidException(messageSourceHelper.getMessage("role.description.tooLong"));
         }
 
         deletedRole.setDeleted(false);
@@ -349,14 +349,14 @@ public class RoleService implements IRoleService {
         // Detectar violación de constraint de name
         if (errorMessage.contains("name") || errorMessage.contains("uk_") && errorMessage.contains("name")) {
             throw new RoleDataConflictException(
-                "Cannot update role: Role name '" + requestDTO.name() + "' is already in use by another role",
+                messageSourceHelper.getMessage("role.update.conflict.name", requestDTO.name()),
                 e
             );
         }
 
         // Si es una violación de integridad pero no podemos determinar el campo específico
         throw new RoleDataConflictException(
-            "Cannot update role due to a data integrity violation. Please verify that the role name is not already in use",
+            messageSourceHelper.getMessage("role.update.conflict.generic"),
             e
         );
     }

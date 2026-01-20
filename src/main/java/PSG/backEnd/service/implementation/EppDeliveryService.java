@@ -12,6 +12,7 @@ import PSG.backEnd.model.mapper.EppDeliveryMapper;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.EppDeliveryRepository;
 import PSG.backEnd.service.port.IEppDeliveryService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,7 @@ public class EppDeliveryService implements IEppDeliveryService {
     private final EppDeliveryRepository eppDeliveryRepository;
     private final EmployeeRepository employeeRepository;
     private final EppDeliveryMapper eppDeliveryMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -125,84 +127,84 @@ public class EppDeliveryService implements IEppDeliveryService {
     private void validateBusinessRules(EppDeliveryDTO eppDeliveryDTO) {
         // Validate delivery date is not in the future
         if (eppDeliveryDTO.deliveryDate().isAfter(LocalDate.now())) {
-            throw new EppDeliveryNotValidException("Delivery date cannot be in the future");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.deliveryDate.future"));
         }
 
         // Validate item name is not empty or blank
         if (eppDeliveryDTO.itemName() == null || eppDeliveryDTO.itemName().trim().isEmpty()) {
-            throw new EppDeliveryNotValidException("Item name cannot be empty");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.itemName.empty"));
         }
 
         // Validate item type is not empty or blank
         if (eppDeliveryDTO.itemType() == null || eppDeliveryDTO.itemType().trim().isEmpty()) {
-            throw new EppDeliveryNotValidException("Item type cannot be empty");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.itemType.empty"));
         }
 
         // Validate quantity is positive
         if (eppDeliveryDTO.quantity() == null || eppDeliveryDTO.quantity() <= 0) {
-            throw new EppDeliveryNotValidException("Quantity must be greater than zero");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.quantity.positive"));
         }
 
         // Validate quantity is not excessively high
         if (eppDeliveryDTO.quantity() > 10000) {
-            throw new EppDeliveryNotValidException("Quantity exceeds maximum allowed value (10000)");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.quantity.maxValue"));
         }
 
         // Validate item name length
         if (eppDeliveryDTO.itemName().length() < 2 || eppDeliveryDTO.itemName().length() > 150) {
-            throw new EppDeliveryNotValidException("Item name must be between 2 and 150 characters");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.itemName.length"));
         }
 
         // Validate item type length
         if (eppDeliveryDTO.itemType().length() < 2 || eppDeliveryDTO.itemType().length() > 100) {
-            throw new EppDeliveryNotValidException("Item type must be between 2 and 100 characters");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.itemType.length"));
         }
 
         // Validate brand length if provided
         if (eppDeliveryDTO.brand() != null && eppDeliveryDTO.brand().length() > 100) {
-            throw new EppDeliveryNotValidException("Brand must not exceed 100 characters");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.brand.maxLength"));
         }
     }
 
     private void validateBusinessRulesForUpdate(EppDeliveryDTO eppDeliveryDTO) {
         // Validate delivery date if provided
         if (eppDeliveryDTO.deliveryDate() != null && eppDeliveryDTO.deliveryDate().isAfter(LocalDate.now())) {
-            throw new EppDeliveryNotValidException("Delivery date cannot be in the future");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.deliveryDate.future"));
         }
 
         // Validate item name if provided
         if (eppDeliveryDTO.itemName() != null) {
             if (eppDeliveryDTO.itemName().trim().isEmpty()) {
-                throw new EppDeliveryNotValidException("Item name cannot be empty");
+                throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.itemName.empty"));
             }
             if (eppDeliveryDTO.itemName().length() < 2 || eppDeliveryDTO.itemName().length() > 150) {
-                throw new EppDeliveryNotValidException("Item name must be between 2 and 150 characters");
+                throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.itemName.length"));
             }
         }
 
         // Validate item type if provided
         if (eppDeliveryDTO.itemType() != null) {
             if (eppDeliveryDTO.itemType().trim().isEmpty()) {
-                throw new EppDeliveryNotValidException("Item type cannot be empty");
+                throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.itemType.empty"));
             }
             if (eppDeliveryDTO.itemType().length() < 2 || eppDeliveryDTO.itemType().length() > 100) {
-                throw new EppDeliveryNotValidException("Item type must be between 2 and 100 characters");
+                throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.itemType.length"));
             }
         }
 
         // Validate quantity if provided
         if (eppDeliveryDTO.quantity() != null) {
             if (eppDeliveryDTO.quantity() <= 0) {
-                throw new EppDeliveryNotValidException("Quantity must be greater than zero");
+                throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.quantity.positive"));
             }
             if (eppDeliveryDTO.quantity() > 10000) {
-                throw new EppDeliveryNotValidException("Quantity exceeds maximum allowed value (10000)");
+                throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.quantity.maxValue"));
             }
         }
 
         // Validate brand if provided
         if (eppDeliveryDTO.brand() != null && eppDeliveryDTO.brand().length() > 100) {
-            throw new EppDeliveryNotValidException("Brand must not exceed 100 characters");
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage("eppDelivery.brand.maxLength"));
         }
     }
 }

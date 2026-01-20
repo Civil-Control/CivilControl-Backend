@@ -12,6 +12,7 @@ import PSG.backEnd.model.mapper.VehicleMapper;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.service.port.IVehicleService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class VehicleService implements IVehicleService {
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
     private final ProjectAreaRepository projectAreaRepository;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -119,7 +121,7 @@ public class VehicleService implements IVehicleService {
 
     private void validateNewVehicle(VehicleDTO vehicleDTO) {
         if (vehicleRepository.existsByLicensePlateAndDeletedFalse(vehicleDTO.licensePlate())) {
-            throw new VehicleAlreadyExistsException("There is already an active vehicle with the license plate: " + vehicleDTO.licensePlate());
+            throw new VehicleAlreadyExistsException(messageSourceHelper.getMessage("vehicle.licensePlate.alreadyExists", vehicleDTO.licensePlate()));
         }
     }
 
@@ -149,7 +151,7 @@ public class VehicleService implements IVehicleService {
         // Validar licensePlate si está siendo actualizado
         if (vehicleDTO.licensePlate() != null && !vehicleDTO.licensePlate().equals(existingVehicle.getLicensePlate())) {
             if (vehicleRepository.existsByLicensePlateAndDeletedFalse(vehicleDTO.licensePlate())) {
-                throw new VehicleAlreadyExistsException("Cannot update vehicle: There is already an active vehicle with the license plate: " + vehicleDTO.licensePlate());
+                throw new VehicleAlreadyExistsException(messageSourceHelper.getMessage("vehicle.licensePlate.exists", vehicleDTO.licensePlate()));
             }
         }
     }
@@ -160,14 +162,14 @@ public class VehicleService implements IVehicleService {
         // Detectar violación de constraint de licensePlate
         if (errorMessage.contains("license_plate") || errorMessage.contains("uk_") && errorMessage.contains("license")) {
             throw new VehicleDataConflictException(
-                "Cannot update vehicle: License plate '" + vehicleDTO.licensePlate() + "' is already in use by another vehicle",
+                messageSourceHelper.getMessage("vehicle.update.conflict.licensePlate", vehicleDTO.licensePlate()),
                 e
             );
         }
 
         // Si es una violación de integridad pero no podemos determinar el campo específico
         throw new VehicleDataConflictException(
-            "Cannot update vehicle due to a data integrity violation. Please verify that the license plate is not already in use",
+            messageSourceHelper.getMessage("vehicle.update.conflict.generic"),
             e
         );
     }

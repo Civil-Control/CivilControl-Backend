@@ -13,6 +13,7 @@ import PSG.backEnd.model.mapper.SalaryPaymentMapper;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
 import PSG.backEnd.service.port.ISalaryPaymentService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     private final SalaryPaymentRepository salaryPaymentRepository;
     private final EmployeeRepository employeeRepository;
     private final SalaryPaymentMapper salaryPaymentMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -110,30 +112,30 @@ public class SalaryPaymentService implements ISalaryPaymentService {
 
     private void validateBusinessRules(SalaryPaymentDTO salaryPaymentDTO) {
         if (salaryPaymentDTO.paymentDate().isAfter(LocalDate.now())) {
-            throw new SalaryPaymentNotValidException("Payment date cannot be in the future");
+            throw new SalaryPaymentNotValidException(messageSourceHelper.getMessage("salaryPayment.paymentDate.future"));
         }
 
         if (salaryPaymentDTO.amount().signum() <= 0) {
-            throw new SalaryPaymentNotValidException("Amount must be greater than zero");
+            throw new SalaryPaymentNotValidException(messageSourceHelper.getMessage("salaryPayment.amount.positive"));
         }
 
         if (salaryPaymentDTO.amount().compareTo(java.math.BigDecimal.valueOf(100000000)) > 0) {
-            throw new SalaryPaymentNotValidException("Amount exceeds maximum allowed value");
+            throw new SalaryPaymentNotValidException(messageSourceHelper.getMessage("salaryPayment.amount.exceedsMaximum"));
         }
     }
 
     private void validateBusinessRulesForUpdate(SalaryPaymentDTO salaryPaymentDTO, SalaryPayment existingSalaryPayment) {
         if (salaryPaymentDTO.paymentDate() != null && salaryPaymentDTO.paymentDate().isAfter(LocalDate.now())) {
-            throw new SalaryPaymentNotValidException("Payment date cannot be in the future");
+            throw new SalaryPaymentNotValidException(messageSourceHelper.getMessage("salaryPayment.paymentDate.future"));
         }
 
         if (salaryPaymentDTO.amount() != null) {
             if (salaryPaymentDTO.amount().signum() <= 0) {
-                throw new SalaryPaymentNotValidException("Amount must be greater than zero");
+                throw new SalaryPaymentNotValidException(messageSourceHelper.getMessage("salaryPayment.amount.positive"));
             }
 
             if (salaryPaymentDTO.amount().compareTo(java.math.BigDecimal.valueOf(100000000)) > 0) {
-                throw new SalaryPaymentNotValidException("Amount exceeds maximum allowed value");
+                throw new SalaryPaymentNotValidException(messageSourceHelper.getMessage("salaryPayment.amount.exceedsMaximum"));
             }
         }
     }

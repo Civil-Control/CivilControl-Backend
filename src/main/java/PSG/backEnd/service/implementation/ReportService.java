@@ -18,6 +18,7 @@ import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.repository.*;
 import PSG.backEnd.service.export.IReportExporter;
 import PSG.backEnd.service.port.IReportService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -56,6 +57,7 @@ public class ReportService implements IReportService {
     private final FuelLoadRepository fuelLoadRepository;
     private final InsurancePolicyRepository insurancePolicyRepository;
     private final RepairRepository repairRepository;
+    private final MessageSourceHelper messageSourceHelper;
 
     /**
      * Constructor that automatically maps exporters by their format.
@@ -69,7 +71,8 @@ public class ReportService implements IReportService {
             LicencePlatePaymentRepository licencePlatePaymentRepository,
             FuelLoadRepository fuelLoadRepository,
             InsurancePolicyRepository insurancePolicyRepository,
-            RepairRepository repairRepository) {
+            RepairRepository repairRepository,
+            MessageSourceHelper messageSourceHelper) {
 
         this.exporters = exporterList.stream()
                 .collect(Collectors.toMap(
@@ -84,6 +87,7 @@ public class ReportService implements IReportService {
         this.fuelLoadRepository = fuelLoadRepository;
         this.insurancePolicyRepository = insurancePolicyRepository;
         this.repairRepository = repairRepository;
+        this.messageSourceHelper = messageSourceHelper;
 
         log.info("ReportService initialized with {} exporters: {}",
                  exporters.size(),
@@ -245,7 +249,7 @@ public class ReportService implements IReportService {
      */
     private void validateFilters(ReportFilterDTO filters) {
         if (filters == null) {
-            throw new InvalidReportFilterException("Filters cannot be null");
+            throw new InvalidReportFilterException(messageSourceHelper.getMessage("report.filters.null"));
         }
 
         if (!filters.isValidDateRange()) {

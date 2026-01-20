@@ -16,6 +16,7 @@ import PSG.backEnd.repository.BuildingRepository;
 import PSG.backEnd.repository.ServicePaymentRepository;
 import PSG.backEnd.repository.ServiceSupplierRepository;
 import PSG.backEnd.service.port.IServicePaymentService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,7 @@ public class ServicePaymentService implements IServicePaymentService {
     private final ServiceSupplierRepository serviceSupplierRepository;
     private final BuildingRepository buildingRepository;
     private final ServicePaymentMapper servicePaymentMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     public ServicePaymentResponseDTO createServicePayment(ServicePaymentDTO servicePaymentDTO) {
@@ -166,31 +168,31 @@ public class ServicePaymentService implements IServicePaymentService {
 
     private void validateBusinessRules(ServicePaymentDTO servicePaymentDTO) {
         if (servicePaymentDTO.paymentDate().isAfter(LocalDate.now())) {
-            throw new ServicePaymentNotValidException("Payment date cannot be in the future");
+            throw new ServicePaymentNotValidException(messageSourceHelper.getMessage("servicePayment.paymentDate.future"));
         }
 
         if (servicePaymentDTO.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new ServicePaymentNotValidException("Amount must be greater than zero");
+            throw new ServicePaymentNotValidException(messageSourceHelper.getMessage("servicePayment.amount.positive"));
         }
 
         if (servicePaymentDTO.amount().compareTo(BigDecimal.valueOf(99999999.99)) > 0) {
-            throw new ServicePaymentNotValidException("Amount exceeds maximum allowed value");
+            throw new ServicePaymentNotValidException(messageSourceHelper.getMessage("servicePayment.amount.exceedsMaximum"));
         }
     }
 
     private void validateBusinessRulesForUpdate(ServicePaymentDTO servicePaymentDTO) {
         if (servicePaymentDTO.paymentDate() != null &&
             servicePaymentDTO.paymentDate().isAfter(LocalDate.now())) {
-            throw new ServicePaymentNotValidException("Payment date cannot be in the future");
+            throw new ServicePaymentNotValidException(messageSourceHelper.getMessage("servicePayment.paymentDate.future"));
         }
 
         if (servicePaymentDTO.amount() != null) {
             if (servicePaymentDTO.amount().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new ServicePaymentNotValidException("Amount must be greater than zero");
+                throw new ServicePaymentNotValidException(messageSourceHelper.getMessage("servicePayment.amount.positive"));
             }
 
             if (servicePaymentDTO.amount().compareTo(BigDecimal.valueOf(99999999.99)) > 0) {
-                throw new ServicePaymentNotValidException("Amount exceeds maximum allowed value");
+                throw new ServicePaymentNotValidException(messageSourceHelper.getMessage("servicePayment.amount.exceedsMaximum"));
             }
         }
     }

@@ -15,6 +15,7 @@ import PSG.backEnd.repository.PaymentRepository.TransferPaymentRepository;
 import PSG.backEnd.service.port.IPaymentService;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +41,7 @@ public class PaymentService implements IPaymentService {
 
     private final ISupplierService iSupplierService;
     private final ITransactionalDocumentService iTransactionalDocumentService;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -114,7 +116,7 @@ public class PaymentService implements IPaymentService {
         } else if (dto instanceof CheckPaymentDTO) {
             return PaymentMethod.CHECK;
         } else {
-            throw new IllegalArgumentException("Unrecognized payment type: " + dto.getClass().getSimpleName());
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("payment.unrecognizedType", dto.getClass().getSimpleName()));
         }
     }
 
@@ -127,19 +129,20 @@ public class PaymentService implements IPaymentService {
 
         if (supplier.getAllowedPaymentMethods() == null || supplier.getAllowedPaymentMethods().isEmpty()) {
             throw new InvalidPaymentMethodException(
-                String.format("Supplier with ID %d has no configured payment methods", supplierId)
+                messageSourceHelper.getMessage("payment.method.notConfigured", supplierId)
             );
         }
 
         if (!supplier.getAllowedPaymentMethods().contains(paymentMethod)) {
+            String allowedMethods = supplier.getAllowedPaymentMethods().stream()
+                .map(PaymentMethod::getDisplayName)
+                .reduce((a, b) -> a + ", " + b)
+                .orElse("");
             throw new InvalidPaymentMethodException(
-                String.format("Payment method %s is not allowed for supplier with ID %d. " +
-                             "Allowed methods: %s",
-                             paymentMethod.getDisplayName(),
-                             supplierId,
-                             supplier.getAllowedPaymentMethods().stream()
-                                 .map(PaymentMethod::getDisplayName)
-                                 .toList())
+                messageSourceHelper.getMessage("payment.method.notAllowed",
+                    paymentMethod.getDisplayName(),
+                    supplierId,
+                    allowedMethods)
             );
         }
     }
@@ -243,7 +246,7 @@ public class PaymentService implements IPaymentService {
         } else if (paymentDetails.getCheckPayment() != null) {
             return checkPaymentMapper.toResponse(paymentDetails.getCheckPayment());
         } else {
-            throw new IllegalStateException("PaymentDetails with ID " + paymentDetails.getId() + " has no associated payment type");
+            throw new IllegalStateException(messageSourceHelper.getMessage("payment.noAssociatedType", paymentDetails.getId()));
         }
     }
 
@@ -368,7 +371,7 @@ public class PaymentService implements IPaymentService {
             case "CashPayment" -> PaymentMethod.CASH;
             case "TransferPayment" -> PaymentMethod.TRANSFER;
             case "CheckPayment" -> PaymentMethod.CHECK;
-            default -> throw new IllegalArgumentException("Unrecognized payment entity type: " + className);
+            default -> throw new IllegalArgumentException(messageSourceHelper.getMessage("payment.unrecognizedEntityType", className));
         };
     }
 
@@ -432,7 +435,7 @@ public class PaymentService implements IPaymentService {
             setDeletedMethod.setAccessible(true);
             setDeletedMethod.invoke(existing, true);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to set deleted flag", e);
+            throw new RuntimeException(messageSourceHelper.getMessage("payment.deleteFlagError"), e);
         }
 
         repository.save(existing);
@@ -464,7 +467,7 @@ public class PaymentService implements IPaymentService {
                 documentIds // Can be null for independent payments
             );
         } catch (Exception e) {
-            throw new RuntimeException("Error extracting payment details", e);
+            throw new RuntimeException(messageSourceHelper.getMessage("payment.extractDetailsError"), e);
         }
     }
 

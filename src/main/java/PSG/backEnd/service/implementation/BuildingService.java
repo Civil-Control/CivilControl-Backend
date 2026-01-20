@@ -11,6 +11,7 @@ import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.mapper.BuildingMapper;
 import PSG.backEnd.repository.BuildingRepository;
 import PSG.backEnd.service.port.IBuildingService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,7 @@ public class BuildingService implements IBuildingService {
 
     private final BuildingRepository buildingRepository;
     private final BuildingMapper buildingMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -116,20 +118,20 @@ public class BuildingService implements IBuildingService {
     // Private validation methods
     private void validateNewBuilding(BuildingDTO buildingDTO) {
         if (buildingDTO.name() == null || buildingDTO.name().trim().isEmpty()) {
-            throw new BuildingNotValidException("Building name cannot be empty");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.name.empty"));
         }
         if (buildingDTO.code() == null || buildingDTO.code().trim().isEmpty()) {
-            throw new BuildingNotValidException("Building code cannot be empty");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.code.empty"));
         }
         if (buildingRepository.existsByCodeAndDeletedFalse(buildingDTO.code())) {
             throw new BuildingAlreadyExistsException(
-                    "There is already an active building with the code: " + buildingDTO.code());
+                    messageSourceHelper.getMessage("building.code.alreadyExists", buildingDTO.code()));
         }
         if (buildingDTO.address() == null) {
-            throw new BuildingNotValidException("Building address cannot be null");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.address.null"));
         }
         if (buildingDTO.buildingType() == null) {
-            throw new BuildingNotValidException("Building type cannot be null");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.buildingType.null"));
         }
         validateAddress(buildingDTO);
     }
@@ -144,19 +146,17 @@ public class BuildingService implements IBuildingService {
                             // If the existing building with same code is deleted, provide specific error message
                             if (existing.getDeleted()) {
                                 throw new BuildingAlreadyExistsException(
-                                        "Cannot use code '" + buildingDTO.code() +
-                                        "' because it belongs to a deleted building (ID: " + existing.getId() +
-                                        "). Please use a different code or permanently remove the deleted building.");
+                                        messageSourceHelper.getMessage("building.code.deletedBuilding", buildingDTO.code(), existing.getId()));
                             } else {
                                 throw new BuildingAlreadyExistsException(
-                                        "There is already another active building with the code: " + buildingDTO.code());
+                                        messageSourceHelper.getMessage("building.code.alreadyExistsAnother", buildingDTO.code()));
                             }
                         }
                     });
         }
         // Validate name is not empty if provided
         if (buildingDTO.name() != null && buildingDTO.name().trim().isEmpty()) {
-            throw new BuildingNotValidException("Building name cannot be empty");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.name.empty"));
         }
         // Validate address if provided
         if (buildingDTO.address() != null) {
@@ -169,22 +169,22 @@ public class BuildingService implements IBuildingService {
             return;
         }
         if (buildingDTO.address().street() == null || buildingDTO.address().street().trim().isEmpty()) {
-            throw new BuildingNotValidException("Street cannot be empty");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.address.street.empty"));
         }
         if (buildingDTO.address().number() == null || buildingDTO.address().number() <= 0) {
-            throw new BuildingNotValidException("Street number must be positive");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.address.number.positive"));
         }
         if (buildingDTO.address().city() == null || buildingDTO.address().city().trim().isEmpty()) {
-            throw new BuildingNotValidException("City cannot be empty");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.address.city.empty"));
         }
         if (buildingDTO.address().state() == null || buildingDTO.address().state().trim().isEmpty()) {
-            throw new BuildingNotValidException("State/Province cannot be empty");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.address.state.empty"));
         }
         if (buildingDTO.address().country() == null || buildingDTO.address().country().trim().isEmpty()) {
-            throw new BuildingNotValidException("Country cannot be empty");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.address.country.empty"));
         }
         if (buildingDTO.address().zipCode() == null || buildingDTO.address().zipCode().trim().isEmpty()) {
-            throw new BuildingNotValidException("Zip code cannot be empty");
+            throw new BuildingNotValidException(messageSourceHelper.getMessage("building.address.zipCode.empty"));
         }
     }
 

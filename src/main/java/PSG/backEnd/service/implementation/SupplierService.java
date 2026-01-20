@@ -10,6 +10,7 @@ import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.mapper.SupplierMapper;
 import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.service.port.ISupplierService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,7 @@ public class SupplierService implements ISupplierService {
 
     private final SupplierRepository supplierRepository;
     private final SupplierMapper supplierMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -108,10 +110,10 @@ public class SupplierService implements ISupplierService {
 
     private void validateNewSupplier(SupplierDTO supplierDTO) {
         if (supplierRepository.existsByCuitAndDeletedFalse(supplierDTO.cuit())) {
-            throw new SupplierAlreadyExistsException("There is already an active supplier with the CUIT: " + supplierDTO.cuit());
+            throw new SupplierAlreadyExistsException(messageSourceHelper.getMessage("supplier.cuit.alreadyExists", supplierDTO.cuit()));
         }
         if (supplierRepository.existsByLegalNameAndDeletedFalse(supplierDTO.legalName())) {
-            throw new SupplierAlreadyExistsException("There is already an active supplier with the legalName: " + supplierDTO.legalName());
+            throw new SupplierAlreadyExistsException(messageSourceHelper.getMessage("supplier.legalName.alreadyExists", supplierDTO.legalName()));
         }
     }
 
@@ -149,14 +151,14 @@ public class SupplierService implements ISupplierService {
         // Validar CUIT si está siendo actualizado
         if (supplierDTO.cuit() != null && !supplierDTO.cuit().equals(existingSupplier.getCuit())) {
             if (supplierRepository.existsByCuitAndDeletedFalse(supplierDTO.cuit())) {
-                throw new SupplierAlreadyExistsException("Cannot update supplier: There is already an active supplier with the CUIT: " + supplierDTO.cuit());
+                throw new SupplierAlreadyExistsException(messageSourceHelper.getMessage("supplier.update.conflict.cuit", supplierDTO.cuit()));
             }
         }
 
         // Validar legalName si está siendo actualizado
         if (supplierDTO.legalName() != null && !supplierDTO.legalName().equals(existingSupplier.getLegalName())) {
             if (supplierRepository.existsByLegalNameAndDeletedFalse(supplierDTO.legalName())) {
-                throw new SupplierAlreadyExistsException("Cannot update supplier: There is already an active supplier with the legal name: " + supplierDTO.legalName());
+                throw new SupplierAlreadyExistsException(messageSourceHelper.getMessage("supplier.update.conflict.legalName", supplierDTO.legalName()));
             }
         }
     }
@@ -167,7 +169,7 @@ public class SupplierService implements ISupplierService {
         // Detectar violación de constraint de CUIT
         if (errorMessage.contains("cuit") || errorMessage.contains("uk_") && errorMessage.contains("cuit")) {
             throw new SupplierDataConflictException(
-                "Cannot update supplier: CUIT '" + supplierDTO.cuit() + "' is already in use by another supplier",
+                messageSourceHelper.getMessage("supplier.update.conflict.cuit.data", supplierDTO.cuit()),
                 e
             );
         }
@@ -175,14 +177,14 @@ public class SupplierService implements ISupplierService {
         // Detectar violación de constraint de legalName
         if (errorMessage.contains("legal_name") || errorMessage.contains("uk_") && errorMessage.contains("legal")) {
             throw new SupplierDataConflictException(
-                "Cannot update supplier: Legal name '" + supplierDTO.legalName() + "' is already in use by another supplier",
+                messageSourceHelper.getMessage("supplier.update.conflict.legalName.data", supplierDTO.legalName()),
                 e
             );
         }
 
         // Si es una violación de integridad pero no podemos determinar el campo específico
         throw new SupplierDataConflictException(
-            "Cannot update supplier due to a data integrity violation. Please verify that all unique fields (CUIT, Legal Name) are not already in use",
+            messageSourceHelper.getMessage("supplier.update.conflict.generic"),
             e
         );
     }

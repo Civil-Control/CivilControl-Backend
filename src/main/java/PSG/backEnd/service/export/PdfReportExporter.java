@@ -5,6 +5,7 @@ import PSG.backEnd.model.dto.report.MoneyOutflowReportDTO;
 import PSG.backEnd.model.dto.report.ReportItemDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -15,6 +16,7 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -30,11 +32,14 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class PdfReportExporter implements IReportExporter {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DeviceRgb HEADER_COLOR = new DeviceRgb(41, 128, 185); // Blue
     private static final DeviceRgb SUMMARY_COLOR = new DeviceRgb(243, 156, 18); // Orange
+
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     public byte[] export(MoneyOutflowReportDTO report) {
@@ -67,7 +72,7 @@ public class PdfReportExporter implements IReportExporter {
 
         } catch (Exception e) {
             log.error("Error generating PDF report", e);
-            throw new ReportGenerationException("Failed to generate PDF report", e);
+            throw new ReportGenerationException(messageSourceHelper.getMessage("report.generation.pdf.error"), e);
         }
     }
 

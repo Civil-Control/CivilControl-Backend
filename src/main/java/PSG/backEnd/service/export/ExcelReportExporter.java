@@ -5,6 +5,8 @@ import PSG.backEnd.model.dto.report.MoneyOutflowReportDTO;
 import PSG.backEnd.model.dto.report.ReportItemDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
+import PSG.backEnd.service.util.MessageSourceHelper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -23,10 +25,13 @@ import java.util.stream.Collectors;
  */
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class ExcelReportExporter implements IReportExporter {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     public byte[] export(MoneyOutflowReportDTO report) {
@@ -52,7 +57,7 @@ public class ExcelReportExporter implements IReportExporter {
 
         } catch (Exception e) {
             log.error("Error generating Excel report", e);
-            throw new ReportGenerationException("Failed to generate Excel report", e);
+            throw new ReportGenerationException(messageSourceHelper.getMessage("report.generation.excel.error"), e);
         }
     }
 

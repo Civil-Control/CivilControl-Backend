@@ -12,6 +12,7 @@ import PSG.backEnd.model.mapper.EmployeeVacationMapper;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.EmployeeVacationRepository;
 import PSG.backEnd.service.port.IEmployeeVacationService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ public class EmployeeVacationService implements IEmployeeVacationService {
     private final EmployeeVacationRepository employeeVacationRepository;
     private final EmployeeVacationMapper employeeVacationMapper;
     private final EmployeeRepository employeeRepository;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -120,12 +122,12 @@ public class EmployeeVacationService implements IEmployeeVacationService {
         // Validar que la fecha de inicio no sea anterior a hace más de 2 años
         LocalDate twoYearsAgo = LocalDate.now().minusYears(2);
         if (employeeVacationDTO.startDate().isBefore(twoYearsAgo)) {
-            throw new EmployeeVacationNotValidException("Start date cannot be more than 2 years in the past");
+            throw new EmployeeVacationNotValidException(messageSourceHelper.getMessage("employeeVacation.startDate.tooOld"));
         }
 
         // Validar que la fecha de fin no sea anterior a la fecha de inicio
         if (employeeVacationDTO.endDate().isBefore(employeeVacationDTO.startDate())) {
-            throw new EmployeeVacationNotValidException("End date cannot be before start date");
+            throw new EmployeeVacationNotValidException(messageSourceHelper.getMessage("employeeVacation.endDate.beforeStartDate"));
         }
 
         // Calcular días entre las fechas
@@ -134,14 +136,14 @@ public class EmployeeVacationService implements IEmployeeVacationService {
         // Validar que totalDays no sea mayor que los días entre las fechas
         if (employeeVacationDTO.totalDays() > daysBetween) {
             throw new EmployeeVacationNotValidException(
-                    String.format("Total days (%d) cannot exceed the days between start and end date (%d)",
+                    messageSourceHelper.getMessage("employeeVacation.totalDays.exceedsPeriod",
                             employeeVacationDTO.totalDays(), daysBetween)
             );
         }
 
         // Validar que totalDays no sea menor a 1
         if (employeeVacationDTO.totalDays() < 1) {
-            throw new EmployeeVacationNotValidException("Total days must be at least 1");
+            throw new EmployeeVacationNotValidException(messageSourceHelper.getMessage("employeeVacation.totalDays.minimum"));
         }
 
         // Validar que no existan vacaciones superpuestas para el mismo empleado
@@ -153,15 +155,13 @@ public class EmployeeVacationService implements IEmployeeVacationService {
         );
 
         if (hasOverlap) {
-            throw new EmployeeVacationNotValidException(
-                    "The employee already has vacation scheduled during this period. Vacation dates cannot overlap."
-            );
+            throw new EmployeeVacationNotValidException(messageSourceHelper.getMessage("employeeVacation.overlap"));
         }
 
         // Validar que la fecha de fin no sea demasiado lejana (máximo 2 años en el futuro)
         LocalDate twoYearsFromNow = LocalDate.now().plusYears(2);
         if (employeeVacationDTO.endDate().isAfter(twoYearsFromNow)) {
-            throw new EmployeeVacationNotValidException("End date cannot be more than 2 years in the future");
+            throw new EmployeeVacationNotValidException(messageSourceHelper.getMessage("employeeVacation.endDate.tooFuture"));
         }
     }
 

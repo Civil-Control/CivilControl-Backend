@@ -12,6 +12,7 @@ import PSG.backEnd.repository.RepairRepository;
 import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.service.port.IRepairService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +27,7 @@ public class RepairService implements IRepairService {
     private final RepairMapper repairMapper;
     private final VehicleRepository vehicleRepository;
     private final SupplierRepository supplierRepository;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -137,7 +139,7 @@ public class RepairService implements IRepairService {
         boolean hasSupplier = repairDTO.supplierId() != null;
 
         if (!hasEmployee && !hasSupplier) {
-            throw new IllegalArgumentException("Either employee or supplier must be provided for the repair.");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("repair.source.required"));
         }
     }
 
@@ -151,7 +153,7 @@ public class RepairService implements IRepairService {
         boolean hasSupplier = finalSupplierId != null;
 
         if (!hasEmployee && !hasSupplier) {
-            throw new IllegalArgumentException("Either employee or supplier must be provided for the repair.");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("repair.source.required"));
         }
     }
 }

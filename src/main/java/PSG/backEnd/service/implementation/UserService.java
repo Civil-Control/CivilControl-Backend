@@ -17,6 +17,7 @@ import PSG.backEnd.repository.CredentialsRepository;
 import PSG.backEnd.repository.RoleRepository;
 import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IUserService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -45,6 +46,7 @@ public class UserService implements IUserService {
     private final UserMapper userMapper;
     private final CredentialsMapper credentialsMapper;
     private final PasswordEncoder passwordEncoder;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -149,7 +151,7 @@ public class UserService implements IUserService {
         // Update roles if provided
         if (requestDTO.roleIds() != null) {
             if (requestDTO.roleIds().isEmpty()) {
-                throw new UserNotValidException("At least one role is required");
+                throw new UserNotValidException(messageSourceHelper.getMessage("user.roles.required"));
             }
             Set<Role> roles = validateAndGetRoles(requestDTO.roleIds());
             existingUser.setRoles(roles);
@@ -203,67 +205,67 @@ public class UserService implements IUserService {
     private void validateNewUser(UserRequestDTO requestDTO) {
         // Validate credentials
         if (requestDTO.credentials() == null) {
-            throw new UserNotValidException("Credentials cannot be null");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.credentials.required"));
         }
 
         // Validate username
         if (requestDTO.credentials().username() == null || requestDTO.credentials().username().trim().isEmpty()) {
-            throw new UserNotValidException("Username cannot be empty");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.username.empty"));
         }
         if (requestDTO.credentials().username().length() > 50) {
-            throw new UserNotValidException("Username cannot be longer than 50 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.username.tooLong"));
         }
 
         // Validate that username doesn't exist (excluding deleted credentials)
         if (credentialsRepository.existsByUsernameAndDeletedFalse(requestDTO.credentials().username())) {
-            throw new UserAlreadyExistsException("Username already exists: " + requestDTO.credentials().username());
+            throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.username.exists"));
         }
 
         // Validate email
         if (requestDTO.email() == null || requestDTO.email().trim().isEmpty()) {
-            throw new UserNotValidException("Email cannot be empty");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.email.empty"));
         }
         if (requestDTO.email().length() > 100) {
-            throw new UserNotValidException("Email cannot be longer than 100 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.email.tooLong"));
         }
         // Basic email pattern
         if (!requestDTO.email().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-            throw new UserNotValidException("Email format is invalid");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.email.invalid"));
         }
 
         // Validate that email doesn't exist
         if (userRepository.existsByEmailAndDeletedFalse(requestDTO.email())) {
-            throw new UserAlreadyExistsException("Email already exists: " + requestDTO.email());
+            throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.email.exists"));
         }
 
         // Validate password
         if (requestDTO.credentials().password() == null || requestDTO.credentials().password().trim().isEmpty()) {
-            throw new UserNotValidException("Password cannot be empty");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.password.empty"));
         }
         validatePasswordComplexity(requestDTO.credentials().password());
 
         // Validate names
         if (requestDTO.firstName() == null || requestDTO.firstName().trim().isEmpty()) {
-            throw new UserNotValidException("First name cannot be empty");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.firstName.empty"));
         }
         if (requestDTO.firstName().length() > 50) {
-            throw new UserNotValidException("First name cannot be longer than 50 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.firstName.tooLong"));
         }
 
         if (requestDTO.lastName() == null || requestDTO.lastName().trim().isEmpty()) {
-            throw new UserNotValidException("Last name cannot be empty");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.lastName.empty"));
         }
         if (requestDTO.lastName().length() > 50) {
-            throw new UserNotValidException("Last name cannot be longer than 50 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.lastName.tooLong"));
         }
 
         if (requestDTO.jobTitle() != null && requestDTO.jobTitle().length() > 100) {
-            throw new UserNotValidException("Job title cannot be longer than 100 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.jobTitle.tooLong"));
         }
 
         // Validate that roles are provided
         if (requestDTO.roleIds() == null || requestDTO.roleIds().isEmpty()) {
-            throw new UserNotValidException("At least one role is required");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.roles.required"));
         }
 
         // Validate that roles exist
@@ -277,17 +279,17 @@ public class UserService implements IUserService {
         // Validate username if provided
         if (requestDTO.credentials() != null && requestDTO.credentials().username() != null) {
             if (requestDTO.credentials().username().trim().isEmpty()) {
-                throw new UserNotValidException("Username cannot be empty");
+                throw new UserNotValidException(messageSourceHelper.getMessage("user.username.empty"));
             }
             if (requestDTO.credentials().username().length() > 50) {
-                throw new UserNotValidException("Username cannot be longer than 50 characters");
+                throw new UserNotValidException(messageSourceHelper.getMessage("user.username.tooLong"));
             }
 
             // Verify that username is not in use by another user (check only non-deleted credentials)
             credentialsRepository.findByUsernameAndDeletedFalse(requestDTO.credentials().username())
                     .ifPresent(existing -> {
                         if (existing.getUser() != null && !existing.getUser().getId().equals(id)) {
-                            throw new UserAlreadyExistsException("Username already exists: " + requestDTO.credentials().username());
+                            throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.username.exists"));
                         }
                     });
         }
@@ -295,13 +297,13 @@ public class UserService implements IUserService {
         // Validate email if provided
         if (requestDTO.email() != null) {
             if (requestDTO.email().trim().isEmpty()) {
-                throw new UserNotValidException("Email cannot be empty");
+                throw new UserNotValidException(messageSourceHelper.getMessage("user.email.empty"));
             }
             if (requestDTO.email().length() > 100) {
-                throw new UserNotValidException("Email cannot be longer than 100 characters");
+                throw new UserNotValidException(messageSourceHelper.getMessage("user.email.tooLong"));
             }
             if (!requestDTO.email().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-                throw new UserNotValidException("Email format is invalid");
+                throw new UserNotValidException(messageSourceHelper.getMessage("user.email.invalid"));
             }
 
             // Verify that email is not in use by another user
@@ -310,11 +312,9 @@ public class UserService implements IUserService {
                         if (!existing.getId().equals(id)) {
                             if (existing.getDeleted()) {
                                 throw new UserAlreadyExistsException(
-                                        "Cannot use email '" + requestDTO.email() +
-                                        "' because it belongs to a deleted user (ID: " + existing.getId() +
-                                        "). Please use a different email.");
+                                        messageSourceHelper.getMessage("user.email.deletedUser", requestDTO.email()));
                             } else {
-                                throw new UserAlreadyExistsException("Email already exists: " + requestDTO.email());
+                                throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.email.exists"));
                             }
                         }
                     });
@@ -323,7 +323,7 @@ public class UserService implements IUserService {
         // Validate password if provided
         if (requestDTO.credentials() != null && requestDTO.credentials().password() != null) {
             if (requestDTO.credentials().password().trim().isEmpty()) {
-                throw new UserNotValidException("Password cannot be empty");
+                throw new UserNotValidException(messageSourceHelper.getMessage("user.password.empty"));
             }
             validatePasswordComplexity(requestDTO.credentials().password());
         }
@@ -331,7 +331,7 @@ public class UserService implements IUserService {
         // Validate roles if provided
         if (requestDTO.roleIds() != null) {
             if (requestDTO.roleIds().isEmpty()) {
-                throw new UserNotValidException("At least one role is required");
+                throw new UserNotValidException(messageSourceHelper.getMessage("user.roles.required"));
             }
             validateRoleIds(requestDTO.roleIds());
         }
@@ -342,11 +342,11 @@ public class UserService implements IUserService {
      */
     private void validatePasswordComplexity(String password) {
         if (password.length() < 8) {
-            throw new UserNotValidException("Password must be at least 8 characters long");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.password.minLength"));
         }
         String pattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$";
         if (!password.matches(pattern)) {
-            throw new UserNotValidException("Password must contain at least one uppercase letter, one lowercase letter and one digit");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.password.complexity"));
         }
     }
 
@@ -358,44 +358,44 @@ public class UserService implements IUserService {
 
         // Validate that all required fields are present for reactivation
         if (requestDTO.credentials() == null || requestDTO.credentials().password() == null || requestDTO.credentials().password().trim().isEmpty()) {
-            throw new UserNotValidException("Password must be provided to reactivate a user");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.reactivate.passwordRequired"));
         }
 
         if (requestDTO.email() == null || requestDTO.email().trim().isEmpty()) {
-            throw new UserNotValidException("Email must be provided to reactivate a user");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.reactivate.emailRequired"));
         }
 
         if (requestDTO.firstName() == null || requestDTO.firstName().trim().isEmpty()) {
-            throw new UserNotValidException("First name must be provided to reactivate a user");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.reactivate.firstNameRequired"));
         }
 
         if (requestDTO.lastName() == null || requestDTO.lastName().trim().isEmpty()) {
-            throw new UserNotValidException("Last name must be provided to reactivate a user");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.reactivate.lastNameRequired"));
         }
 
         if (requestDTO.roleIds() == null || requestDTO.roleIds().isEmpty()) {
-            throw new UserNotValidException("At least one role must be provided to reactivate a user");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.reactivate.rolesRequired"));
         }
 
         // Validate the data (lengths, format, complexity, uniqueness)
         if (requestDTO.credentials().username().length() > 50) {
-            throw new UserNotValidException("Username cannot be longer than 50 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.username.tooLong"));
         }
 
         if (requestDTO.email().length() > 100) {
-            throw new UserNotValidException("Email cannot be longer than 100 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.email.tooLong"));
         }
         if (!requestDTO.email().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-            throw new UserNotValidException("Email format is invalid");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.email.invalid"));
         }
         if (requestDTO.firstName().length() > 50) {
-            throw new UserNotValidException("First name cannot be longer than 50 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.firstName.tooLong"));
         }
         if (requestDTO.lastName().length() > 50) {
-            throw new UserNotValidException("Last name cannot be longer than 50 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.lastName.tooLong"));
         }
         if (requestDTO.jobTitle() != null && requestDTO.jobTitle().length() > 100) {
-            throw new UserNotValidException("Job title cannot be longer than 100 characters");
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.jobTitle.tooLong"));
         }
 
         validatePasswordComplexity(requestDTO.credentials().password());
@@ -404,14 +404,14 @@ public class UserService implements IUserService {
         // Check username uniqueness (excluding this user's credentials and deleted credentials)
         credentialsRepository.findByUsernameAndDeletedFalse(requestDTO.credentials().username()).ifPresent(existing -> {
             if (existing.getUser() != null && !existing.getUser().getId().equals(deletedUser.getId())) {
-                throw new UserAlreadyExistsException("Username already exists: " + requestDTO.credentials().username());
+                throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.username.exists"));
             }
         });
 
         // Check email uniqueness (excluding this user and deleted users)
         userRepository.findByEmail(requestDTO.email()).ifPresent(existing -> {
             if (!existing.getId().equals(deletedUser.getId()) && !existing.getDeleted()) {
-                throw new UserAlreadyExistsException("Email already exists: " + requestDTO.email());
+                throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.email.exists"));
             }
         });
 
@@ -489,7 +489,7 @@ public class UserService implements IUserService {
         // Protect ROOT user
         String username = user.getUsername();
         if (username != null && ("root".equalsIgnoreCase(username) || "admin".equalsIgnoreCase(username))) {
-            throw new UserNotValidException("Cannot delete system user: " + username);
+            throw new UserNotValidException(messageSourceHelper.getMessage("user.cannotDeleteSystem", username));
         }
     }
 
@@ -533,7 +533,7 @@ public class UserService implements IUserService {
         if (errorMessage.contains("username") || errorMessage.contains("uk_") && errorMessage.contains("username")) {
             String username = requestDTO.credentials() != null ? requestDTO.credentials().username() : "unknown";
             throw new UserDataConflictException(
-                "Cannot update user: Username '" + username + "' is already in use by another user",
+                messageSourceHelper.getMessage("user.update.conflict.username", username),
                 e
             );
         }
@@ -541,14 +541,14 @@ public class UserService implements IUserService {
         // Detectar violación de constraint de email
         if (errorMessage.contains("email") || errorMessage.contains("uk_") && errorMessage.contains("email")) {
             throw new UserDataConflictException(
-                "Cannot update user: Email '" + requestDTO.email() + "' is already in use by another user",
+                messageSourceHelper.getMessage("user.update.conflict.email", requestDTO.email()),
                 e
             );
         }
 
         // Si es una violación de integridad pero no podemos determinar el campo específico
         throw new UserDataConflictException(
-            "Cannot update user due to a data integrity violation. Please verify that all unique fields (username, email) are not already in use",
+            messageSourceHelper.getMessage("user.update.conflict.generic"),
             e
         );
     }

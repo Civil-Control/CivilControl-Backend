@@ -12,6 +12,7 @@ import PSG.backEnd.model.mapper.LicencePlatePaymentMapper;
 import PSG.backEnd.repository.LicencePlatePaymentRepository;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.service.port.ILicencePlatePaymentService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +28,7 @@ public class LicencePlatePaymentService implements ILicencePlatePaymentService {
     private final LicencePlatePaymentRepository licencePlatePaymentRepository;
     private final LicencePlatePaymentMapper licencePlatePaymentMapper;
     private final VehicleRepository vehicleRepository;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -128,7 +130,7 @@ public class LicencePlatePaymentService implements ILicencePlatePaymentService {
 
         if (existingPayment.isPresent()) {
             throw new LicencePlatePaymentAlreadyExistsException(
-                    String.format("A payment already exists for vehicle ID %d, year %d, period %d",
+                    messageSourceHelper.getMessage("licencePlatePayment.duplicate",
                             licencePlatePaymentDTO.vehicleId(),
                             licencePlatePaymentDTO.year(),
                             licencePlatePaymentDTO.period())

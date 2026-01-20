@@ -14,6 +14,7 @@ import PSG.backEnd.repository.AutoPolicyRepository;
 import PSG.backEnd.service.port.IInsurancePolicyService;
 import PSG.backEnd.service.port.IPolicyVehicleService;
 import PSG.backEnd.service.port.IVehicleService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,10 +35,11 @@ public class PolicyVehicleService implements IPolicyVehicleService {
     private final IVehicleService vehicleService;
     private final AutoPolicyRepository autoPolicyRepository;
     private final IInsurancePolicyService insurancePolicyService;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     public PolicyVehicleResponseDTO createPolicyVehicle(PolicyVehicleDTO policyVehicleDTO) {
-        throw new UnsupportedOperationException("Use addVehicleToInsurancePolicy instead");
+        throw new UnsupportedOperationException(messageSourceHelper.getMessage("policyVehicle.unsupportedOperation"));
     }
 
     @Override
@@ -149,7 +151,7 @@ public class PolicyVehicleService implements IPolicyVehicleService {
     @Override
     public PolicyVehicleResponseDTO addVehicleToInsurancePolicy(Long insurancePolicyId, PolicyVehicleDTO policyVehicleDTO) {
         if (!insurancePolicyService.existsById(insurancePolicyId)) {
-            throw new IllegalArgumentException("Insurance Policy with ID " + insurancePolicyId + " does not exist");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("policyVehicle.insurancePolicy.notFound", insurancePolicyId));
         }
 
         AutoPolicy autoPolicy = getOrCreateAutoPolicy(insurancePolicyId);
@@ -261,31 +263,31 @@ public class PolicyVehicleService implements IPolicyVehicleService {
     private void validateBusinessRulesInternal(PolicyVehicleDTO dto, Long autoPolicyId) {
         // Solo validar vehicleId si está presente (para PATCH puede ser null)
         if (dto.vehicleId() != null && !vehicleService.existsById(dto.vehicleId())) {
-            throw new IllegalArgumentException("Vehicle with ID " + dto.vehicleId() + " does not exist");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("policyVehicle.vehicle.notFound", dto.vehicleId()));
         }
 
         if (!autoPolicyRepository.existsByIdAndDeletedFalse(autoPolicyId)) {
-            throw new IllegalArgumentException("Auto Policy with ID " + autoPolicyId + " does not exist");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("policyVehicle.autoPolicy.notFound", autoPolicyId));
         }
 
         if (dto.effectiveFrom() != null && dto.effectiveTo() != null) {
             if (dto.effectiveFrom().isAfter(dto.effectiveTo())) {
-                throw new IllegalArgumentException("Effective from date must be before effective to date");
+                throw new IllegalArgumentException(messageSourceHelper.getMessage("policyVehicle.effectiveFrom.beforeEffectiveTo"));
             }
         }
 
         if (dto.cancellationDate() != null && dto.effectiveFrom() != null) {
             if (dto.cancellationDate().isBefore(dto.effectiveFrom())) {
-                throw new IllegalArgumentException("Cancellation date cannot be before effective from date");
+                throw new IllegalArgumentException(messageSourceHelper.getMessage("policyVehicle.cancellationDate.beforeEffectiveFrom"));
             }
         }
 
         if (dto.sumInsured() != null && dto.sumInsured().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Sum insured must be greater than zero");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("policyVehicle.sumInsured.positive"));
         }
 
         if (dto.numberOfInstallments() != null && (dto.numberOfInstallments() < 1 || dto.numberOfInstallments() > 12)) {
-            throw new IllegalArgumentException("Number of installments must be between 1 and 12");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("policyVehicle.numberOfInstallments.range"));
         }
     }
 }

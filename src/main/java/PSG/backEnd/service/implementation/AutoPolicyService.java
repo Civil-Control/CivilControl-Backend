@@ -9,6 +9,7 @@ import PSG.backEnd.repository.AutoPolicyRepository;
 import PSG.backEnd.repository.PolicyVehicleRepository;
 import PSG.backEnd.service.port.IAutoPolicyService;
 import PSG.backEnd.service.port.IInsurancePolicyService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ public class AutoPolicyService implements IAutoPolicyService {
     private final AutoPolicyMapper autoPolicyMapper;
     private final IInsurancePolicyService insurancePolicyService;
     private final PolicyVehicleRepository policyVehicleRepository; // Inyección directa del repository
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     public AutoPolicyResponseDTO createAutoPolicy(AutoPolicyDTO autoPolicyDTO) {
@@ -109,12 +111,12 @@ public class AutoPolicyService implements IAutoPolicyService {
     private void validateBusinessRules(AutoPolicyDTO dto) {
         // Validar que la póliza de seguro exista
         if (dto.insurancePolicyId() == null) {
-            throw new IllegalArgumentException("Insurance Policy ID is required");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("autoPolicy.insurancePolicyId.required"));
         }
 
         // Validar que haya al menos un vehículo (si se proporcionan)
         if (dto.policyVehicles() != null && dto.policyVehicles().isEmpty()) {
-            throw new IllegalArgumentException("At least one policy vehicle is required");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("autoPolicy.policyVehicles.required"));
         }
 
         // Validar que no haya vehículos duplicados
@@ -125,14 +127,14 @@ public class AutoPolicyService implements IAutoPolicyService {
                     .count();
 
             if (uniqueVehicleIds != dto.policyVehicles().size()) {
-                throw new IllegalArgumentException("Duplicate vehicles are not allowed in the same auto policy");
+                throw new IllegalArgumentException(messageSourceHelper.getMessage("autoPolicy.policyVehicles.duplicates"));
             }
         }
     }
 
     private void validateInsurancePolicyExists(Long insurancePolicyId) {
         if (!insurancePolicyService.existsById(insurancePolicyId)) {
-            throw new IllegalArgumentException("Insurance Policy with ID " + insurancePolicyId + " does not exist");
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("autoPolicy.insurancePolicy.notFound", insurancePolicyId));
         }
     }
 }

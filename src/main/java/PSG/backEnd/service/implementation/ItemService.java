@@ -8,6 +8,7 @@ import PSG.backEnd.model.entity.Item;
 import PSG.backEnd.model.mapper.ItemMapper;
 import PSG.backEnd.repository.ItemRepository;
 import PSG.backEnd.service.port.IItemService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ public class ItemService implements IItemService {
 
     private final ItemRepository itemRepository;
     private final ItemMapper itemMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -54,7 +56,7 @@ public class ItemService implements IItemService {
     @Transactional
     public void delete(Long id) {
         if (!itemRepository.existsById(id)) {
-            throw new NotFoundException("Item not found with id: " + id);
+            throw new NotFoundException(messageSourceHelper.getMessage("item.notFound", id));
         }
         itemRepository.deleteById(id);
     }
@@ -63,7 +65,7 @@ public class ItemService implements IItemService {
     @Transactional(readOnly = true)
     public ItemResponseDTO getById(Long id) {
         Item item = itemRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Item not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", id)));
         return itemMapper.toResponse(item);
     }
 

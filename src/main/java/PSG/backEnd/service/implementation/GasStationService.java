@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.gasStation.GasStationNotFoundException;
+import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.model.dto.gasStation.GasStationDTO;
 import PSG.backEnd.model.dto.gasStation.GasStationFilterDTO;
 import PSG.backEnd.model.dto.gasStation.GasStationResponseDTO;
@@ -33,7 +34,7 @@ public class GasStationService implements IGasStationService {
     public GasStationResponseDTO createGasStation(GasStationDTO gasStationDTO) {
         // Verify that the supplier exists
         if (!supplierRepository.existsByIdAndDeletedFalse(gasStationDTO.supplierId())) {
-            throw new RuntimeException("Supplier not found with id: " + gasStationDTO.supplierId());
+            throw new SupplierNotFoundException(gasStationDTO.supplierId());
         }
 
         // Create the station WITH prices using MapStruct - much simpler now
@@ -74,7 +75,7 @@ public class GasStationService implements IGasStationService {
         // Verify that the supplier exists if being updated
         if (gasStationDTO.supplierId() != null &&
             !supplierRepository.existsByIdAndDeletedFalse(gasStationDTO.supplierId())) {
-            throw new RuntimeException("Supplier not found with id: " + gasStationDTO.supplierId());
+            throw new SupplierNotFoundException(gasStationDTO.supplierId());
         }
 
         gasStationMapper.partialUpdate(gasStationDTO, gasStation);

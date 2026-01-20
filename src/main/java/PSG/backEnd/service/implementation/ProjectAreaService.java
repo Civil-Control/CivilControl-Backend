@@ -10,6 +10,7 @@ import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.mapper.ProjectAreaMapper;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.service.port.IProjectAreaService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -25,6 +26,7 @@ public class ProjectAreaService implements IProjectAreaService {
 
     private final ProjectAreaRepository projectAreaRepository;
     private final ProjectAreaMapper projectAreaMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -126,7 +128,7 @@ public class ProjectAreaService implements IProjectAreaService {
         // Validar name si está siendo actualizado
         if (projectAreaDTO.name() != null && !projectAreaDTO.name().equals(existingProjectArea.getName())) {
             if (projectAreaRepository.existsByNameAndDeletedFalse(projectAreaDTO.name())) {
-                throw new ProjectAreaAlreadyExistsException("Cannot update project area: There is already an active project area with the name: " + projectAreaDTO.name());
+                throw new ProjectAreaAlreadyExistsException(messageSourceHelper.getMessage("projectArea.name.exists", projectAreaDTO.name()));
             }
         }
     }
@@ -137,14 +139,14 @@ public class ProjectAreaService implements IProjectAreaService {
         // Detectar violación de constraint de name
         if (errorMessage.contains("name") || errorMessage.contains("uk_") && errorMessage.contains("name")) {
             throw new ProjectAreaDataConflictException(
-                "Cannot update project area: Name '" + projectAreaDTO.name() + "' is already in use by another project area",
+                messageSourceHelper.getMessage("projectArea.update.conflict.name", projectAreaDTO.name()),
                 e
             );
         }
 
         // Si es una violación de integridad pero no podemos determinar el campo específico
         throw new ProjectAreaDataConflictException(
-            "Cannot update project area due to a data integrity violation. Please verify that the name is not already in use",
+            messageSourceHelper.getMessage("projectArea.update.conflict.generic"),
             e
         );
     }

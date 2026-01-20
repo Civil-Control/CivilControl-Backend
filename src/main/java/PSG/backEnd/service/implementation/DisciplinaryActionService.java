@@ -13,6 +13,7 @@ import PSG.backEnd.model.mapper.DisciplinaryActionMapper;
 import PSG.backEnd.repository.DisciplinaryActionRepository;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.service.port.IDisciplinaryActionService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,7 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
     private final DisciplinaryActionRepository disciplinaryActionRepository;
     private final EmployeeRepository employeeRepository;
     private final DisciplinaryActionMapper disciplinaryActionMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -109,42 +111,42 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
     private void validateBusinessRules(DisciplinaryActionDTO disciplinaryActionDTO) {
         // Validar que la fecha de acción no sea futura
         if (disciplinaryActionDTO.actionDate().isAfter(LocalDate.now())) {
-            throw new DisciplinaryActionNotValidException("Action date cannot be in the future");
+            throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.actionDate.future"));
         }
 
         // Validar que si hay endDate, debe ser una suspensión
         if (disciplinaryActionDTO.endDate() != null) {
             if (disciplinaryActionDTO.actionType() != ActionType.SUSPENSION) {
-                throw new DisciplinaryActionNotValidException("End date can only be specified for suspensions");
+                throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.endDate.onlySuspension"));
             }
 
             // Validar que endDate sea posterior a actionDate
             if (disciplinaryActionDTO.endDate().isBefore(disciplinaryActionDTO.actionDate())) {
-                throw new DisciplinaryActionNotValidException("End date must be after action date");
+                throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.endDate.afterActionDate"));
             }
 
             // Validar que endDate no sea más de 1 año en el futuro
             LocalDate maxEndDate = disciplinaryActionDTO.actionDate().plusYears(1);
             if (disciplinaryActionDTO.endDate().isAfter(maxEndDate)) {
-                throw new DisciplinaryActionNotValidException("Suspension cannot exceed 1 year");
+                throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.endDate.maxDuration"));
             }
         }
 
         // Validar que las suspensiones tengan endDate
         if (disciplinaryActionDTO.actionType() == ActionType.SUSPENSION && disciplinaryActionDTO.endDate() == null) {
-            throw new DisciplinaryActionNotValidException("Suspensions must have an end date");
+            throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.endDate.required"));
         }
 
         // Validar que el motivo tenga un mínimo de caracteres significativos
         if (disciplinaryActionDTO.reason() != null && disciplinaryActionDTO.reason().trim().length() < 10) {
-            throw new DisciplinaryActionNotValidException("Reason must be at least 10 characters long");
+            throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.reason.minLength"));
         }
     }
 
     private void validateBusinessRulesForUpdate(DisciplinaryActionDTO disciplinaryActionDTO, DisciplinaryAction existingAction) {
         // Validar fecha de acción si se está actualizando
         if (disciplinaryActionDTO.actionDate() != null && disciplinaryActionDTO.actionDate().isAfter(LocalDate.now())) {
-            throw new DisciplinaryActionNotValidException("Action date cannot be in the future");
+            throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.actionDate.future"));
         }
 
         // Obtener los valores actuales o los nuevos
@@ -159,30 +161,30 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
 
         // Validar que si hay endDate, debe ser una suspensión
         if (endDate != null && actionType != ActionType.SUSPENSION) {
-            throw new DisciplinaryActionNotValidException("End date can only be specified for suspensions");
+            throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.endDate.onlySuspension"));
         }
 
         // Validar que endDate sea posterior a actionDate
         if (endDate != null && endDate.isBefore(actionDate)) {
-            throw new DisciplinaryActionNotValidException("End date must be after action date");
+            throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.endDate.afterActionDate"));
         }
 
         // Validar que endDate no sea más de 1 año en el futuro
         if (endDate != null) {
             LocalDate maxEndDate = actionDate.plusYears(1);
             if (endDate.isAfter(maxEndDate)) {
-                throw new DisciplinaryActionNotValidException("Suspension cannot exceed 1 year");
+                throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.endDate.maxDuration"));
             }
         }
 
         // Validar que las suspensiones tengan endDate
         if (actionType == ActionType.SUSPENSION && endDate == null) {
-            throw new DisciplinaryActionNotValidException("Suspensions must have an end date");
+            throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.endDate.required"));
         }
 
         // Validar longitud del motivo si se está actualizando
         if (disciplinaryActionDTO.reason() != null && disciplinaryActionDTO.reason().trim().length() < 10) {
-            throw new DisciplinaryActionNotValidException("Reason must be at least 10 characters long");
+            throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.reason.minLength"));
         }
     }
 }

@@ -10,6 +10,7 @@ import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.model.mapper.RoleMapper;
 import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IAuthService;
+import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -38,6 +39,7 @@ public class AuthService implements IAuthService {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final RoleMapper roleMapper;
+    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional(readOnly = true)
@@ -55,11 +57,11 @@ public class AuthService implements IAuthService {
 
             // Load user details
             User user = userRepository.findByCredentialsUsernameAndDeletedFalse(loginRequest.credentials().username())
-                    .orElseThrow(() -> new InvalidCredentialsException("Invalid username or password"));
+                    .orElseThrow(() -> new InvalidCredentialsException(messageSourceHelper.getMessage("auth.invalidCredentials")));
 
             // Verify user is enabled
             if (!user.isEnabled()) {
-                throw new InvalidCredentialsException("User account is disabled");
+                throw new InvalidCredentialsException(messageSourceHelper.getMessage("auth.accountDisabled"));
             }
 
             // Generate tokens
@@ -72,7 +74,7 @@ public class AuthService implements IAuthService {
 
         } catch (BadCredentialsException e) {
             log.error("Invalid credentials for user: {}", loginRequest.credentials().username());
-            throw new InvalidCredentialsException("Invalid username or password");
+            throw new InvalidCredentialsException(messageSourceHelper.getMessage("auth.invalidCredentials"));
         }
     }
 
@@ -87,7 +89,7 @@ public class AuthService implements IAuthService {
             String username = jwtService.extractUsername(refreshTokenRequest.refreshToken());
 
             if (username == null) {
-                throw new InvalidTokenException("Invalid refresh token");
+                throw new InvalidTokenException(messageSourceHelper.getMessage("auth.invalidRefreshToken"));
             }
 
             // Load user details
@@ -95,12 +97,12 @@ public class AuthService implements IAuthService {
 
             // Validate refresh token
             if (!jwtService.isTokenValid(refreshTokenRequest.refreshToken(), userDetails)) {
-                throw new InvalidTokenException("Refresh token is invalid or expired");
+                throw new InvalidTokenException(messageSourceHelper.getMessage("auth.refreshTokenExpired"));
             }
 
             // Load full user entity
             User user = userRepository.findByCredentialsUsernameAndDeletedFalse(username)
-                    .orElseThrow(() -> new InvalidTokenException("User not found"));
+                    .orElseThrow(() -> new InvalidTokenException(messageSourceHelper.getMessage("auth.userNotFound")));
 
             // Generate new tokens
             String newAccessToken = jwtService.generateAccessToken(user);
@@ -112,7 +114,7 @@ public class AuthService implements IAuthService {
 
         } catch (Exception e) {
             log.error("Error refreshing token: {}", e.getMessage());
-            throw new InvalidTokenException("Invalid or expired refresh token");
+            throw new InvalidTokenException(messageSourceHelper.getMessage("auth.invalidOrExpiredRefreshToken"));
         }
     }
 
