@@ -14,6 +14,16 @@ public record SalaryPaymentFilterDTO(
             nullable = true)
     Long employeeId,
 
+    @Schema(description = "Filter by employee first name. Case-insensitive partial match.",
+            example = "Juan",
+            nullable = true)
+    String firstName,
+
+    @Schema(description = "Filter by employee last name. Case-insensitive partial match.",
+            example = "Perez",
+            nullable = true)
+    String lastName,
+
     @Schema(description = "Filter by salary frequency. Values: MONTHLY, BIWEEKLY, WEEKLY.",
             example = "MONTHLY",
             nullable = true)

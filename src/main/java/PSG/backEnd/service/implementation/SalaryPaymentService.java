@@ -54,6 +54,8 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     public Page<SalaryPaymentResponseDTO> getAllSalaryPayments(SalaryPaymentFilterDTO filterDTO, Pageable pageable) {
         return salaryPaymentRepository.findAllWithFilters(
                 filterDTO.employeeId(),
+                filterDTO.firstName(),
+                filterDTO.lastName(),
                 filterDTO.salaryFrequency(),
                 filterDTO.paymentDateFrom(),
                 filterDTO.paymentDateTo(),

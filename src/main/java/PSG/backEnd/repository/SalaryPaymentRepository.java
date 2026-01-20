@@ -22,6 +22,8 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
     @Query("SELECT sp FROM SalaryPayment sp " +
             "WHERE sp.employee.deleted = false " +
             "AND (:employeeId IS NULL OR sp.employee.id = :employeeId) " +
+            "AND (:firstName IS NULL OR LOWER(sp.employee.name) LIKE LOWER(CONCAT('%', :firstName, '%'))) " +
+            "AND (:lastName IS NULL OR LOWER(sp.employee.lastName) LIKE LOWER(CONCAT('%', :lastName, '%'))) " +
             "AND (:salaryFrequency IS NULL OR sp.salaryFrequency = :salaryFrequency) " +
             "AND (:paymentDateFrom IS NULL OR sp.paymentDate >= :paymentDateFrom) " +
             "AND (:paymentDateTo IS NULL OR sp.paymentDate <= :paymentDateTo) " +
@@ -29,6 +31,8 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND (:maxAmount IS NULL OR sp.amount <= :maxAmount)")
     Page<SalaryPayment> findAllWithFilters(
             @Param("employeeId") Long employeeId,
+            @Param("firstName") String firstName,
+            @Param("lastName") String lastName,
             @Param("salaryFrequency") SalaryFrecuency salaryFrequency,
             @Param("paymentDateFrom") LocalDate paymentDateFrom,
             @Param("paymentDateTo") LocalDate paymentDateTo,

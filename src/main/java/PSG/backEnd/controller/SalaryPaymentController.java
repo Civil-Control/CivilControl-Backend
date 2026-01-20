@@ -51,12 +51,14 @@ public class SalaryPaymentController {
 
     @GetMapping
     @Operation(summary = "Get all salary payments with filters",
-            description = "Retrieves a paginated list of salary payments with optional filtering by employee, salary frequency " +
-                    "(monthly, biweekly, weekly), payment date range, and amount range (minimum and maximum). " +
+            description = "Retrieves a paginated list of salary payments with optional filtering by employee (ID, first name, last name), " +
+                    "salary frequency (monthly, biweekly, weekly), payment date range, and amount range (minimum and maximum). " +
                     "Supports sorting and pagination. Useful for payroll reports and employee payment history.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved salary payments list")
     public ResponseEntity<Page<SalaryPaymentResponseDTO>> getSalaryPayments(
             @Parameter(description = "Filter by employee ID") @RequestParam(required = false) Long employeeId,
+            @Parameter(description = "Filter by employee first name (case-insensitive partial match)") @RequestParam(required = false) String firstName,
+            @Parameter(description = "Filter by employee last name (case-insensitive partial match)") @RequestParam(required = false) String lastName,
             @Parameter(description = "Filter by salary frequency (MONTHLY, BIWEEKLY, WEEKLY)") @RequestParam(required = false) SalaryFrecuency salaryFrequency,
             @Parameter(description = "Filter by minimum payment date") @RequestParam(required = false) LocalDate paymentDateFrom,
             @Parameter(description = "Filter by maximum payment date") @RequestParam(required = false) LocalDate paymentDateTo,
@@ -71,7 +73,7 @@ public class SalaryPaymentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         SalaryPaymentFilterDTO filterDTO = new SalaryPaymentFilterDTO(
-                employeeId, salaryFrequency, paymentDateFrom, paymentDateTo,
+                employeeId, firstName, lastName, salaryFrequency, paymentDateFrom, paymentDateTo,
                 minAmount, maxAmount
         );
 

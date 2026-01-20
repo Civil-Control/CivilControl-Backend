@@ -454,6 +454,8 @@ public class ReportService implements IReportService {
 
         var salaryPayments = salaryPaymentRepository.findAllWithFilters(
                 null, // employeeId
+                null, // firstName
+                null, // lastName
                 null, // salaryFrequency
                 filters.startDate(),
                 filters.endDate(),
