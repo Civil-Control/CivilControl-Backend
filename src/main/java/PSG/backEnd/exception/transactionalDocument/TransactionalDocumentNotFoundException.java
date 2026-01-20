@@ -1,7 +1,9 @@
 package PSG.backEnd.exception.transactionalDocument;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 public class TransactionalDocumentNotFoundException extends RuntimeException {
     public TransactionalDocumentNotFoundException(Long id) {
-        super("No transactional document found for ID: " + id);
+        super(MessageSourceHelper.getMessageStatic("transactionalDocumentNotFound.notFound", id));
     }
 }

@@ -1,8 +1,10 @@
 package PSG.backEnd.exception.supplier;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 public class SupplierNotValidException extends RuntimeException {
     public SupplierNotValidException(Long supplierId) {
-        super("Supplier with ID " + supplierId + " does not exist or is not valid.");
+        super(MessageSourceHelper.getMessageStatic("supplierNotValid.notValid", supplierId));
     }
 }
 

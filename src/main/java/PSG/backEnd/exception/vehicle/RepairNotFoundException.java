@@ -1,8 +1,10 @@
 package PSG.backEnd.exception.vehicle;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 public class RepairNotFoundException extends RuntimeException {
     public RepairNotFoundException(Long id) {
-        super("No repair found for ID: " + id);
+        super(MessageSourceHelper.getMessageStatic("repairNotFound.notFound", id));
     }
 }
 

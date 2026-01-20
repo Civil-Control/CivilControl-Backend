@@ -1,5 +1,7 @@
 package PSG.backEnd.exception.insurance;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 import PSG.backEnd.exception.NotFoundException;
 
 public class PolicyVehicleNotFoundException extends NotFoundException {
@@ -8,10 +10,10 @@ public class PolicyVehicleNotFoundException extends NotFoundException {
     }
 
     public PolicyVehicleNotFoundException(Long id) {
-        super("Policy Vehicle with ID " + id + " not found");
+        super(MessageSourceHelper.getMessageStatic("policyVehicle.notFound", id));
     }
 
     public PolicyVehicleNotFoundException(String field, String value) {
-        super("Policy Vehicle with " + field + " '" + value + "' not found");
+        super(MessageSourceHelper.getMessageStatic("policyVehicle.notFoundByField", field, value));
     }
 }

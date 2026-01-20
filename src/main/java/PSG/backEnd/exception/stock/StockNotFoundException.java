@@ -1,8 +1,10 @@
 package PSG.backEnd.exception.stock;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 public class StockNotFoundException extends RuntimeException {
     public StockNotFoundException(Long id) {
-        super("No stock found for ID: " + id);
+        super(MessageSourceHelper.getMessageStatic("stockNotFound.notFound", id));
     }
 }
 

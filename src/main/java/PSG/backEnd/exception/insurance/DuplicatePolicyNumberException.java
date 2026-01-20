@@ -1,7 +1,9 @@
 package PSG.backEnd.exception.insurance;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 public class DuplicatePolicyNumberException extends RuntimeException {
     public DuplicatePolicyNumberException(String policyNumber) {
-        super("Insurance Policy with number '" + policyNumber + "' already exists");
+        super(MessageSourceHelper.getMessageStatic("insurancePolicy.number.duplicate", policyNumber));
     }
 }

@@ -1,7 +1,9 @@
 package PSG.backEnd.exception.projectarea;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 public class ProjectAreaNotFoundException extends RuntimeException {
     public ProjectAreaNotFoundException(Long id) {
-        super("Project area with id " + id + " not found");
+        super(MessageSourceHelper.getMessageStatic("projectAreaNotFound.notFound", id));
     }
 }

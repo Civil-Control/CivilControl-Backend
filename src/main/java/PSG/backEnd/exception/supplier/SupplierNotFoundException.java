@@ -1,7 +1,9 @@
 package PSG.backEnd.exception.supplier;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 public class SupplierNotFoundException extends RuntimeException {
     public SupplierNotFoundException(Long id) {
-        super("No supplier found for ID: " + id);
+        super(MessageSourceHelper.getMessageStatic("supplier.notFound", id));
     }
 }

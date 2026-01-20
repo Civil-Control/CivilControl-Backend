@@ -1,8 +1,10 @@
 package PSG.backEnd.exception.building;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 public class BuildingNotFoundException extends RuntimeException {
     public BuildingNotFoundException(Long id) {
-        super("No building found for ID: " + id);
+        super(MessageSourceHelper.getMessageStatic("buildingNotFound.notFound", id));
     }
 
     public BuildingNotFoundException(String message) {

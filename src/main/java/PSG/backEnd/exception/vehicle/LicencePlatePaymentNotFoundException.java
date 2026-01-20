@@ -1,8 +1,10 @@
 package PSG.backEnd.exception.vehicle;
 
+import PSG.backEnd.service.util.MessageSourceHelper;
+
 public class LicencePlatePaymentNotFoundException extends RuntimeException {
     public LicencePlatePaymentNotFoundException(Long id) {
-        super("No licence plate payment found for ID: " + id);
+        super(MessageSourceHelper.getMessageStatic("licencePlatePaymentNotFound.notFound", id));
     }
 }
 
