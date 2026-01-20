@@ -12,7 +12,7 @@ public record CashPaymentDTO(
 
         @Schema(description = "Payment details including amount, date, document reference, and other common payment information.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Payment details cannot be null", groups = OnCreate.class)
+        @NotNull(message = "{payment.details.required}", groups = OnCreate.class)
         @Valid
         PaymentDetailsDTO paymentDetails,
 

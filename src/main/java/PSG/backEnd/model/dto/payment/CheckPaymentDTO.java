@@ -15,7 +15,7 @@ public record CheckPaymentDTO(
 
         @Schema(description = "Payment details including amount, date, supplier reference, and other common payment information.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Payment details cannot be null", groups = OnCreate.class)
+        @NotNull(message = "{payment.details.required}", groups = OnCreate.class)
         @Valid
         PaymentDetailsDTO paymentDetails,
 
@@ -23,8 +23,8 @@ public record CheckPaymentDTO(
                 "Must be a future date relative to when the check is issued.",
                 example = "2025-12-31",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Due date is required", groups = OnCreate.class)
-        @Future(message = "Due date must be in the future", groups = {OnCreate.class, OnUpdate.class})
+        @NotNull(message = "{payment.dueDate.required}", groups = OnCreate.class)
+        @Future(message = "{payment.dueDate.future}", groups = {OnCreate.class, OnUpdate.class})
         LocalDate dueDate,
 
         @Schema(description = "Check number as printed on the physical check. " +
@@ -33,16 +33,16 @@ public record CheckPaymentDTO(
                 example = "12345678",
                 maxLength = 50,
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotBlank(message = "Check number is required", groups = OnCreate.class)
-        @Size(max = 50, message = "Check number must not exceed 50 characters", groups = {OnCreate.class, OnUpdate.class})
+        @NotBlank(message = "{payment.checkNumber.required}", groups = OnCreate.class)
+        @Size(max = 50, message = "{payment.checkNumber.size}", groups = {OnCreate.class, OnUpdate.class})
         String checkNumber,
 
         @Schema(description = "Name of the bank that issued the check. Maximum 100 characters.",
                 example = "Banco Galicia",
                 maxLength = 100,
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotBlank(message = "Bank name is required", groups = OnCreate.class)
-        @Size(max = 100, message = "Bank name cannot exceed 100 characters", groups = {OnCreate.class, OnUpdate.class})
+        @NotBlank(message = "{payment.bankName.required}", groups = OnCreate.class)
+        @Size(max = 100, message = "{payment.bankName.size}", groups = {OnCreate.class, OnUpdate.class})
         String bankName,
 
         @Schema(description = "Soft deletion flag. When true, the payment is marked as deleted but remains in database.",

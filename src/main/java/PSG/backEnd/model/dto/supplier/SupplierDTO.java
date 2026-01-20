@@ -21,7 +21,7 @@ public record SupplierDTO(
             example = "30-12345678-9",
             pattern = "^\\d{2}-\\d{8}-\\d$",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "CUIT cannot be blank", groups = OnCreate.class)
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
     @Pattern(regexp = "^\\d{2}-\\d{8}-\\d$", message = "CUIT must have XX-XXXXXXXX-X format", groups = {OnCreate.class, OnUpdate.class})
     String cuit,
 
@@ -31,7 +31,7 @@ public record SupplierDTO(
             minLength = 1,
             maxLength = 50,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Legal name cannot be blank", groups = OnCreate.class)
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
     @Size(min = 1, max = 50, message = "Legal name must be between 1 and 50 characters", groups = {OnCreate.class, OnUpdate.class})
     @Pattern(regexp = "^\\s*\\S.*$", message = "Legal name cannot be blank or only spaces", groups = {OnCreate.class, OnUpdate.class})
     String legalName,
@@ -42,9 +42,9 @@ public record SupplierDTO(
             minLength = 1,
             maxLength = 50,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Trade name cannot be blank", groups = OnCreate.class)
-    @Size(min = 1, max = 50, message = "Trade name must be between 1 and 50 characters", groups = {OnCreate.class, OnUpdate.class})
-    @Pattern(regexp = "^\\s*\\S.*$", message = "Trade name cannot be blank or only spaces", groups = {OnCreate.class, OnUpdate.class})
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
+    @Size(min = 1, max = 50, message = "{supplier.tradeName.size}", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^\\s*\\S.*$", message = "{validation.notBlank}", groups = {OnCreate.class, OnUpdate.class})
     String tradeName,
 
     @Schema(description = "List of payment methods accepted by this supplier. At least one method must be specified. " +
@@ -52,12 +52,12 @@ public record SupplierDTO(
             "This defines how payments to this supplier can be made.",
             example = "[\"EFECTIVO\", \"TRANSFERENCIA\"]",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "At least one payment method must be specified", groups = OnCreate.class)
-    List<@NotNull(message = "Payment method cannot be null", groups = {OnCreate.class, OnUpdate.class}) PaymentMethod> allowedPaymentMethods,
+    @NotEmpty(message = "{supplier.allowedPaymentMethods.required}", groups = OnCreate.class)
+    List<@NotNull(message = "{validation.notNull}", groups = {OnCreate.class, OnUpdate.class}) PaymentMethod> allowedPaymentMethods,
 
     @Schema(description = "Complete physical address of the supplier including street, number, city, province, and postal code.",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Address cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{address.required}", groups = OnCreate.class)
     @Valid
     AddressDTO address,
 
@@ -73,10 +73,10 @@ public record SupplierDTO(
             minimum = "0.0",
             maximum = "100.0",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Default discount percentage cannot be null", groups = OnCreate.class)
-    @DecimalMin(value = "0.0", inclusive = true, message = "Default discount percentage must be greater than or equal to 0", groups = {OnCreate.class, OnUpdate.class})
-    @DecimalMax(value = "100.0", inclusive = true, message = "Default discount percentage must be less than or equal to 100", groups = {OnCreate.class, OnUpdate.class})
-    @Digits(integer = 3, fraction = 2, message = "Default discount percentage must have at most 3 integer digits and 2 decimal places", groups = {OnCreate.class, OnUpdate.class})
+    @NotNull(message = "{supplier.defaultDiscountPercentage.required}", groups = OnCreate.class)
+    @DecimalMin(value = "0.0", inclusive = true, message = "{supplier.defaultDiscountPercentage.min}", groups = {OnCreate.class, OnUpdate.class})
+    @DecimalMax(value = "100.0", inclusive = true, message = "{supplier.defaultDiscountPercentage.max}", groups = {OnCreate.class, OnUpdate.class})
+    @Digits(integer = 3, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
     BigDecimal defaultDiscountPercentage,
 
     @Schema(description = "Additional notes or comments about the supplier. Can include payment terms, delivery preferences, " +
@@ -84,6 +84,6 @@ public record SupplierDTO(
             example = "Preferir entregas los lunes. Pago contra factura.",
             maxLength = 500,
             nullable = true)
-    @Size(max = 500, message = "Comment must not exceed 500 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(max = 500, message = "{supplier.comment.size}", groups = {OnCreate.class, OnUpdate.class})
     String comment
 ) {}

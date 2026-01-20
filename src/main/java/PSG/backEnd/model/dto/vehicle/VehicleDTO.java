@@ -20,11 +20,11 @@ public record VehicleDTO(
                 example = "ABC 123",
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 pattern = "^([A-Z]{2}\\s?\\d{3}\\s?[A-Z]{2}|[A-Z]{3}\\s?\\d{3})$")
-        @NotBlank(message = "License plate is required.", groups = OnCreate.class)
-        @Size(min = 6, max = 10, message = "License plate length must be between 6 and 10 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @NotBlank(message = "{vehicle.licensePlate.required}", groups = OnCreate.class)
+        @Size(min = 6, max = 10, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
         @Pattern(
                 regexp = "^([A-Z]{2}\\s?\\d{3}\\s?[A-Z]{2}|[A-Z]{3}\\s?\\d{3})$",
-                message = "License plate format must be either 'AA 123 BB' or 'AAA 123'. Use uppercase letters (A–Z) and digits only."
+                message = "{validation.pattern}"
                 , groups = {OnCreate.class, OnUpdate.class})
         String licensePlate,
 
@@ -32,14 +32,14 @@ public record VehicleDTO(
                 example = "Toyota",
                 maxLength = 60,
                 nullable = true)
-        @Size(max = 60, message = "Brand must be at most 60 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 60, message = "{vehicle.brand.size}", groups = {OnCreate.class, OnUpdate.class})
         String brand,
 
         @Schema(description = "Vehicle model name. Maximum 60 characters.",
                 example = "Corolla",
                 maxLength = 60,
                 nullable = true)
-        @Size(max = 60, message = "Model must be at most 60 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 60, message = "{vehicle.model.size}", groups = {OnCreate.class, OnUpdate.class})
         String model,
 
         @Schema(description = "Manufacturing year of the vehicle. Valid range: 1950-2100.",
@@ -47,22 +47,22 @@ public record VehicleDTO(
                 minimum = "1950",
                 maximum = "2100",
                 nullable = true)
-        @Min(value = 1950, message = "Year must be greater than or equal to 1950.", groups = {OnCreate.class, OnUpdate.class})
-        @Max(value = 2100, message = "Year must be less than or equal to 2100.", groups = {OnCreate.class, OnUpdate.class})
+        @Min(value = 1950, message = "{vehicle.year.min}", groups = {OnCreate.class, OnUpdate.class})
+        @Max(value = 2100, message = "{vehicle.year.max}", groups = {OnCreate.class, OnUpdate.class})
         Integer year,
 
         @Schema(description = "Vehicle color. Maximum 40 characters.",
                 example = "Blue",
                 maxLength = 40,
                 nullable = true)
-        @Size(max = 40, message = "Color must be at most 40 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 40, message = "{vehicle.color.size}", groups = {OnCreate.class, OnUpdate.class})
         String color,
 
         @Schema(description = "Friendly nickname for the vehicle. Maximum 40 characters.",
                 example = "The Blue Runner",
                 maxLength = 40,
                 nullable = true)
-        @Size(max = 40, message = "Nickname must be at most 40 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 40, message = "{vehicle.nickName.size}", groups = {OnCreate.class, OnUpdate.class})
         String nickName,
 
         @Schema(description = "Type of vehicle. Valid values: CAMION (truck with cargo capacity), CAMIONETA (pickup truck), " +
@@ -81,14 +81,14 @@ public record VehicleDTO(
                 example = "Main Warehouse - Bay 3",
                 maxLength = 100,
                 nullable = true)
-        @Size(max = 100, message = "Storage location must be at most 100 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 100, message = "{vehicle.storedIn.size}", groups = {OnCreate.class, OnUpdate.class})
         String storedIn,
 
         @Schema(description = "VTV (Technical Vehicle Verification) expiration date. Must be today or in the future. " +
                 "VTV is the mandatory periodic technical inspection required for vehicles.",
                 example = "2025-12-31",
                 nullable = true)
-        @FutureOrPresent(message = "VTV expiration date must be today or in the future.", groups = {OnCreate.class, OnUpdate.class})
+        @FutureOrPresent(message = "{vehicle.vtvExpirationDate.future}", groups = {OnCreate.class, OnUpdate.class})
         LocalDate vtvExpirationDate,
 
         @Schema(description = "Type of jurisdiction where the vehicle is registered. Valid values: PROVINCIAL (provincial registration), " +

@@ -21,22 +21,22 @@ public record InsurancePolicyDTO(
                 example = "POL-2024-001234",
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 maxLength = 50)
-        @NotBlank(message = "Policy number is required.", groups = OnCreate.class)
-        @Size(max = 50, message = "Policy number must be at most 50 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @NotBlank(message = "{insurancePolicy.policyNumber.required}", groups = OnCreate.class)
+        @Size(max = 50, message = "{insurancePolicy.policyNumber.size}", groups = {OnCreate.class, OnUpdate.class})
         String policyNumber,
 
         @Schema(description = "Term or renewal number for the policy period. Maximum 20 characters.",
                 example = "2024-01",
                 maxLength = 20,
                 nullable = true)
-        @Size(max = 20, message = "Term number must be at most 20 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 20, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
         String termNumber,
 
         @Schema(description = "Endorsement sequence number for policy modifications. Maximum 20 characters.",
                 example = "END-001",
                 maxLength = 20,
                 nullable = true)
-        @Size(max = 20, message = "Endorsement sequence must be at most 20 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 20, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
         String endorsementSecuence,
 
         @Schema(description = "Type of insurance policy. Valid values: AUTO (vehicle insurance), PROPERTY (property insurance), " +
@@ -44,7 +44,7 @@ public record InsurancePolicyDTO(
                 example = "AUTO",
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {"AUTO", "PROPERTY", "LIABILITY", "HEALTH", "LIFE"})
-        @NotNull(message = "Policy type is required.", groups = OnCreate.class)
+        @NotNull(message = "{insurancePolicy.policyType.required}", groups = OnCreate.class)
         PolicyType policyType,
 
         @Schema(description = "Current status of the policy. Valid values: ACTIVE (policy in force), EXPIRED (policy ended), " +
@@ -52,7 +52,7 @@ public record InsurancePolicyDTO(
                 example = "ACTIVE",
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {"ACTIVE", "EXPIRED", "CANCELLED", "SUSPENDED", "PENDING"})
-        @NotNull(message = "Policy status is required.", groups = OnCreate.class)
+        @NotNull(message = "{insurancePolicy.policyStatus.required}", groups = OnCreate.class)
         PolicyStatus policyStatus,
 
         @Schema(description = "Frequency of premium payments. Valid values: MONTHLY, QUARTERLY, SEMI_ANNUAL, ANNUAL.",
@@ -64,8 +64,8 @@ public record InsurancePolicyDTO(
         @Schema(description = "Total sum insured or coverage amount. Must be greater than zero and have up to 13 integer digits and 2 decimal places.",
                 example = "1500000.00",
                 nullable = true)
-        @DecimalMin(value = "0.0", inclusive = false, message = "Sum insured must be greater than 0.", groups = {OnCreate.class, OnUpdate.class})
-        @Digits(integer = 13, fraction = 2, message = "Sum insured must have at most 13 integer digits and 2 decimal places.", groups = {OnCreate.class, OnUpdate.class})
+        @DecimalMin(value = "0.0", inclusive = false, message = "{insurancePolicy.sumInsured.positive}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 13, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
         BigDecimal sumInsured,
 
         @Schema(description = "Date when the policy was issued by the insurance company.",
@@ -76,13 +76,13 @@ public record InsurancePolicyDTO(
         @Schema(description = "Date when the policy coverage begins. Must be before effectiveTo date.",
                 example = "2024-01-15",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Effective from date is required.", groups = OnCreate.class)
+        @NotNull(message = "{insurancePolicy.effectiveFrom.required}", groups = OnCreate.class)
         LocalDate effectiveFrom,
 
         @Schema(description = "Date when the policy coverage ends. Must be after effectiveFrom date.",
                 example = "2025-01-14",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Effective to date is required.", groups = OnCreate.class)
+        @NotNull(message = "{insurancePolicy.effectiveTo.required}", groups = OnCreate.class)
         LocalDate effectiveTo,
 
         @Schema(description = "Date when the policy was cancelled, if applicable.",
@@ -95,7 +95,7 @@ public record InsurancePolicyDTO(
                 minimum = "1",
                 maximum = "12",
                 nullable = true)
-        @Min(value = 1, message = "Number of installments must be at least 1.", groups = {OnCreate.class, OnUpdate.class})
-        @Max(value = 12, message = "Number of installments must be at most 12.", groups = {OnCreate.class, OnUpdate.class})
+        @Min(value = 1, message = "{insurancePolicy.numberOfInstallments.positive}", groups = {OnCreate.class, OnUpdate.class})
+        @Max(value = 12, message = "{insurancePolicy.numberOfInstallments.positive}", groups = {OnCreate.class, OnUpdate.class})
         Integer numberOfInstallments
 ) {}

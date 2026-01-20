@@ -17,14 +17,14 @@ public record ServiceSupplierDTO(
         @Schema(description = "ID of the supplier that provides the services.",
                 example = "10",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Supplier id is required.", groups = OnCreate.class)
-        @Positive(message = "Supplier id must be positive.", groups = {OnCreate.class, OnUpdate.class})
+        @NotNull(message = "{validation.required}", groups = OnCreate.class)
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long supplierId,
 
         @Schema(description = "List of service types provided by this supplier. At least one service type is required.",
                 example = "[\"LUZ\", \"AGUA\", \"GAS\"]",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotEmpty(message = "At least one service type is required.", groups = OnCreate.class)
-        List<@NotNull(message = "Service type cannot be null.", groups = {OnCreate.class, OnUpdate.class}) ServiceType> providedServices
+        @NotEmpty(message = "{validation.notEmpty}", groups = OnCreate.class)
+        List<@NotNull(message = "{validation.notNull}", groups = {OnCreate.class, OnUpdate.class}) ServiceType> providedServices
 ) {}
 

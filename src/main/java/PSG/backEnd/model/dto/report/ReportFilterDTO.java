@@ -34,14 +34,14 @@ public record ReportFilterDTO(
 
     @Schema(description = "Minimum amount to filter by (inclusive). Must be greater than zero.",
             example = "1000.00")
-    @DecimalMin(value = "0.01", message = "Minimum amount must be greater than zero")
-    @Digits(integer = 10, fraction = 2, message = "Amount must have at most 10 integer digits and 2 decimal places")
+    @DecimalMin(value = "0.01", message = "{validation.positive}")
+    @Digits(integer = 10, fraction = 2, message = "{validation.pattern}")
     BigDecimal minAmount,
 
     @Schema(description = "Maximum amount to filter by (inclusive). Must be greater than zero.",
             example = "50000.00")
-    @DecimalMin(value = "0.01", message = "Maximum amount must be greater than zero")
-    @Digits(integer = 10, fraction = 2, message = "Amount must have at most 10 integer digits and 2 decimal places")
+    @DecimalMin(value = "0.01", message = "{validation.positive}")
+    @Digits(integer = 10, fraction = 2, message = "{validation.pattern}")
     BigDecimal maxAmount,
 
     @Schema(description = "Field to sort by. Default is 'date'.",

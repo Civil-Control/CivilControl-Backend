@@ -24,8 +24,8 @@ public record ItemDTO(
             example = "Cemento Portland tipo CPF-40",
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(groups = OnCreate.class, message = "Name is required")
-    @Size(max = 100, groups = {OnCreate.class, OnUpdate.class}, message = "Name must not exceed 100 characters")
+    @NotBlank(groups = OnCreate.class, message = "{item.name.required}")
+    @Size(max = 100, groups = {OnCreate.class, OnUpdate.class}, message = "{item.name.size}")
     String name,
 
     @Schema(description = "Detailed description of the item including specifications, characteristics, or usage notes. " +
@@ -33,6 +33,6 @@ public record ItemDTO(
             example = "Cemento de alta resistencia para uso en construcción estructural. Presentación en bolsas de 50kg.",
             maxLength = 500,
             nullable = true)
-    @Size(max = 500, groups = {OnCreate.class, OnUpdate.class}, message = "Description must not exceed 500 characters")
+    @Size(max = 500, groups = {OnCreate.class, OnUpdate.class}, message = "{item.description.size}")
     String description
 ) {}

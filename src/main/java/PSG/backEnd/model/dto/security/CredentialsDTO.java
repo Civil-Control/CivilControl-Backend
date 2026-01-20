@@ -16,10 +16,10 @@ public record CredentialsDTO(
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 3,
                 maxLength = 50)
-        @NotBlank(message = "Username is required")
-        @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
+        @NotBlank(message = "{validation.required}")
+        @Size(min = 3, max = 50, message = "{user.username.size}")
         @Pattern(regexp = "^[a-zA-Z0-9_-]+$",
-                message = "Username must contain only alphanumeric characters, underscores and hyphens")
+                message = "{validation.pattern}")
         String username,
 
         @Schema(description = "User password. Must have at least 8 characters, " +
@@ -28,10 +28,10 @@ public record CredentialsDTO(
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 8,
                 maxLength = 100)
-        @NotBlank(message = "Password is required")
-        @Size(min = 8, max = 100, message = "Password must be at least 8 characters long")
+        @NotBlank(message = "{validation.required}")
+        @Size(min = 8, max = 100, message = "{user.password.size}")
         @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$",
-                message = "Password must contain at least one uppercase letter, one lowercase letter and one digit")
+                message = "{user.password.pattern}")
         String password
 ) {}
 

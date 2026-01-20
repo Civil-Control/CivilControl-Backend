@@ -16,7 +16,7 @@ public record SalaryPaymentDTO(
             "Must reference an existing employee in the system.",
             example = "25",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Employee ID cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.required}", groups = OnCreate.class)
     Long employeeId,
 
     @Schema(description = "Frequency of the salary payment. Defines how often the employee is paid. Valid values: " +
@@ -26,15 +26,15 @@ public record SalaryPaymentDTO(
             example = "MONTHLY",
             allowableValues = {"MONTHLY", "BIWEEKLY", "WEEKLY"},
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Salary frequency cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.required}", groups = OnCreate.class)
     SalaryFrecuency salaryFrequency,
 
     @Schema(description = "Date when the salary payment was made or is scheduled to be made. " +
             "Cannot be in the future. Must be today or a past date for accurate payroll tracking.",
             example = "2025-10-20",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Payment date cannot be null", groups = OnCreate.class)
-    @PastOrPresent(message = "Payment date cannot be in the future", groups = {OnCreate.class, OnUpdate.class})
+    @NotNull(message = "{validation.required}", groups = OnCreate.class)
+    @PastOrPresent(message = "{validation.pastOrPresent}", groups = {OnCreate.class, OnUpdate.class})
     LocalDate paymentDate,
 
     @Schema(description = "Gross salary amount paid to the employee. Must be greater than zero. " +
@@ -45,9 +45,9 @@ public record SalaryPaymentDTO(
             requiredMode = Schema.RequiredMode.REQUIRED,
             type = "number",
             format = "decimal")
-    @NotNull(message = "Amount cannot be null", groups = OnCreate.class)
-    @DecimalMin(value = "0.01", message = "Amount must be greater than zero", groups = {OnCreate.class, OnUpdate.class})
-    @Digits(integer = 8, fraction = 2, message = "Amount must have at most 8 integer digits and 2 decimal places", groups = {OnCreate.class, OnUpdate.class})
+    @NotNull(message = "{validation.required}", groups = OnCreate.class)
+    @DecimalMin(value = "0.01", message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+    @Digits(integer = 8, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
     BigDecimal amount
 ) {}
 

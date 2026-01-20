@@ -8,10 +8,10 @@ import java.util.List;
 
 public record AutoPolicyDTO(
 
-        @NotNull(message = "Insurance policy ID is required.", groups = OnCreate.class)
-        @Positive(message = "Insurance policy ID must be a positive number.", groups = {OnCreate.class, OnUpdate.class})
+        @NotNull(message = "{insurancePolicy.required}", groups = OnCreate.class)
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long insurancePolicyId,
 
-        @NotEmpty(message = "At least one policy vehicle is required.", groups = {OnCreate.class, OnUpdate.class})
+        @NotEmpty(message = "{insurancePolicy.policyVehicles.required}", groups = {OnCreate.class, OnUpdate.class})
         List<PolicyVehicleDTO> policyVehicles
 ) {}

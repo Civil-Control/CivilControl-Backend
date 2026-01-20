@@ -16,7 +16,7 @@ public record DisciplinaryActionDTO(
             "Must reference an existing employee in the system.",
             example = "15",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Employee ID cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     Long employeeId,
 
     @Schema(description = "Type of disciplinary action being taken. Valid values: " +
@@ -25,7 +25,7 @@ public record DisciplinaryActionDTO(
             example = "WARNING",
             allowableValues = {"WARNING", "SUSPENSION", "TERMINATION"},
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Action type cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     ActionType actionType,
 
     @Schema(description = "Detailed reason for the disciplinary action. Must clearly explain the circumstances " +
@@ -34,7 +34,7 @@ public record DisciplinaryActionDTO(
             minLength = 10,
             maxLength = 500,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Reason cannot be blank", groups = OnCreate.class)
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
     @Size(min = 10, max = 500, message = "Reason must be between 10 and 500 characters", groups = {OnCreate.class, OnUpdate.class})
     String reason,
 
@@ -42,7 +42,7 @@ public record DisciplinaryActionDTO(
             "Cannot be in the future. Must be today or a past date.",
             example = "2025-10-15",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Action date cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     @PastOrPresent(message = "Action date cannot be in the future", groups = {OnCreate.class, OnUpdate.class})
     LocalDate actionDate,
 

@@ -14,14 +14,14 @@ public record EppDeliveryDTO(
             "Must reference an existing employee in the system.",
             example = "25",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Employee ID cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     Long employeeId,
 
     @Schema(description = "Date when the EPP was delivered to the employee. " +
             "Cannot be in the future. Must be today or a past date for accurate tracking.",
             example = "2025-11-10",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Delivery date cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     @PastOrPresent(message = "Delivery date cannot be in the future", groups = {OnCreate.class, OnUpdate.class})
     LocalDate deliveryDate,
 
@@ -31,7 +31,7 @@ public record EppDeliveryDTO(
             minLength = 2,
             maxLength = 150,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Item name cannot be blank", groups = OnCreate.class)
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
     @Size(min = 2, max = 150, message = "Item name must be between 2 and 150 characters", groups = {OnCreate.class, OnUpdate.class})
     String itemName,
 
@@ -41,7 +41,7 @@ public record EppDeliveryDTO(
             minLength = 2,
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Item type cannot be blank", groups = OnCreate.class)
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
     @Size(min = 2, max = 100, message = "Item type must be between 2 and 100 characters", groups = {OnCreate.class, OnUpdate.class})
     String itemType,
 
@@ -50,7 +50,7 @@ public record EppDeliveryDTO(
             example = "3M",
             maxLength = 100,
             nullable = true)
-    @Size(max = 100, message = "Brand must not exceed 100 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String brand,
 
     @Schema(description = "Quantity of items delivered. Must be a positive integer greater than zero. " +
@@ -58,8 +58,8 @@ public record EppDeliveryDTO(
             example = "2",
             minimum = "1",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Quantity cannot be null", groups = OnCreate.class)
-    @Min(value = 1, message = "Quantity must be at least 1", groups = {OnCreate.class, OnUpdate.class})
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
+    @Min(value = 1, message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
     Integer quantity
 ) {}
 

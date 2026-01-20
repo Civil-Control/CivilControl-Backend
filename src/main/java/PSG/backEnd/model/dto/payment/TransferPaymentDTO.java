@@ -13,7 +13,7 @@ public record TransferPaymentDTO(
 
         @Schema(description = "Payment details including amount, date, supplier reference, and other common payment information.",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Payment details cannot be null", groups = OnCreate.class)
+        @NotNull(message = "{payment.details.required}", groups = OnCreate.class)
         @Valid
         PaymentDetailsDTO paymentDetails,
 
@@ -25,20 +25,21 @@ public record TransferPaymentDTO(
                 minLength = 6,
                 maxLength = 100,
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotBlank(message = "Transaction number is required", groups = OnCreate.class)
+        @NotBlank(message = "{payment.transactionNumber.required}", groups = OnCreate.class)
+        @Size(min = 6, max = 100, message = "{payment.transactionNumber.size}", groups = {OnCreate.class, OnUpdate.class})
         @Pattern(
-                regexp = "^[a-zA-Z0-9]{6,100}$",
-                message = "Transaction number must contain only letters and digits, and be between 6 and 100 characters long",
+                regexp = "^[a-zA-Z0-9]+$",
+                message = "{payment.transactionNumber.pattern}",
                 groups = {OnCreate.class, OnUpdate.class}
         )
         String transactionNumber,
 
         @Schema(description = "Name of the bank through which the transfer was made. Maximum 100 characters.",
-                example = "Banco Nación Argentina",
+                example = "Banco Nacion Argentina",
                 maxLength = 100,
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotBlank(message = "Bank name is required", groups = OnCreate.class)
-        @Size(max = 100, message = "Bank name cannot exceed 100 characters", groups = {OnCreate.class, OnUpdate.class})
+        @NotBlank(message = "{payment.bankName.required}", groups = OnCreate.class)
+        @Size(max = 100, message = "{payment.bankName.size}", groups = {OnCreate.class, OnUpdate.class})
         String bankName,
 
         @Schema(description = "Soft deletion flag. When true, the payment is marked as deleted but remains in database.",

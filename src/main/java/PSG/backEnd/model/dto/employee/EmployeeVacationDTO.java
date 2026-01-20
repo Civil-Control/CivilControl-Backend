@@ -11,26 +11,26 @@ public record EmployeeVacationDTO(
             "Must reference an existing employee in the system.",
             example = "25",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Employee ID cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     Long employeeId,
     @Schema(description = "Start date of the vacation period. " +
             "Cannot be in the distant past. Should be a reasonable date for vacation planning.",
             example = "2025-12-20",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Start date cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     LocalDate startDate,
     @Schema(description = "End date of the vacation period. " +
             "Must be equal to or after the start date. Cannot be in the distant past.",
             example = "2025-12-31",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "End date cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     LocalDate endDate,
     @Schema(description = "Total number of vacation days. Must be a positive integer. " +
             "Should be consistent with the date range (business days between start and end date).",
             example = "10",
             minimum = "1",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Total days cannot be null", groups = OnCreate.class)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     @Min(value = 1, message = "Total days must be at least 1", groups = {OnCreate.class, OnUpdate.class})
     @Max(value = 365, message = "Total days cannot exceed 365", groups = {OnCreate.class, OnUpdate.class})
     Integer totalDays,

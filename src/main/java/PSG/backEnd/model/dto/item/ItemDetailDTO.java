@@ -10,25 +10,25 @@ public record ItemDetailDTO(
 
     Long id,
 
-    @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "Item ID is required")
+    @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "{validation.required}")
     Long itemId,
 
-    @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "Unit amount is required")
-    @DecimalMin(value = "0.01", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "Unit amount must be greater than 0")
-    @Digits(integer = 17, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "Unit amount must have at most 2 decimal places")
+    @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "{validation.required}")
+    @DecimalMin(value = "0.01", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.positive}")
+    @Digits(integer = 17, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.pattern}")
     BigDecimal unitAmount,
 
-    @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "Quantity is required")
-    @Min(value = 1, groups = {OnCreate.class, OnUpdate.class}, message = "Quantity must be at least 1")
+    @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "{validation.required}")
+    @Min(value = 1, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.positive}")
     Integer quantity,
 
-    @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "IVA percentage is required")
-    @DecimalMin(value = "0.00", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "IVA percentage must be at least 0")
-    @DecimalMax(value = "100.00", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "IVA percentage must not exceed 100")
-    @Digits(integer = 3, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "IVA percentage must have at most 2 decimal places")
+    @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "{validation.required}")
+    @DecimalMin(value = "0.00", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.positiveOrZero}")
+    @DecimalMax(value = "100.00", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.max}")
+    @Digits(integer = 3, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.pattern}")
     BigDecimal ivaPercentage,
 
-    @DecimalMin(value = "0.01", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "Total amount must be greater than 0")
-    @Digits(integer = 19, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "Total amount must have at most 2 decimal places")
+    @DecimalMin(value = "0.01", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.positive}")
+    @Digits(integer = 19, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.pattern}")
     BigDecimal totalAmount
 ) {}

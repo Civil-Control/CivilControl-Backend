@@ -15,8 +15,8 @@ public record EmergencyContactDTO(
             minLength = 2,
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Emergency contact name cannot be blank", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "Emergency contact name must be between 2 and 100 characters", groups = {OnCreate.class, OnUpdate.class})
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
+    @Size(min = 2, max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String name,
 
     @Schema(description = "Phone number of the emergency contact. Can include country code, area code, and must be in valid phone format. " +
@@ -24,7 +24,7 @@ public record EmergencyContactDTO(
             example = "+54 9 11 9876-5432",
             maxLength = 30,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Emergency contact phone number cannot be blank", groups = OnCreate.class)
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
     @Size(max = 30, message = "Phone number must not exceed 30 characters", groups = {OnCreate.class, OnUpdate.class})
     @Pattern(regexp = "^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
              message = "Invalid phone number format",
@@ -37,8 +37,8 @@ public record EmergencyContactDTO(
             minLength = 2,
             maxLength = 50,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Relationship cannot be blank", groups = OnCreate.class)
-    @Size(min = 2, max = 50, message = "Relationship must be between 2 and 50 characters", groups = {OnCreate.class, OnUpdate.class})
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
+    @Size(min = 2, max = 50, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String relationship
 ) {}
 

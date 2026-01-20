@@ -18,8 +18,8 @@ public record ProjectAreaDTO(
             minLength = 1,
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "Name cannot be blank", groups = {OnCreate.class})
-    @Size(min = 1, max = 100, message = "Name must be between 1 and 100 characters", groups = {OnCreate.class, OnUpdate.class})
+    @NotBlank(message = "{validation.notBlank}", groups = {OnCreate.class})
+    @Size(min = 1, max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String name,
 
     @Schema(description = "Detailed description of the project area, including its purpose, scope, or location details. " +
@@ -28,7 +28,7 @@ public record ProjectAreaDTO(
             minLength = 1,
             maxLength = 200,
             nullable = true)
-    @Size(min = 1, max = 200, message = "Description must not exceed 200 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 1, max = 200, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String description,
 
     @Schema(description = "Indicates if the project area is currently active. " +

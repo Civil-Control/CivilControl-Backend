@@ -19,21 +19,21 @@ public record RoleRequestDTO(
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 3,
                 maxLength = 100)
-        @NotBlank(message = "Role name is required")
-        @Size(min = 3, max = 100, message = "Role name must be between 3 and 100 characters")
+        @NotBlank(message = "{validation.required}")
+        @Size(min = 3, max = 100, message = "{role.name.size}")
         String name,
 
         @Schema(description = "Role description and responsibilities",
                 example = "Experienced architect who supervises projects and approves designs",
                 maxLength = 500)
-        @Size(max = 500, message = "Description must not exceed 500 characters")
+        @Size(max = 500, message = "{validation.size}")
         String description,
 
         @Schema(description = "List of permission IDs to assign to the role. Must contain at least one permission.",
                 example = "[1, 2, 5, 10]",
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 minLength = 1)
-        @NotEmpty(message = "At least one permission is required")
+        @NotEmpty(message = "{validation.required}")
         Set<Long> permissionIds,
 
         @Schema(description = "Indicates if the role is active",

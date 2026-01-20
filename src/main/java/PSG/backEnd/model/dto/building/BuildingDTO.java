@@ -18,7 +18,7 @@ public record BuildingDTO(
             example = "Planta Central Cordoba",
             requiredMode = Schema.RequiredMode.REQUIRED,
             maxLength = 100)
-    @NotBlank(groups = OnCreate.class, message = "Name is required")
+    @NotBlank(groups = OnCreate.class, message = "{validation.required}")
     @Size(max = 100, groups = {OnCreate.class, OnUpdate.class}, message = "Name must not exceed 100 characters")
     String name,
 
@@ -26,13 +26,13 @@ public record BuildingDTO(
             example = "PLT-CBA-001",
             requiredMode = Schema.RequiredMode.REQUIRED,
             maxLength = 50)
-    @NotBlank(groups = OnCreate.class, message = "Code is required")
+    @NotBlank(groups = OnCreate.class, message = "{validation.required}")
     @Size(max = 50, groups = {OnCreate.class, OnUpdate.class}, message = "Code must not exceed 50 characters")
     String code,
 
     @Schema(description = "Complete address of the building including street, number, city, state, country, and zip code.",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(groups = OnCreate.class, message = "Address is required")
+    @NotNull(groups = OnCreate.class, message = "{validation.required}")
     @Valid
     AddressDTO address,
 
@@ -42,7 +42,7 @@ public record BuildingDTO(
             example = "PLANTA",
             requiredMode = Schema.RequiredMode.REQUIRED,
             allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "OTRO"})
-    @NotNull(groups = OnCreate.class, message = "Building type is required")
+    @NotNull(groups = OnCreate.class, message = "{validation.required}")
     BuildingType buildingType,
 
     @Schema(description = "Indicates if the building is active or inactive. Active buildings can be used for operations.",

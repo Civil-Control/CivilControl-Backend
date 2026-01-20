@@ -15,10 +15,10 @@ public record ContactInfoDTO(
             "Each email must be in valid format and not exceed 100 characters.",
             example = "[\"contacto@example.com\", \"ventas@example.com\"]",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "At least one email is required", groups = OnCreate.class)
+    @NotEmpty(message = "{validation.required}", groups = OnCreate.class)
     List<@Email(message = "Must be a valid email address", groups = {OnCreate.class, OnUpdate.class})
-         @NotBlank(message = "Email cannot be blank", groups = {OnCreate.class, OnUpdate.class})
-         @Size(max = 100, message = "Email must not exceed 100 characters", groups = {OnCreate.class, OnUpdate.class})
+         @NotBlank(message = "{validation.email}", groups = {OnCreate.class, OnUpdate.class})
+         @Size(max = 100, message = "{validation.email}", groups = {OnCreate.class, OnUpdate.class})
          String> email,
 
     @Schema(description = "List of phone numbers. At least one valid phone number is required. " +
@@ -26,9 +26,9 @@ public record ContactInfoDTO(
             "Maximum 30 characters per phone number.",
             example = "[\"+5493511234567\", \"+5493519876543\"]",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "At least one phone number is required", groups = OnCreate.class)
+    @NotEmpty(message = "{validation.required}", groups = OnCreate.class)
     List<@Pattern(regexp = "^\\+?[0-9]{10,15}$",
-                 message = "Phone number must be between 10 and 15 digits, optionally starting with +",
+                 message = "{validation.size}",
                  groups = {OnCreate.class, OnUpdate.class})
          @Size(max = 30, message = "Phone number must not exceed 30 characters", groups = {OnCreate.class, OnUpdate.class})
          String> phoneNumber

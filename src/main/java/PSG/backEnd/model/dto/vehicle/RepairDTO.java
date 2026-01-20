@@ -47,14 +47,14 @@ public record RepairDTO(
                 example = "John Smith",
                 maxLength = 100,
                 nullable = true)
-        @Size(max = 100, message = "Employee name must be at most 100 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 100, message = "{repair.employee.size}", groups = {OnCreate.class, OnUpdate.class})
         String employee,
 
         @Schema(description = "ID of the external supplier who performed the repair. " +
                 "Use this field for external repairs. Do not provide both supplierId and employee.",
                 example = "8",
                 nullable = true)
-        @Positive(message = "Supplier ID must be a positive number.", groups = {OnCreate.class, OnUpdate.class})
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long supplierId,
 
         @Schema(description = "Type of repair performed. Valid values: PREVENTIVE (scheduled maintenance), " +
@@ -62,6 +62,6 @@ public record RepairDTO(
                 example = "CORRECTIVE",
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {"PREVENTIVE", "CORRECTIVE", "PREDICTIVE"})
-        @NotNull(message = "Repair type is required.", groups = OnCreate.class)
+        @NotNull(message = "{repair.repairType.required}", groups = OnCreate.class)
         RepairType repairType
 ) {}

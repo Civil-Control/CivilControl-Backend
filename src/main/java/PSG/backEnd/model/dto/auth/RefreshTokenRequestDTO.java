@@ -12,7 +12,7 @@ public record RefreshTokenRequestDTO(
         @Schema(description = "Refresh token",
                 example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotBlank(message = "Refresh token is required")
+        @NotBlank(message = "{validation.required}")
         String refreshToken
 ) {}
 

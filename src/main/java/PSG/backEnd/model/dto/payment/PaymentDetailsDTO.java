@@ -17,15 +17,15 @@ public record PaymentDetailsDTO(
                 "Used for accounting and audit purposes.",
                 example = "2024-11-15",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Payment date is required", groups = OnCreate.class)
-        @PastOrPresent(message = "Payment date cannot be in the future", groups = {OnCreate.class, OnUpdate.class})
+        @NotNull(message = "{payment.paymentDate.required}", groups = OnCreate.class)
+        @PastOrPresent(message = "{payment.paymentDate.pastOrPresent}", groups = {OnCreate.class, OnUpdate.class})
         LocalDate paymentDate,
 
         @Schema(description = "ID of the supplier receiving the payment. " +
                 "Must reference an existing supplier in the system.",
                 example = "42",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Supplier is required", groups = OnCreate.class)
+        @NotNull(message = "{payment.supplierId.required}", groups = OnCreate.class)
         Long supplierId,
 
         @Schema(description = "Total payment amount. Must be greater than zero. " +
@@ -34,9 +34,9 @@ public record PaymentDetailsDTO(
                 example = "15000.50",
                 minimum = "0.01",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Amount is required", groups = OnCreate.class)
-        @DecimalMin(value = "0.01", message = "Amount must be greater than 0", groups = {OnCreate.class, OnUpdate.class})
-        @Digits(integer = 12, fraction = 2, message = "Amount must have up to 12 digits and 2 decimals", groups = {OnCreate.class, OnUpdate.class})
+        @NotNull(message = "{payment.amount.required}", groups = OnCreate.class)
+        @DecimalMin(value = "0.01", message = "{payment.amount.positive}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 12, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
         BigDecimal amount,
 
         @Schema(description = "Additional notes or comments about the payment. " +
@@ -45,7 +45,7 @@ public record PaymentDetailsDTO(
                 example = "Pago correspondiente a factura B 00001-00012345. Primera cuota de 3.",
                 maxLength = 500,
                 nullable = true)
-        @Size(max = 500, message = "Comment cannot exceed 500 characters", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 500, message = "{payment.comment.size}", groups = {OnCreate.class, OnUpdate.class})
         String comment,
 
         @Schema(description = "List of document IDs that this payment is paying for. " +

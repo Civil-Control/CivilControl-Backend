@@ -16,23 +16,23 @@ public record StockDTO(
             example = "Hammer - 500g Claw",
             requiredMode = Schema.RequiredMode.REQUIRED,
             maxLength = 100)
-    @NotBlank(groups = OnCreate.class, message = "Name is required")
-    @Size(max = 100, groups = {OnCreate.class, OnUpdate.class}, message = "Name must not exceed 100 characters")
+    @NotBlank(groups = OnCreate.class, message = "{validation.required}")
+    @Size(max = 100, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.size}")
     String name,
 
     @Schema(description = "Quantity of the item in stock. Must be zero or greater.",
             example = "25.50",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(groups = OnCreate.class, message = "Quantity is required")
-    @DecimalMin(value = "0.0", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "Quantity must be greater than or equal to 0")
-    @Digits(integer = 8, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "Quantity must have at most 8 integer digits and 2 decimal places")
+    @NotNull(groups = OnCreate.class, message = "{validation.required}")
+    @DecimalMin(value = "0.0", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.min}")
+    @Digits(integer = 8, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.pattern}")
     BigDecimal quantity,
 
     @Schema(description = "ID of the building where the stock item is stored. References the building entity.",
             example = "1",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(groups = OnCreate.class, message = "Building ID is required")
-    @Positive(groups = {OnCreate.class, OnUpdate.class}, message = "Building ID must be positive")
+    @NotNull(groups = OnCreate.class, message = "{validation.required}")
+    @Positive(groups = {OnCreate.class, OnUpdate.class}, message = "{validation.positive}")
     Long buildingId,
 
     @Schema(description = "Category of the stock item for classification purposes. Valid values: " +
@@ -46,6 +46,6 @@ public record StockDTO(
             allowableValues = {"HERRAMIENTAS_MANUALES", "HERRAMIENTAS_ELECTRICAS", "EQUIPOS_PESADOS",
                     "MAQUINARIA", "INSUMOS", "SEGURIDAD_PERSONAL", "ROPA_TRABAJO", "EQUIPAMIENTO_OBRA",
                     "ACCESORIO_VEHICULAR", "LIMPIEZA_MANTENIMIENTO", "REPUESTOS", "OTROS"})
-    @NotNull(groups = OnCreate.class, message = "Stock category is required")
+    @NotNull(groups = OnCreate.class, message = "{validation.required}")
     StockCategory stockCategory
 ) {}
