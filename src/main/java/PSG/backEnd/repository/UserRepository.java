@@ -96,5 +96,27 @@ public interface UserRepository extends JpaRepository<User, Long> {
             @Param("enabled") Boolean enabled,
             Pageable pageable
     );
-}
 
+    /**
+     * Search with filters, excluding a specific username.
+     * Excludes the root user (ID 1) and the specified username from results.
+     */
+    @Query("SELECT u FROM User u " +
+            "WHERE u.deleted = false " +
+            "AND u.id != 1 " +
+            "AND (:excludeUsername IS NULL OR u.credentials.username != :excludeUsername) " +
+            "AND (:username IS NULL OR LOWER(CAST(u.credentials.username AS string)) LIKE LOWER(CONCAT('%', CAST(:username AS string), '%'))) " +
+            "AND (:email IS NULL OR LOWER(CAST(u.email AS string)) LIKE LOWER(CONCAT('%', CAST(:email AS string), '%'))) " +
+            "AND (:firstName IS NULL OR LOWER(CAST(u.firstName AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
+            "AND (:lastName IS NULL OR LOWER(CAST(u.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
+            "AND (:enabled IS NULL OR u.enabled = :enabled)")
+    Page<User> findAllWithFiltersExcludingUsername(
+            @Param("excludeUsername") String excludeUsername,
+            @Param("username") String username,
+            @Param("email") String email,
+            @Param("firstName") String firstName,
+            @Param("lastName") String lastName,
+            @Param("enabled") Boolean enabled,
+            Pageable pageable
+    );
+}

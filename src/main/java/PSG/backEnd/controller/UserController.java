@@ -3,6 +3,7 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.security.UserFilterDTO;
 import PSG.backEnd.model.dto.security.UserRequestDTO;
 import PSG.backEnd.model.dto.security.UserResponseDTO;
+import PSG.backEnd.model.dto.security.UserUpdateOwnProfileResponseDTO;
 import PSG.backEnd.service.port.IUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -66,7 +68,8 @@ public class UserController {
     @GetMapping
     @Operation(summary = "Get all users with filters",
             description = "Retrieves a paginated list of users with optional filtering by username, email, name, and enabled status. " +
-                         "Supports sorting by any field. Passwords are never included in the response.")
+                         "Supports sorting by any field. Passwords are never included in the response. " +
+                         "The currently authenticated user is automatically excluded from the results.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Users retrieved successfully")
     })
@@ -96,7 +99,9 @@ public class UserController {
             @RequestParam(defaultValue = "firstName") String sortBy,
 
             @Parameter(description = "Sort direction (ASC or DESC)", example = "ASC")
-            @RequestParam(defaultValue = "ASC") String sortDir) {
+            @RequestParam(defaultValue = "ASC") String sortDir,
+
+            Authentication authentication) {
 
         Sort sort = sortDir.equalsIgnoreCase("DESC")
                 ? Sort.by(sortBy).descending()
@@ -105,8 +110,31 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size, sort);
         UserFilterDTO filterDTO = new UserFilterDTO(username, email, firstName, lastName, enabled);
 
-        Page<UserResponseDTO> users = userService.getAllUsers(filterDTO, pageable);
+        // Get current authenticated username to exclude from results
+        String currentUsername = authentication != null ? authentication.getName() : null;
+        Page<UserResponseDTO> users = userService.getAllUsersExcludingCurrent(filterDTO, pageable, currentUsername);
         return ResponseEntity.ok(users);
+    }
+
+    @PatchMapping("/me")
+    @Operation(summary = "Update own profile",
+            description = "Updates the authenticated user's own profile. Returns updated user data and new authentication tokens " +
+                         "to maintain the session (auto-login). This prevents the user from being logged out after profile changes. " +
+                         "Only provided fields will be updated. If password is provided, it will be re-encrypted with BCrypt.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile successfully updated with new tokens"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated"),
+            @ApiResponse(responseCode = "404", description = "User or role not found"),
+            @ApiResponse(responseCode = "409", description = "Update would create duplicate username or email")
+    })
+    public ResponseEntity<UserUpdateOwnProfileResponseDTO> updateOwnProfile(
+            @RequestBody UserRequestDTO requestDTO,
+            Authentication authentication) {
+
+        String currentUsername = authentication.getName();
+        UserUpdateOwnProfileResponseDTO response = userService.updateOwnProfile(currentUsername, requestDTO);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")

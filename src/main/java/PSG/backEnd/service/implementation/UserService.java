@@ -8,6 +8,7 @@ import PSG.backEnd.exception.user.UserNotValidException;
 import PSG.backEnd.model.dto.security.UserFilterDTO;
 import PSG.backEnd.model.dto.security.UserRequestDTO;
 import PSG.backEnd.model.dto.security.UserResponseDTO;
+import PSG.backEnd.model.dto.security.UserUpdateOwnProfileResponseDTO;
 import PSG.backEnd.model.entity.security.Credentials;
 import PSG.backEnd.model.entity.security.Role;
 import PSG.backEnd.model.entity.security.User;
@@ -47,6 +48,7 @@ public class UserService implements IUserService {
     private final CredentialsMapper credentialsMapper;
     private final PasswordEncoder passwordEncoder;
     private final MessageSourceHelper messageSourceHelper;
+    private final JwtService jwtService;
 
     @Override
     @Transactional
@@ -551,6 +553,99 @@ public class UserService implements IUserService {
             messageSourceHelper.getMessage("user.update.conflict.generic"),
             e
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponseDTO> getAllUsersExcludingCurrent(UserFilterDTO filterDTO, Pageable pageable, String excludeUsername) {
+        log.debug("Fetching users with filters: {} (excluding current user: {})", filterDTO, excludeUsername);
+
+        return userRepository.findAllWithFiltersExcludingUsername(
+                excludeUsername,
+                filterDTO.username(),
+                filterDTO.email(),
+                filterDTO.firstName(),
+                filterDTO.lastName(),
+                filterDTO.enabled(),
+                pageable
+        ).map(userMapper::toResponseDto);
+    }
+
+    @Override
+    @Transactional
+    public UserUpdateOwnProfileResponseDTO updateOwnProfile(String username, UserRequestDTO requestDTO) {
+        log.info("User {} is updating their own profile", username);
+
+        // Find user by username
+        User existingUser = userRepository.findByCredentialsUsername(username)
+                .orElseThrow(() -> new UserNotFoundException(username));
+
+        if (existingUser.getDeleted()) {
+            throw new UserNotFoundException(username);
+        }
+
+        // Update user data
+        if (requestDTO.firstName() != null) {
+            existingUser.setFirstName(requestDTO.firstName());
+        }
+        if (requestDTO.lastName() != null) {
+            existingUser.setLastName(requestDTO.lastName());
+        }
+        if (requestDTO.email() != null) {
+            existingUser.setEmail(requestDTO.email());
+        }
+
+        // Update credentials if provided
+        if (requestDTO.credentials() != null) {
+            Credentials credentials = existingUser.getCredentials();
+
+            if (requestDTO.credentials().username() != null &&
+                !requestDTO.credentials().username().equals(credentials.getUsername())) {
+                // Validate new username is available
+                Optional<User> userWithSameUsername = userRepository.findByCredentialsUsername(requestDTO.credentials().username());
+                if (userWithSameUsername.isPresent() && !userWithSameUsername.get().getId().equals(existingUser.getId())) {
+                    throw new UserAlreadyExistsException(
+                        messageSourceHelper.getMessage("user.username.exists", requestDTO.credentials().username()));
+                }
+                credentials.setUsername(requestDTO.credentials().username());
+            }
+
+            if (requestDTO.credentials().password() != null && !requestDTO.credentials().password().isBlank()) {
+                String encryptedPassword = passwordEncoder.encode(requestDTO.credentials().password());
+                credentials.setPassword(encryptedPassword);
+            }
+
+            credentialsRepository.save(credentials);
+        }
+
+        // Update roles if provided
+        if (requestDTO.roleIds() != null && !requestDTO.roleIds().isEmpty()) {
+            Set<Role> roles = new HashSet<>();
+            for (Long roleId : requestDTO.roleIds()) {
+                Role role = roleRepository.findByIdAndDeletedFalse(roleId)
+                        .orElseThrow(() -> new RoleNotFoundException(roleId));
+                roles.add(role);
+            }
+            existingUser.setRoles(roles);
+        }
+
+        try {
+            User updatedUser = userRepository.save(existingUser);
+
+            // Generate new tokens
+            String accessToken = jwtService.generateAccessToken(updatedUser);
+            String refreshToken = jwtService.generateRefreshToken(updatedUser);
+
+            UserResponseDTO userResponse = userMapper.toResponseDto(updatedUser);
+
+            log.info("User profile updated successfully: {}", username);
+
+            return new UserUpdateOwnProfileResponseDTO(userResponse, accessToken, refreshToken);
+
+        } catch (DataIntegrityViolationException e) {
+            handleDataIntegrityViolation(e, requestDTO);
+            return null; // Never reached, handleDataIntegrityViolation throws
+        }
     }
 }
 
