@@ -1,0 +1,25 @@
+package PSG.backEnd.config;
+
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
+
+/**
+ * Provides static access to Spring ApplicationContext.
+ * Useful for accessing beans from non-Spring managed classes.
+ */
+@Component
+public class ApplicationContextProvider implements ApplicationContextAware {
+
+    private static ApplicationContext context;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        context = applicationContext;
+    }
+
+    public static ApplicationContext getApplicationContext() {
+        return context;
+    }
+}
