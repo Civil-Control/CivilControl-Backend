@@ -9,7 +9,7 @@
 
 <div align="center">
 
-# PSG Backend API
+# CivilControl Backend API
 
 ### Enterprise Management System REST API
 
@@ -23,7 +23,7 @@
 
 ## 📋 Overview
 
-PSG Backend is a comprehensive **RESTful API** built with **Spring Boot** designed to manage enterprise operations for ESEA SA. This microservice handles complex business logic across multiple domains including human resources, fleet management, financial operations, document processing, and mechanical services.
+CivilControl Backend is a comprehensive **RESTful API** built with **Spring Boot** designed to manage enterprise operations for ESEA SA. This microservice handles complex business logic across multiple domains including human resources, fleet management, financial operations, document processing, and mechanical services.
 
 The API follows industry-standard architectural patterns including **layered architecture**, **DTO pattern**, **repository pattern**, and implements robust security through **JWT-based authentication** and **role-based access control (RBAC)**.
 
@@ -155,7 +155,7 @@ The API follows industry-standard architectural patterns including **layered arc
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd PSG-backend
+cd CivilControl-backend
 ```
 
 ### 2. Database Setup
@@ -167,10 +167,10 @@ docker-compose up -d db
 
 #### Option B: Manual PostgreSQL Setup
 ```sql
-CREATE DATABASE psg_backend;
+CREATE DATABASE civilcontrol_backend;
 CREATE USER appuser WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE psg_backend TO appuser;
-GRANT ALL PRIVILEGES ON psg_backend.* TO 'appuser'@'localhost';
+GRANT ALL PRIVILEGES ON DATABASE civilcontrol_backend TO appuser;
+GRANT ALL PRIVILEGES ON civilcontrol_backend.* TO 'appuser'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
@@ -179,7 +179,7 @@ FLUSH PRIVILEGES;
 Create a `.env.dev` file for development:
 ```properties
 # Database
-SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/psg_backend?useSSL=false&serverTimezone=America/Argentina/Buenos_Aires&allowPublicKeyRetrieval=true
+SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/civilcontrol_backend?useSSL=false&serverTimezone=America/Argentina/Buenos_Aires&allowPublicKeyRetrieval=true
 SPRING_DATASOURCE_USERNAME=root
 SPRING_DATASOURCE_PASSWORD=your_password
 
@@ -212,7 +212,7 @@ mvn clean package -DskipTests
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 # Using Java
-java -jar target/PSGBackEnd-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
+java -jar target/CivilControlBackEnd-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
 ```
 
 #### Production Mode with Docker
@@ -333,7 +333,7 @@ The application uses **Hibernate DDL auto-update** mode for development. The sch
 
 ### Build Docker Image
 ```bash
-docker build -t psg-backend-api .
+docker build -t civilcontrol-backend-api .
 ```
 
 ### Run with Docker Compose
@@ -414,7 +414,7 @@ For technical support or questions, contact the development team.
 
 <div align="center">
 
-# PSG Backend API
+# CivilControl Backend API
 
 ### API REST de Sistema de Gestión Empresarial
 
@@ -428,7 +428,7 @@ For technical support or questions, contact the development team.
 
 ## 📋 Descripción General
 
-PSG Backend es una **API RESTful** integral construida con **Spring Boot** diseñada para gestionar operaciones empresariales de ESEA SA. Este microservicio maneja lógica de negocio compleja a través de múltiples dominios incluyendo recursos humanos, gestión de flotas, operaciones financieras, procesamiento de documentos y servicios mecánicos.
+CivilControl Backend es una **API RESTful** integral construida con **Spring Boot** diseñada para gestionar operaciones empresariales de ESEA SA. Este microservicio maneja lógica de negocio compleja a través de múltiples dominios incluyendo recursos humanos, gestión de flotas, operaciones financieras, procesamiento de documentos y servicios mecánicos.
 
 La API sigue patrones arquitectónicos estándar de la industria incluyendo **arquitectura en capas**, **patrón DTO**, **patrón repositorio**, e implementa seguridad robusta a través de **autenticación basada en JWT** y **control de acceso basado en roles (RBAC)**.
 
@@ -560,7 +560,7 @@ La API sigue patrones arquitectónicos estándar de la industria incluyendo **ar
 ### 1. Clonar el Repositorio
 ```bash
 git clone <repository-url>
-cd PSG-backend
+cd CivilControl-backend
 ```
 
 ### 2. Configuración de Base de Datos
@@ -572,9 +572,9 @@ docker-compose up -d db
 
 #### Opción B: Configuración Manual de PostgreSQL
 ```sql
-CREATE DATABASE psg_backend;
+CREATE DATABASE CivilControl_backend;
 CREATE USER appuser WITH PASSWORD 'tu_contraseña';
-GRANT ALL PRIVILEGES ON DATABASE psg_backend TO appuser;
+GRANT ALL PRIVILEGES ON DATABASE civilcontrol_backend TO appuser;
 ```
 
 ### 3. Configuración de Entorno
@@ -582,7 +582,7 @@ GRANT ALL PRIVILEGES ON DATABASE psg_backend TO appuser;
 Crear un archivo `.env.dev` para desarrollo:
 ```properties
 # Base de Datos
-SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/psg_backend?useSSL=false&serverTimezone=America/Argentina/Buenos_Aires&allowPublicKeyRetrieval=true
+SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/civilcontrol_backend?useSSL=false&serverTimezone=America/Argentina/Buenos_Aires&allowPublicKeyRetrieval=true
 SPRING_DATASOURCE_USERNAME=root
 SPRING_DATASOURCE_PASSWORD=tu_contraseña
 
@@ -615,7 +615,7 @@ mvn clean package -DskipTests
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 # Usando Java
-java -jar target/PSGBackEnd-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
+java -jar target/CivilControlBackEnd-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev
 ```
 
 #### Modo Producción con Docker
@@ -736,7 +736,7 @@ La aplicación usa el modo **Hibernate DDL auto-update** para desarrollo. El esq
 
 ### Construir Imagen Docker
 ```bash
-docker build -t psg-backend-api .
+docker build -t civilcontrol-backend-api .
 ```
 
 ### Ejecutar con Docker Compose
