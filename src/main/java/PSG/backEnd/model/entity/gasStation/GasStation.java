@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.gasStation;
 
+import PSG.backEnd.model.entity.Supplier;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,8 +20,9 @@ public class GasStation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "supplier_id", nullable = false)
-    private Long supplierId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id", nullable = false)
+    private Supplier supplier;
 
     @OneToMany(mappedBy = "gasStation", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @Builder.Default

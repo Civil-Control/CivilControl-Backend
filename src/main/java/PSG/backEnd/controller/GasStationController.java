@@ -54,18 +54,35 @@ public class GasStationController {
             @Parameter(description = "Filter by available fuel types") @RequestParam(required = false) List<String> fuelTypes,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by. Available fields: id, supplierId. " +
-                    "Note: Supplier information is not loaded in this query, use id or supplierId only.",
-                    example = "id")
+            @Parameter(description = "Field to sort by. Available fields: id, supplierId, legalName, tradeName, cuit, defaultDiscountPercentage",
+                    example = "legalName")
             @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "asc") String sortDir
     ) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        // Map simple field names to entity paths
+        String mappedSortBy = mapSortField(sortBy);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         GasStationFilterDTO filterDTO = new GasStationFilterDTO(supplierId, fuelTypes);
 
         return ResponseEntity.ok(gasStationService.getAllGasStations(filterDTO, pageable));
+    }
+
+    /**
+     * Maps simple field names to their corresponding entity paths.
+     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
+     */
+    private String mapSortField(String sortBy) {
+        return switch (sortBy) {
+            case "legalName" -> "supplier.legalName";
+            case "tradeName" -> "supplier.tradeName";
+            case "cuit" -> "supplier.cuit";
+            case "defaultDiscountPercentage" -> "supplier.defaultDiscountPercentage";
+            case "supplierId" -> "supplier.id";
+            default -> sortBy; // For 'id' and any other fields
+        };
     }
 
     @GetMapping("/{id}")

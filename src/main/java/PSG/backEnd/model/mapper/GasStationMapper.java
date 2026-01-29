@@ -5,34 +5,51 @@ import PSG.backEnd.model.dto.gasStation.GasStationResponseDTO;
 import PSG.backEnd.model.dto.gasStation.GasStationPriceResponseDTO;
 import PSG.backEnd.model.entity.gasStation.GasStation;
 import PSG.backEnd.model.entity.gasStation.GasStationPrice;
+import PSG.backEnd.model.entity.Supplier;
+import PSG.backEnd.repository.SupplierRepository;
 import org.mapstruct.*;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring", uses = {GasStationPriceMapper.class})
-public interface GasStationMapper {
+public abstract class GasStationMapper {
+
+    @Autowired
+    protected SupplierRepository supplierRepository;
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "fuelLoads", ignore = true)
     @Mapping(target = "prices", source = "prices")
-    @Mapping(target = "supplierId", source = "supplierId")
-    GasStation toEntity(GasStationDTO gasStationDTO);
+    @Mapping(target = "supplier", source = "supplierId", qualifiedByName = "supplierIdToSupplier")
+    public abstract GasStation toEntity(GasStationDTO gasStationDTO);
 
+    @Mapping(target = "supplierId", source = "supplier.id")
+    @Mapping(target = "supplierName", source = "supplier.legalName")
     @Mapping(target = "fuelTypes", source = "prices", qualifiedByName = "extractFuelTypesFromPrices")
     @Mapping(target = "prices", source = ".", qualifiedByName = "mapPricesToResponseDTO")
-    GasStationResponseDTO toResponseDto(GasStation gasStation);
+    public abstract GasStationResponseDTO toResponseDto(GasStation gasStation);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "fuelLoads", ignore = true)
     @Mapping(target = "prices", source = "prices")
-    void partialUpdate(GasStationDTO updateDTO, @MappingTarget GasStation gasStation);
+    @Mapping(target = "supplier", source = "supplierId", qualifiedByName = "supplierIdToSupplier")
+    public abstract void partialUpdate(GasStationDTO updateDTO, @MappingTarget GasStation gasStation);
+
+    @Named("supplierIdToSupplier")
+    protected Supplier supplierIdToSupplier(Long supplierId) {
+        if (supplierId == null) {
+            return null;
+        }
+        return supplierRepository.findById(supplierId).orElse(null);
+    }
 
     @Named("extractFuelTypesFromPrices")
-    default List<String> extractFuelTypesFromPrices(List<GasStationPrice> prices) {
+    protected List<String> extractFuelTypesFromPrices(List<GasStationPrice> prices) {
         if (prices == null || prices.isEmpty()) {
             return List.of();
         }
@@ -43,11 +60,13 @@ public interface GasStationMapper {
     }
 
     @Named("mapPricesToResponseDTO")
-    default List<GasStationPriceResponseDTO> mapPricesToResponseDTO(GasStation gasStation) {
+    protected List<GasStationPriceResponseDTO> mapPricesToResponseDTO(GasStation gasStation) {
         if (gasStation.getPrices() == null || gasStation.getPrices().isEmpty()) {
             return List.of();
         }
-        String supplierName = "Supplier " + gasStation.getSupplierId();
+        String supplierName = gasStation.getSupplier() != null
+            ? gasStation.getSupplier().getLegalName()
+            : "Supplier not found";
         return gasStation.getPrices().stream()
                 .map(price -> new GasStationPriceResponseDTO(
                     supplierName,

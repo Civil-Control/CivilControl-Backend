@@ -17,12 +17,12 @@ public interface ServiceSupplierRepository extends JpaRepository<ServiceSupplier
     List<ServiceSupplier> findByDeletedFalse();
     Optional<ServiceSupplier> findByIdAndDeletedFalse(Long id);
     boolean existsByIdAndDeletedFalse(Long id);
-    List<ServiceSupplier> findBySupplierIdAndDeletedFalse(Long supplierId);
-    Optional<ServiceSupplier> findBySupplierIdAndDeletedTrue(Long supplierId);
-    boolean existsBySupplierIdAndDeletedFalse(Long supplierId);
+    List<ServiceSupplier> findBySupplier_IdAndDeletedFalse(Long supplierId);
+    Optional<ServiceSupplier> findBySupplier_IdAndDeletedTrue(Long supplierId);
+    boolean existsBySupplier_IdAndDeletedFalse(Long supplierId);
 
     @Query("SELECT DISTINCT ss FROM ServiceSupplier ss " +
-            "JOIN ss.supplier s " +
+            "JOIN FETCH ss.supplier s " +
             "LEFT JOIN ss.providedServices ps " +
             "WHERE (:supplierName IS NULL OR " +
             "       LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR " +

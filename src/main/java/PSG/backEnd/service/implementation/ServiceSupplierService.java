@@ -41,7 +41,7 @@ public class ServiceSupplierService implements IServiceSupplierService {
         validateServiceSupplierNotExists(serviceSupplierDTO.supplierId());
 
         Optional<ServiceSupplier> deletedServiceSupplier =
-                serviceSupplierRepository.findBySupplierIdAndDeletedTrue(serviceSupplierDTO.supplierId());
+                serviceSupplierRepository.findBySupplier_IdAndDeletedTrue(serviceSupplierDTO.supplierId());
 
         return deletedServiceSupplier
                 .map(ss -> reactivateServiceSupplier(ss, serviceSupplierDTO))
@@ -124,7 +124,7 @@ public class ServiceSupplierService implements IServiceSupplierService {
     }
 
     private void validateServiceSupplierNotExists(Long supplierId) {
-        if (serviceSupplierRepository.existsBySupplierIdAndDeletedFalse(supplierId)) {
+        if (serviceSupplierRepository.existsBySupplier_IdAndDeletedFalse(supplierId)) {
             throw new ServiceSupplierAlreadyExistsException(
                     "A service supplier already exists for supplier with id: " + supplierId);
         }

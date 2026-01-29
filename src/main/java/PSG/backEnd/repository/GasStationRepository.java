@@ -16,11 +16,12 @@ public interface GasStationRepository extends JpaRepository<GasStation, Long> {
     List<GasStation> findByDeletedFalse();
     Optional<GasStation> findByIdAndDeletedFalse(Long id);
     boolean existsByIdAndDeletedFalse(Long id);
-    List<GasStation> findBySupplierIdAndDeletedFalse(Long supplierId);
+    List<GasStation> findBySupplier_IdAndDeletedFalse(Long supplierId);
 
     @Query("SELECT DISTINCT gs FROM GasStation gs " +
+            "LEFT JOIN FETCH gs.supplier s " +
             "LEFT JOIN gs.prices p " +
-            "WHERE (:supplierId IS NULL OR gs.supplierId = :supplierId) " +
+            "WHERE (:supplierId IS NULL OR gs.supplier.id = :supplierId) " +
             "AND (:fuelTypes IS NULL OR " +
             "     EXISTS (SELECT p2 FROM gs.prices p2 WHERE CAST(p2.fuelType AS string) IN :fuelTypes)) " +
             "AND gs.deleted = false")
