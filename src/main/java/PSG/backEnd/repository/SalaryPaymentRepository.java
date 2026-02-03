@@ -21,14 +21,14 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
 
     @Query("SELECT sp FROM SalaryPayment sp " +
             "WHERE sp.employee.deleted = false " +
-            "AND (:employeeId IS NULL OR sp.employee.id = :employeeId) " +
+            "AND (CAST(:employeeId AS long) IS NULL OR sp.employee.id = :employeeId) " +
             "AND (:firstName IS NULL OR LOWER(CAST(sp.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
             "AND (:lastName IS NULL OR LOWER(CAST(sp.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
-            "AND (:salaryFrequency IS NULL OR sp.salaryFrequency = :salaryFrequency) " +
-            "AND (:paymentDateFrom IS NULL OR sp.paymentDate >= :paymentDateFrom) " +
-            "AND (:paymentDateTo IS NULL OR sp.paymentDate <= :paymentDateTo) " +
-            "AND (:minAmount IS NULL OR sp.amount >= :minAmount) " +
-            "AND (:maxAmount IS NULL OR sp.amount <= :maxAmount)")
+            "AND (CAST(:salaryFrequency AS string) IS NULL OR sp.salaryFrequency = :salaryFrequency) " +
+            "AND (CAST(:paymentDateFrom AS date) IS NULL OR sp.paymentDate >= :paymentDateFrom) " +
+            "AND (CAST(:paymentDateTo AS date) IS NULL OR sp.paymentDate <= :paymentDateTo) " +
+            "AND (CAST(:minAmount AS BigDecimal) IS NULL OR sp.amount >= :minAmount) " +
+            "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.amount <= :maxAmount)")
     Page<SalaryPayment> findAllWithFilters(
             @Param("employeeId") Long employeeId,
             @Param("firstName") String firstName,
@@ -47,7 +47,7 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND YEAR(sp.paymentDate) = :year " +
             "AND MONTH(sp.paymentDate) = :month " +
             "AND sp.employee.deleted = false " +
-            "AND (:excludePaymentId IS NULL OR sp.id != :excludePaymentId)")
+            "AND (CAST(:excludePaymentId AS long) IS NULL OR sp.id != :excludePaymentId)")
     boolean existsMonthlyPaymentForEmployeeInMonth(
             @Param("employeeId") Long employeeId,
             @Param("year") int year,
@@ -61,7 +61,7 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND YEAR(sp.paymentDate) = :year " +
             "AND MONTH(sp.paymentDate) = :month " +
             "AND sp.employee.deleted = false " +
-            "AND (:excludePaymentId IS NULL OR sp.id != :excludePaymentId)")
+            "AND (CAST(:excludePaymentId AS long) IS NULL OR sp.id != :excludePaymentId)")
     long countBiweeklyPaymentsForEmployeeInMonth(
             @Param("employeeId") Long employeeId,
             @Param("year") int year,

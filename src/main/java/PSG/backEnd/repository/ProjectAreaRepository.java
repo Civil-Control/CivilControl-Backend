@@ -19,7 +19,7 @@ public interface ProjectAreaRepository extends JpaRepository<ProjectArea, Long> 
     @Query("SELECT p FROM ProjectArea p " +
            "WHERE p.deleted = false " +
            "AND (:name IS NULL OR LOWER(CAST(p.name AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))) " +
-           "AND (:active IS NULL OR p.active = :active)")
+           "AND (CAST(:active AS boolean) IS NULL OR p.active = :active)")
     Page<ProjectArea> findAllWithFilters (
             @Param("name") String name,
             @Param("active") Boolean active,

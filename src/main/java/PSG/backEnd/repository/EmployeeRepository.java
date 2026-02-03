@@ -30,13 +30,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             "AND (:lastName IS NULL OR LOWER(CAST(e.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
             "AND (:dni IS NULL OR e.dni LIKE %:dni%) " +
             "AND (:cuil IS NULL OR e.cuil LIKE %:cuil%) " +
-            "AND (:projectAreaId IS NULL OR e.projectArea.id = :projectAreaId) " +
+            "AND (CAST(:projectAreaId AS long) IS NULL OR e.projectArea.id = :projectAreaId) " +
             "AND (:city IS NULL OR LOWER(CAST(e.address.city AS string)) LIKE LOWER(CONCAT('%', CAST(:city AS string), '%'))) " +
-            "AND (:employmentType IS NULL OR e.employmentType = :employmentType) " +
-            "AND (:employeeStatus IS NULL OR e.employeeStatus = :employeeStatus) " +
-            "AND (:employeeRole IS NULL OR e.employeeRole = :employeeRole) " +
-            "AND (:hireDateFrom IS NULL OR e.hireDate >= :hireDateFrom) " +
-            "AND (:hireDateTo IS NULL OR e.hireDate <= :hireDateTo) " +
+            "AND (CAST(:employmentType AS string) IS NULL OR e.employmentType = :employmentType) " +
+            "AND (CAST(:employeeStatus AS string) IS NULL OR e.employeeStatus = :employeeStatus) " +
+            "AND (CAST(:employeeRole AS string) IS NULL OR e.employeeRole = :employeeRole) " +
+            "AND (CAST(:hireDateFrom AS date) IS NULL OR e.hireDate >= :hireDateFrom) " +
+            "AND (CAST(:hireDateTo AS date) IS NULL OR e.hireDate <= :hireDateTo) " +
             "AND e.deleted = false")
     Page<Employee> findAllWithFilters(
             @Param("name") String name,

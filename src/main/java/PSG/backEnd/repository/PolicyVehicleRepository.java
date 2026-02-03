@@ -27,17 +27,17 @@ public interface PolicyVehicleRepository extends JpaRepository<PolicyVehicle, Lo
             "JOIN pv.vehicle v " +
             "JOIN pv.autoPolicy ap " +
             "JOIN ap.insurancePolicy ip " +
-            "WHERE (:vehicleId IS NULL OR pv.vehicle.id = :vehicleId) " +
-            "AND (:autoPolicyId IS NULL OR pv.autoPolicy.id = :autoPolicyId) " +
+            "WHERE (CAST(:vehicleId AS long) IS NULL OR pv.vehicle.id = :vehicleId) " +
+            "AND (CAST(:autoPolicyId AS long) IS NULL OR pv.autoPolicy.id = :autoPolicyId) " +
             "AND (:licensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS string), '%'))) " +
             "AND (:vehicleBrand IS NULL OR LOWER(CAST(v.brand AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleBrand AS string), '%'))) " +
             "AND (:vehicleModel IS NULL OR LOWER(CAST(v.model AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleModel AS string), '%'))) " +
             "AND (:policyNumber IS NULL OR LOWER(CAST(ip.policyNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:policyNumber AS string), '%'))) " +
-            "AND (:effectiveFromStart IS NULL OR pv.effectiveFrom >= :effectiveFromStart) " +
-            "AND (:effectiveFromEnd IS NULL OR pv.effectiveFrom <= :effectiveFromEnd) " +
-            "AND (:effectiveToStart IS NULL OR pv.effectiveTo >= :effectiveToStart) " +
-            "AND (:effectiveToEnd IS NULL OR pv.effectiveTo <= :effectiveToEnd) " +
-            "AND (:isCancelled IS NULL OR " +
+            "AND (CAST(:effectiveFromStart AS date) IS NULL OR pv.effectiveFrom >= :effectiveFromStart) " +
+            "AND (CAST(:effectiveFromEnd AS date) IS NULL OR pv.effectiveFrom <= :effectiveFromEnd) " +
+            "AND (CAST(:effectiveToStart AS date) IS NULL OR pv.effectiveTo >= :effectiveToStart) " +
+            "AND (CAST(:effectiveToEnd AS date) IS NULL OR pv.effectiveTo <= :effectiveToEnd) " +
+            "AND (CAST(:isCancelled AS boolean) IS NULL OR " +
             "     (:isCancelled = true AND pv.cancellationDate IS NOT NULL) OR " +
             "     (:isCancelled = false AND pv.cancellationDate IS NULL)) " +
             "AND pv.deleted = false " +

@@ -27,16 +27,16 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             "LEFT JOIN fl.vehicle v " +
             "LEFT JOIN fl.projectArea pa " +
             "LEFT JOIN fl.gasStation gs " +
-            "WHERE (:dateFrom IS NULL OR fl.date >= :dateFrom) " +
-            "AND (:dateTo IS NULL OR fl.date <= :dateTo) " +
+            "WHERE (CAST(:dateFrom AS date) IS NULL OR fl.date >= :dateFrom) " +
+            "AND (CAST(:dateTo AS date) IS NULL OR fl.date <= :dateTo) " +
             "AND (:branchCode IS NULL OR LOWER(CAST(fl.branchCode AS string)) LIKE LOWER(CONCAT('%', CAST(:branchCode AS string), '%'))) " +
             "AND (:ticketNumber IS NULL OR LOWER(CAST(fl.ticketNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:ticketNumber AS string), '%'))) " +
             "AND (:fuelType IS NULL OR LOWER(CAST(fl.fuelType AS string)) LIKE LOWER(CONCAT('%', CAST(:fuelType AS string), '%'))) " +
-            "AND (:vehicleId IS NULL OR fl.vehicle.id = :vehicleId) " +
+            "AND (CAST(:vehicleId AS long) IS NULL OR fl.vehicle.id = :vehicleId) " +
             "AND (:vehicleLicensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleLicensePlate AS string), '%'))) " +
-            "AND (:projectAreaId IS NULL OR fl.projectArea.id = :projectAreaId) " +
+            "AND (CAST(:projectAreaId AS long) IS NULL OR fl.projectArea.id = :projectAreaId) " +
             "AND (:projectAreaName IS NULL OR LOWER(CAST(pa.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))) " +
-            "AND (:gasStationId IS NULL OR fl.gasStation.id = :gasStationId)")
+            "AND (CAST(:gasStationId AS long) IS NULL OR fl.gasStation.id = :gasStationId)")
     Page<FuelLoad> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,

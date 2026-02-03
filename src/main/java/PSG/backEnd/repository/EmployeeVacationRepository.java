@@ -35,7 +35,7 @@ public interface EmployeeVacationRepository extends JpaRepository<EmployeeVacati
             "WHERE ev.deleted = false " +
             "AND ev.employee.deleted = false " +
             "AND ev.employee.id = :employeeId " +
-            "AND (:excludeId IS NULL OR ev.id <> :excludeId) " +
+            "AND (CAST(:excludeId AS long) IS NULL OR ev.id <> :excludeId) " +
             "AND ev.startDate <= :endDate " +
             "AND ev.endDate >= :startDate")
     boolean existsOverlappingVacation(

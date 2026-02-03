@@ -22,14 +22,14 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
     @Query("SELECT r FROM Repair r " +
             "LEFT JOIN r.vehicle v " +
             "LEFT JOIN r.supplier s " +
-            "WHERE (:dateFrom IS NULL OR r.date >= :dateFrom) " +
-            "AND (:dateTo IS NULL OR r.date <= :dateTo) " +
-            "AND (:vehicleId IS NULL OR r.vehicle.id = :vehicleId) " +
+            "WHERE (CAST(:dateFrom AS date) IS NULL OR r.date >= :dateFrom) " +
+            "AND (CAST(:dateTo AS date) IS NULL OR r.date <= :dateTo) " +
+            "AND (CAST(:vehicleId AS long) IS NULL OR r.vehicle.id = :vehicleId) " +
             "AND (:licensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS string), '%'))) " +
-            "AND (:minCost IS NULL OR r.cost >= :minCost) " +
-            "AND (:maxCost IS NULL OR r.cost <= :maxCost) " +
+            "AND (CAST(:minCost AS BigDecimal) IS NULL OR r.cost >= :minCost) " +
+            "AND (CAST(:maxCost AS BigDecimal) IS NULL OR r.cost <= :maxCost) " +
             "AND (:employee IS NULL OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:employee AS string), '%'))) " +
-            "AND (:supplierId IS NULL OR r.supplier.id = :supplierId) " +
+            "AND (CAST(:supplierId AS long) IS NULL OR r.supplier.id = :supplierId) " +
             "AND (:supplierName IS NULL OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
             "AND (:repairType IS NULL OR LOWER(CAST(r.repairType AS string)) LIKE LOWER(CONCAT('%', CAST(:repairType AS string), '%')))")
     Page<Repair> findAllWithFilters(

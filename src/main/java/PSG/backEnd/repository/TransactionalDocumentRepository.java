@@ -33,16 +33,16 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
                  LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR
                  LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))
             )
-            AND (:projectAreaId IS NULL OR pa.id = :projectAreaId)
+            AND (CAST(:projectAreaId AS long) IS NULL OR pa.id = :projectAreaId)
             AND (:projectAreaName IS NULL OR 
                  LOWER(CAST(pa.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))
             )
-            AND (:maxTotalAmount IS NULL OR td.total <= :maxTotalAmount)
-            AND (:minTotalAmount IS NULL OR td.total >= :minTotalAmount)
-            AND (:totalAmount IS NULL OR td.total = :totalAmount)
-            AND (:fromDate IS NULL OR td.date >= :fromDate)
-            AND (:toDate IS NULL OR td.date <= :toDate)
-            AND (:paid IS NULL OR td.paid = :paid)
+            AND (CAST(:maxTotalAmount AS BigDecimal) IS NULL OR td.total <= :maxTotalAmount)
+            AND (CAST(:minTotalAmount AS BigDecimal) IS NULL OR td.total >= :minTotalAmount)
+            AND (CAST(:totalAmount AS BigDecimal) IS NULL OR td.total = :totalAmount)
+            AND (CAST(:fromDate AS date) IS NULL OR td.date >= :fromDate)
+            AND (CAST(:toDate AS date) IS NULL OR td.date <= :toDate)
+            AND (CAST(:paid AS boolean) IS NULL OR td.paid = :paid)
             AND td.deleted = false
            """)
     Page<TransactionalDocument> findAllWithFilters(

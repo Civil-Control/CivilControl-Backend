@@ -109,7 +109,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "AND (:email IS NULL OR LOWER(CAST(u.email AS string)) LIKE LOWER(CONCAT('%', CAST(:email AS string), '%'))) " +
             "AND (:firstName IS NULL OR LOWER(CAST(u.firstName AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
             "AND (:lastName IS NULL OR LOWER(CAST(u.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
-            "AND (:enabled IS NULL OR u.enabled = :enabled)")
+            "AND (CAST(:enabled AS boolean) IS NULL OR u.enabled = :enabled)")
     Page<User> findAllWithFiltersExcludingUsername(
             @Param("excludeUsername") String excludeUsername,
             @Param("username") String username,

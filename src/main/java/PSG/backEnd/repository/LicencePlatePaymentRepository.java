@@ -18,13 +18,13 @@ public interface LicencePlatePaymentRepository extends JpaRepository<LicencePlat
     Optional<LicencePlatePayment> findByVehicleIdAndYearAndPeriod(Long vehicleId, Integer year, Integer period);
 
     @Query("SELECT lpp FROM LicencePlatePayment lpp " +
-            "WHERE (:dateFrom IS NULL OR lpp.date >= :dateFrom) " +
-            "AND (:dateTo IS NULL OR lpp.date <= :dateTo) " +
-            "AND (:vehicleId IS NULL OR lpp.vehicleId = :vehicleId) " +
-            "AND (:minAmount IS NULL OR lpp.amount >= :minAmount) " +
-            "AND (:maxAmount IS NULL OR lpp.amount <= :maxAmount) " +
-            "AND (:year IS NULL OR lpp.year = :year) " +
-            "AND (:period IS NULL OR lpp.period = :period) " +
+            "WHERE (CAST(:dateFrom AS date) IS NULL OR lpp.date >= :dateFrom) " +
+            "AND (CAST(:dateTo AS date) IS NULL OR lpp.date <= :dateTo) " +
+            "AND (CAST(:vehicleId AS long) IS NULL OR lpp.vehicleId = :vehicleId) " +
+            "AND (CAST(:minAmount AS BigDecimal) IS NULL OR lpp.amount >= :minAmount) " +
+            "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR lpp.amount <= :maxAmount) " +
+            "AND (CAST(:year AS integer) IS NULL OR lpp.year = :year) " +
+            "AND (CAST(:period AS integer) IS NULL OR lpp.period = :period) " +
             "AND (:jurisdictionType IS NULL OR LOWER(CAST(lpp.jurisdictionType AS string)) LIKE LOWER(CONCAT('%', CAST(:jurisdictionType AS string), '%')))")
     Page<LicencePlatePayment> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,

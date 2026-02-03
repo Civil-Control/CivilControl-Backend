@@ -22,9 +22,9 @@ public interface EppDeliveryRepository extends JpaRepository<EppDelivery, Long> 
     @Query("SELECT ed FROM EppDelivery ed " +
             "WHERE ed.deleted = false " +
             "AND ed.employee.deleted = false " +
-            "AND (:employeeId IS NULL OR ed.employee.id = :employeeId) " +
-            "AND (:deliveryDateFrom IS NULL OR ed.deliveryDate >= :deliveryDateFrom) " +
-            "AND (:deliveryDateTo IS NULL OR ed.deliveryDate <= :deliveryDateTo) " +
+            "AND (CAST(:employeeId AS long) IS NULL OR ed.employee.id = :employeeId) " +
+            "AND (CAST(:deliveryDateFrom AS date) IS NULL OR ed.deliveryDate >= :deliveryDateFrom) " +
+            "AND (CAST(:deliveryDateTo AS date) IS NULL OR ed.deliveryDate <= :deliveryDateTo) " +
             "AND (:itemName IS NULL OR LOWER(CAST(ed.itemName AS string)) LIKE LOWER(CONCAT('%', CAST(:itemName AS string), '%'))) " +
             "AND (:itemType IS NULL OR LOWER(CAST(ed.itemType AS string)) LIKE LOWER(CONCAT('%', CAST(:itemType AS string), '%'))) " +
             "AND (:brand IS NULL OR LOWER(CAST(ed.brand AS string)) LIKE LOWER(CONCAT('%', CAST(:brand AS string), '%')))")

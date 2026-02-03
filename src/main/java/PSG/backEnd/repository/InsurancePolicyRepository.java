@@ -28,13 +28,13 @@ public interface InsurancePolicyRepository extends JpaRepository<InsurancePolicy
             "AND (:policyType IS NULL OR CAST(ip.policyType AS string) = :policyType) " +
             "AND (:policyStatus IS NULL OR CAST(ip.policyStatus AS string) = :policyStatus) " +
             "AND (:paymentFrequency IS NULL OR CAST(ip.paymentFrequency AS string) = :paymentFrequency) " +
-            "AND (:issueDateFrom IS NULL OR ip.issueDate >= :issueDateFrom) " +
-            "AND (:issueDateTo IS NULL OR ip.issueDate <= :issueDateTo) " +
-            "AND (:effectiveFromStart IS NULL OR ip.effectiveFrom >= :effectiveFromStart) " +
-            "AND (:effectiveFromEnd IS NULL OR ip.effectiveFrom <= :effectiveFromEnd) " +
-            "AND (:effectiveToStart IS NULL OR ip.effectiveTo >= :effectiveToStart) " +
-            "AND (:effectiveToEnd IS NULL OR ip.effectiveTo <= :effectiveToEnd) " +
-            "AND (:isCancelled IS NULL OR " +
+            "AND (CAST(:issueDateFrom AS date) IS NULL OR ip.issueDate >= :issueDateFrom) " +
+            "AND (CAST(:issueDateTo AS date) IS NULL OR ip.issueDate <= :issueDateTo) " +
+            "AND (CAST(:effectiveFromStart AS date) IS NULL OR ip.effectiveFrom >= :effectiveFromStart) " +
+            "AND (CAST(:effectiveFromEnd AS date) IS NULL OR ip.effectiveFrom <= :effectiveFromEnd) " +
+            "AND (CAST(:effectiveToStart AS date) IS NULL OR ip.effectiveTo >= :effectiveToStart) " +
+            "AND (CAST(:effectiveToEnd AS date) IS NULL OR ip.effectiveTo <= :effectiveToEnd) " +
+            "AND (CAST(:isCancelled AS boolean) IS NULL OR " +
             "     (:isCancelled = true AND ip.cancellationDate IS NOT NULL) OR " +
             "     (:isCancelled = false AND ip.cancellationDate IS NULL)) " +
             "AND ip.deleted = false " +

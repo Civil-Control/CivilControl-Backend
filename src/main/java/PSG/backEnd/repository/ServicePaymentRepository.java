@@ -35,13 +35,13 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
 
     @Query("SELECT sp FROM ServicePayment sp " +
             "WHERE sp.deleted = false " +
-            "AND (:serviceSupplierId IS NULL OR sp.serviceSupplier.id = :serviceSupplierId) " +
-            "AND (:buildingId IS NULL OR sp.building.id = :buildingId) " +
-            "AND (:serviceType IS NULL OR sp.serviceType = :serviceType) " +
-            "AND (:startDate IS NULL OR sp.paymentDate >= :startDate) " +
-            "AND (:endDate IS NULL OR sp.paymentDate <= :endDate) " +
-            "AND (:minAmount IS NULL OR sp.amount >= :minAmount) " +
-            "AND (:maxAmount IS NULL OR sp.amount <= :maxAmount) " +
+            "AND (CAST(:serviceSupplierId AS long) IS NULL OR sp.serviceSupplier.id = :serviceSupplierId) " +
+            "AND (CAST(:buildingId AS long) IS NULL OR sp.building.id = :buildingId) " +
+            "AND (CAST(:serviceType AS string) IS NULL OR sp.serviceType = :serviceType) " +
+            "AND (CAST(:startDate AS date) IS NULL OR sp.paymentDate >= :startDate) " +
+            "AND (CAST(:endDate AS date) IS NULL OR sp.paymentDate <= :endDate) " +
+            "AND (CAST(:minAmount AS BigDecimal) IS NULL OR sp.amount >= :minAmount) " +
+            "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.amount <= :maxAmount) " +
             "AND (:referenceNumber IS NULL OR LOWER(CAST(sp.referenceNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:referenceNumber AS string), '%')))")
     Page<ServicePayment> findAllWithFilters(
             @Param("serviceSupplierId") Long serviceSupplierId,
@@ -62,7 +62,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             "AND YEAR(sp.paymentDate) = :year " +
             "AND MONTH(sp.paymentDate) = :month " +
             "AND sp.deleted = false " +
-            "AND (:excludePaymentId IS NULL OR sp.id != :excludePaymentId)")
+            "AND (CAST(:excludePaymentId AS long) IS NULL OR sp.id != :excludePaymentId)")
     boolean existsPaymentForServiceInMonth(
             @Param("serviceSupplierId") Long serviceSupplierId,
             @Param("buildingId") Long buildingId,
