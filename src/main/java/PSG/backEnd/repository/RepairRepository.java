@@ -26,6 +26,7 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             "AND (CAST(:dateTo AS date) IS NULL OR r.date <= :dateTo) " +
             "AND (CAST(:vehicleId AS long) IS NULL OR r.vehicle.id = :vehicleId) " +
             "AND (:licensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS string), '%'))) " +
+            "AND (CAST(:projectAreaId AS long) IS NULL OR v.projectArea.id = :projectAreaId) " +
             "AND (CAST(:minCost AS BigDecimal) IS NULL OR r.cost >= :minCost) " +
             "AND (CAST(:maxCost AS BigDecimal) IS NULL OR r.cost <= :maxCost) " +
             "AND (:employee IS NULL OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:employee AS string), '%'))) " +
@@ -37,6 +38,7 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             @Param("dateTo") LocalDate dateTo,
             @Param("vehicleId") Long vehicleId,
             @Param("licensePlate") String licensePlate,
+            @Param("projectAreaId") Long projectAreaId,
             @Param("minCost") BigDecimal minCost,
             @Param("maxCost") BigDecimal maxCost,
             @Param("employee") String employee,

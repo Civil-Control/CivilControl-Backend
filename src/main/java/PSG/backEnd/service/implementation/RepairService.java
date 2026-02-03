@@ -67,6 +67,7 @@ public class RepairService implements IRepairService {
                 filterDTO.dateTo(),
                 filterDTO.vehicleId(),
                 filterDTO.vehicleLicensePlate(),
+                filterDTO.projectAreaId(),
                 filterDTO.minCost(),
                 filterDTO.maxCost(),
                 filterDTO.employee(),

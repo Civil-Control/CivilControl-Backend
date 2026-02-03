@@ -28,6 +28,11 @@ public record LicencePlatePaymentFilterDTO(
                 nullable = true)
         String vehicleLicensePlate,
 
+        @Schema(description = "Filter by project area ID.",
+                example = "5",
+                nullable = true)
+        Long projectAreaId,
+
         @Schema(description = "Minimum payment amount (inclusive).",
                 example = "1000.00",
                 nullable = true)

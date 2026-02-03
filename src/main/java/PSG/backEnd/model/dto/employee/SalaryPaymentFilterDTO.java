@@ -29,6 +29,11 @@ public record SalaryPaymentFilterDTO(
             nullable = true)
     SalaryFrecuency salaryFrequency,
 
+    @Schema(description = "Filter by project area ID. Returns salary payments for employees assigned to this project area.",
+            example = "5",
+            nullable = true)
+    Long projectAreaId,
+
     @Schema(description = "Filter by minimum payment date. Returns salary payments from this date onwards.",
             example = "2025-01-01",
             nullable = true)

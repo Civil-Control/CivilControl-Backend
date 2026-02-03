@@ -25,6 +25,7 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND (:firstName IS NULL OR LOWER(CAST(sp.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
             "AND (:lastName IS NULL OR LOWER(CAST(sp.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
             "AND (CAST(:salaryFrequency AS string) IS NULL OR sp.salaryFrequency = :salaryFrequency) " +
+            "AND (CAST(:projectAreaId AS long) IS NULL OR sp.employee.projectArea.id = :projectAreaId) " +
             "AND (CAST(:paymentDateFrom AS date) IS NULL OR sp.paymentDate >= :paymentDateFrom) " +
             "AND (CAST(:paymentDateTo AS date) IS NULL OR sp.paymentDate <= :paymentDateTo) " +
             "AND (CAST(:minAmount AS BigDecimal) IS NULL OR sp.amount >= :minAmount) " +
@@ -34,6 +35,7 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             @Param("firstName") String firstName,
             @Param("lastName") String lastName,
             @Param("salaryFrequency") SalaryFrecuency salaryFrequency,
+            @Param("projectAreaId") Long projectAreaId,
             @Param("paymentDateFrom") LocalDate paymentDateFrom,
             @Param("paymentDateTo") LocalDate paymentDateTo,
             @Param("minAmount") BigDecimal minAmount,

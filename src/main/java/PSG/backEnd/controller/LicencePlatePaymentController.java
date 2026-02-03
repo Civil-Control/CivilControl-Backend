@@ -55,6 +55,7 @@ public class LicencePlatePaymentController {
             @Parameter(description = "Filter payments to this date (inclusive)") @RequestParam(required = false) LocalDate dateTo,
             @Parameter(description = "Filter by vehicle ID") @RequestParam(required = false) Long vehicleId,
             @Parameter(description = "Filter by vehicle license plate") @RequestParam(required = false) String vehicleLicensePlate,
+            @Parameter(description = "Filter by project area ID") @RequestParam(required = false) Long projectAreaId,
             @Parameter(description = "Minimum payment amount") @RequestParam(required = false) BigDecimal minAmount,
             @Parameter(description = "Maximum payment amount") @RequestParam(required = false) BigDecimal maxAmount,
             @Parameter(description = "Filter by payment year") @RequestParam(required = false) Integer year,
@@ -73,7 +74,7 @@ public class LicencePlatePaymentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         LicencePlatePaymentFilterDTO filterDTO = new LicencePlatePaymentFilterDTO(
-                dateFrom, dateTo, vehicleId, vehicleLicensePlate,
+                dateFrom, dateTo, vehicleId, vehicleLicensePlate, projectAreaId,
                 minAmount, maxAmount, year, period, jurisdictionType
         );
 

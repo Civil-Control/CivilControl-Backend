@@ -57,6 +57,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
                 filterDTO.firstName(),
                 filterDTO.lastName(),
                 filterDTO.salaryFrequency(),
+                filterDTO.projectAreaId(),
                 filterDTO.paymentDateFrom(),
                 filterDTO.paymentDateTo(),
                 filterDTO.minAmount(),

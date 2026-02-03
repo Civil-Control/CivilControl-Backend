@@ -75,6 +75,7 @@ public class ServicePaymentService implements IServicePaymentService {
         Page<ServicePayment> servicePayments = servicePaymentRepository.findAllWithFilters(
                 filterDTO.serviceSupplierId(),
                 filterDTO.buildingId(),
+                filterDTO.projectAreaId(),
                 filterDTO.serviceType(),
                 filterDTO.startDate(),
                 filterDTO.endDate(),

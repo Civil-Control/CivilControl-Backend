@@ -18,9 +18,11 @@ public interface LicencePlatePaymentRepository extends JpaRepository<LicencePlat
     Optional<LicencePlatePayment> findByVehicleIdAndYearAndPeriod(Long vehicleId, Integer year, Integer period);
 
     @Query("SELECT lpp FROM LicencePlatePayment lpp " +
+            "LEFT JOIN Vehicle v ON lpp.vehicleId = v.id " +
             "WHERE (CAST(:dateFrom AS date) IS NULL OR lpp.date >= :dateFrom) " +
             "AND (CAST(:dateTo AS date) IS NULL OR lpp.date <= :dateTo) " +
             "AND (CAST(:vehicleId AS long) IS NULL OR lpp.vehicleId = :vehicleId) " +
+            "AND (CAST(:projectAreaId AS long) IS NULL OR v.projectArea.id = :projectAreaId) " +
             "AND (CAST(:minAmount AS BigDecimal) IS NULL OR lpp.amount >= :minAmount) " +
             "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR lpp.amount <= :maxAmount) " +
             "AND (CAST(:year AS integer) IS NULL OR lpp.year = :year) " +
@@ -30,6 +32,7 @@ public interface LicencePlatePaymentRepository extends JpaRepository<LicencePlat
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
             @Param("vehicleId") Long vehicleId,
+            @Param("projectAreaId") Long projectAreaId,
             @Param("minAmount") BigDecimal minAmount,
             @Param("maxAmount") BigDecimal maxAmount,
             @Param("year") Integer year,

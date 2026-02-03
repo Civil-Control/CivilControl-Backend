@@ -65,6 +65,9 @@ public class ServicePaymentController {
             @Parameter(description = "Filter by building ID")
             @RequestParam(required = false) Long buildingId,
 
+            @Parameter(description = "Filter by project area ID")
+            @RequestParam(required = false) Long projectAreaId,
+
             @Parameter(description = "Filter by service type (LUZ, AGUA, GAS, INTERNET, TELEFONIA, etc.)")
             @RequestParam(required = false) ServiceType serviceType,
 
@@ -103,7 +106,7 @@ public class ServicePaymentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         ServicePaymentFilterDTO filterDTO = new ServicePaymentFilterDTO(
-                serviceSupplierId, buildingId, serviceType,
+                serviceSupplierId, buildingId, projectAreaId, serviceType,
                 startDate, endDate, minAmount, maxAmount, referenceNumber
         );
 

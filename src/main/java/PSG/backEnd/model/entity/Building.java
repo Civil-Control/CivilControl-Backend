@@ -42,6 +42,10 @@ public class Building {
     private Boolean deleted = false; // Soft delete flag
 
     // Relationships
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_id")
+    private ProjectArea projectArea; // Project area to which the building belongs
+
     // private List<TaxOrService> taxesAndServices;  // List of taxes and services associated with the building unused until further notice
 
     @OneToMany(mappedBy = "building", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

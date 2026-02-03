@@ -37,6 +37,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             "WHERE sp.deleted = false " +
             "AND (CAST(:serviceSupplierId AS long) IS NULL OR sp.serviceSupplier.id = :serviceSupplierId) " +
             "AND (CAST(:buildingId AS long) IS NULL OR sp.building.id = :buildingId) " +
+            "AND (CAST(:projectAreaId AS long) IS NULL OR sp.building.projectArea.id = :projectAreaId) " +
             "AND (CAST(:serviceType AS string) IS NULL OR sp.serviceType = :serviceType) " +
             "AND (CAST(:startDate AS date) IS NULL OR sp.paymentDate >= :startDate) " +
             "AND (CAST(:endDate AS date) IS NULL OR sp.paymentDate <= :endDate) " +
@@ -46,6 +47,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
     Page<ServicePayment> findAllWithFilters(
             @Param("serviceSupplierId") Long serviceSupplierId,
             @Param("buildingId") Long buildingId,
+            @Param("projectAreaId") Long projectAreaId,
             @Param("serviceType") ServiceType serviceType,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,

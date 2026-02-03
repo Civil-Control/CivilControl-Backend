@@ -28,6 +28,11 @@ public record RepairFilterDTO(
                 nullable = true)
         String vehicleLicensePlate,
 
+        @Schema(description = "Filter by project area ID.",
+                example = "5",
+                nullable = true)
+        Long projectAreaId,
+
         @Schema(description = "Minimum repair cost (inclusive).",
                 example = "100.00",
                 nullable = true)

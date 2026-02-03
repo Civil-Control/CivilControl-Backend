@@ -60,6 +60,7 @@ public class SalaryPaymentController {
             @Parameter(description = "Filter by employee first name (case-insensitive partial match)") @RequestParam(required = false) String firstName,
             @Parameter(description = "Filter by employee last name (case-insensitive partial match)") @RequestParam(required = false) String lastName,
             @Parameter(description = "Filter by salary frequency (MONTHLY, BIWEEKLY, WEEKLY)") @RequestParam(required = false) SalaryFrecuency salaryFrequency,
+            @Parameter(description = "Filter by project area ID") @RequestParam(required = false) Long projectAreaId,
             @Parameter(description = "Filter by minimum payment date") @RequestParam(required = false) LocalDate paymentDateFrom,
             @Parameter(description = "Filter by maximum payment date") @RequestParam(required = false) LocalDate paymentDateTo,
             @Parameter(description = "Filter by minimum payment amount") @RequestParam(required = false) BigDecimal minAmount,
@@ -78,7 +79,7 @@ public class SalaryPaymentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         SalaryPaymentFilterDTO filterDTO = new SalaryPaymentFilterDTO(
-                employeeId, firstName, lastName, salaryFrequency, paymentDateFrom, paymentDateTo,
+                employeeId, firstName, lastName, salaryFrequency, projectAreaId, paymentDateFrom, paymentDateTo,
                 minAmount, maxAmount
         );
 

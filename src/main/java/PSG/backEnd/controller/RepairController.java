@@ -55,6 +55,7 @@ public class RepairController {
             @Parameter(description = "Filter repairs to this date (inclusive)") @RequestParam(required = false) LocalDate dateTo,
             @Parameter(description = "Filter by vehicle ID") @RequestParam(required = false) Long vehicleId,
             @Parameter(description = "Filter by vehicle license plate") @RequestParam(required = false) String vehicleLicensePlate,
+            @Parameter(description = "Filter by project area ID") @RequestParam(required = false) Long projectAreaId,
             @Parameter(description = "Minimum repair cost") @RequestParam(required = false) BigDecimal minCost,
             @Parameter(description = "Maximum repair cost") @RequestParam(required = false) BigDecimal maxCost,
             @Parameter(description = "Filter by employee name") @RequestParam(required = false) String employee,
@@ -70,7 +71,7 @@ public class RepairController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         RepairFilterDTO filterDTO = new RepairFilterDTO(
-                dateFrom, dateTo, vehicleId, vehicleLicensePlate,
+                dateFrom, dateTo, vehicleId, vehicleLicensePlate, projectAreaId,
                 minCost, maxCost, employee, supplierId, supplierLegalName, repairType
         );
 

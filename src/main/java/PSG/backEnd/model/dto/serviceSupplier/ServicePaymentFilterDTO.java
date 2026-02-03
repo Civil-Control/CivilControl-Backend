@@ -17,6 +17,10 @@ public record ServicePaymentFilterDTO(
                 example = "12")
         Long buildingId,
 
+        @Schema(description = "Filter by project area ID.",
+                example = "5")
+        Long projectAreaId,
+
         @Schema(description = "Filter by service type.",
                 example = "LUZ")
         ServiceType serviceType,

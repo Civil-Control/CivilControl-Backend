@@ -457,6 +457,7 @@ public class ReportService implements IReportService {
                 null, // firstName
                 null, // lastName
                 null, // salaryFrequency
+                null, // projectAreaId
                 filters.startDate(),
                 filters.endDate(),
                 filters.minAmount(),
@@ -497,6 +498,7 @@ public class ReportService implements IReportService {
         var servicePayments = servicePaymentRepository.findAllWithFilters(
                 null, // serviceSupplierId
                 null, // buildingId
+                null, // projectAreaId
                 null, // serviceType
                 filters.startDate(),
                 filters.endDate(),
@@ -541,6 +543,7 @@ public class ReportService implements IReportService {
                 filters.startDate(),
                 filters.endDate(),
                 null, // vehicleId
+                null, // projectAreaId
                 filters.minAmount(),
                 filters.maxAmount(),
                 null, // year
@@ -702,6 +705,7 @@ public class ReportService implements IReportService {
                 filters.endDate(),
                 null, // vehicleId
                 null, // licensePlate
+                null, // projectAreaId
                 filters.minAmount(),
                 filters.maxAmount(),
                 null, // employee
