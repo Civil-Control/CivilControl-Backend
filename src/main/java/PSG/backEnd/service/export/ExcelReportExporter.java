@@ -170,6 +170,13 @@ public class ExcelReportExporter implements IReportExporter {
         countRow.createCell(0).setCellValue("Total registros:");
         countRow.createCell(1).setCellValue(report.totalCount());
 
+        // Add project area if filtered
+        if (report.projectAreaName() != null) {
+            Row projectAreaRow = sheet.createRow(rowNum++);
+            projectAreaRow.createCell(0).setCellValue("Sector:");
+            projectAreaRow.createCell(1).setCellValue(report.projectAreaName());
+        }
+
         rowNum += 2;
 
         // Summary table headers
@@ -256,20 +263,29 @@ public class ExcelReportExporter implements IReportExporter {
      * Adds metadata information to the sheet.
      */
     private void addMetadataToSheet(Sheet sheet, MoneyOutflowReportDTO report, int startRow) {
-        Row periodRow = sheet.createRow(startRow);
+        int currentRow = startRow;
+
+        Row periodRow = sheet.createRow(currentRow++);
         periodRow.createCell(0).setCellValue("Período:");
         periodRow.createCell(1).setCellValue(report.periodDescription());
 
-        Row dateRow = sheet.createRow(startRow + 1);
+        Row dateRow = sheet.createRow(currentRow++);
         dateRow.createCell(0).setCellValue("Fecha generación:");
         dateRow.createCell(1).setCellValue(report.generatedAt().format(DATETIME_FORMATTER));
 
-        Row countRow = sheet.createRow(startRow + 2);
+        Row countRow = sheet.createRow(currentRow++);
         countRow.createCell(0).setCellValue("Total registros:");
         countRow.createCell(1).setCellValue(report.totalCount());
 
+        // Add project area if filtered
+        if (report.projectAreaName() != null) {
+            Row projectAreaRow = sheet.createRow(currentRow++);
+            projectAreaRow.createCell(0).setCellValue("Sector:");
+            projectAreaRow.createCell(1).setCellValue(report.projectAreaName());
+        }
+
         if (report.filters().categories() != null && !report.filters().categories().isEmpty()) {
-            Row categoryRow = sheet.createRow(startRow + 3);
+            Row categoryRow = sheet.createRow(currentRow++);
             categoryRow.createCell(0).setCellValue("Categorías:");
             String categoriesStr = report.filters().categories().stream()
                     .map(MoneyOutflowCategory::getDisplayName)

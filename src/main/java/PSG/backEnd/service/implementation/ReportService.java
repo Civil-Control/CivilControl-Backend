@@ -57,6 +57,7 @@ public class ReportService implements IReportService {
     private final FuelLoadRepository fuelLoadRepository;
     private final InsurancePolicyRepository insurancePolicyRepository;
     private final RepairRepository repairRepository;
+    private final ProjectAreaRepository projectAreaRepository;
     private final MessageSourceHelper messageSourceHelper;
 
     /**
@@ -72,6 +73,7 @@ public class ReportService implements IReportService {
             FuelLoadRepository fuelLoadRepository,
             InsurancePolicyRepository insurancePolicyRepository,
             RepairRepository repairRepository,
+            ProjectAreaRepository projectAreaRepository,
             MessageSourceHelper messageSourceHelper) {
 
         this.exporters = exporterList.stream()
@@ -87,6 +89,7 @@ public class ReportService implements IReportService {
         this.fuelLoadRepository = fuelLoadRepository;
         this.insurancePolicyRepository = insurancePolicyRepository;
         this.repairRepository = repairRepository;
+        this.projectAreaRepository = projectAreaRepository;
         this.messageSourceHelper = messageSourceHelper;
 
         log.info("ReportService initialized with {} exporters: {}",
@@ -112,6 +115,9 @@ public class ReportService implements IReportService {
         BigDecimal totalAmount = calculateTotalAmount(items);
         Map<MoneyOutflowCategory, BigDecimal> summaryByCategory = calculateSummaryByCategory(items);
 
+        // Get project area name if filtered
+        String projectAreaName = getProjectAreaName(filters.projectAreaId());
+
         // Build report
         MoneyOutflowReportDTO report = MoneyOutflowReportDTO.builder()
                 .filters(filters)
@@ -122,6 +128,7 @@ public class ReportService implements IReportService {
                 .summaryByCategory(summaryByCategory)
                 .reportName("Reporte de Salidas de Dinero")
                 .periodDescription(buildPeriodDescription(filters))
+                .projectAreaName(projectAreaName)
                 .build();
 
         log.info("Report generated successfully with {} items, total amount: ${}",
@@ -182,6 +189,9 @@ public class ReportService implements IReportService {
         Map<MoneyOutflowCategory, BigDecimal> summaryByCategory = calculateSummaryByCategory(items);
         Map<MoneyOutflowCategory, Integer> countByCategory = calculateCountByCategory(items);
 
+        // Get project area name if filtered
+        String projectAreaName = getProjectAreaName(filters.projectAreaId());
+
         // Build preview (without items list)
         MoneyOutflowReportPreviewDTO preview = MoneyOutflowReportPreviewDTO.builder()
                 .filters(filters)
@@ -192,6 +202,7 @@ public class ReportService implements IReportService {
                 .summaryByCategory(summaryByCategory)
                 .countByCategory(countByCategory)
                 .periodDescription(buildPeriodDescription(filters))
+                .projectAreaName(projectAreaName)
                 .build();
 
         log.info("Preview generated successfully: {} items, total amount: ${}, average: ${}",
@@ -209,6 +220,9 @@ public class ReportService implements IReportService {
 
         // Check if categories filter is empty or null (means include all)
         boolean includeAll = filters.categories() == null || filters.categories().isEmpty();
+
+        // Check if projectAreaId filter is present - InsurancePolicy must be excluded in this case
+        boolean excludeInsurance = filters.projectAreaId() != null;
 
         // Collect from all sources based on categories filter
         if (includeAll || filters.categories().contains(MoneyOutflowCategory.INVOICE)) {
@@ -231,8 +245,12 @@ public class ReportService implements IReportService {
             allItems.addAll(collectFromFuelLoads(filters));
         }
 
-        if (includeAll || filters.categories().contains(MoneyOutflowCategory.INSURANCE)) {
+        // IMPORTANT: Insurance policies are excluded when projectAreaId filter is applied
+        // because insurance policies don't have a relationship with project areas
+        if (!excludeInsurance && (includeAll || filters.categories().contains(MoneyOutflowCategory.INSURANCE))) {
             allItems.addAll(collectFromInsurances(filters));
+        } else if (excludeInsurance && filters.categories() != null && filters.categories().contains(MoneyOutflowCategory.INSURANCE)) {
+            log.debug("Insurance category requested but projectAreaId filter is present - excluding insurance policies");
         }
 
         if (includeAll || filters.categories().contains(MoneyOutflowCategory.REPAIR)) {
@@ -385,7 +403,7 @@ public class ReportService implements IReportService {
                 null, // documentNumber
                 null, // supplierCuit
                 null, // supplierName
-                null, // projectAreaId
+                filters.projectAreaId(), // projectAreaId - from filter
                 null, // projectAreaName
                 filters.maxAmount(), // maxTotalAmount
                 filters.minAmount(), // minTotalAmount
@@ -457,7 +475,7 @@ public class ReportService implements IReportService {
                 null, // firstName
                 null, // lastName
                 null, // salaryFrequency
-                null, // projectAreaId
+                filters.projectAreaId(), // projectAreaId - from filter
                 filters.startDate(),
                 filters.endDate(),
                 filters.minAmount(),
@@ -498,7 +516,7 @@ public class ReportService implements IReportService {
         var servicePayments = servicePaymentRepository.findAllWithFilters(
                 null, // serviceSupplierId
                 null, // buildingId
-                null, // projectAreaId
+                filters.projectAreaId(), // projectAreaId - from filter
                 null, // serviceType
                 filters.startDate(),
                 filters.endDate(),
@@ -543,7 +561,7 @@ public class ReportService implements IReportService {
                 filters.startDate(),
                 filters.endDate(),
                 null, // vehicleId
-                null, // projectAreaId
+                filters.projectAreaId(), // projectAreaId - from filter
                 filters.minAmount(),
                 filters.maxAmount(),
                 null, // year
@@ -590,7 +608,7 @@ public class ReportService implements IReportService {
                 null, // fuelType
                 null, // vehicleId
                 null, // vehicleLicensePlate
-                null, // projectAreaId
+                filters.projectAreaId(), // projectAreaId - from filter
                 null, // projectAreaName
                 null, // gasStationId
                 pageable
@@ -705,7 +723,7 @@ public class ReportService implements IReportService {
                 filters.endDate(),
                 null, // vehicleId
                 null, // licensePlate
-                null, // projectAreaId
+                filters.projectAreaId(), // projectAreaId - from filter
                 filters.minAmount(),
                 filters.maxAmount(),
                 null, // employee
@@ -749,6 +767,20 @@ public class ReportService implements IReportService {
 
         log.debug("Collected {} repair items", items.size());
         return items;
+    }
+
+    /**
+     * Gets the project area name by ID if provided.
+     * Returns null if projectAreaId is null or not found.
+     */
+    private String getProjectAreaName(Long projectAreaId) {
+        if (projectAreaId == null) {
+            return null;
+        }
+
+        return projectAreaRepository.findByIdAndDeletedFalse(projectAreaId)
+                .map(projectArea -> projectArea.getName())
+                .orElse(null);
     }
 }
 

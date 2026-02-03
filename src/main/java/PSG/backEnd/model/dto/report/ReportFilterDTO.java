@@ -32,6 +32,10 @@ public record ReportFilterDTO(
             allowableValues = {"INVOICE", "PAYMENT", "SALARY", "SERVICE", "LICENCE_PLATE", "FUEL", "INSURANCE", "REPAIR"})
     List<MoneyOutflowCategory> categories,
 
+    @Schema(description = "Filter by sector ID (project area). If provided, will only include items related to this sector. Note: Insurance policies will be excluded when this filter is applied.",
+            example = "5")
+    Long projectAreaId,
+
     @Schema(description = "Minimum amount to filter by (inclusive). Must be greater than zero.",
             example = "1000.00")
     @DecimalMin(value = "0.01", message = "{validation.positive}")

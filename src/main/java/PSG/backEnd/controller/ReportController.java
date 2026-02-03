@@ -79,6 +79,11 @@ public class ReportController {
             @RequestParam(required = false)
             List<MoneyOutflowCategory> categories,
 
+            @Parameter(description = "Filter by sector ID (project area). If provided, only includes items related to this sector. Note: Insurance policies will be excluded when this filter is applied.",
+                    example = "5")
+            @RequestParam(required = false)
+            Long projectAreaId,
+
             @Parameter(description = "Minimum amount to filter (inclusive)", example = "1000.00")
             @RequestParam(required = false)
             BigDecimal minAmount,
@@ -95,13 +100,14 @@ public class ReportController {
             @RequestParam(required = false, defaultValue = "desc")
             String sortOrder
     ) {
-        log.info("Generating money outflow report: startDate={}, endDate={}, categories={}",
-                startDate, endDate, categories);
+        log.info("Generating money outflow report: startDate={}, endDate={}, categories={}, projectAreaId={}",
+                startDate, endDate, categories, projectAreaId);
 
         ReportFilterDTO filters = new ReportFilterDTO(
                 startDate,
                 endDate,
                 categories,
+                projectAreaId,
                 minAmount,
                 maxAmount,
                 sortBy,
@@ -167,6 +173,11 @@ public class ReportController {
             @RequestParam(required = false)
             List<MoneyOutflowCategory> categories,
 
+            @Parameter(description = "Filter by sector ID (project area). If provided, only includes items related to this sector. Note: Insurance policies will be excluded when this filter is applied.",
+                    example = "5")
+            @RequestParam(required = false)
+            Long projectAreaId,
+
             @Parameter(description = "Minimum amount to filter (inclusive)", example = "1000.00")
             @RequestParam(required = false)
             BigDecimal minAmount,
@@ -183,13 +194,14 @@ public class ReportController {
             @RequestParam(required = false, defaultValue = "desc")
             String sortOrder
     ) {
-        log.info("Downloading money outflow report: format={}, startDate={}, endDate={}, categories={}",
-                format, startDate, endDate, categories);
+        log.info("Downloading money outflow report: format={}, startDate={}, endDate={}, categories={}, projectAreaId={}",
+                format, startDate, endDate, categories, projectAreaId);
 
         ReportFilterDTO filters = new ReportFilterDTO(
                 startDate,
                 endDate,
                 categories,
+                projectAreaId,
                 minAmount,
                 maxAmount,
                 sortBy,
@@ -241,6 +253,11 @@ public class ReportController {
             @RequestParam(required = false)
             List<MoneyOutflowCategory> categories,
 
+            @Parameter(description = "Filter by sector ID (project area). If provided, only includes items related to this sector. Note: Insurance policies will be excluded when this filter is applied.",
+                    example = "5")
+            @RequestParam(required = false)
+            Long projectAreaId,
+
             @Parameter(description = "Minimum amount to filter (inclusive)", example = "1000.00")
             @RequestParam(required = false)
             BigDecimal minAmount,
@@ -249,12 +266,14 @@ public class ReportController {
             @RequestParam(required = false)
             BigDecimal maxAmount
     ) {
-        log.info("Generating preview: startDate={}, endDate={}, categories={}", startDate, endDate, categories);
+        log.info("Generating preview: startDate={}, endDate={}, categories={}, projectAreaId={}",
+                startDate, endDate, categories, projectAreaId);
 
         ReportFilterDTO filters = new ReportFilterDTO(
                 startDate,
                 endDate,
                 categories,
+                projectAreaId,
                 minAmount,
                 maxAmount,
                 "date",

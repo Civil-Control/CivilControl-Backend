@@ -106,6 +106,11 @@ public class PdfReportExporter implements IReportExporter {
                 report.generatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
         addMetadataRow(metadataTable, "Total de registros:", report.totalCount().toString());
 
+        // Add project area if filtered
+        if (report.projectAreaName() != null) {
+            addMetadataRow(metadataTable, "Sector:", report.projectAreaName());
+        }
+
         if (report.filters().categories() != null && !report.filters().categories().isEmpty()) {
             String categoriesStr = report.filters().categories().stream()
                     .map(MoneyOutflowCategory::getDisplayName)

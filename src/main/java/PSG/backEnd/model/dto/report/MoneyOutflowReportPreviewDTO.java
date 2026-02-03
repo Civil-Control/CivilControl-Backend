@@ -44,7 +44,11 @@ public record MoneyOutflowReportPreviewDTO(
 
     @Schema(description = "Description of the report period",
             example = "Período: 01/01/2024 - 31/12/2024")
-    String periodDescription
+    String periodDescription,
+
+    @Schema(description = "Name of the filtered project area (sector) if projectAreaId filter was applied",
+            example = "Obras Norte")
+    String projectAreaName
 ) {
 
     /**
