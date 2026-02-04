@@ -40,18 +40,18 @@ public record EmployeeFilterDTO(
             nullable = true)
     String city,
 
-    @Schema(description = "Filter by employment type. Values: PERMANENT, TEMPORARY, CONTRACTOR.",
-            example = "PERMANENT",
+    @Schema(description = "Filter by employment type. Values: TIEMPO_COMPLETO, MEDIO_TIEMPO, CONTRATO_TEMPORAL, PASANTIA, SUB_CONTRATADO.",
+            example = "TIEMPO_COMPLETO",
             nullable = true)
     EmploymentType employmentType,
 
-    @Schema(description = "Filter by employee status. Values: ACTIVE, INACTIVE, SUSPENDED.",
-            example = "ACTIVE",
+    @Schema(description = "Filter by employee status. Values: ACTIVO, LICENCIA, SUSPENDIDO.",
+            example = "ACTIVO",
             nullable = true)
     EmployeeStatus employeeStatus,
 
-    @Schema(description = "Filter by employee role. Filters employees by their job position.",
-            example = "DRIVER",
+    @Schema(description = "Filter by employee role. Filters employees by their job position. Values: CHOFER, OFICIAL, AYUDANTE, ADMINISTRATIVO, LIMPIEZA, MECANICO, OTRO.",
+            example = "CHOFER",
             nullable = true)
     EmployeeRole employeeRole,
 

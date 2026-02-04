@@ -37,8 +37,8 @@ public record VehicleResponseDTO(
         String nickName,
 
         @Schema(description = "Type of vehicle.",
-                example = "CAR",
-                allowableValues = {"CAR", "TRUCK", "VAN", "MOTORCYCLE", "BUS"})
+                example = "CAMION",
+                allowableValues = {"CAMION", "CAMIONETA", "AUTO", "MOTO", "OTRO"})
         String vehicleType,
 
         @Schema(description = "Name of the project area to which this vehicle is assigned.",

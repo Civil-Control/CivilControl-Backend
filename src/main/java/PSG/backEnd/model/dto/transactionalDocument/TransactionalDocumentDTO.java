@@ -25,12 +25,13 @@ public record TransactionalDocumentDTO(
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     LocalDate date,
 
-    @Schema(description = "Type of commercial document. Valid values: FACTURA_A (Invoice Type A), " +
-            "FACTURA_B (Invoice Type B), FACTURA_C (Invoice Type C), NOTA_CREDITO_A (Credit Note Type A), " +
-            "NOTA_CREDITO_B (Credit Note Type B), NOTA_CREDITO_C (Credit Note Type C), " +
-            "NOTA_DEBITO_A (Debit Note Type A), NOTA_DEBITO_B (Debit Note Type B), NOTA_DEBITO_C (Debit Note Type C). " +
+    @Schema(description = "Type of commercial document. Valid values: BILL_A (Factura A), " +
+            "BILL_B (Factura B), BILL_C (Factura C), CREDIT_NOTE_A (Nota de crédito A), " +
+            "CREDIT_NOTE_B (Nota de crédito B), CREDIT_NOTE_C (Nota de crédito C), " +
+            "DEBIT_NOTE_A (Nota de débito A), DEBIT_NOTE_B (Nota de débito B), DEBIT_NOTE_C (Nota de débito C), " +
+            "OTHER_DOCUMENT (Otros documentos). " +
             "Types A, B, C correspond to Argentine AFIP document types.",
-            example = "FACTURA_B",
+            example = "BILL_B",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.required}", groups = OnCreate.class)
     @Valid

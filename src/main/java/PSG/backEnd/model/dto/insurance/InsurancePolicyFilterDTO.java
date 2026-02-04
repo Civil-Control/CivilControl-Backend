@@ -21,20 +21,20 @@ public record InsurancePolicyFilterDTO(
         String termNumber,
 
         @Schema(description = "Filter by policy type.",
-                example = "AUTO",
-                allowableValues = {"AUTO", "PROPERTY", "LIABILITY", "HEALTH", "LIFE"},
+                example = "AUTOMOTOR",
+                allowableValues = {"AUTOMOTOR"},
                 nullable = true)
         PolicyType policyType,
 
         @Schema(description = "Filter by policy status.",
-                example = "ACTIVE",
-                allowableValues = {"ACTIVE", "EXPIRED", "CANCELLED", "SUSPENDED", "PENDING"},
+                example = "ACTIVO",
+                allowableValues = {"COTIZADO", "ACTIVO", "VENCIDO", "CANCELADO", "EXPIRADO"},
                 nullable = true)
         PolicyStatus policyStatus,
 
         @Schema(description = "Filter by payment frequency.",
-                example = "MONTHLY",
-                allowableValues = {"MONTHLY", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL"},
+                example = "MENSUAL",
+                allowableValues = {"MENSUAL", "BIMESTRAL", "TRIMESTRAL", "SEMI_ANUAL", "ANUAL", "PAGO_UNICO"},
                 nullable = true)
         PaymentFrequency paymentFrequency,
 

@@ -28,6 +28,16 @@ public record BuildingResponseDTO(
             allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "OTRO"})
     BuildingType buildingType,
 
+    @Schema(description = "ID of the project area (sector) to which this building belongs. Null if not assigned to any sector.",
+            example = "1",
+            nullable = true)
+    Long projectAreaId,
+
+    @Schema(description = "Name of the project area (sector) to which this building belongs. Null if not assigned to any sector.",
+            example = "Sector Norte",
+            nullable = true)
+    String projectAreaName,
+
     @Schema(description = "Indicates if the building is active or inactive.",
             example = "true")
     Boolean active,

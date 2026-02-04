@@ -45,6 +45,11 @@ public record BuildingDTO(
     @NotNull(groups = OnCreate.class, message = "{validation.required}")
     BuildingType buildingType,
 
+    @Schema(description = "ID of the project area (sector) to which this building belongs. Optional field.",
+            example = "1",
+            nullable = true)
+    Long projectAreaId,
+
     @Schema(description = "Indicates if the building is active or inactive. Active buildings can be used for operations.",
             example = "true",
             defaultValue = "true")

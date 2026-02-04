@@ -98,12 +98,13 @@ public class BuildingController {
 
     @GetMapping
     @Operation(summary = "Get all buildings with filters",
-            description = "Retrieves a paginated list of buildings with optional filtering by name, code, type, and active status. Supports sorting by any field.")
+            description = "Retrieves a paginated list of buildings with optional filtering by name, code, type, project area (sector), and active status. Supports sorting by any field.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved building list")
     public ResponseEntity<Page<BuildingResponseDTO>> getBuildings(
             @Parameter(description = "Filter by building name (partial match)") @RequestParam(required = false) String name,
             @Parameter(description = "Filter by building code (partial match)") @RequestParam(required = false) String code,
             @Parameter(description = "Filter by building type") @RequestParam(required = false) BuildingType buildingType,
+            @Parameter(description = "Filter by project area (sector) ID") @RequestParam(required = false) Long projectAreaId,
             @Parameter(description = "Filter by active status") @RequestParam(required = false) Boolean active,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
@@ -113,7 +114,7 @@ public class BuildingController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        BuildingFilterDTO filterDTO = new BuildingFilterDTO(name, code, buildingType, active);
+        BuildingFilterDTO filterDTO = new BuildingFilterDTO(name, code, buildingType, projectAreaId, active);
 
         return ResponseEntity.ok(buildingService.getAllBuildings(filterDTO, pageable));
     }

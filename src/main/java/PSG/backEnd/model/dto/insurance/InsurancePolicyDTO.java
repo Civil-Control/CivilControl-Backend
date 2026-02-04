@@ -39,25 +39,24 @@ public record InsurancePolicyDTO(
         @Size(max = 20, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
         String endorsementSecuence,
 
-        @Schema(description = "Type of insurance policy. Valid values: AUTO (vehicle insurance), PROPERTY (property insurance), " +
-                "LIABILITY (liability insurance), HEALTH (health insurance), LIFE (life insurance).",
-                example = "AUTO",
+        @Schema(description = "Type of insurance policy. Valid values: AUTOMOTOR (auto insurance).",
+                example = "AUTOMOTOR",
                 requiredMode = Schema.RequiredMode.REQUIRED,
-                allowableValues = {"AUTO", "PROPERTY", "LIABILITY", "HEALTH", "LIFE"})
+                allowableValues = {"AUTOMOTOR"})
         @NotNull(message = "{insurancePolicy.policyType.required}", groups = OnCreate.class)
         PolicyType policyType,
 
-        @Schema(description = "Current status of the policy. Valid values: ACTIVE (policy in force), EXPIRED (policy ended), " +
-                "CANCELLED (policy cancelled), SUSPENDED (policy temporarily suspended), PENDING (awaiting activation).",
-                example = "ACTIVE",
+        @Schema(description = "Current status of the policy. Valid values: COTIZADO (quoted), ACTIVO (active policy in force), " +
+                "VENCIDO (expired), CANCELADO (cancelled), EXPIRADO (expired permanently).",
+                example = "ACTIVO",
                 requiredMode = Schema.RequiredMode.REQUIRED,
-                allowableValues = {"ACTIVE", "EXPIRED", "CANCELLED", "SUSPENDED", "PENDING"})
+                allowableValues = {"COTIZADO", "ACTIVO", "VENCIDO", "CANCELADO", "EXPIRADO"})
         @NotNull(message = "{insurancePolicy.policyStatus.required}", groups = OnCreate.class)
         PolicyStatus policyStatus,
 
-        @Schema(description = "Frequency of premium payments. Valid values: MONTHLY, QUARTERLY, SEMI_ANNUAL, ANNUAL.",
-                example = "MONTHLY",
-                allowableValues = {"MONTHLY", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL"},
+        @Schema(description = "Frequency of premium payments. Valid values: MENSUAL, BIMESTRAL, TRIMESTRAL, SEMI_ANUAL, ANUAL, PAGO_UNICO.",
+                example = "MENSUAL",
+                allowableValues = {"MENSUAL", "BIMESTRAL", "TRIMESTRAL", "SEMI_ANUAL", "ANUAL", "PAGO_UNICO"},
                 nullable = true)
         PaymentFrequency paymentFrequency,
 

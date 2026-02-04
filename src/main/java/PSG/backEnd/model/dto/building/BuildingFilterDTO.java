@@ -19,6 +19,10 @@ public record BuildingFilterDTO(
             allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "OTRO"})
     BuildingType buildingType,
 
+    @Schema(description = "Filter by project area (sector) ID.",
+            example = "1")
+    Long projectAreaId,
+
     @Schema(description = "Filter by active status. Returns active buildings if true, inactive if false.",
             example = "true")
     Boolean active

@@ -107,28 +107,31 @@ public record EmployeeDTO(
     EmergencyContactDTO emergencyContact,
 
     @Schema(description = "Type of employment contract. Valid values: " +
-            "PERMANENT (permanent contract with indefinite duration), " +
-            "TEMPORARY (fixed-term contract), " +
-            "CONTRACTOR (independent contractor or freelance).",
-            example = "PERMANENT",
-            allowableValues = {"PERMANENT", "TEMPORARY", "CONTRACTOR"},
+            "TIEMPO_COMPLETO (full-time employee), " +
+            "MEDIO_TIEMPO (part-time employee), " +
+            "CONTRATO_TEMPORAL (fixed-term contract), " +
+            "PASANTIA (internship), " +
+            "SUB_CONTRATADO (subcontracted).",
+            example = "TIEMPO_COMPLETO",
+            allowableValues = {"TIEMPO_COMPLETO", "MEDIO_TIEMPO", "CONTRATO_TEMPORAL", "PASANTIA", "SUB_CONTRATADO"},
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     EmploymentType employmentType,
 
     @Schema(description = "Current employment status of the employee. Valid values: " +
-            "ACTIVE (currently working), " +
-            "INACTIVE (not currently working but still employed), " +
-            "SUSPENDED (temporarily suspended from duties).",
-            example = "ACTIVE",
-            allowableValues = {"ACTIVE", "INACTIVE", "SUSPENDED"},
+            "ACTIVO (currently working), " +
+            "LICENCIA (on leave), " +
+            "SUSPENDIDO (temporarily suspended from duties).",
+            example = "ACTIVO",
+            allowableValues = {"ACTIVO", "LICENCIA", "SUSPENDIDO"},
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     EmployeeStatus employeeStatus,
 
     @Schema(description = "Employee's role or job position in the organization. Defines responsibilities and permissions. " +
-            "Examples: DRIVER, MECHANIC, ADMINISTRATOR, SUPERVISOR, etc.",
-            example = "DRIVER",
+            "Valid values: CHOFER, OFICIAL, AYUDANTE, ADMINISTRATIVO, LIMPIEZA, MECANICO, OTRO.",
+            example = "CHOFER",
+            allowableValues = {"CHOFER", "OFICIAL", "AYUDANTE", "ADMINISTRATIVO", "LIMPIEZA", "MECANICO", "OTRO"},
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     EmployeeRole employeeRole,

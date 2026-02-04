@@ -4,12 +4,15 @@ import PSG.backEnd.exception.building.BuildingAlreadyExistsException;
 import PSG.backEnd.exception.building.BuildingDataConflictException;
 import PSG.backEnd.exception.building.BuildingNotFoundException;
 import PSG.backEnd.exception.building.BuildingNotValidException;
+import PSG.backEnd.exception.projectarea.ProjectAreaNotFoundException;
 import PSG.backEnd.model.dto.building.BuildingDTO;
 import PSG.backEnd.model.dto.building.BuildingFilterDTO;
 import PSG.backEnd.model.dto.building.BuildingResponseDTO;
 import PSG.backEnd.model.entity.Building;
+import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.mapper.BuildingMapper;
 import PSG.backEnd.repository.BuildingRepository;
+import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.service.port.IBuildingService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,7 @@ import java.util.Optional;
 public class BuildingService implements IBuildingService {
 
     private final BuildingRepository buildingRepository;
+    private final ProjectAreaRepository projectAreaRepository;
     private final BuildingMapper buildingMapper;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -49,6 +53,7 @@ public class BuildingService implements IBuildingService {
                 filterDTO.name(),
                 filterDTO.code(),
                 filterDTO.buildingType(),
+                filterDTO.projectAreaId(),
                 filterDTO.active(),
                 pageable
         ).map(buildingMapper::toResponseDto);
@@ -72,6 +77,14 @@ public class BuildingService implements IBuildingService {
 
         try {
             buildingMapper.partialUpdate(buildingDTO, existingBuilding);
+
+            // Update ProjectArea if provided
+            if (buildingDTO.projectAreaId() != null) {
+                ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(buildingDTO.projectAreaId())
+                        .orElseThrow(() -> new ProjectAreaNotFoundException(buildingDTO.projectAreaId()));
+                existingBuilding.setProjectArea(projectArea);
+            }
+
             Building updatedBuilding = buildingRepository.save(existingBuilding);
             return buildingMapper.toResponseDto(updatedBuilding);
         } catch (DataIntegrityViolationException e) {
@@ -133,6 +146,10 @@ public class BuildingService implements IBuildingService {
         if (buildingDTO.buildingType() == null) {
             throw new BuildingNotValidException(messageSourceHelper.getMessage("building.buildingType.null"));
         }
+        // Validate projectArea only if provided
+        if (buildingDTO.projectAreaId() != null) {
+            validateProjectAreaExists(buildingDTO.projectAreaId());
+        }
         validateAddress(buildingDTO);
     }
 
@@ -158,9 +175,19 @@ public class BuildingService implements IBuildingService {
         if (buildingDTO.name() != null && buildingDTO.name().trim().isEmpty()) {
             throw new BuildingNotValidException(messageSourceHelper.getMessage("building.name.empty"));
         }
+        // Validate projectArea if provided
+        if (buildingDTO.projectAreaId() != null) {
+            validateProjectAreaExists(buildingDTO.projectAreaId());
+        }
         // Validate address if provided
         if (buildingDTO.address() != null) {
             validateAddress(buildingDTO);
+        }
+    }
+
+    private void validateProjectAreaExists(Long projectAreaId) {
+        if (!projectAreaRepository.existsByIdAndDeletedFalse(projectAreaId)) {
+            throw new ProjectAreaNotFoundException(projectAreaId);
         }
     }
 
@@ -196,12 +223,31 @@ public class BuildingService implements IBuildingService {
         buildingMapper.partialUpdate(buildingDTO, building);
         building.setDeleted(false);
         building.setActive(buildingDTO.active() != null ? buildingDTO.active() : true);
+
+        // Update ProjectArea only if provided in the DTO
+        if (buildingDTO.projectAreaId() != null) {
+            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(buildingDTO.projectAreaId())
+                    .orElseThrow(() -> new ProjectAreaNotFoundException(buildingDTO.projectAreaId()));
+            building.setProjectArea(projectArea);
+        }
+        // Note: If projectAreaId is not provided, we keep the existing projectArea (don't set to null)
+
         return buildingMapper.toResponseDto(buildingRepository.save(building));
     }
 
     private BuildingResponseDTO createNewBuilding(BuildingDTO buildingDTO) {
         Building building = buildingMapper.toEntity(buildingDTO);
         building.setDeleted(false);
+
+        // Load and set ProjectArea if provided, otherwise ensure it's null
+        if (buildingDTO.projectAreaId() != null) {
+            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(buildingDTO.projectAreaId())
+                    .orElseThrow(() -> new ProjectAreaNotFoundException(buildingDTO.projectAreaId()));
+            building.setProjectArea(projectArea);
+        } else {
+            building.setProjectArea(null);
+        }
+
         // The mapper sets active with default value
         return buildingMapper.toResponseDto(buildingRepository.save(building));
     }
