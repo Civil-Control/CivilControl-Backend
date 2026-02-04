@@ -26,18 +26,18 @@ public record InsurancePolicyResponseDTO(
         String endorsementSecuence,
 
         @Schema(description = "Type of insurance policy.",
-                example = "AUTO",
-                allowableValues = {"AUTO", "PROPERTY", "LIABILITY", "HEALTH", "LIFE"})
+                example = "AUTOMOTOR",
+                allowableValues = {"AUTOMOTOR"})
         String policyType,
 
         @Schema(description = "Current status of the policy.",
-                example = "ACTIVE",
-                allowableValues = {"ACTIVE", "EXPIRED", "CANCELLED", "SUSPENDED", "PENDING"})
+                example = "ACTIVO",
+                allowableValues = {"COTIZADO", "ACTIVO", "VENCIDO", "CANCELADO", "EXPIRADO"})
         String policyStatus,
 
         @Schema(description = "Frequency of premium payments.",
-                example = "MONTHLY",
-                allowableValues = {"MONTHLY", "QUARTERLY", "SEMI_ANNUAL", "ANNUAL"})
+                example = "MENSUAL",
+                allowableValues = {"MENSUAL", "BIMESTRAL", "TRIMESTRAL", "SEMI_ANUAL", "ANUAL", "PAGO_UNICO"})
         String paymentFrequency,
 
         @Schema(description = "Total sum insured or coverage amount.",

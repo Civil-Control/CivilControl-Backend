@@ -53,16 +53,16 @@ public record EmployeeResponseDTO(
     @Schema(description = "Emergency contact information for the employee.")
     EmergencyContactResponseDTO emergencyContact,
 
-    @Schema(description = "Type of employment contract. Values: PERMANENT, TEMPORARY, CONTRACTOR.",
-            example = "PERMANENT")
+    @Schema(description = "Type of employment contract. Values: TIEMPO_COMPLETO, MEDIO_TIEMPO, CONTRATO_TEMPORAL, PASANTIA, SUB_CONTRATADO.",
+            example = "TIEMPO_COMPLETO")
     EmploymentType employmentType,
 
-    @Schema(description = "Current employment status. Values: ACTIVE, INACTIVE, SUSPENDED.",
-            example = "ACTIVE")
+    @Schema(description = "Current employment status. Values: ACTIVO, LICENCIA, SUSPENDIDO.",
+            example = "ACTIVO")
     EmployeeStatus employeeStatus,
 
-    @Schema(description = "Employee's role or job position in the organization.",
-            example = "DRIVER")
+    @Schema(description = "Employee's role or job position in the organization. Values: CHOFER, OFICIAL, AYUDANTE, ADMINISTRATIVO, LIMPIEZA, MECANICO, OTRO.",
+            example = "CHOFER")
     EmployeeRole employeeRole,
 
     @Schema(description = "Date when the employee was hired.",

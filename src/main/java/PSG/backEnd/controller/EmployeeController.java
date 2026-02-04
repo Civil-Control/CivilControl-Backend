@@ -65,7 +65,7 @@ public class EmployeeController {
             @Parameter(description = "Filter by project area ID") @RequestParam(required = false) Long projectAreaId,
             @Parameter(description = "Filter by city of residence (partial match)") @RequestParam(required = false) String city,
             @Parameter(description = "Filter by employment type (PERMANENT, TEMPORARY, CONTRACTOR)") @RequestParam(required = false) EmploymentType employmentType,
-            @Parameter(description = "Filter by employee status (ACTIVE, INACTIVE, SUSPENDED)") @RequestParam(required = false) EmployeeStatus employeeStatus,
+            @Parameter(description = "Filter by employee status (ACTIVO, LICENCIA, SUSPENDIDO)") @RequestParam(required = false) EmployeeStatus employeeStatus,
             @Parameter(description = "Filter by employee role (DRIVER, MECHANIC, ADMINISTRATOR, etc.)") @RequestParam(required = false) EmployeeRole employeeRole,
             @Parameter(description = "Filter by minimum hire date") @RequestParam(required = false) LocalDate hireDateFrom,
             @Parameter(description = "Filter by maximum hire date") @RequestParam(required = false) LocalDate hireDateTo,

@@ -9,11 +9,11 @@ import jakarta.validation.constraints.*;
 @Schema(description = "Fuel price information for a specific fuel type at a gas station.")
 public record GasStationPriceDTO(
 
-        @Schema(description = "Type of fuel. Valid values: NAFTA_SUPER (premium gasoline), NAFTA_COMUN (regular gasoline), " +
-                "DIESEL (diesel fuel), GNC (compressed natural gas).",
-                example = "NAFTA_SUPER",
+        @Schema(description = "Type of fuel. Valid values: INFINIA (premium gasoline), SUPER (super gasoline), " +
+                "INFINIA_DIESEL (premium diesel), DIESEL_500 (diesel 500), GNC (compressed natural gas).",
+                example = "INFINIA",
                 requiredMode = Schema.RequiredMode.REQUIRED,
-                allowableValues = {"NAFTA_SUPER", "NAFTA_COMUN", "DIESEL", "GNC"})
+                allowableValues = {"INFINIA", "SUPER", "INFINIA_DIESEL", "DIESEL_500", "GNC"})
         @NotNull(message = "{gasStation.prices.fuelType.required}", groups = {OnCreate.class})
         FuelType fuelType,
 

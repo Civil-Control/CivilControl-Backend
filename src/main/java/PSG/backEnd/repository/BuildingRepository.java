@@ -37,11 +37,13 @@ public interface BuildingRepository extends JpaRepository<Building, Long> {
             "AND (:name IS NULL OR LOWER(CAST(b.name AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))) " +
             "AND (:code IS NULL OR LOWER(CAST(b.code AS string)) LIKE LOWER(CONCAT('%', CAST(:code AS string), '%'))) " +
             "AND (:buildingType IS NULL OR b.buildingType = :buildingType) " +
+            "AND (CAST(:projectAreaId AS long) IS NULL OR b.projectArea.id = :projectAreaId) " +
             "AND (:active IS NULL OR b.active = :active)")
     Page<Building> findAllWithFilters(
             @Param("name") String name,
             @Param("code") String code,
             @Param("buildingType") BuildingType buildingType,
+            @Param("projectAreaId") Long projectAreaId,
             @Param("active") Boolean active,
             Pageable pageable
     );

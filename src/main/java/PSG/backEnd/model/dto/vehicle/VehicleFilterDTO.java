@@ -38,8 +38,8 @@ public record VehicleFilterDTO(
         String nickName,
 
         @Schema(description = "Filter by vehicle type.",
-                example = "CAR",
-                allowableValues = {"CAR", "TRUCK", "VAN", "MOTORCYCLE", "BUS"},
+                example = "CAMION",
+                allowableValues = {"CAMION", "CAMIONETA", "AUTO", "MOTO", "OTRO"},
                 nullable = true)
         String vehicleType,
 
