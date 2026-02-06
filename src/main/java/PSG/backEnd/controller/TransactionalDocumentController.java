@@ -103,16 +103,19 @@ public class TransactionalDocumentController {
             @RequestParam(defaultValue = "10") int size,
 
             @Parameter(description = "Field to sort by. Direct fields: date, total, documentNumber, branchCode, netTotal, ivaTotal, discountPercentage. " +
-                    "For supplier fields use: supplier.legalName, supplier.tradeName, supplier.cuit. " +
-                    "For project area use: projectArea.name. " +
-                    "Example: sortBy=supplier.legalName",
+                    "For supplier fields use: supplierLegalName, supplierTradeName, supplierCuit, supplierId. " +
+                    "For project area use: projectAreaName, projectAreaId. " +
+                    "Example: sortBy=supplierLegalName",
                     example = "date")
             @RequestParam(defaultValue = "id") String sortBy,
 
             @Parameter(description = "Sort direction (asc or desc)", example = "desc")
             @RequestParam(defaultValue = "asc") String sortDir
     ) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        // Map simple field names to entity paths
+        String mappedSortBy = mapSortField(sortBy);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         TransactionalDocumentFilterDTO filter = new TransactionalDocumentFilterDTO(
@@ -120,6 +123,22 @@ public class TransactionalDocumentController {
                 maxTotalAmount, totalAmount, fromDate, toDate, paid
         );
         return ResponseEntity.ok(iTransactionalDocumentService.getAllTransactionalDocuments(filter, pageable));
+    }
+
+    /**
+     * Maps simple field names to their corresponding entity paths.
+     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
+     */
+    private String mapSortField(String sortBy) {
+        return switch (sortBy) {
+            case "supplierLegalName" -> "supplier.legalName";
+            case "supplierTradeName" -> "supplier.tradeName";
+            case "supplierCuit" -> "supplier.cuit";
+            case "supplierId" -> "supplier.id";
+            case "projectAreaName" -> "projectArea.name";
+            case "projectAreaId" -> "projectArea.id";
+            default -> sortBy; // For 'id', 'date', 'total', 'documentNumber', 'branchCode', 'netTotal', 'ivaTotal', 'discountPercentage', etc.
+        };
     }
 
     @GetMapping("/{id}")

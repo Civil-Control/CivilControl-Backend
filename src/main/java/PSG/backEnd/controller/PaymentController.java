@@ -107,23 +107,39 @@ public class PaymentController {
             @Parameter(description = "Filter by supplier ID who received the payment", example = "42") @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by. Direct fields: id. " +
-                    "For payment details use: paymentDetails.paymentDate, paymentDetails.amount. " +
-                    "For supplier use: paymentDetails.supplier.id (Note: supplier name not available in this query). " +
-                    "For transfer payments: transactionNumber, bankName. " +
-                    "For check payments: checkNumber, dueDate, bankName. " +
-                    "Example: sortBy=paymentDetails.paymentDate",
-                    example = "paymentDetails.paymentDate")
+            @Parameter(description = "Field to sort by. Direct fields: id, paymentDate, amount, comment. " +
+                    "For supplier use: supplierId, supplierLegalName, supplierTradeName, supplierCuit. " +
+                    "Example: sortBy=paymentDate",
+                    example = "paymentDate")
             @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)", example = "desc") @RequestParam(defaultValue = "asc") String sortDir) {
 
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        // Map simple field names to entity paths
+        String mappedSortBy = mapSortField(sortBy);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         PaymentFilterDTO filter = new PaymentFilterDTO(
                 paymentMethod, startDate, endDate, minAmount, maxAmount, transactionNumber, supplierId
         );
         return ResponseEntity.ok(paymentService.findAll(filter, pageable));
+    }
+
+    /**
+     * Maps simple field names to their corresponding entity paths.
+     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
+     * Note: The query works directly with PaymentDetails entity, so we don't need paymentDetails prefix.
+     */
+    private String mapSortField(String sortBy) {
+        return switch (sortBy) {
+            case "supplierId" -> "supplier.id";
+            case "supplierLegalName" -> "supplier.legalName";
+            case "supplierTradeName" -> "supplier.tradeName";
+            case "supplierCuit" -> "supplier.cuit";
+            // paymentDate and amount are direct fields of PaymentDetails, no mapping needed
+            default -> sortBy; // For 'id', 'paymentDate', 'amount', etc.
+        };
     }
 
     @GetMapping("/cash/{id}")

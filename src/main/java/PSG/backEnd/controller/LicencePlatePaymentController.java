@@ -64,13 +64,16 @@ public class LicencePlatePaymentController {
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, date, amount, year, period, jurisdictionType. " +
-                    "For vehicle use: vehicle.licensePlate, vehicle.brand, vehicle.model. " +
-                    "Example: sortBy=vehicle.licensePlate",
+                    "For vehicle use: vehicleLicensePlate, vehicleBrand, vehicleModel, vehicleId. " +
+                    "Example: sortBy=vehicleLicensePlate",
                     example = "date")
             @RequestParam(defaultValue = "date") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir
     ) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        // Map simple field names to entity paths
+        String mappedSortBy = mapSortField(sortBy);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         LicencePlatePaymentFilterDTO filterDTO = new LicencePlatePaymentFilterDTO(
@@ -79,6 +82,20 @@ public class LicencePlatePaymentController {
         );
 
         return ResponseEntity.ok(licencePlatePaymentService.getAllLicencePlatePayments(filterDTO, pageable));
+    }
+
+    /**
+     * Maps simple field names to their corresponding entity paths.
+     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
+     */
+    private String mapSortField(String sortBy) {
+        return switch (sortBy) {
+            case "vehicleLicensePlate" -> "vehicle.licensePlate";
+            case "vehicleBrand" -> "vehicle.brand";
+            case "vehicleModel" -> "vehicle.model";
+            case "vehicleId" -> "vehicle.id";
+            default -> sortBy; // For 'id', 'date', 'amount', 'year', 'period', 'jurisdictionType', etc.
+        };
     }
 
     @GetMapping("/{id}")

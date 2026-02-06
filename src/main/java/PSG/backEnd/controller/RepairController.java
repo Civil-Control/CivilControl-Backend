@@ -64,10 +64,16 @@ public class RepairController {
             @Parameter(description = "Filter by repair type") @RequestParam(required = false) String repairType,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "date") String sortBy,
+            @Parameter(description = "Field to sort by. Direct fields: id, date, cost, description, employee, repairType. " +
+                    "For vehicle use: vehicleLicensePlate, vehicleBrand, vehicleModel, vehicleId. " +
+                    "For supplier use: supplierLegalName, supplierTradeName, supplierCuit, supplierId. " +
+                    "Example: sortBy=vehicleLicensePlate") @RequestParam(defaultValue = "date") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir
     ) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        // Map simple field names to entity paths
+        String mappedSortBy = mapSortField(sortBy);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         RepairFilterDTO filterDTO = new RepairFilterDTO(
@@ -76,6 +82,24 @@ public class RepairController {
         );
 
         return ResponseEntity.ok(repairService.getAllRepairs(filterDTO, pageable));
+    }
+
+    /**
+     * Maps simple field names to their corresponding entity paths.
+     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
+     */
+    private String mapSortField(String sortBy) {
+        return switch (sortBy) {
+            case "vehicleLicensePlate" -> "vehicle.licensePlate";
+            case "vehicleBrand" -> "vehicle.brand";
+            case "vehicleModel" -> "vehicle.model";
+            case "vehicleId" -> "vehicle.id";
+            case "supplierLegalName" -> "supplier.legalName";
+            case "supplierTradeName" -> "supplier.tradeName";
+            case "supplierCuit" -> "supplier.cuit";
+            case "supplierId" -> "supplier.id";
+            default -> sortBy; // For 'id', 'date', 'cost', 'description', 'employee', 'repairType', etc.
+        };
     }
 
     @GetMapping("/{id}")

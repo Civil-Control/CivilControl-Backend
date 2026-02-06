@@ -54,8 +54,8 @@ public class GasStationController {
             @Parameter(description = "Filter by available fuel types") @RequestParam(required = false) List<String> fuelTypes,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by. Available fields: id, supplierId, legalName, tradeName, cuit, defaultDiscountPercentage",
-                    example = "legalName")
+            @Parameter(description = "Field to sort by. Available fields: id, supplierId, supplierLegalName, supplierTradeName, supplierCuit, supplierDefaultDiscountPercentage",
+                    example = "supplierLegalName")
             @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "asc") String sortDir
     ) {
@@ -76,11 +76,16 @@ public class GasStationController {
      */
     private String mapSortField(String sortBy) {
         return switch (sortBy) {
+            case "supplierLegalName" -> "supplier.legalName";
+            case "supplierTradeName" -> "supplier.tradeName";
+            case "supplierCuit" -> "supplier.cuit";
+            case "supplierDefaultDiscountPercentage" -> "supplier.defaultDiscountPercentage";
+            case "supplierId" -> "supplier.id";
+            // Keep backward compatibility with old field names
             case "legalName" -> "supplier.legalName";
             case "tradeName" -> "supplier.tradeName";
             case "cuit" -> "supplier.cuit";
             case "defaultDiscountPercentage" -> "supplier.defaultDiscountPercentage";
-            case "supplierId" -> "supplier.id";
             default -> sortBy; // For 'id' and any other fields
         };
     }

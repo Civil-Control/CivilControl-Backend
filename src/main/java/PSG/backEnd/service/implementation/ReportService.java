@@ -561,6 +561,7 @@ public class ReportService implements IReportService {
                 filters.startDate(),
                 filters.endDate(),
                 null, // vehicleId
+                null, // vehicleLicensePlate
                 filters.projectAreaId(), // projectAreaId - from filter
                 filters.minAmount(),
                 filters.maxAmount(),
