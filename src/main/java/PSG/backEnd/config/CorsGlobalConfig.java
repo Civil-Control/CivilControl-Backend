@@ -22,7 +22,9 @@ public class CorsGlobalConfig {
                 "http://localhost:8080",
                 "http://localhost:4200",
                 "http://72.60.15.234:8080",
-                "http://72.60.15.234:4200"
+                "http://72.60.15.234:4200",
+                "https://projectcivilcontrol.com",
+                "https://www.projectcivilcontrol.com"
         ));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"));
         // enumera explícitamente para evitar 403 por “header no permitido”
