@@ -197,7 +197,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         // Update item reference if changed
         if (dto.itemId() != null && !dto.itemId().equals(existingItem.getItem().getId())) {
             Item newItem = itemRepository.findById(dto.itemId())
-                    .orElseThrow(() -> new NotFoundException("Item not found with id: " + dto.itemId()));
+                    .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", dto.itemId())));
             existingItem.setItem(newItem);
         }
 
@@ -232,7 +232,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private ItemDetail createNewItemDetail(ItemDetailDTO itemDetailDTO) {
         // Load the complete Item from database
         Item item = itemRepository.findById(itemDetailDTO.itemId())
-                .orElseThrow(() -> new NotFoundException("Item not found with id: " + itemDetailDTO.itemId()));
+                .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", itemDetailDTO.itemId())));
 
         // Create ItemDetail manually to ensure Item reference is complete
         ItemDetail itemDetail = ItemDetail.builder()
@@ -345,7 +345,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         for (ItemDetailDTO itemDetailDTO : itemDetailDTOs) {
             // Load the complete Item from database (not just validate existence)
             Item item = itemRepository.findById(itemDetailDTO.itemId())
-                    .orElseThrow(() -> new NotFoundException("Item not found with id: " + itemDetailDTO.itemId()));
+                    .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", itemDetailDTO.itemId())));
 
             // Create ItemDetail manually instead of using mapper to ensure Item reference is complete
             ItemDetail itemDetail = ItemDetail.builder()

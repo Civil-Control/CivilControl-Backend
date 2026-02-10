@@ -141,7 +141,7 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ResponseMessage> handleGenericException(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 ResponseMessage.builder()
-                        .message("An unexpected error occurred: " + ex.getMessage())
+                        .message("Ha ocurrido un error inesperado: " + ex.getMessage())
                         .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                         .timestamp(LocalDateTime.now())
                         .build()
