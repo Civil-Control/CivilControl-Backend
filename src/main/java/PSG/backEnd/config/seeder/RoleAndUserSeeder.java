@@ -100,14 +100,15 @@ public class RoleAndUserSeeder implements CommandLineRunner {
 
         log.info("Creating ADMIN role...");
 
-        // Get permissions for admin (exclude some system-critical permissions)
+        // Get permissions for admin (exclude ROOT-only permissions)
         List<Permission> allPermissions = permissionRepository.findAll();
         Set<Permission> adminPermissions = new HashSet<>();
 
         for (Permission permission : allPermissions) {
-            // Exclude some ROOT-only permissions
+            // Exclude ROOT-only permissions (system-critical and developer tools)
             if (!permission.getName().contains("SYSTEM_") &&
-                !permission.getName().contains("AUDIT_")) {
+                !permission.getName().contains("AUDIT_") &&
+                !permission.getName().contains("EXCEPTION_LOG_")) {
                 adminPermissions.add(permission);
             }
         }
