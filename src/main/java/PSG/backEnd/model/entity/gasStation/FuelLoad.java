@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.gasStation;
 
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.enums.vehicle.FuelType;
 import jakarta.persistence.*;
@@ -16,7 +17,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Builder
-public class FuelLoad {
+public class FuelLoad extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

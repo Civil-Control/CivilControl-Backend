@@ -8,13 +8,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "buildings")
+@Table(name = "buildings", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"tenant_id", "code"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class Building {
+public class Building extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,7 +25,7 @@ public class Building {
     @Column(nullable = false, length = 100, columnDefinition = "VARCHAR(100)")
     private String name; // Name of the building
 
-    @Column(nullable = false, unique = true, length = 50, columnDefinition = "VARCHAR(50)")
+    @Column(nullable = false, length = 50, columnDefinition = "VARCHAR(50)")
     private String code; // Unique code for the building
 
     @Embedded

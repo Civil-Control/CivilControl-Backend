@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.insurance;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.vehicle.PaymentFrequency;
 import PSG.backEnd.model.enums.vehicle.PolicyStatus;
 import PSG.backEnd.model.enums.vehicle.PolicyType;
@@ -10,20 +11,22 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "insurance_policies")
+@Table(name = "insurance_policies", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"tenant_id", "policy_number"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class InsurancePolicy {
+public class InsurancePolicy extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column
     private Long id;
 
-    @Column(name = "policy_number", nullable = false, unique = true, length = 50)
+    @Column(name = "policy_number", nullable = false, length = 50)
     private String policyNumber;
 
     @Column(name = "term_number", length = 20)

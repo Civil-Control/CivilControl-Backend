@@ -8,19 +8,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "project_areas")
+@Table(name = "project_areas", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"tenant_id", "name"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class ProjectArea {
+public class ProjectArea extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, columnDefinition = "VARCHAR(100)")
+    @Column(nullable = false, columnDefinition = "VARCHAR(100)")
     private String name;
 
     @Column(columnDefinition = "VARCHAR(500)")

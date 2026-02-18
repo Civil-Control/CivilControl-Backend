@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.employee;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,7 +13,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Builder
-public class EmployeeVacation {
+public class EmployeeVacation extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

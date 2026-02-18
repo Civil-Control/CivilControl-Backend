@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.employee;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.employee.ActionType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,7 +14,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Builder
-public class DisciplinaryAction {
+public class DisciplinaryAction extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.serviceSupplier;
 
 import PSG.backEnd.model.entity.Building;
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.ServiceType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,14 +12,14 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "service_payments",
        uniqueConstraints = {
-           @UniqueConstraint(columnNames = "reference_number", name = "uk_service_payment_reference_number")
+           @UniqueConstraint(columnNames = {"tenant_id", "reference_number"}, name = "uk_service_payment_reference_number")
        })
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class ServicePayment {
+public class ServicePayment extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

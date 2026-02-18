@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.employee;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,7 +15,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Builder
-public class SalaryPayment {
+public class SalaryPayment extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

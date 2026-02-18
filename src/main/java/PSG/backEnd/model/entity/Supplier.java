@@ -10,22 +10,25 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "suppliers")
+@Table(name = "suppliers", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"tenant_id", "cuit"}),
+    @UniqueConstraint(columnNames = {"tenant_id", "legal_name"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class Supplier {
+public class Supplier extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column
     private String cuit;
 
-    @Column(name = "legal_name", nullable = false, unique = true)
+    @Column(name = "legal_name", nullable = false)
     private String legalName;
 
     @Column(name = "trade_name")

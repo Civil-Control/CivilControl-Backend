@@ -2,6 +2,7 @@ package PSG.backEnd.model.entity.employee;
 
 import PSG.backEnd.model.entity.Address;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.employee.EmployeeRole;
 import PSG.backEnd.model.enums.employee.EmployeeStatus;
 import PSG.backEnd.model.enums.employee.EmploymentType;
@@ -11,13 +12,16 @@ import lombok.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "employees")
+@Table(name = "employees", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"tenant_id", "dni"}),
+    @UniqueConstraint(columnNames = {"tenant_id", "cuil"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class Employee {
+public class Employee extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,10 +33,10 @@ public class Employee {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String dni;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String cuil;
 
     @ManyToOne(fetch = FetchType.LAZY)

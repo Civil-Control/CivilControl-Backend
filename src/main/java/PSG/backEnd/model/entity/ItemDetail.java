@@ -13,7 +13,7 @@ import java.math.RoundingMode;
 @Getter
 @Setter
 @Builder
-public class ItemDetail {
+public class ItemDetail extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

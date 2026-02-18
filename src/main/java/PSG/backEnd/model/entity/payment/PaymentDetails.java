@@ -2,6 +2,7 @@ package PSG.backEnd.model.entity.payment;
 
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Supplier;
+import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -17,7 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PaymentDetails {
+public class PaymentDetails extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

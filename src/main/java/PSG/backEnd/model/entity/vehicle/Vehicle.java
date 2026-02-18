@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.vehicle;
 
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.enums.vehicle.JurisdictionType;
 import PSG.backEnd.model.enums.vehicle.TruckEquipment;
@@ -13,19 +14,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "vehicles")
+@Table(name = "vehicles", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"tenant_id", "license_plate"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class Vehicle {
+public class Vehicle extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, name = "license_plate")
+    @Column(nullable = false, name = "license_plate")
     private String licensePlate;
 
     @Column
