@@ -3,7 +3,9 @@ package PSG.backEnd.model.entity;
 import PSG.backEnd.service.util.TenantContext;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
@@ -29,6 +31,8 @@ import org.hibernate.annotations.ParamDef;
 )
 @Getter
 @Setter
+@SuperBuilder
+@NoArgsConstructor
 public abstract class TenantEntity {
 
     @Column(name = "tenant_id", nullable = false)

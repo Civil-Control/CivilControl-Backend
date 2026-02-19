@@ -3,6 +3,7 @@ package PSG.backEnd.model.entity.security;
 import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Entity representing user authentication credentials.
@@ -16,7 +17,7 @@ import lombok.*;
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 public class Credentials extends TenantEntity {
 
     @Id

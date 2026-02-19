@@ -3,6 +3,7 @@ package PSG.backEnd.model.entity.security;
 import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,7 +25,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
+@SuperBuilder
 public class User extends TenantEntity implements UserDetails {
 
     @Id
