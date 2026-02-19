@@ -1,7 +1,9 @@
 package PSG.backEnd.model.entity.security;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -12,22 +14,25 @@ import java.util.Set;
  * A user can have multiple roles.
  */
 @Entity
-@Table(name = "roles")
+@Table(name = "roles", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"tenant_id", "name"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
-public class Role {
+@SuperBuilder
+public class Role extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     /**
-     * Unique role name (e.g., "Senior Architect", "Site Manager").
+     * Role name (e.g., "ROOT", "ADMIN", "USER", or custom roles).
+     * Unique per tenant.
      */
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, length = 100)
     private String name;
 
     /**

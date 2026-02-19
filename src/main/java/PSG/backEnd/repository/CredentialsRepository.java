@@ -31,5 +31,10 @@ public interface CredentialsRepository extends JpaRepository<Credentials, Long> 
      * Checks if credentials exist with the given username (excluding deleted).
      */
     boolean existsByUsernameAndDeletedFalse(String username);
+
+    /**
+     * Checks if credentials exist with the given username for a specific tenant.
+     */
+    boolean existsByUsernameAndTenantId(String username, Long tenantId);
 }
 
