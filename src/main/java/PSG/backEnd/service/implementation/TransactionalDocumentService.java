@@ -472,11 +472,12 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private void revertDocumentPaymentStatus(TransactionalDocument document, Long supplierId) {
         validateSupplierMatch(document, supplierId);
 
+        // Idempotent: if already unpaid, nothing to revert
         if (!document.getPaid()) {
-            throw new IllegalStateException(messageSourceHelper.getMessage("document.notPaid"));
+            return;
         }
 
-        // If it's an invoice, add the discounted amount to the pending balance
+        // If it's an invoice, add the discounted amount back to the pending balance
         if (isInvoice(document.getDocumentType())) {
             Supplier supplier = document.getSupplier();
             BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);

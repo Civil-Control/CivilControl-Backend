@@ -182,23 +182,18 @@ public class PaymentService implements IPaymentService {
      * Respects SRP - Single Responsibility Principle.
      */
     private void revertPaidDocuments(PaymentDetailsDTO paymentDetails) {
-        // Check if there are documents to revert (independent payments have no documents)
-        if (paymentDetails.paidDocumentIds() != null && !paymentDetails.paidDocumentIds().isEmpty()) {
-            for (Long documentId : paymentDetails.paidDocumentIds()) {
-                try {
-                    // Revert directly using amount 0 to indicate reversion
-                    iTransactionalDocumentService.updateTransactionalDocumentStatus(
-                        documentId,
-                        paymentDetails.supplierId(),
-                        BigDecimal.ZERO // Amount 0 indicates revert
-                    );
-                } catch (Exception e) {
-                    // Log error but continue with other documents
-                    System.err.println("Error reverting document " + documentId + ": " + e.getMessage());
-                }
-            }
+        if (paymentDetails.paidDocumentIds() == null || paymentDetails.paidDocumentIds().isEmpty()) {
+            // Independent payment — no documents to revert
+            return;
         }
-        // If paidDocumentIds is null or empty, it's an independent payment - no documents to revert
+
+        for (Long documentId : paymentDetails.paidDocumentIds()) {
+            iTransactionalDocumentService.updateTransactionalDocumentStatus(
+                documentId,
+                paymentDetails.supplierId(),
+                BigDecimal.ZERO // Amount 0 signals revert in the document service
+            );
+        }
     }
 
     /**
@@ -222,8 +217,10 @@ public class PaymentService implements IPaymentService {
     @Override
     @Transactional(readOnly = true)
     public Page<PaymentResponseDTO> findAll(PaymentFilterDTO filter, Pageable pageable) {
+        // Convert enum to its name() string — the repository query compares against string literals
+        String paymentMethodName = filter.paymentMethod() != null ? filter.paymentMethod().name() : null;
         return paymentRepository.findAllWithFilters(
-                filter.paymentMethod(),
+                paymentMethodName,
                 filter.startDate(),
                 filter.endDate(),
                 filter.minAmount(),
@@ -516,6 +513,14 @@ public class PaymentService implements IPaymentService {
      */
     private <V> V getValueOrOriginal(V updatedValue, V originalValue) {
         return updatedValue != null ? updatedValue : originalValue;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponseDTO getById(Long id) {
+        PaymentDetails paymentDetails = paymentRepository.findById(id)
+                .orElseThrow(() -> new PaymentNotFoundException("Payment not found with id: " + id));
+        return mapToPaymentResponse(paymentDetails);
     }
 
     @Override

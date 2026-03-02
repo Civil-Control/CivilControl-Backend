@@ -11,6 +11,8 @@ public interface IPaymentService {
 
     Page<PaymentResponseDTO> findAll(PaymentFilterDTO filter, Pageable pageable);
 
+    PaymentResponseDTO getById(Long id);
+
     CashPaymentResponseDTO getCash(Long id);
     TransferPaymentResponseDTO getTransfer(Long id);
     CheckPaymentResponseDTO getCheck(Long id);

@@ -142,6 +142,19 @@ public class PaymentController {
         };
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Get payment by ID",
+            description = "Retrieves a payment by its PaymentDetails ID, automatically resolving the payment type (cash, transfer or check). " +
+                    "The response 'type' field indicates the actual payment method.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment found"),
+            @ApiResponse(responseCode = "404", description = "Payment not found or has been deleted")
+    })
+    public ResponseEntity<PaymentResponseDTO> getById(
+            @Parameter(description = "Payment unique identifier", required = true, example = "1") @PathVariable Long id) {
+        return ResponseEntity.ok(paymentService.getById(id));
+    }
+
     @GetMapping("/cash/{id}")
     @Operation(summary = "Get cash payment by ID",
             description = "Retrieves detailed information about a specific cash payment by its unique identifier.")
