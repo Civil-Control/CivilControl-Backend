@@ -28,7 +28,7 @@ public record ProjectAreaDTO(
             minLength = 1,
             maxLength = 200,
             nullable = true)
-    @Size(min = 1, max = 200, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+    @Size(max = 200, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String description,
 
     @Schema(description = "Indicates if the project area is currently active. " +

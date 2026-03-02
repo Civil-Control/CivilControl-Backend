@@ -90,6 +90,14 @@ public class EmployeeService implements IEmployeeService {
         validateBusinessRulesForUpdate(employeeDTO, existingEmployee);
         validateUniqueFieldsForUpdate(employeeDTO, existingEmployee);
 
+        // Assign ProjectArea before calling the mapper to avoid Hibernate detecting
+        // an identifier mutation on an already-managed entity instance
+        if (employeeDTO.projectAreaId() != null) {
+            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaId())
+                    .orElseThrow(() -> new ProjectAreaNotFoundException(employeeDTO.projectAreaId()));
+            existingEmployee.setProjectArea(projectArea);
+        }
+
         try {
             employeeMapper.partialUpdate(employeeDTO, existingEmployee);
             Employee updatedEmployee = employeeRepository.save(existingEmployee);
