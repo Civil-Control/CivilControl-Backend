@@ -275,6 +275,20 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         transactionalDocumentRepository.save(document);
     }
 
+    /**
+     * Reverts a document to unpaid status only if it still exists (not soft-deleted).
+     * Used when deleting a payment — if the associated document was already deleted,
+     * there is nothing to revert and the operation is silently skipped.
+     */
+    @Override
+    @Transactional
+    public void revertTransactionalDocumentStatusIfExists(Long documentId, Long supplierId) {
+        transactionalDocumentRepository.findByIdAndDeletedFalse(documentId).ifPresent(document -> {
+            revertDocumentPaymentStatus(document, supplierId);
+            transactionalDocumentRepository.save(document);
+        });
+    }
+
     @Override
     @Transactional
     public void deleteTransactionalDocument(Long id) {

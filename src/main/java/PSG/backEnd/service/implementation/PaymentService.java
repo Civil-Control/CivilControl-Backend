@@ -17,6 +17,7 @@ import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -180,6 +181,7 @@ public class PaymentService implements IPaymentService {
     /**
      * Marks documents as unpaid (reverts the payment).
      * Respects SRP - Single Responsibility Principle.
+     * Silently skips documents that were already soft-deleted.
      */
     private void revertPaidDocuments(PaymentDetailsDTO paymentDetails) {
         if (paymentDetails.paidDocumentIds() == null || paymentDetails.paidDocumentIds().isEmpty()) {
@@ -188,10 +190,9 @@ public class PaymentService implements IPaymentService {
         }
 
         for (Long documentId : paymentDetails.paidDocumentIds()) {
-            iTransactionalDocumentService.updateTransactionalDocumentStatus(
+            iTransactionalDocumentService.revertTransactionalDocumentStatusIfExists(
                 documentId,
-                paymentDetails.supplierId(),
-                BigDecimal.ZERO // Amount 0 signals revert in the document service
+                paymentDetails.supplierId()
             );
         }
     }
@@ -253,7 +254,7 @@ public class PaymentService implements IPaymentService {
         return updatePaymentWithBusinessLogic(
             id,
             cashPaymentRepository,
-            "Cash payment not found",
+            messageSourceHelper.getMessage("payment.cashNotFound", id),
             entity -> {
                 // Get original data before update
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
@@ -271,7 +272,7 @@ public class PaymentService implements IPaymentService {
         return updatePaymentWithBusinessLogic(
             id,
             transferPaymentRepository,
-            "Transfer payment not found",
+            messageSourceHelper.getMessage("payment.transferNotFound", id),
             entity -> {
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
                 transferPaymentMapper.updateEntityFromDto(dto, entity);
@@ -287,7 +288,7 @@ public class PaymentService implements IPaymentService {
         return updatePaymentWithBusinessLogic(
             id,
             checkPaymentRepository,
-            "Check payment not found",
+            messageSourceHelper.getMessage("payment.checkNotFound", id),
             entity -> {
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
                 checkPaymentMapper.updateEntityFromDto(dto, entity);
@@ -373,13 +374,40 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
+     * Deletes a payment by its PaymentDetails ID without needing to know the type.
+     * Resolves the subtype automatically and delegates to the specific delete method.
+     */
+    @Override
+    @Transactional
+    public void deleteById(Long id) {
+        PaymentDetails paymentDetails = paymentRepository.findByIdWithPaymentType(id)
+                .orElseThrow(() -> new PaymentNotFoundException(messageSourceHelper.getMessage("payment.notFoundGeneric", id)));
+        // Initialize lazy collection within the transaction
+        Hibernate.initialize(paymentDetails.getPaidDocuments());
+
+        if (paymentDetails.getCashPayment() != null) {
+            deletePaymentWithBusinessLogic(paymentDetails.getCashPayment().getId(), cashPaymentRepository,
+                    messageSourceHelper.getMessage("payment.cashNotFound", id));
+        } else if (paymentDetails.getTransferPayment() != null) {
+            deletePaymentWithBusinessLogic(paymentDetails.getTransferPayment().getId(), transferPaymentRepository,
+                    messageSourceHelper.getMessage("payment.transferNotFound", id));
+        } else if (paymentDetails.getCheckPayment() != null) {
+            deletePaymentWithBusinessLogic(paymentDetails.getCheckPayment().getId(), checkPaymentRepository,
+                    messageSourceHelper.getMessage("payment.checkNotFound", id));
+        } else {
+            throw new PaymentNotFoundException(messageSourceHelper.getMessage("payment.noAssociatedType", id));
+        }
+    }
+
+    /**
      * Method responsible for deleting cash payments.
      * Reverts all payment effects before marking it as deleted.
      */
     @Override
     @Transactional
     public void deleteCash(Long id) {
-        deletePaymentWithBusinessLogic(id, cashPaymentRepository, "Cash payment not found");
+        deletePaymentWithBusinessLogic(id, cashPaymentRepository,
+                messageSourceHelper.getMessage("payment.cashNotFound", id));
     }
 
     /**
@@ -389,7 +417,8 @@ public class PaymentService implements IPaymentService {
     @Override
     @Transactional
     public void deleteTransfer(Long id) {
-        deletePaymentWithBusinessLogic(id, transferPaymentRepository, "Transfer payment not found");
+        deletePaymentWithBusinessLogic(id, transferPaymentRepository,
+                messageSourceHelper.getMessage("payment.transferNotFound", id));
     }
 
     /**
@@ -399,7 +428,8 @@ public class PaymentService implements IPaymentService {
     @Override
     @Transactional
     public void deleteCheck(Long id) {
-        deletePaymentWithBusinessLogic(id, checkPaymentRepository, "Check payment not found");
+        deletePaymentWithBusinessLogic(id, checkPaymentRepository,
+                messageSourceHelper.getMessage("payment.checkNotFound", id));
     }
 
     /**
@@ -443,12 +473,10 @@ public class PaymentService implements IPaymentService {
      */
     private <T> PaymentDetailsDTO extractPaymentDetails(T paymentEntity) {
         try {
-            // Use reflection to get paymentDetails
             var paymentDetailsField = paymentEntity.getClass().getDeclaredMethod("getPaymentDetails");
             paymentDetailsField.setAccessible(true);
             PaymentDetails details = (PaymentDetails) paymentDetailsField.invoke(paymentEntity);
 
-            // Handle independent payments without associated documents
             List<Long> documentIds = null;
             if (details.getPaidDocuments() != null && !details.getPaidDocuments().isEmpty()) {
                 documentIds = details.getPaidDocuments().stream()
@@ -461,7 +489,7 @@ public class PaymentService implements IPaymentService {
                 details.getSupplier().getId(),
                 details.getAmount(),
                 details.getComment(),
-                documentIds // Can be null for independent payments
+                documentIds
             );
         } catch (Exception e) {
             throw new RuntimeException(messageSourceHelper.getMessage("payment.extractDetailsError"), e);
@@ -518,27 +546,35 @@ public class PaymentService implements IPaymentService {
     @Override
     @Transactional(readOnly = true)
     public PaymentResponseDTO getById(Long id) {
-        PaymentDetails paymentDetails = paymentRepository.findById(id)
-                .orElseThrow(() -> new PaymentNotFoundException("Payment not found with id: " + id));
+        PaymentDetails paymentDetails = paymentRepository.findByIdWithPaymentType(id)
+                .orElseThrow(() -> new PaymentNotFoundException(messageSourceHelper.getMessage("payment.notFoundGeneric", id)));
+        // Initialize lazy collection within the transaction to prevent LazyInitializationException
+        Hibernate.initialize(paymentDetails.getPaidDocuments());
         return mapToPaymentResponse(paymentDetails);
     }
 
     @Override
     @Transactional(readOnly = true)
     public CashPaymentResponseDTO getCash(Long id) {
-        return getPayment(id, cashPaymentRepository, "Cash payment not found", cashPaymentMapper::toResponse);
+        return getPayment(id, cashPaymentRepository,
+                messageSourceHelper.getMessage("payment.cashNotFound", id),
+                cashPaymentMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public TransferPaymentResponseDTO getTransfer(Long id) {
-        return getPayment(id, transferPaymentRepository, "Transfer payment not found", transferPaymentMapper::toResponse);
+        return getPayment(id, transferPaymentRepository,
+                messageSourceHelper.getMessage("payment.transferNotFound", id),
+                transferPaymentMapper::toResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public CheckPaymentResponseDTO getCheck(Long id) {
-        return getPayment(id, checkPaymentRepository, "Check payment not found", checkPaymentMapper::toResponse);
+        return getPayment(id, checkPaymentRepository,
+                messageSourceHelper.getMessage("payment.checkNotFound", id),
+                checkPaymentMapper::toResponse);
     }
 
     /**

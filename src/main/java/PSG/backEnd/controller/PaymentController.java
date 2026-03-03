@@ -256,6 +256,20 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete payment by ID",
+            description = "Performs a soft delete of a payment by its PaymentDetails ID, automatically resolving the type (cash, transfer or check). " +
+                    "The payment is marked as deleted but remains in the database for audit trails.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Payment successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "Payment not found")
+    })
+    public ResponseEntity<Void> deleteById(
+            @Parameter(description = "Payment unique identifier", required = true, example = "1") @PathVariable Long id) {
+        paymentService.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/cash/{id}")
     @Operation(summary = "Delete cash payment",
             description = "Performs a soft delete of a cash payment. The payment is marked as deleted but remains in the database for audit trails. " +

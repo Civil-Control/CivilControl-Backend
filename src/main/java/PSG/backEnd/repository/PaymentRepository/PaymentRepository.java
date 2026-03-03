@@ -10,9 +10,23 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
+
+    /**
+     * Fetches a PaymentDetails by ID eagerly loading all payment subtype relations
+     * (cashPayment, transferPayment, checkPayment) and supplier in a single query.
+     * This avoids LazyInitializationException when resolving the payment type.
+     */
+    @Query("SELECT pd FROM PaymentDetails pd " +
+            "LEFT JOIN FETCH pd.cashPayment " +
+            "LEFT JOIN FETCH pd.transferPayment " +
+            "LEFT JOIN FETCH pd.checkPayment " +
+            "LEFT JOIN FETCH pd.supplier " +
+            "WHERE pd.id = :id")
+    Optional<PaymentDetails> findByIdWithPaymentType(@Param("id") Long id);
 
     @Query("SELECT pd FROM PaymentDetails pd " +
             "LEFT JOIN FETCH pd.supplier " +
@@ -43,3 +57,4 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             Pageable pageable
     );
 }
+

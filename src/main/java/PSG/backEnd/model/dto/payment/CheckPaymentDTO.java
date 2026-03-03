@@ -19,12 +19,10 @@ public record CheckPaymentDTO(
         @Valid
         PaymentDetailsDTO paymentDetails,
 
-        @Schema(description = "Due date of the check. Date when the check can be deposited or cashed. " +
-                "Must be a future date relative to when the check is issued.",
+        @Schema(description = "Due date of the check. Date when the check can be deposited or cashed.",
                 example = "2025-12-31",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "{payment.dueDate.required}", groups = OnCreate.class)
-        @Future(message = "{payment.dueDate.future}", groups = {OnCreate.class, OnUpdate.class})
         LocalDate dueDate,
 
         @Schema(description = "Check number as printed on the physical check. " +

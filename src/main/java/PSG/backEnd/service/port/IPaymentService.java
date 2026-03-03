@@ -24,4 +24,5 @@ public interface IPaymentService {
     void deleteCash(Long id);
     void deleteTransfer(Long id);
     void deleteCheck(Long id);
+    void deleteById(Long id);
 }
