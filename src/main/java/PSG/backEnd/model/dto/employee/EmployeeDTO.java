@@ -6,6 +6,7 @@ import PSG.backEnd.model.enums.employee.EmployeeStatus;
 import PSG.backEnd.model.enums.employee.EmploymentType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
+import PSG.backEnd.model.validation.ValidEmergencyContact;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 @Schema(description = "Data Transfer Object for creating or updating an employee. " +
         "Represents complete employee information including personal details, contact information, " +
         "employment details, and emergency contact.")
+@ValidEmergencyContact(groups = {OnCreate.class, OnUpdate.class})
 public record EmployeeDTO(
     @Schema(description = "Employee's first name. Must contain only letters, spaces, dots, hyphens and apostrophes. " +
             "Minimum 2 characters, maximum 100 characters.",
@@ -101,8 +103,7 @@ public record EmployeeDTO(
 
     @Schema(description = "Emergency contact information for the employee. Includes name, relationship, and phone number " +
             "of a person to contact in case of emergency.",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
+            nullable = true)
     @Valid
     EmergencyContactDTO emergencyContact,
 
