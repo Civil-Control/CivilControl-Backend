@@ -5,7 +5,6 @@ import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.enums.vehicle.JurisdictionType;
 import PSG.backEnd.model.enums.vehicle.TruckEquipment;
-import PSG.backEnd.model.enums.vehicle.VehicleType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -46,8 +45,8 @@ public class Vehicle extends TenantEntity {
     @Column(name = "nick_name")
     private String nickName;
 
-    @Column(name = "vehicle_type", nullable = false)
-    @Enumerated(EnumType.STRING)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_type_id")
     private VehicleType vehicleType;
 
     @ManyToOne(fetch = FetchType.LAZY)

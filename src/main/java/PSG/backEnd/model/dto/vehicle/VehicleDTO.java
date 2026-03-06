@@ -1,7 +1,6 @@
 package PSG.backEnd.model.dto.vehicle;
 
 import PSG.backEnd.model.enums.vehicle.JurisdictionType;
-import PSG.backEnd.model.enums.vehicle.VehicleType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.model.validation.ValidTruckEquipment;
@@ -65,12 +64,10 @@ public record VehicleDTO(
         @Size(max = 40, message = "{vehicle.nickName.size}", groups = {OnCreate.class, OnUpdate.class})
         String nickName,
 
-        @Schema(description = "Type of vehicle. Valid values: CAMION (truck with cargo capacity), CAMIONETA (pickup truck), " +
-                "AUTO (passenger car), MOTO (motorcycle), OTRO (other types).",
-                example = "AUTO",
-                allowableValues = {"CAMION", "CAMIONETA", "AUTO", "MOTO", "OTRO"},
+        @Schema(description = "ID del tipo de vehículo.",
+                example = "1",
                 nullable = true)
-        VehicleType vehicleType,
+        Long vehicleTypeId,
 
         @Schema(description = "ID of the project area to which this vehicle is assigned.",
                 example = "5",
