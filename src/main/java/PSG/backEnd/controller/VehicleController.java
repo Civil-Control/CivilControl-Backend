@@ -147,63 +147,63 @@ public class VehicleController {
     // ============================================================
 
     @PostMapping("/types")
-    @Operation(summary = "Crear un nuevo tipo de vehículo",
-            description = "Registra un nuevo tipo de vehículo en el sistema.")
+    @Operation(summary = "Create a new vehicle type",
+            description = "Registers a new vehicle type in the system.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Tipo de vehículo creado exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos"),
-            @ApiResponse(responseCode = "409", description = "Ya existe un tipo de vehículo con ese nombre")
+            @ApiResponse(responseCode = "201", description = "Vehicle type successfully created"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "409", description = "A vehicle type with that name already exists")
     })
     public ResponseEntity<VehicleTypeResponseDTO> createVehicleType(
-            @Validated @RequestBody VehicleTypeDTO vehicleTypeDTO) {
+            @Validated(OnCreate.class) @RequestBody VehicleTypeDTO vehicleTypeDTO) {
         return new ResponseEntity<>(iVehicleTypeService.createVehicleType(vehicleTypeDTO), HttpStatus.CREATED);
     }
 
     @GetMapping("/types")
-    @Operation(summary = "Obtener todos los tipos de vehículo",
-            description = "Retorna la lista completa de tipos de vehículo disponibles.")
-    @ApiResponse(responseCode = "200", description = "Lista de tipos de vehículo obtenida exitosamente")
+    @Operation(summary = "Get all vehicle types",
+            description = "Returns the full list of available vehicle types.")
+    @ApiResponse(responseCode = "200", description = "Vehicle type list successfully retrieved")
     public ResponseEntity<List<VehicleTypeResponseDTO>> getAllVehicleTypes() {
         return ResponseEntity.ok(iVehicleTypeService.getAllVehicleTypes());
     }
 
     @GetMapping("/types/{id}")
-    @Operation(summary = "Obtener tipo de vehículo por ID",
-            description = "Retorna la información de un tipo de vehículo específico.")
+    @Operation(summary = "Get vehicle type by ID",
+            description = "Returns the information of a specific vehicle type.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Tipo de vehículo encontrado"),
-            @ApiResponse(responseCode = "404", description = "Tipo de vehículo no encontrado")
+            @ApiResponse(responseCode = "200", description = "Vehicle type found"),
+            @ApiResponse(responseCode = "404", description = "Vehicle type not found")
     })
     public ResponseEntity<VehicleTypeResponseDTO> getVehicleTypeById(
-            @Parameter(description = "Identificador único del tipo de vehículo", required = true) @PathVariable Long id) {
+            @Parameter(description = "Vehicle type unique identifier", required = true) @PathVariable Long id) {
         return ResponseEntity.ok(iVehicleTypeService.getVehicleTypeById(id));
     }
 
     @PatchMapping("/types/{id}")
-    @Operation(summary = "Actualizar tipo de vehículo",
-            description = "Actualiza un tipo de vehículo existente. Solo se actualizan los campos provistos.")
+    @Operation(summary = "Update vehicle type",
+            description = "Updates an existing vehicle type. Only provided fields will be updated.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Tipo de vehículo actualizado exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos"),
-            @ApiResponse(responseCode = "404", description = "Tipo de vehículo no encontrado"),
-            @ApiResponse(responseCode = "409", description = "Ya existe un tipo de vehículo con ese nombre")
+            @ApiResponse(responseCode = "200", description = "Vehicle type successfully updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "404", description = "Vehicle type not found"),
+            @ApiResponse(responseCode = "409", description = "A vehicle type with that name already exists")
     })
     public ResponseEntity<VehicleTypeResponseDTO> updateVehicleType(
-            @Parameter(description = "Identificador único del tipo de vehículo", required = true) @PathVariable Long id,
-            @Validated @RequestBody VehicleTypeDTO vehicleTypeDTO) {
+            @Parameter(description = "Vehicle type unique identifier", required = true) @PathVariable Long id,
+            @Validated(OnUpdate.class) @RequestBody VehicleTypeDTO vehicleTypeDTO) {
         return ResponseEntity.ok(iVehicleTypeService.updateVehicleType(id, vehicleTypeDTO));
     }
 
     @DeleteMapping("/types/{id}")
-    @Operation(summary = "Eliminar tipo de vehículo",
-            description = "Elimina un tipo de vehículo del sistema. No se puede eliminar si hay vehículos asociados.")
+    @Operation(summary = "Delete vehicle type",
+            description = "Deletes a vehicle type from the system. Cannot be deleted if there are associated vehicles.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Tipo de vehículo eliminado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "Tipo de vehículo no encontrado"),
-            @ApiResponse(responseCode = "409", description = "El tipo de vehículo tiene vehículos asociados")
+            @ApiResponse(responseCode = "204", description = "Vehicle type successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "Vehicle type not found"),
+            @ApiResponse(responseCode = "409", description = "Vehicle type has associated vehicles and cannot be deleted")
     })
     public ResponseEntity<Void> deleteVehicleType(
-            @Parameter(description = "Identificador único del tipo de vehículo", required = true) @PathVariable Long id) {
+            @Parameter(description = "Vehicle type unique identifier", required = true) @PathVariable Long id) {
         iVehicleTypeService.deleteVehicleType(id);
         return ResponseEntity.noContent().build();
     }

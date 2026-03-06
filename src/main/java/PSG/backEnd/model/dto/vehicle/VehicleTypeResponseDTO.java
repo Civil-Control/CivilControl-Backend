@@ -2,20 +2,19 @@ package PSG.backEnd.model.dto.vehicle;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "Response DTO con la información de un tipo de vehículo.")
+@Schema(description = "Response DTO containing information about a vehicle type.")
 public record VehicleTypeResponseDTO(
 
-        @Schema(description = "Identificador único del tipo de vehículo.", example = "1")
+        @Schema(description = "Unique identifier of the vehicle type.", example = "1")
         Long id,
 
-        @Schema(description = "Nombre del tipo de vehículo.", example = "Camión")
+        @Schema(description = "Vehicle type name.", example = "Truck")
         String name,
 
-        @Schema(description = "Descripción del tipo de vehículo.", example = "Vehículo pesado de carga")
+        @Schema(description = "Vehicle type description.", example = "Heavy cargo vehicle")
         String description,
 
-        @Schema(description = "Indica si los vehículos de este tipo requieren especificar equipamiento de camión (truckEquipment).",
+        @Schema(description = "Indicates whether vehicles of this type require specifying truck equipment (truckEquipment).",
                 example = "false")
         boolean requiresTruckEquipment
 ) {}
-

@@ -1,15 +1,15 @@
 -- =============================================================================
 -- V1__init_schema.sql
--- CivilControl Backend - Migración inicial del esquema completo
--- Generado a partir de las entidades JPA (Spring Boot 3.3.0 / Hibernate 6)
--- Orden: respeta dependencias de FK (tablas padre antes que tablas hijo)
--- IDEMPOTENTE: usa IF NOT EXISTS en todas las sentencias para soportar
--- bases de datos pre-existentes sin fallar.
+-- CivilControl Backend - Initial full schema migration
+-- Generated from JPA entities (Spring Boot 3.3.0 / Hibernate 6)
+-- Order: respects FK dependencies (parent tables before child tables)
+-- IDEMPOTENT: uses IF NOT EXISTS on all statements to support
+-- pre-existing databases without failing.
 -- =============================================================================
 
 -- =============================================================================
--- SEGURIDAD: permissions, credentials, roles, users
--- (Permission NO extiende TenantEntity → sin tenant_id)
+-- SECURITY: permissions, credentials, roles, users
+-- (Permission does NOT extend TenantEntity → no tenant_id)
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS permissions (
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT fk_users_credentials FOREIGN KEY (credentials_id) REFERENCES credentials (id)
 );
 
--- Tabla intermedia ManyToMany: Role <-> Permission
+-- Intermediate table ManyToMany: Role <-> Permission
 CREATE TABLE IF NOT EXISTS role_permissions (
     role_id       BIGINT NOT NULL,
     permission_id BIGINT NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS role_permissions (
     CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES permissions (id)
 );
 
--- Tabla intermedia ManyToMany: User <-> Role
+-- Intermediate table ManyToMany: User <-> Role
 CREATE TABLE IF NOT EXISTS user_roles (
     user_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS user_roles (
 );
 
 -- =============================================================================
--- INFRAESTRUCTURA: project_areas, buildings, contact_info
+-- INFRASTRUCTURE: project_areas, buildings, contact_info
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS project_areas (
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS buildings (
 );
 
 -- =============================================================================
--- PROVEEDORES: suppliers
+-- SUPPLIERS
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS suppliers (
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS supplier_allowed_payment_methods (
 );
 
 -- =============================================================================
--- DOCUMENTOS TRANSACCIONALES
+-- TRANSACTIONAL DOCUMENTS
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS transactional_documents (
@@ -208,7 +208,7 @@ CREATE TABLE IF NOT EXISTS item_details (
 );
 
 -- =============================================================================
--- PAGOS A PROVEEDORES
+-- SUPPLIER PAYMENTS
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS payment_details (
@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS payment_details_paid_documents (
     CONSTRAINT fk_pdd_transact_document FOREIGN KEY (transactional_document_id) REFERENCES transactional_documents (id)
 );
 
--- @MapsId: PK comparte valor con payment_details_id
+-- @MapsId: PK shares value with payment_details_id
 CREATE TABLE IF NOT EXISTS cash_payments (
     id                 BIGINT  NOT NULL PRIMARY KEY,
     tenant_id          BIGINT  NOT NULL,
@@ -277,7 +277,7 @@ CREATE TABLE IF NOT EXISTS stocks (
 );
 
 -- =============================================================================
--- EMPLEADOS
+-- EMPLOYEES
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS employees (
@@ -359,7 +359,7 @@ CREATE TABLE IF NOT EXISTS salary_payments (
 );
 
 -- =============================================================================
--- VEHÍCULOS
+-- VEHICLES
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS vehicle_types (
@@ -418,7 +418,7 @@ CREATE TABLE IF NOT EXISTS repairs (
 );
 
 -- =============================================================================
--- ESTACIONES DE SERVICIO Y CARGAS DE COMBUSTIBLE
+-- GAS STATIONS AND FUEL LOADS
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS gas_stations (
@@ -457,7 +457,7 @@ CREATE TABLE IF NOT EXISTS fuel_loads (
 );
 
 -- =============================================================================
--- SEGUROS
+-- INSURANCE
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS insurance_policies (
@@ -503,7 +503,7 @@ CREATE TABLE IF NOT EXISTS policy_vehicles (
 );
 
 -- =============================================================================
--- SERVICIOS DE PROVEEDORES
+-- SERVICE SUPPLIERS
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS service_suppliers (
@@ -538,8 +538,8 @@ CREATE TABLE IF NOT EXISTS service_payments (
 );
 
 -- =============================================================================
--- AUDITORÍA DE EXCEPCIONES
--- (ExceptionLog NO extiende TenantEntity → sin tenant_id)
+-- EXCEPTION AUDIT LOG
+-- (ExceptionLog does NOT extend TenantEntity → no tenant_id)
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS exception_log (

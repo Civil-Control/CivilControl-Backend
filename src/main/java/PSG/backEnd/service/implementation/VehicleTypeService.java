@@ -8,6 +8,7 @@ import PSG.backEnd.model.entity.vehicle.VehicleType;
 import PSG.backEnd.model.mapper.VehicleTypeMapper;
 import PSG.backEnd.repository.VehicleTypeRepository;
 import PSG.backEnd.service.port.IVehicleTypeService;
+import PSG.backEnd.service.util.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +25,8 @@ public class VehicleTypeService implements IVehicleTypeService {
     @Override
     @Transactional
     public VehicleTypeResponseDTO createVehicleType(VehicleTypeDTO vehicleTypeDTO) {
-        if (vehicleTypeRepository.existsByName(vehicleTypeDTO.name())) {
+        Long tenantId = TenantContext.getCurrentTenant();
+        if (vehicleTypeRepository.existsByNameAndTenantId(vehicleTypeDTO.name(), tenantId)) {
             throw new VehicleTypeAlreadyExistsException(vehicleTypeDTO.name());
         }
         VehicleType vehicleType = vehicleTypeMapper.toEntity(vehicleTypeDTO);
@@ -54,9 +56,11 @@ public class VehicleTypeService implements IVehicleTypeService {
         VehicleType existing = vehicleTypeRepository.findById(id)
                 .orElseThrow(() -> new VehicleTypeNotFoundException(id));
 
-        if (vehicleTypeDTO.name() != null && !vehicleTypeDTO.name().equals(existing.getName())
-                && vehicleTypeRepository.existsByName(vehicleTypeDTO.name())) {
-            throw new VehicleTypeAlreadyExistsException(vehicleTypeDTO.name());
+        if (vehicleTypeDTO.name() != null && !vehicleTypeDTO.name().equals(existing.getName())) {
+            Long tenantId = TenantContext.getCurrentTenant();
+            if (vehicleTypeRepository.existsByNameAndTenantIdAndIdNot(vehicleTypeDTO.name(), tenantId, id)) {
+                throw new VehicleTypeAlreadyExistsException(vehicleTypeDTO.name());
+            }
         }
 
         vehicleTypeMapper.partialUpdate(vehicleTypeDTO, existing);

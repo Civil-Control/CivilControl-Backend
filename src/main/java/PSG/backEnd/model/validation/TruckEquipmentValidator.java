@@ -23,14 +23,14 @@ public class TruckEquipmentValidator implements ConstraintValidator<ValidTruckEq
         Long vehicleTypeId = vehicleDTO.vehicleTypeId();
         String truckEquipment = vehicleDTO.truckEquipment();
 
-        // Si no se especifica tipo de vehículo, no se puede validar; se permite pasar
+        // If no vehicle type is specified, validation cannot be performed; allow it through
         if (vehicleTypeId == null) {
             return true;
         }
 
         Optional<VehicleType> vehicleTypeOpt = vehicleTypeRepository.findById(vehicleTypeId);
 
-        // Si el tipo no existe, se deja pasar (el servicio lanzará el error correspondiente)
+        // If the type does not exist, allow it through (the service will throw the appropriate error)
         if (vehicleTypeOpt.isEmpty()) {
             return true;
         }

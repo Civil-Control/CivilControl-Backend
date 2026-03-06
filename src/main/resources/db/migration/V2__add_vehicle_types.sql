@@ -1,11 +1,11 @@
 -- =============================================================================
 -- V2__add_vehicle_type_fk_to_vehicles.sql
--- Migra la columna vehicle_type (VARCHAR enum) hacia vehicle_type_id (FK).
--- La tabla vehicle_types ya fue creada en V1.
--- Idempotente: seguro de re-ejecutar si una ejecución anterior quedó parcial.
+-- Migrates the vehicle_type column (VARCHAR enum) to vehicle_type_id (FK).
+-- The vehicle_types table was already created in V1.
+-- Idempotent: safe to re-execute regardless of partial prior state.
 -- =============================================================================
 
--- 1. Agregar vehicle_type_id en vehicles (solo si la columna no existe aún)
+-- 1. Add vehicle_type_id to vehicles (only if the column does not exist yet)
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -16,7 +16,7 @@ BEGIN
     END IF;
 END $$;
 
--- 2. Agregar la FK (solo si no existe aún)
+-- 2. Add the FK constraint (only if it does not exist yet)
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -29,7 +29,7 @@ BEGIN
     END IF;
 END $$;
 
--- 3. Eliminar la columna antigua del enum (solo si todavía existe)
+-- 3. Drop the old enum column (only if it still exists)
 DO $$
 BEGIN
     IF EXISTS (
@@ -39,3 +39,5 @@ BEGIN
         ALTER TABLE vehicles DROP COLUMN vehicle_type;
     END IF;
 END $$;
+
+
