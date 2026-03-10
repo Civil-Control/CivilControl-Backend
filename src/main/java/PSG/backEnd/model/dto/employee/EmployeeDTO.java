@@ -83,9 +83,8 @@ public record EmployeeDTO(
     @Schema(description = "Employee's primary phone number. Can include country code, area code, and must be in valid phone format. " +
             "Accepts various international formats.",
             example = "+54 9 11 1234-5678",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Pattern(regexp = "^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
+            nullable = true)
+    @Pattern(regexp = "^$|^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
              message = "Invalid phone number format",
              groups = {OnCreate.class, OnUpdate.class})
     String phoneNumber,
@@ -95,9 +94,10 @@ public record EmployeeDTO(
             example = "juan.garcia@example.com",
             format = "email",
             maxLength = 100,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Email(message = "Email must be valid", groups = {OnCreate.class, OnUpdate.class})
+            nullable = true)
+    @Pattern(regexp = "^$|^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$",
+             message = "Email must be valid",
+             groups = {OnCreate.class, OnUpdate.class})
     @Size(max = 100, message = "Email must not exceed 100 characters", groups = {OnCreate.class, OnUpdate.class})
     String email,
 
