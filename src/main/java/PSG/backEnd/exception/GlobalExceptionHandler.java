@@ -1,5 +1,9 @@
 package PSG.backEnd.exception;
 
+import PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException;
+import PSG.backEnd.exception.vehicle.VehicleDataConflictException;
+import PSG.backEnd.exception.vehicle.VehicleNotValidException;
+import PSG.backEnd.exception.vehicle.VehicleTypeAlreadyExistsException;
 import PSG.backEnd.service.implementation.ExceptionAuditService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -201,6 +205,98 @@ public class GlobalExceptionHandler {
         ProblemDetail problemDetail = createProblemDetail(
                 HttpStatus.CONFLICT,
                 "Invalid State",
+                ex.getMessage(),
+                request
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(problemDetail);
+    }
+
+    /**
+     * Handles vehicle validation errors (e.g., missing required fields at business level)
+     * Returns 400 Bad Request
+     */
+    @ExceptionHandler(VehicleNotValidException.class)
+    public ResponseEntity<ProblemDetail> handleVehicleNotValidException(
+            VehicleNotValidException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                "Vehicle Validation Error",
+                ex.getMessage(),
+                request
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(problemDetail);
+    }
+
+    /**
+     * Handles vehicle already exists conflicts
+     * Returns 409 Conflict
+     */
+    @ExceptionHandler(VehicleAlreadyExistsException.class)
+    public ResponseEntity<ProblemDetail> handleVehicleAlreadyExistsException(
+            VehicleAlreadyExistsException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.CONFLICT,
+                "Vehicle Already Exists",
+                ex.getMessage(),
+                request
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(problemDetail);
+    }
+
+    /**
+     * Handles vehicle type already exists conflicts
+     * Returns 409 Conflict
+     */
+    @ExceptionHandler(VehicleTypeAlreadyExistsException.class)
+    public ResponseEntity<ProblemDetail> handleVehicleTypeAlreadyExistsException(
+            VehicleTypeAlreadyExistsException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.CONFLICT,
+                "Vehicle Type Already Exists",
+                ex.getMessage(),
+                request
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(problemDetail);
+    }
+
+    /**
+     * Handles vehicle data integrity conflicts (e.g., duplicate license plate on update)
+     * Returns 409 Conflict
+     */
+    @ExceptionHandler(VehicleDataConflictException.class)
+    public ResponseEntity<ProblemDetail> handleVehicleDataConflictException(
+            VehicleDataConflictException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.CONFLICT,
+                "Vehicle Data Conflict",
                 ex.getMessage(),
                 request
         );

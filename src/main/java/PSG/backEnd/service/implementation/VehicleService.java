@@ -3,6 +3,7 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException;
 import PSG.backEnd.exception.vehicle.VehicleDataConflictException;
 import PSG.backEnd.exception.vehicle.VehicleNotFoundException;
+import PSG.backEnd.exception.vehicle.VehicleNotValidException;
 import PSG.backEnd.exception.vehicle.VehicleTypeNotFoundException;
 import PSG.backEnd.exception.vehicle.ProjectAreaNotValidException;
 import PSG.backEnd.model.dto.vehicle.VehicleDTO;
@@ -37,6 +38,7 @@ public class VehicleService implements IVehicleService {
     @Override
     @Transactional
     public VehicleResponseDTO createVehicle(VehicleDTO vehicleDTO) {
+        validateVehicleTypeRequired(vehicleDTO.vehicleTypeId());
         validateNewVehicle(vehicleDTO);
         validateProjectAreaExists(vehicleDTO.projectAreaId());
         validateVehicleTypeExists(vehicleDTO.vehicleTypeId());
@@ -125,6 +127,12 @@ public class VehicleService implements IVehicleService {
     public Vehicle getEntityById(Long id) {
         return vehicleRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new VehicleNotFoundException(id));
+    }
+
+    private void validateVehicleTypeRequired(Long vehicleTypeId) {
+        if (vehicleTypeId == null) {
+            throw new VehicleNotValidException(messageSourceHelper.getMessage("vehicle.vehicleType.required"));
+        }
     }
 
     private void validateNewVehicle(VehicleDTO vehicleDTO) {

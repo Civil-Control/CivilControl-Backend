@@ -6,5 +6,9 @@ public class VehicleNotValidException extends RuntimeException {
     public VehicleNotValidException(Long vehicleId) {
         super(MessageSourceHelper.getMessageStatic("vehicle.notValid", vehicleId));
     }
+
+    public VehicleNotValidException(String message) {
+        super(message);
+    }
 }
 

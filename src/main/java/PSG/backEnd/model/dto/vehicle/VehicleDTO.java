@@ -66,7 +66,8 @@ public record VehicleDTO(
 
         @Schema(description = "ID del tipo de vehículo.",
                 example = "1",
-                nullable = true)
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull(message = "{vehicle.vehicleType.required}", groups = OnCreate.class)
         Long vehicleTypeId,
 
         @Schema(description = "ID of the project area to which this vehicle is assigned.",
