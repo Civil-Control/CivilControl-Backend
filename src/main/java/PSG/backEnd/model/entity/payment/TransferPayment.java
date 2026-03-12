@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.payment;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,7 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TransferPayment {
+public class TransferPayment extends TenantEntity {
 
     @Id
     private Long id;

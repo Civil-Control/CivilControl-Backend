@@ -68,3 +68,19 @@ secrets/
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+### Temporary Repair & Solution Files ###
+# These files are for local troubleshooting only
+repair_*.sql
+repair_*.ps1
+MANUAL_REPAIR_*.sql
+SOLUCION_*.md
+*_REPAIR_*.sql
+
+### Credentials and Sensitive Information ###
+# NEVER commit credentials files
+CREDENCIALES_SISTEMA.md
+CREDENTIALS*.md
+*CREDENCIALES*.md
+passwords.txt
+

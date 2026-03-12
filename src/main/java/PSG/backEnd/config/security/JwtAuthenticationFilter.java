@@ -1,6 +1,7 @@
 package PSG.backEnd.config.security;
 
 import PSG.backEnd.service.implementation.JwtService;
+import PSG.backEnd.service.util.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,8 +52,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
 
         try {
-            // Extract username from JWT
+            // Extract username and tenantId from JWT
             username = jwtService.extractUsername(jwt);
+            Long tenantId = jwtService.extractTenantId(jwt);
+
+            // Set tenant context
+            TenantContext.setCurrentTenant(tenantId);
+
+            log.debug("Tenant context set to: {}", tenantId);
 
             // If username is present and user is not already authenticated
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -76,14 +83,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // Set authentication in security context
                     SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                    log.debug("User '{}' authenticated successfully", username);
+                    log.debug("User '{}' authenticated successfully for tenant '{}'", username, tenantId);
                 }
             }
         } catch (Exception e) {
             log.error("Cannot set user authentication: {}", e.getMessage());
+        } finally {
+            // Always continue the filter chain
+            try {
+                filterChain.doFilter(request, response);
+            } finally {
+                // Clear tenant context after request processing to prevent memory leaks
+                TenantContext.clear();
+            }
         }
-
-        filterChain.doFilter(request, response);
     }
 }
 

@@ -103,9 +103,10 @@ public class UserController {
 
             Authentication authentication) {
 
+        String resolvedSortBy = resolveSortField(sortBy);
         Sort sort = sortDir.equalsIgnoreCase("DESC")
-                ? Sort.by(sortBy).descending()
-                : Sort.by(sortBy).ascending();
+                ? Sort.by(resolvedSortBy).descending()
+                : Sort.by(resolvedSortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
         UserFilterDTO filterDTO = new UserFilterDTO(username, email, firstName, lastName, enabled);
@@ -188,5 +189,17 @@ public class UserController {
             @PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Translates user-facing sort field names to their actual JPA entity path.
+     * Needed because 'username' lives in User.credentials.username, not directly in User.
+     */
+    private String resolveSortField(String sortBy) {
+        if (sortBy == null) return "firstName";
+        if ("username".equalsIgnoreCase(sortBy)) {
+            return "credentials.username";
+        }
+        return sortBy;
     }
 }

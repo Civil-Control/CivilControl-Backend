@@ -47,6 +47,16 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
     boolean existsByIdAndDeletedFalse(Long id);
 
     /**
+     * Checks if a role exists with the given name for a specific tenant.
+     */
+    boolean existsByNameAndTenantId(String name, Long tenantId);
+
+    /**
+     * Finds a role by name and tenant ID.
+     */
+    Optional<Role> findByNameAndTenantId(String name, Long tenantId);
+
+    /**
      * Gets all non-deleted roles.
      */
     Page<Role> findByDeletedFalse(Pageable pageable);

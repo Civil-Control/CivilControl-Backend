@@ -1,7 +1,9 @@
 package PSG.backEnd.model.entity.security;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,13 +18,15 @@ import java.util.Set;
  * A user can have multiple roles, and each role contains multiple permissions.
  */
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"tenant_id", "email"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
-public class User implements UserDetails {
+@SuperBuilder
+public class User extends TenantEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,7 +42,7 @@ public class User implements UserDetails {
     /**
      * Unique user email.
      */
-    @Column(nullable = false, unique = true, length = 100, columnDefinition = "VARCHAR(100)")
+    @Column(nullable = false, length = 100, columnDefinition = "VARCHAR(100)")
     private String email;
 
     /**

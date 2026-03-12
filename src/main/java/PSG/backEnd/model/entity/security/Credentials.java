@@ -1,20 +1,24 @@
 package PSG.backEnd.model.entity.security;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 /**
  * Entity representing user authentication credentials.
  * Separated from User entity to improve modularity and security.
  */
 @Entity
-@Table(name = "credentials")
+@Table(name = "credentials", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"tenant_id", "username"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
-@Builder
-public class Credentials {
+@SuperBuilder
+public class Credentials extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,7 +27,7 @@ public class Credentials {
     /**
      * Unique username for login.
      */
-    @Column(nullable = false, unique = true, length = 50, columnDefinition = "VARCHAR(50)")
+    @Column(nullable = false, length = 50, columnDefinition = "VARCHAR(50)")
     private String username;
 
     /**

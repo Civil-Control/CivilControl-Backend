@@ -89,6 +89,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("ROLE_", "System");
         MODULE_MAP.put("SYSTEM_", "System");
         MODULE_MAP.put("AUDIT_", "System");
+        MODULE_MAP.put("EXCEPTION_LOG_", "System");
 
         // Spanish translations for modules
         MODULE_SPANISH_MAP.put("EMPLOYEE_VACATION_", "Vacaciones de Empleados");
@@ -117,6 +118,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("ROLE_", "Sistema");
         MODULE_SPANISH_MAP.put("SYSTEM_", "Sistema");
         MODULE_SPANISH_MAP.put("AUDIT_", "Sistema");
+        MODULE_SPANISH_MAP.put("EXCEPTION_LOG_", "Sistema");
 
         // Spanish translations for actions
         ACTION_SPANISH_MAP.put("READ", "Lectura");
@@ -176,6 +178,7 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_MAP.put("DATA_", "administration");
         WORK_MODULE_MAP.put("SYSTEM_", "administration");
         WORK_MODULE_MAP.put("AUDIT_", "administration");
+        WORK_MODULE_MAP.put("EXCEPTION_LOG_", "administration");
 
         // Spanish translations for work modules
         WORK_MODULE_SPANISH_MAP.put("services", "Servicios");

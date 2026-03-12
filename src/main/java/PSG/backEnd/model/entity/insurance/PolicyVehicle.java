@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.insurance;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,7 +15,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Builder
-public class PolicyVehicle {
+public class PolicyVehicle extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -224,12 +224,13 @@ public class BuildingService implements IBuildingService {
         building.setDeleted(false);
         building.setActive(buildingDTO.active() != null ? buildingDTO.active() : true);
 
-        // Update ProjectArea if provided
+        // Update ProjectArea only if provided in the DTO
         if (buildingDTO.projectAreaId() != null) {
             ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(buildingDTO.projectAreaId())
                     .orElseThrow(() -> new ProjectAreaNotFoundException(buildingDTO.projectAreaId()));
             building.setProjectArea(projectArea);
         }
+        // Note: If projectAreaId is not provided, we keep the existing projectArea (don't set to null)
 
         return buildingMapper.toResponseDto(buildingRepository.save(building));
     }
@@ -238,11 +239,13 @@ public class BuildingService implements IBuildingService {
         Building building = buildingMapper.toEntity(buildingDTO);
         building.setDeleted(false);
 
-        // Load and set ProjectArea
+        // Load and set ProjectArea if provided, otherwise ensure it's null
         if (buildingDTO.projectAreaId() != null) {
             ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(buildingDTO.projectAreaId())
                     .orElseThrow(() -> new ProjectAreaNotFoundException(buildingDTO.projectAreaId()));
             building.setProjectArea(projectArea);
+        } else {
+            building.setProjectArea(null);
         }
 
         // The mapper sets active with default value

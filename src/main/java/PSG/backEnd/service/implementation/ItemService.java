@@ -38,7 +38,7 @@ public class ItemService implements IItemService {
     @Transactional
     public ItemResponseDTO update(Long id, ItemDTO dto) {
         Item existingItem = itemRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Item not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", id)));
 
         // Update fields from DTO
         if (dto.name() != null) {

@@ -67,7 +67,7 @@ public class SalaryPaymentController {
             @Parameter(description = "Filter by maximum payment amount") @RequestParam(required = false) BigDecimal maxAmount,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by. Available fields: id, paymentDate, amount, salaryFrequency, name, lastName, dni, cuil",
+            @Parameter(description = "Field to sort by. Available fields: id, paymentDate, amount, salaryFrequency, employeeName, employeeLastName, employeeDni, employeeCuil, employeeId",
                     example = "paymentDate")
             @RequestParam(defaultValue = "paymentDate") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir
@@ -92,11 +92,16 @@ public class SalaryPaymentController {
      */
     private String mapSortField(String sortBy) {
         return switch (sortBy) {
+            case "employeeName" -> "employee.name";
+            case "employeeLastName" -> "employee.lastName";
+            case "employeeDni" -> "employee.dni";
+            case "employeeCuil" -> "employee.cuil";
+            case "employeeId" -> "employee.id";
+            // Keep backward compatibility with old field names
             case "name" -> "employee.name";
             case "lastName" -> "employee.lastName";
             case "dni" -> "employee.dni";
             case "cuil" -> "employee.cuil";
-            case "employeeId" -> "employee.id";
             default -> sortBy; // For 'id', 'paymentDate', 'amount', 'salaryFrequency', etc.
         };
     }

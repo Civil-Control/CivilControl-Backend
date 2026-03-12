@@ -103,7 +103,10 @@ public class AutoPolicyService implements IAutoPolicyService {
     @Transactional(readOnly = true)
     public AutoPolicyResponseDTO getByInsurancePolicyId(Long insurancePolicyId) {
         AutoPolicy autoPolicy = autoPolicyRepository.findByInsurancePolicyId(insurancePolicyId)
-                .orElseThrow(() -> new AutoPolicyNotFoundException("insurance policy ID", insurancePolicyId.toString()));
+                .orElseThrow(() -> new AutoPolicyNotFoundException(
+                        messageSourceHelper.getMessage("field.insurancePolicyId"),
+                        insurancePolicyId.toString()
+                ));
 
         return autoPolicyMapper.toResponseDto(autoPolicy);
     }

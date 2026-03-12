@@ -47,6 +47,9 @@ public class JwtService {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
 
+        // Add tenant ID to token (default to 1L if not present)
+        extraClaims.put("tenantId", 1L);
+
         return generateToken(extraClaims, userDetails, accessTokenExpiration);
     }
 
@@ -75,6 +78,27 @@ public class JwtService {
      */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    /**
+     * Extracts tenant ID from token.
+     * Returns 1L as default if tenantId claim is not present.
+     */
+    public Long extractTenantId(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            Object tenantId = claims.get("tenantId");
+            if (tenantId != null) {
+                if (tenantId instanceof Number) {
+                    return ((Number) tenantId).longValue();
+                }
+                return Long.parseLong(tenantId.toString());
+            }
+            return 1L;
+        } catch (Exception e) {
+            log.warn("Could not extract tenantId from token, using default: 1L");
+            return 1L;
+        }
     }
 
     /**

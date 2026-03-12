@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.insurance;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -12,7 +13,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
-public class AutoPolicy {
+public class AutoPolicy extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

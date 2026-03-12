@@ -1,11 +1,18 @@
 package PSG.backEnd.model.validation;
 
 import PSG.backEnd.model.dto.vehicle.VehicleDTO;
-import PSG.backEnd.model.enums.vehicle.VehicleType;
+import PSG.backEnd.model.entity.vehicle.VehicleType;
+import PSG.backEnd.repository.VehicleTypeRepository;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Optional;
 
 public class TruckEquipmentValidator implements ConstraintValidator<ValidTruckEquipment, VehicleDTO> {
+
+    @Autowired
+    private VehicleTypeRepository vehicleTypeRepository;
 
     @Override
     public boolean isValid(VehicleDTO vehicleDTO, ConstraintValidatorContext context) {
@@ -13,14 +20,28 @@ public class TruckEquipmentValidator implements ConstraintValidator<ValidTruckEq
             return true;
         }
 
-        VehicleType vehicleType = vehicleDTO.vehicleType();
+        Long vehicleTypeId = vehicleDTO.vehicleTypeId();
         String truckEquipment = vehicleDTO.truckEquipment();
 
-        if (vehicleType == VehicleType.CAMION) {
+        // If no vehicle type is specified, validation cannot be performed; allow it through
+        if (vehicleTypeId == null) {
+            return true;
+        }
+
+        Optional<VehicleType> vehicleTypeOpt = vehicleTypeRepository.findById(vehicleTypeId);
+
+        // If the type does not exist, allow it through (the service will throw the appropriate error)
+        if (vehicleTypeOpt.isEmpty()) {
+            return true;
+        }
+
+        boolean requiresTruckEquipment = vehicleTypeOpt.get().isRequiresTruckEquipment();
+
+        if (requiresTruckEquipment) {
             if (truckEquipment == null || truckEquipment.trim().isEmpty()) {
                 context.disableDefaultConstraintViolation();
                 context.buildConstraintViolationWithTemplate(
-                        "Truck equipment is required for vehicles of type CAMION."
+                        "{vehicle.truckEquipment.required}"
                 ).addPropertyNode("truckEquipment").addConstraintViolation();
                 return false;
             }
@@ -28,7 +49,7 @@ public class TruckEquipmentValidator implements ConstraintValidator<ValidTruckEq
             if (truckEquipment != null && !truckEquipment.trim().isEmpty()) {
                 context.disableDefaultConstraintViolation();
                 context.buildConstraintViolationWithTemplate(
-                        "Truck equipment can only be specified for vehicles of type CAMION."
+                        "{vehicle.truckEquipment.notAllowed}"
                 ).addPropertyNode("truckEquipment").addConstraintViolation();
                 return false;
             }
@@ -37,4 +58,3 @@ public class TruckEquipmentValidator implements ConstraintValidator<ValidTruckEq
         return true;
     }
 }
-

@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.payment;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -11,7 +12,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CheckPayment {
+public class CheckPayment extends TenantEntity {
 
     @Id
     private Long id;

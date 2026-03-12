@@ -12,7 +12,7 @@ public interface BuildingMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "active", source = "active", defaultValue = "true")
     @Mapping(target = "stockItems", ignore = true)
-    @Mapping(target = "projectArea.id", source = "projectAreaId")
+    @Mapping(target = "projectArea", ignore = true)
     Building toEntity(BuildingDTO buildingDTO);
 
     @Mapping(target = "projectAreaId", source = "projectArea.id")
@@ -23,7 +23,7 @@ public interface BuildingMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "stockItems", ignore = true)
-    @Mapping(target = "projectArea.id", source = "projectAreaId")
+    @Mapping(target = "projectArea", ignore = true)
     void partialUpdate(BuildingDTO updateDTO, @MappingTarget Building building);
 }
 

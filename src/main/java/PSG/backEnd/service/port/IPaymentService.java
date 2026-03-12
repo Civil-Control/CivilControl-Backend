@@ -11,6 +11,8 @@ public interface IPaymentService {
 
     Page<PaymentResponseDTO> findAll(PaymentFilterDTO filter, Pageable pageable);
 
+    PaymentResponseDTO getById(Long id);
+
     CashPaymentResponseDTO getCash(Long id);
     TransferPaymentResponseDTO getTransfer(Long id);
     CheckPaymentResponseDTO getCheck(Long id);
@@ -22,4 +24,5 @@ public interface IPaymentService {
     void deleteCash(Long id);
     void deleteTransfer(Long id);
     void deleteCheck(Long id);
+    void deleteById(Long id);
 }

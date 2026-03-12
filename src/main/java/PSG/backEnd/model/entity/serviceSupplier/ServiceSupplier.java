@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.serviceSupplier;
 
 import PSG.backEnd.model.entity.Supplier;
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.ServiceType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,7 +16,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
-public class ServiceSupplier {
+public class ServiceSupplier extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

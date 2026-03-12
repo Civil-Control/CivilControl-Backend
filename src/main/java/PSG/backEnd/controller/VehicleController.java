@@ -3,9 +3,12 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.vehicle.VehicleDTO;
 import PSG.backEnd.model.dto.vehicle.VehicleFilterDTO;
 import PSG.backEnd.model.dto.vehicle.VehicleResponseDTO;
+import PSG.backEnd.model.dto.vehicle.VehicleTypeDTO;
+import PSG.backEnd.model.dto.vehicle.VehicleTypeResponseDTO;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.IVehicleService;
+import PSG.backEnd.service.port.IVehicleTypeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,6 +25,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/vehicles")
@@ -30,17 +34,22 @@ import java.time.LocalDate;
 public class VehicleController {
 
     private final IVehicleService iVehicleService;
+    private final IVehicleTypeService iVehicleTypeService;
+
+    // ============================================================
+    // VEHICLE ENDPOINTS
+    // ============================================================
 
     @PostMapping
     @Operation(summary = "Create a new vehicle",
             description = "Registers a new vehicle in the system. Includes vehicle identification (license plate), specifications (brand, model, year), " +
-                    "vehicle type (CAMION, CAMIONETA, AUTO, MOTO, OTRO), and administrative details (project area assignment, storage location, VTV expiration). " +
-                    "IMPORTANT: If vehicleType is CAMION, the truckEquipment field is REQUIRED (NADA, HIDROELEVADOR, or HIDROGRUA). " +
-                    "For other vehicle types (AUTO, CAMIONETA, MOTO, OTRO), truckEquipment must be null or empty.")
+                    "vehicle type (referenced by vehicleTypeId), and administrative details (project area assignment, storage location, VTV expiration). " +
+                    "IMPORTANT: If the selected vehicle type has requiresTruckEquipment=true, the truckEquipment field is REQUIRED (NADA, HIDROELEVADOR, or HIDROGRUA). " +
+                    "For vehicle types with requiresTruckEquipment=false, truckEquipment must be null or empty.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Vehicle successfully created"),
-            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error (e.g., truckEquipment missing for CAMION or specified for non-CAMION types)"),
-            @ApiResponse(responseCode = "404", description = "Project area not found"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error (e.g., truckEquipment missing for types that require it)"),
+            @ApiResponse(responseCode = "404", description = "Project area or vehicle type not found"),
             @ApiResponse(responseCode = "409", description = "Vehicle with this license plate already exists")
     })
     public ResponseEntity<VehicleResponseDTO> createVehicle(
@@ -104,12 +113,12 @@ public class VehicleController {
     @Operation(summary = "Update vehicle",
             description = "Updates an existing vehicle record. Only provided fields will be updated. Allows updating vehicle specifications, " +
                     "project area assignment, storage location, and administrative details. " +
-                    "IMPORTANT: truckEquipment validation applies - if vehicleType is changed to CAMION, truckEquipment becomes required. " +
-                    "If changed to other types (AUTO, CAMIONETA, MOTO, OTRO), truckEquipment must be null or empty.")
+                    "IMPORTANT: truckEquipment validation applies based on the vehicle type's requiresTruckEquipment flag. " +
+                    "If vehicleTypeId is changed to a type with requiresTruckEquipment=true, truckEquipment becomes required.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Vehicle successfully updated"),
             @ApiResponse(responseCode = "400", description = "Invalid input data (e.g., truckEquipment validation failed for the vehicle type)"),
-            @ApiResponse(responseCode = "404", description = "Vehicle or project area not found"),
+            @ApiResponse(responseCode = "404", description = "Vehicle, project area or vehicle type not found"),
             @ApiResponse(responseCode = "409", description = "License plate already exists for another vehicle")
     })
     public ResponseEntity<VehicleResponseDTO> updateVehicle(
@@ -130,6 +139,72 @@ public class VehicleController {
     public ResponseEntity<Void> deleteVehicle(
             @Parameter(description = "Vehicle unique identifier", required = true) @PathVariable Long id) {
         iVehicleService.deleteVehicle(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ============================================================
+    // VEHICLE TYPE ENDPOINTS
+    // ============================================================
+
+    @PostMapping("/types")
+    @Operation(summary = "Create a new vehicle type",
+            description = "Registers a new vehicle type in the system.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Vehicle type successfully created"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "409", description = "A vehicle type with that name already exists")
+    })
+    public ResponseEntity<VehicleTypeResponseDTO> createVehicleType(
+            @Validated(OnCreate.class) @RequestBody VehicleTypeDTO vehicleTypeDTO) {
+        return new ResponseEntity<>(iVehicleTypeService.createVehicleType(vehicleTypeDTO), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/types")
+    @Operation(summary = "Get all vehicle types",
+            description = "Returns the full list of available vehicle types.")
+    @ApiResponse(responseCode = "200", description = "Vehicle type list successfully retrieved")
+    public ResponseEntity<List<VehicleTypeResponseDTO>> getAllVehicleTypes() {
+        return ResponseEntity.ok(iVehicleTypeService.getAllVehicleTypes());
+    }
+
+    @GetMapping("/types/{id}")
+    @Operation(summary = "Get vehicle type by ID",
+            description = "Returns the information of a specific vehicle type.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Vehicle type found"),
+            @ApiResponse(responseCode = "404", description = "Vehicle type not found")
+    })
+    public ResponseEntity<VehicleTypeResponseDTO> getVehicleTypeById(
+            @Parameter(description = "Vehicle type unique identifier", required = true) @PathVariable Long id) {
+        return ResponseEntity.ok(iVehicleTypeService.getVehicleTypeById(id));
+    }
+
+    @PatchMapping("/types/{id}")
+    @Operation(summary = "Update vehicle type",
+            description = "Updates an existing vehicle type. Only provided fields will be updated.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Vehicle type successfully updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data"),
+            @ApiResponse(responseCode = "404", description = "Vehicle type not found"),
+            @ApiResponse(responseCode = "409", description = "A vehicle type with that name already exists")
+    })
+    public ResponseEntity<VehicleTypeResponseDTO> updateVehicleType(
+            @Parameter(description = "Vehicle type unique identifier", required = true) @PathVariable Long id,
+            @Validated(OnUpdate.class) @RequestBody VehicleTypeDTO vehicleTypeDTO) {
+        return ResponseEntity.ok(iVehicleTypeService.updateVehicleType(id, vehicleTypeDTO));
+    }
+
+    @DeleteMapping("/types/{id}")
+    @Operation(summary = "Delete vehicle type",
+            description = "Deletes a vehicle type from the system. Cannot be deleted if there are associated vehicles.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Vehicle type successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "Vehicle type not found"),
+            @ApiResponse(responseCode = "409", description = "Vehicle type has associated vehicles and cannot be deleted")
+    })
+    public ResponseEntity<Void> deleteVehicleType(
+            @Parameter(description = "Vehicle type unique identifier", required = true) @PathVariable Long id) {
+        iVehicleTypeService.deleteVehicleType(id);
         return ResponseEntity.noContent().build();
     }
 }

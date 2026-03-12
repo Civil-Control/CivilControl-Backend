@@ -4,20 +4,12 @@ import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Data Transfer Object for creating or updating items. " +
         "Represents purchasable goods or services that can be included in transactional documents, " +
         "such as materials, supplies, equipment, or services offered by suppliers.")
 public record ItemDTO(
-
-    @Schema(description = "Unique identifier of the item. Only required for update operations. " +
-            "Leave null when creating a new item.",
-            example = "1",
-            nullable = true)
-    @NotNull(groups = OnUpdate.class, message = "ID is required for update operations")
-    Long id,
 
     @Schema(description = "Name of the item. Should be descriptive and identifiable. " +
             "This is the primary label for the item in the system. Maximum 100 characters.",

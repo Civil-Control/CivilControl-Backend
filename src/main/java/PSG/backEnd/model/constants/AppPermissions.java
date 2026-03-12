@@ -468,5 +468,17 @@ public final class AppPermissions {
      * Allows viewing system audit logs.
      */
     public static final String AUDIT_VIEW = "AUDIT_VIEW";
+
+    /**
+     * Module: System
+     * Allows viewing exception logs for system monitoring and debugging.
+     */
+    public static final String EXCEPTION_LOG_READ = "EXCEPTION_LOG_READ";
+
+    /**
+     * Module: System
+     * Allows managing exception logs (cleanup, deletion).
+     */
+    public static final String EXCEPTION_LOG_WRITE = "EXCEPTION_LOG_WRITE";
 }
 

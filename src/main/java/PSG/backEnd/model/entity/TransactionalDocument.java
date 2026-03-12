@@ -14,14 +14,14 @@ import java.util.List;
 @Table(
         name = "transactional_documents",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"branch_code", "document_number", "supplier_id"})
+                @UniqueConstraint(columnNames = {"tenant_id", "branch_code", "document_number", "supplier_id"})
         }
 )@AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @Builder
-public class TransactionalDocument {
+public class TransactionalDocument extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

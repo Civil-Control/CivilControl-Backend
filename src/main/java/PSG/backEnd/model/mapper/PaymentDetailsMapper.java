@@ -5,7 +5,9 @@ import PSG.backEnd.model.dto.payment.PaymentDetailsResponseDTO;
 import PSG.backEnd.model.entity.payment.PaymentDetails;
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.TransactionalDocument;
+import org.hibernate.Hibernate;
 import org.mapstruct.*;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -59,9 +61,13 @@ public interface PaymentDetailsMapper {
     }
 
     // Custom mapping to convert List<TransactionalDocument> to List<Long>
+    // Safe against uninitialized Hibernate proxies (lazy collections not yet loaded)
     default List<Long> mapPaidDocumentIds(List<TransactionalDocument> paidDocuments) {
         if (paidDocuments == null) {
             return null;
+        }
+        if (!Hibernate.isInitialized(paidDocuments)) {
+            return Collections.emptyList();
         }
         return paidDocuments.stream()
                 .map(TransactionalDocument::getId)

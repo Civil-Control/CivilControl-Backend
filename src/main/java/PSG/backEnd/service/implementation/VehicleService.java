@@ -3,6 +3,7 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException;
 import PSG.backEnd.exception.vehicle.VehicleDataConflictException;
 import PSG.backEnd.exception.vehicle.VehicleNotFoundException;
+import PSG.backEnd.exception.vehicle.VehicleTypeNotFoundException;
 import PSG.backEnd.exception.vehicle.ProjectAreaNotValidException;
 import PSG.backEnd.model.dto.vehicle.VehicleDTO;
 import PSG.backEnd.model.dto.vehicle.VehicleFilterDTO;
@@ -10,6 +11,7 @@ import PSG.backEnd.model.dto.vehicle.VehicleResponseDTO;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.mapper.VehicleMapper;
 import PSG.backEnd.repository.VehicleRepository;
+import PSG.backEnd.repository.VehicleTypeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.service.port.IVehicleService;
 import PSG.backEnd.service.util.MessageSourceHelper;
@@ -29,6 +31,7 @@ public class VehicleService implements IVehicleService {
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
     private final ProjectAreaRepository projectAreaRepository;
+    private final VehicleTypeRepository vehicleTypeRepository;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
@@ -36,6 +39,7 @@ public class VehicleService implements IVehicleService {
     public VehicleResponseDTO createVehicle(VehicleDTO vehicleDTO) {
         validateNewVehicle(vehicleDTO);
         validateProjectAreaExists(vehicleDTO.projectAreaId());
+        validateVehicleTypeExists(vehicleDTO.vehicleTypeId());
 
         Optional<Vehicle> deletedVehicle = findDeletedVehicle(vehicleDTO);
 
@@ -84,6 +88,10 @@ public class VehicleService implements IVehicleService {
             validateProjectAreaExists(vehicleDTO.projectAreaId());
         }
 
+        if (vehicleDTO.vehicleTypeId() != null) {
+            validateVehicleTypeExists(vehicleDTO.vehicleTypeId());
+        }
+
         validateUniqueFieldsForUpdate(vehicleDTO, existingVehicle);
 
         try {
@@ -128,6 +136,12 @@ public class VehicleService implements IVehicleService {
     private void validateProjectAreaExists(Long projectAreaId) {
         if (projectAreaId != null && !projectAreaRepository.existsById(projectAreaId)) {
             throw new ProjectAreaNotValidException(projectAreaId);
+        }
+    }
+
+    private void validateVehicleTypeExists(Long vehicleTypeId) {
+        if (vehicleTypeId != null && !vehicleTypeRepository.existsById(vehicleTypeId)) {
+            throw new VehicleTypeNotFoundException(vehicleTypeId);
         }
     }
 

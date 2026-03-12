@@ -19,7 +19,7 @@ public interface EmployeeMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
-    @Mapping(target = "projectArea.id", source = "projectAreaId")
+    @Mapping(target = "projectArea", ignore = true)
     void partialUpdate(EmployeeDTO updateDTO, @MappingTarget Employee employee);
 }
 

@@ -16,6 +16,7 @@ public interface ITransactionalDocumentService {
     TransactionalDocumentResponseDTO getTransactionalDocumentById(Long id);
     TransactionalDocumentResponseDTO updateTransactionalDocument(Long id, TransactionalDocumentDTO transactionalDocumentDTO);
     void updateTransactionalDocumentStatus(Long documentId, Long supplierId, BigDecimal amount);
+    void revertTransactionalDocumentStatusIfExists(Long documentId, Long supplierId);
     void deleteTransactionalDocument(Long id);
     TransactionalDocument getEntityById(Long id);
 }

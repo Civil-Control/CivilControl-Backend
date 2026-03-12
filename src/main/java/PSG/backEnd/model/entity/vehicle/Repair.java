@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.vehicle;
 
 import PSG.backEnd.model.entity.Supplier;
+import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.vehicle.RepairType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,7 +16,7 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @Builder
-public class Repair {
+public class Repair extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

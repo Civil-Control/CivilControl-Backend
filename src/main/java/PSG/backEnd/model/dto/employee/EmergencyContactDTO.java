@@ -3,7 +3,6 @@ package PSG.backEnd.model.dto.employee;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -14,19 +13,17 @@ public record EmergencyContactDTO(
             example = "María González",
             minLength = 2,
             maxLength = 100,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+            nullable = true)
+    @Size(max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String name,
 
     @Schema(description = "Phone number of the emergency contact. Can include country code, area code, and must be in valid phone format. " +
             "This number will be used to reach the contact in case of emergency situations. Maximum 30 characters.",
             example = "+54 9 11 9876-5432",
             maxLength = 30,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
+            nullable = true)
     @Size(max = 30, message = "Phone number must not exceed 30 characters", groups = {OnCreate.class, OnUpdate.class})
-    @Pattern(regexp = "^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
+    @Pattern(regexp = "^$|^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
              message = "Invalid phone number format",
              groups = {OnCreate.class, OnUpdate.class})
     String phoneNumber,
@@ -36,9 +33,8 @@ public record EmergencyContactDTO(
             example = "Spouse",
             minLength = 2,
             maxLength = 50,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 50, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+            nullable = true)
+    @Size(max = 50, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String relationship
 ) {}
 

@@ -6,6 +6,7 @@ import PSG.backEnd.model.enums.employee.EmployeeStatus;
 import PSG.backEnd.model.enums.employee.EmploymentType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
+import PSG.backEnd.model.validation.ValidEmergencyContact;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 @Schema(description = "Data Transfer Object for creating or updating an employee. " +
         "Represents complete employee information including personal details, contact information, " +
         "employment details, and emergency contact.")
+@ValidEmergencyContact(groups = {OnCreate.class, OnUpdate.class})
 public record EmployeeDTO(
     @Schema(description = "Employee's first name. Must contain only letters, spaces, dots, hyphens and apostrophes. " +
             "Minimum 2 characters, maximum 100 characters.",
@@ -81,9 +83,8 @@ public record EmployeeDTO(
     @Schema(description = "Employee's primary phone number. Can include country code, area code, and must be in valid phone format. " +
             "Accepts various international formats.",
             example = "+54 9 11 1234-5678",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Pattern(regexp = "^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
+            nullable = true)
+    @Pattern(regexp = "^$|^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
              message = "Invalid phone number format",
              groups = {OnCreate.class, OnUpdate.class})
     String phoneNumber,
@@ -93,16 +94,16 @@ public record EmployeeDTO(
             example = "juan.garcia@example.com",
             format = "email",
             maxLength = 100,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Email(message = "Email must be valid", groups = {OnCreate.class, OnUpdate.class})
+            nullable = true)
+    @Pattern(regexp = "^$|^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$",
+             message = "Email must be valid",
+             groups = {OnCreate.class, OnUpdate.class})
     @Size(max = 100, message = "Email must not exceed 100 characters", groups = {OnCreate.class, OnUpdate.class})
     String email,
 
     @Schema(description = "Emergency contact information for the employee. Includes name, relationship, and phone number " +
             "of a person to contact in case of emergency.",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
+            nullable = true)
     @Valid
     EmergencyContactDTO emergencyContact,
 

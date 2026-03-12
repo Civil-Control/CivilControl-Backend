@@ -93,16 +93,19 @@ public class ServicePaymentController {
             @RequestParam(defaultValue = "10") int size,
 
             @Parameter(description = "Field to sort by. Direct fields: id, paymentDate, amount, serviceType, referenceNumber. " +
-                    "For service supplier use: serviceSupplier.id. " +
-                    "For building use: building.name, building.code. " +
-                    "Example: sortBy=building.name",
+                    "For service supplier use: serviceSupplierId. " +
+                    "For building use: buildingName, buildingCode, buildingId. " +
+                    "Example: sortBy=buildingName",
                     example = "paymentDate")
             @RequestParam(defaultValue = "paymentDate") String sortBy,
 
             @Parameter(description = "Sort direction (asc or desc)")
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        // Map simple field names to entity paths
+        String mappedSortBy = mapSortField(sortBy);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         ServicePaymentFilterDTO filterDTO = new ServicePaymentFilterDTO(
@@ -111,6 +114,20 @@ public class ServicePaymentController {
         );
 
         return ResponseEntity.ok(servicePaymentService.getAllServicePayments(filterDTO, pageable));
+    }
+
+    /**
+     * Maps simple field names to their corresponding entity paths.
+     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
+     */
+    private String mapSortField(String sortBy) {
+        return switch (sortBy) {
+            case "serviceSupplierId" -> "serviceSupplier.id";
+            case "buildingName" -> "building.name";
+            case "buildingCode" -> "building.code";
+            case "buildingId" -> "building.id";
+            default -> sortBy; // For 'id', 'paymentDate', 'amount', 'serviceType', 'referenceNumber', etc.
+        };
     }
 
     @GetMapping("/{id}")

@@ -64,13 +64,16 @@ public class EmployeeVacationController {
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, startDate, endDate, totalDays. " +
-                    "For employee fields use: employee.name, employee.lastName, employee.dni. " +
-                    "Example: sortBy=employee.lastName",
+                    "For employee fields use: employeeName, employeeLastName, employeeDni, employeeCuil, employeeId. " +
+                    "Example: sortBy=employeeLastName",
                     example = "startDate")
             @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "asc") String sortDir
     ) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        // Map simple field names to entity paths
+        String mappedSortBy = mapSortField(sortBy);
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         EmployeeVacationFilterDTO filterDTO = new EmployeeVacationFilterDTO(
@@ -84,6 +87,21 @@ public class EmployeeVacationController {
         );
 
         return ResponseEntity.ok(iEmployeeVacationService.getAllEmployeeVacations(filterDTO, pageable));
+    }
+
+    /**
+     * Maps simple field names to their corresponding entity paths.
+     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
+     */
+    private String mapSortField(String sortBy) {
+        return switch (sortBy) {
+            case "employeeName" -> "employee.name";
+            case "employeeLastName" -> "employee.lastName";
+            case "employeeDni" -> "employee.dni";
+            case "employeeCuil" -> "employee.cuil";
+            case "employeeId" -> "employee.id";
+            default -> sortBy; // For 'id', 'startDate', 'endDate', 'totalDays', etc.
+        };
     }
 
     @GetMapping("/{id}")

@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.gasStation;
 
 import PSG.backEnd.model.entity.Supplier;
+import PSG.backEnd.model.entity.TenantEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,7 +15,7 @@ import java.util.List;
 @Getter
 @Setter
 @Builder
-public class GasStation {
+public class GasStation extends TenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

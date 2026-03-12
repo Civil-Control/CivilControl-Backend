@@ -52,6 +52,7 @@ public class LicencePlatePaymentService implements ILicencePlatePaymentService {
                 filterDTO.dateFrom(),
                 filterDTO.dateTo(),
                 filterDTO.vehicleId(),
+                filterDTO.vehicleLicensePlate(),
                 filterDTO.projectAreaId(),
                 filterDTO.minAmount(),
                 filterDTO.maxAmount(),
