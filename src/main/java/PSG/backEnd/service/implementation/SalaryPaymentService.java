@@ -4,6 +4,7 @@ import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.salaryPayment.DuplicateSalaryPaymentException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotFoundException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotValidException;
+import PSG.backEnd.model.dto.employee.SalaryPaymentBatchDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentFilterDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentResponseDTO;
@@ -21,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +50,14 @@ public class SalaryPaymentService implements ISalaryPaymentService {
 
         SalaryPayment savedSalaryPayment = salaryPaymentRepository.save(salaryPayment);
         return salaryPaymentMapper.toResponseDto(savedSalaryPayment);
+    }
+
+    @Override
+    @Transactional
+    public List<SalaryPaymentResponseDTO> createBatchSalaryPayments(SalaryPaymentBatchDTO batchDTO) {
+        return batchDTO.payments().stream()
+                .map(this::createSalaryPayment)
+                .collect(Collectors.toList());
     }
 
     @Override

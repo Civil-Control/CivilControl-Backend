@@ -1,13 +1,17 @@
 package PSG.backEnd.service.port;
 
+import PSG.backEnd.model.dto.employee.SalaryPaymentBatchDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentFilterDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 public interface ISalaryPaymentService {
     SalaryPaymentResponseDTO createSalaryPayment(SalaryPaymentDTO salaryPaymentDTO);
+    List<SalaryPaymentResponseDTO> createBatchSalaryPayments(SalaryPaymentBatchDTO batchDTO);
     SalaryPaymentResponseDTO getSalaryPaymentById(Long id);
     SalaryPaymentResponseDTO updateSalaryPayment(Long id, SalaryPaymentDTO salaryPaymentDTO);
     void deleteSalaryPayment(Long id);

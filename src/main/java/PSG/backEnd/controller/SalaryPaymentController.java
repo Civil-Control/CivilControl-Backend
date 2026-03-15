@@ -1,5 +1,6 @@
 package PSG.backEnd.controller;
 
+import PSG.backEnd.model.dto.employee.SalaryPaymentBatchDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentFilterDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentResponseDTO;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/salary-payments")
@@ -49,8 +51,15 @@ public class SalaryPaymentController {
         return new ResponseEntity<>(createdSalaryPayment, HttpStatus.CREATED);
     }
 
-    @GetMapping
-    @Operation(summary = "Get all salary payments with filters",
+    @PostMapping("/batch")
+    @Operation(summary = "Create multiple salary payments in one request")
+    public ResponseEntity<List<SalaryPaymentResponseDTO>> createBatchSalaryPayments(
+            @Validated @RequestBody SalaryPaymentBatchDTO batchDTO) {
+        List<SalaryPaymentResponseDTO> created = iSalaryPaymentService.createBatchSalaryPayments(batchDTO);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
+    }
+
+    @GetMapping,
             description = "Retrieves a paginated list of salary payments with optional filtering by employee (ID, first name, last name), " +
                     "salary frequency (monthly, biweekly, weekly), payment date range, and amount range (minimum and maximum). " +
                     "Supports sorting and pagination. Useful for payroll reports and employee payment history.")
