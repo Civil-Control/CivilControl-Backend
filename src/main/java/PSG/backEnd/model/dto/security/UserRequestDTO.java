@@ -65,6 +65,10 @@ public record UserRequestDTO(
         @Schema(description = "Indicates if the user is enabled",
                 example = "true",
                 defaultValue = "true")
-        Boolean enabled
+        Boolean enabled,
+
+        @Schema(description = "User's default location for address autofill in forms")
+        @Valid
+        UserLocationDTO location
 ) {}
 

@@ -6,8 +6,10 @@ import PSG.backEnd.model.dto.auth.AuthResponseDTO;
 import PSG.backEnd.model.dto.auth.LoginRequestDTO;
 import PSG.backEnd.model.dto.auth.RefreshTokenRequestDTO;
 import PSG.backEnd.model.dto.security.RoleResponseDTO;
+import PSG.backEnd.model.dto.security.UserLocationDTO;
 import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.model.mapper.RoleMapper;
+import PSG.backEnd.model.mapper.UserLocationMapper;
 import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IAuthService;
 import PSG.backEnd.service.util.MessageSourceHelper;
@@ -39,6 +41,7 @@ public class AuthService implements IAuthService {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final RoleMapper roleMapper;
+    private final UserLocationMapper userLocationMapper;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
@@ -152,7 +155,8 @@ public class AuthService implements IAuthService {
                 user.getFirstName(),
                 user.getLastName(),
                 user.getEmail(),
-                roleDTOs
+                roleDTOs,
+                user.getLocation() != null ? userLocationMapper.toDto(user.getLocation()) : null
         );
     }
 }

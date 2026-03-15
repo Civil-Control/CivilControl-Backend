@@ -1,6 +1,7 @@
 package PSG.backEnd.model.dto.auth;
 
 import PSG.backEnd.model.dto.security.RoleResponseDTO;
+import PSG.backEnd.model.dto.security.UserLocationDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Set;
@@ -48,6 +49,9 @@ public record AuthResponseDTO(
         String email,
 
         @Schema(description = "User roles with their permissions")
-        Set<RoleResponseDTO> roles
+        Set<RoleResponseDTO> roles,
+
+        @Schema(description = "User's default location for address autofill")
+        UserLocationDTO location
 ) {}
 

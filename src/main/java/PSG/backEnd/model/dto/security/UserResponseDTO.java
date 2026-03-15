@@ -36,6 +36,9 @@ public record UserResponseDTO(
         Set<RoleSimpleDTO> roles,
 
         @Schema(description = "Indicates if the user is enabled", example = "true")
-        Boolean enabled
+        Boolean enabled,
+
+        @Schema(description = "User's default location for address autofill")
+        UserLocationDTO location
 ) {}
 

@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.security;
 
 import PSG.backEnd.model.entity.TenantEntity;
+import PSG.backEnd.model.entity.UserLocation;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -86,6 +87,13 @@ public class User extends TenantEntity implements UserDetails {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles;
+
+    /**
+     * User's default geographic location used for address autofill across forms.
+     * All fields are nullable — existing users without a saved location are unaffected.
+     */
+    @Embedded
+    private UserLocation location;
 
     // ==================== UserDetails Implementation ====================
 
