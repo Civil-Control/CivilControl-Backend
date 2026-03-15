@@ -59,7 +59,8 @@ public class SalaryPaymentController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
-    @GetMapping,
+    @GetMapping
+    @Operation(summary = "Get all salary payments",
             description = "Retrieves a paginated list of salary payments with optional filtering by employee (ID, first name, last name), " +
                     "salary frequency (monthly, biweekly, weekly), payment date range, and amount range (minimum and maximum). " +
                     "Supports sorting and pagination. Useful for payroll reports and employee payment history.")
