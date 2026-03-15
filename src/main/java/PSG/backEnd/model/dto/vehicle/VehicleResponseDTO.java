@@ -48,6 +48,11 @@ public record VehicleResponseDTO(
                 example = "Operations Department")
         String projectAreaName,
 
+        @Schema(description = "ID of the project area to which this vehicle is assigned.",
+                example = "5",
+                nullable = true)
+        Long projectAreaId,
+
         @Schema(description = "Physical location where the vehicle is stored or parked.",
                 example = "Main Warehouse - Bay 3")
         String storedIn,

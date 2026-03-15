@@ -17,6 +17,7 @@ public interface VehicleMapper {
     @Mapping(target = "vehicleType", source = "vehicleTypeId", qualifiedByName = "vehicleTypeIdToEntity")
     Vehicle toEntity(VehicleDTO vehicleDTO);
 
+    @Mapping(target = "projectAreaId", source = "projectArea.id")
     @Mapping(target = "projectAreaName", source = "projectArea.name")
     @Mapping(target = "vehicleTypeId", source = "vehicleType.id")
     @Mapping(target = "vehicleTypeName", source = "vehicleType.name")
