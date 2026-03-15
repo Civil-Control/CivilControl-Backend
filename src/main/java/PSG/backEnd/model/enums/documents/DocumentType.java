@@ -1,16 +1,16 @@
 package PSG.backEnd.model.enums.documents;
 
 public enum DocumentType {
-    BILL_A("factura A"),
-    BILL_B("factura B"),
-    BILL_C("factura C"),
-    DEBIT_NOTE_A("nota de debito A"),
-    DEBIT_NOTE_B("nota de debito B"),
-    DEBIT_NOTE_C("nota de debito C"),
-    CREDIT_NOTE_A("nota de credito A"),
-    CREDIT_NOTE_B("nota de credito B"),
-    CREDIT_NOTE_C("nota de credito C"),
-    OTHER_DOCUMENT("otros documentos");
+    BILL_A("Factura A"),
+    BILL_B("Factura B"),
+    BILL_C("Factura C"),
+    DEBIT_NOTE_A("Nota de débito A"),
+    DEBIT_NOTE_B("Nota de débito B"),
+    DEBIT_NOTE_C("Nota de débito C"),
+    CREDIT_NOTE_A("Nota de crédito A"),
+    CREDIT_NOTE_B("Nota de crédito B"),
+    CREDIT_NOTE_C("Nota de crédito C"),
+    OTHER_DOCUMENT("Otros documentos");
 
     private final String displayName;
 
