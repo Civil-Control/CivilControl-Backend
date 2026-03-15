@@ -24,7 +24,9 @@ public class FuelLoadCalculator {
      * Calculates the price per liter and total for a new FuelLoad.
      */
     public void calculatePriceAndTotal(FuelLoad fuelLoad, FuelLoadDTO fuelLoadDTO) {
-        BigDecimal pricePerLiter = getPricePerLiter(fuelLoadDTO.gasStationId(), fuelLoadDTO.fuelType());
+        BigDecimal pricePerLiter = fuelLoadDTO.pricePerLiter() != null
+                ? fuelLoadDTO.pricePerLiter()
+                : getPricePerLiter(fuelLoadDTO.gasStationId(), fuelLoadDTO.fuelType());
         fuelLoad.setPricePerLiter(pricePerLiter);
         fuelLoad.setTotalAmount(calculateTotal(pricePerLiter, BigDecimal.valueOf(fuelLoadDTO.liters())));
     }
@@ -36,8 +38,13 @@ public class FuelLoadCalculator {
         boolean needsRecalculation = false;
         BigDecimal newPricePerLiter = fuelLoad.getPricePerLiter();
 
-        // If gas station or fuel type changed, get new price
-        if (fuelLoadDTO.gasStationId() != null || fuelLoadDTO.fuelType() != null) {
+        if (fuelLoadDTO.pricePerLiter() != null) {
+            // Explicit price provided by client — takes priority over gas station lookup
+            newPricePerLiter = fuelLoadDTO.pricePerLiter();
+            fuelLoad.setPricePerLiter(newPricePerLiter);
+            needsRecalculation = true;
+        } else if (fuelLoadDTO.gasStationId() != null || fuelLoadDTO.fuelType() != null) {
+            // Gas station or fuel type changed — recalculate from station prices
             Long gasStationId = fuelLoadDTO.gasStationId() != null ?
                 fuelLoadDTO.gasStationId() : fuelLoad.getGasStation().getId();
             FuelType fuelType = fuelLoadDTO.fuelType() != null ?
@@ -48,7 +55,7 @@ public class FuelLoadCalculator {
             needsRecalculation = true;
         }
 
-        // If liters changed, we also need to recalculate
+        // If liters changed, we also need to recalculate the total
         if (fuelLoadDTO.liters() != null) {
             needsRecalculation = true;
         }

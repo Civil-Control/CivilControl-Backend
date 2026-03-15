@@ -71,6 +71,14 @@ public record FuelLoadDTO(
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "{gasStation.required}", groups = OnCreate.class)
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Long gasStationId
+        Long gasStationId,
+
+        @Schema(description = "Price per liter for this fuel type. Optional — if provided, overrides the gas station's listed price for the selected fuel type. " +
+                "Must be greater than zero if specified.",
+                example = "1200.50",
+                nullable = true)
+        @DecimalMin(value = "0.01", message = "{fuelLoad.pricePerLiter.positive}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 8, fraction = 2, message = "{validation.digits}", groups = {OnCreate.class, OnUpdate.class})
+        java.math.BigDecimal pricePerLiter
 
 ) {}
