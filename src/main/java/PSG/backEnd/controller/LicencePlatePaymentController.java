@@ -1,5 +1,6 @@
 package PSG.backEnd.controller;
 
+import PSG.backEnd.model.dto.vehicle.LicencePlatePaymentBatchDTO;
 import PSG.backEnd.model.dto.vehicle.LicencePlatePaymentDTO;
 import PSG.backEnd.model.dto.vehicle.LicencePlatePaymentFilterDTO;
 import PSG.backEnd.model.dto.vehicle.LicencePlatePaymentResponseDTO;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/licence-plate-payments")
@@ -44,6 +46,20 @@ public class LicencePlatePaymentController {
             @Validated(OnCreate.class) @RequestBody LicencePlatePaymentDTO licencePlatePaymentDTO) {
         LicencePlatePaymentResponseDTO createdPayment = licencePlatePaymentService.createLicencePlatePayment(licencePlatePaymentDTO);
         return new ResponseEntity<>(createdPayment, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/batch")
+    @Operation(summary = "Create multiple licence plate payments in batch",
+            description = "Creates multiple licence plate payment records in a single request.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Licence plate payments successfully created"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "404", description = "Vehicle not found")
+    })
+    public ResponseEntity<List<LicencePlatePaymentResponseDTO>> createBatchLicencePlatePayments(
+            @Validated @RequestBody LicencePlatePaymentBatchDTO batchDTO) {
+        List<LicencePlatePaymentResponseDTO> created = licencePlatePaymentService.createBatchLicencePlatePayments(batchDTO);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @GetMapping

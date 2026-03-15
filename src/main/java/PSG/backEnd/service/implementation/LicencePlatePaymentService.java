@@ -3,6 +3,7 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.vehicle.LicencePlatePaymentAlreadyExistsException;
 import PSG.backEnd.exception.vehicle.LicencePlatePaymentNotFoundException;
 import PSG.backEnd.exception.vehicle.VehicleNotValidException;
+import PSG.backEnd.model.dto.vehicle.LicencePlatePaymentBatchDTO;
 import PSG.backEnd.model.dto.vehicle.LicencePlatePaymentDTO;
 import PSG.backEnd.model.dto.vehicle.LicencePlatePaymentFilterDTO;
 import PSG.backEnd.model.dto.vehicle.LicencePlatePaymentResponseDTO;
@@ -19,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -43,6 +45,14 @@ public class LicencePlatePaymentService implements ILicencePlatePaymentService {
                 .orElseThrow(() -> new VehicleNotValidException(licencePlatePaymentDTO.vehicleId()));
 
         return licencePlatePaymentMapper.toResponseDto(savedPayment, vehicle);
+    }
+
+    @Override
+    @Transactional
+    public List<LicencePlatePaymentResponseDTO> createBatchLicencePlatePayments(LicencePlatePaymentBatchDTO batchDTO) {
+        return batchDTO.payments().stream()
+                .map(this::createLicencePlatePayment)
+                .toList();
     }
 
     @Override

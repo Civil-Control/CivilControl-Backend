@@ -61,5 +61,9 @@ public record LicencePlatePaymentDTO(
                 requiredMode = Schema.RequiredMode.REQUIRED,
                 allowableValues = {"PROVINCIAL", "MUNICIPAL", "NATIONAL"})
         @NotNull(message = "{licencePlatePayment.jurisdictionType.required}", groups = OnCreate.class)
-        JurisdictionType jurisdictionType
+        JurisdictionType jurisdictionType,
+
+        @Schema(description = "ID of the project area associated with this payment. Optional.",
+                example = "3")
+        Long projectAreaId
 ) {}

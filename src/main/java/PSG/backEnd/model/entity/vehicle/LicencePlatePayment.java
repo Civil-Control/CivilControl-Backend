@@ -39,4 +39,7 @@ public class LicencePlatePayment extends TenantEntity {
     @Column(name = "jurisdiction_type", nullable = false)
     @Enumerated(EnumType.STRING)
     private JurisdictionType jurisdictionType;
+
+    @Column(name = "project_area_id")
+    private Long projectAreaId;
 }

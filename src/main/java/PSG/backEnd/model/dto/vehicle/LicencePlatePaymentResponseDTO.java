@@ -40,5 +40,9 @@ public record LicencePlatePaymentResponseDTO(
         @Schema(description = "Type of jurisdiction where the payment was made.",
                 example = "PROVINCIAL",
                 allowableValues = {"PROVINCIAL", "MUNICIPAL", "NATIONAL"})
-        String jurisdictionType
+        String jurisdictionType,
+
+        @Schema(description = "ID of the project area associated with this payment.",
+                example = "3")
+        Long projectAreaId
 ) {}

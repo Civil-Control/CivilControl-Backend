@@ -20,6 +20,7 @@ public interface LicencePlatePaymentMapper {
     @Mapping(target = "year", source = "licencePlatePayment.year")
     @Mapping(target = "period", source = "licencePlatePayment.period")
     @Mapping(target = "jurisdictionType", source = "licencePlatePayment.jurisdictionType")
+    @Mapping(target = "projectAreaId", source = "licencePlatePayment.projectAreaId")
     LicencePlatePaymentResponseDTO toResponseDto(LicencePlatePayment licencePlatePayment, Vehicle vehicle);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
