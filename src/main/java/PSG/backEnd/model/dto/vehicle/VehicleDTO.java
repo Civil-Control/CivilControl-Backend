@@ -14,15 +14,15 @@ import java.time.LocalDate;
 @ValidTruckEquipment(groups = {OnCreate.class, OnUpdate.class})
 public record VehicleDTO(
 
-        @Schema(description = "Vehicle license plate number. Must follow specific format patterns: 'AA 123 BB' (old format) or 'AAA 123' (new format). " +
+        @Schema(description = "Vehicle license plate number. Supported formats: 'AB 123 CD' (new), 'AAA 123' (old), '101AB123CD' or '101AAA123' (trailer), 'A001ABC' (moto). " +
                 "Use uppercase letters (A-Z) and digits only.",
                 example = "ABC 123",
                 requiredMode = Schema.RequiredMode.REQUIRED,
-                pattern = "^([A-Z]{2}\\s?\\d{3}\\s?[A-Z]{2}|[A-Z]{3}\\s?\\d{3})$")
+                pattern = "^([A-Z]{2}\\s?\\d{3}\\s?[A-Z]{2}|[A-Z]{3}\\s?\\d{3}|101[A-Z]{2}\\d{3}[A-Z]{2}|101[A-Z]{3}\\d{3}|[A-Z]\\d{3}[A-Z]{3})$")
         @NotBlank(message = "{vehicle.licensePlate.required}", groups = OnCreate.class)
         @Size(min = 6, max = 10, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
         @Pattern(
-                regexp = "^([A-Z]{2}\\s?\\d{3}\\s?[A-Z]{2}|[A-Z]{3}\\s?\\d{3})$",
+                regexp = "^([A-Z]{2}\\s?\\d{3}\\s?[A-Z]{2}|[A-Z]{3}\\s?\\d{3}|101[A-Z]{2}\\d{3}[A-Z]{2}|101[A-Z]{3}\\d{3}|[A-Z]\\d{3}[A-Z]{3})$",
                 message = "{validation.pattern}"
                 , groups = {OnCreate.class, OnUpdate.class})
         String licensePlate,
