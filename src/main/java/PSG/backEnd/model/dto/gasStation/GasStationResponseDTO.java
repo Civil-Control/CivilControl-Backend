@@ -16,9 +16,21 @@ public record GasStationResponseDTO(
                 example = "15")
         Long supplierId,
 
-        @Schema(description = "Name of the supplier that owns this gas station.",
-                example = "Shell Station Downtown")
+        @Schema(description = "Razón social (legal name) of the supplier.",
+                example = "Shell S.A.")
         String supplierName,
+
+        @Schema(description = "Nombre comercial (trade name) of the supplier.",
+                example = "Shell")
+        String supplierTradeName,
+
+        @Schema(description = "CUIT of the supplier.",
+                example = "30-12345678-9")
+        String supplierCuit,
+
+        @Schema(description = "Whether the supplier is active.",
+                example = "true")
+        Boolean supplierActive,
 
         @Schema(description = "List of available fuel types at this gas station. Calculated from the price list.",
                 example = "[\"NAFTA_SUPER\", \"DIESEL\"]")

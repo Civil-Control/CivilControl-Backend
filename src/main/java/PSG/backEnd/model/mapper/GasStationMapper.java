@@ -28,6 +28,9 @@ public abstract class GasStationMapper {
 
     @Mapping(target = "supplierId", source = "supplier.id")
     @Mapping(target = "supplierName", source = "supplier.legalName")
+    @Mapping(target = "supplierTradeName", source = "supplier.tradeName")
+    @Mapping(target = "supplierCuit", source = "supplier.cuit")
+    @Mapping(target = "supplierActive", source = "supplier.active")
     @Mapping(target = "fuelTypes", source = "prices", qualifiedByName = "extractFuelTypesFromPrices")
     @Mapping(target = "prices", source = ".", qualifiedByName = "mapPricesToResponseDTO")
     public abstract GasStationResponseDTO toResponseDto(GasStation gasStation);
