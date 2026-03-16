@@ -15,5 +15,7 @@ public record PolicyVehicleResponseDTO(
         LocalDate effectiveFrom,
         LocalDate effectiveTo,
         LocalDate cancellationDate,
-        Integer numberOfInstallments
+        Integer numberOfInstallments,
+        BigDecimal premioTotal,
+        BigDecimal premioMensual
 ) {}

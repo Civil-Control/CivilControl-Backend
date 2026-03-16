@@ -26,5 +26,13 @@ public record PolicyVehicleDTO(
 
         @Min(value = 1, message = "{insurancePolicy.numberOfInstallments.positive}", groups = {OnCreate.class, OnUpdate.class})
         @Max(value = 12, message = "{insurancePolicy.numberOfInstallments.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Integer numberOfInstallments
+        Integer numberOfInstallments,
+
+        @DecimalMin(value = "0.0", inclusive = true, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 13, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        BigDecimal premioTotal,
+
+        @DecimalMin(value = "0.0", inclusive = true, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 13, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        BigDecimal premioMensual
 ) {}
