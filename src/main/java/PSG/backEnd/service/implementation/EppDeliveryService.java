@@ -3,6 +3,7 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.eppDelivery.EppDeliveryNotFoundException;
 import PSG.backEnd.exception.eppDelivery.EppDeliveryNotValidException;
+import PSG.backEnd.model.dto.employee.EppDeliveryBatchDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryFilterDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryResponseDTO;
@@ -20,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +53,14 @@ public class EppDeliveryService implements IEppDeliveryService {
         // Save and return
         EppDelivery savedEppDelivery = eppDeliveryRepository.save(eppDelivery);
         return eppDeliveryMapper.toResponseDto(savedEppDelivery);
+    }
+
+    @Override
+    @Transactional
+    public List<EppDeliveryResponseDTO> createBatchEppDeliveries(EppDeliveryBatchDTO batchDTO) {
+        return batchDTO.deliveries().stream()
+                .map(this::createEppDelivery)
+                .collect(Collectors.toList());
     }
 
     @Override

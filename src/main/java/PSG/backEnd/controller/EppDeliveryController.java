@@ -1,5 +1,6 @@
 package PSG.backEnd.controller;
 
+import PSG.backEnd.model.dto.employee.EppDeliveryBatchDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryFilterDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryResponseDTO;
@@ -22,6 +23,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/epp-deliveries")
@@ -45,6 +47,21 @@ public class EppDeliveryController {
             @Validated(OnCreate.class) @RequestBody EppDeliveryDTO eppDeliveryDTO) {
         EppDeliveryResponseDTO createdEppDelivery = iEppDeliveryService.createEppDelivery(eppDeliveryDTO);
         return new ResponseEntity<>(createdEppDelivery, HttpStatus.CREATED);
+    }
+
+    @PostMapping("/batch")
+    @Operation(summary = "Create multiple EPP deliveries in batch",
+            description = "Creates multiple EPP delivery records in a single request. Each delivery is processed individually. " +
+                    "Useful for recording distribution of safety equipment to multiple employees at once.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "EPP deliveries successfully created"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "404", description = "One or more employees not found")
+    })
+    public ResponseEntity<List<EppDeliveryResponseDTO>> createBatchEppDeliveries(
+            @Validated @RequestBody EppDeliveryBatchDTO batchDTO) {
+        List<EppDeliveryResponseDTO> created = iEppDeliveryService.createBatchEppDeliveries(batchDTO);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @GetMapping
