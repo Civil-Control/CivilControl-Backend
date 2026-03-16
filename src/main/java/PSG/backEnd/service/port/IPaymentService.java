@@ -25,4 +25,7 @@ public interface IPaymentService {
     void deleteTransfer(Long id);
     void deleteCheck(Long id);
     void deleteById(Long id);
+
+    /** Returns the payment-details ID for the payment that covers the given document, or empty if none. */
+    java.util.Optional<Long> findPaymentIdByDocumentId(Long documentId);
 }

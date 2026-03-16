@@ -142,6 +142,16 @@ public class PaymentController {
         };
     }
 
+    @GetMapping("/by-document/{documentId}")
+    @Operation(summary = "Get payment ID by document ID",
+            description = "Returns the payment-details ID of the active payment that covers the given document. Returns 204 if no payment is linked.")
+    public ResponseEntity<Long> getPaymentIdByDocumentId(
+            @Parameter(description = "Transactional document ID", required = true) @PathVariable Long documentId) {
+        return paymentService.findPaymentIdByDocumentId(documentId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get payment by ID",
             description = "Retrieves a payment by its PaymentDetails ID, automatically resolving the payment type (cash, transfer or check). " +

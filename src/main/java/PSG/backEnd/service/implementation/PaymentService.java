@@ -404,6 +404,11 @@ public class PaymentService implements IPaymentService {
      * Reverts all payment effects before marking it as deleted.
      */
     @Override
+    public java.util.Optional<Long> findPaymentIdByDocumentId(Long documentId) {
+        return paymentRepository.findPaymentIdByDocumentId(documentId);
+    }
+
+    @Override
     @Transactional
     public void deleteCash(Long id) {
         deletePaymentWithBusinessLogic(id, cashPaymentRepository,
