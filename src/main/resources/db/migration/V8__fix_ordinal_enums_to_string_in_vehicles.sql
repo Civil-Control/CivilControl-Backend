@@ -4,42 +4,42 @@
 -- JurisdictionType ordinals: 0=MUNICIPAL, 1=PROVINCIAL
 -- TruckEquipment ordinals:   0=NADA, 1=HIDROELEVADOR, 2=HIDROGRUA
 --
--- Uses USING CASE for safe int2 -> varchar conversion in PostgreSQL.
+-- Uses EXECUTE (dynamic DDL) + array indexing to avoid compile-time operator
+-- resolution errors that occur when CASE comparisons are planned before the
+-- column type is known at DO-block parse time.
+-- table_schema = 'public' prevents false matches from other schemas.
 
 DO $$
+DECLARE
+    col_type text;
 BEGIN
-    -- Fix jurisdiction_type only if it is still stored as a numeric type
-    IF EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name = 'vehicles'
-          AND column_name = 'jurisdiction_type'
-          AND data_type IN ('smallint', 'integer', 'bigint', 'int2', 'int4', 'int8')
-    ) THEN
-        ALTER TABLE vehicles
-            ALTER COLUMN jurisdiction_type TYPE VARCHAR(255)
-            USING CASE jurisdiction_type::int
-                WHEN 0 THEN 'MUNICIPAL'
-                WHEN 1 THEN 'PROVINCIAL'
-                ELSE NULL
-            END;
+    -- Fix jurisdiction_type: convert from int2 ordinal to varchar if needed
+    SELECT data_type INTO col_type
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name   = 'vehicles'
+      AND column_name  = 'jurisdiction_type';
+
+    IF col_type IN ('smallint', 'integer', 'bigint') THEN
+        EXECUTE '
+            ALTER TABLE vehicles
+                ALTER COLUMN jurisdiction_type TYPE VARCHAR(255)
+                USING (ARRAY[''MUNICIPAL'', ''PROVINCIAL''])[jurisdiction_type::int + 1]
+        ';
     END IF;
 
-    -- Fix truck_equipment only if it is still stored as a numeric type
-    IF EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_name = 'vehicles'
-          AND column_name = 'truck_equipment'
-          AND data_type IN ('smallint', 'integer', 'bigint', 'int2', 'int4', 'int8')
-    ) THEN
-        ALTER TABLE vehicles
-            ALTER COLUMN truck_equipment TYPE VARCHAR(255)
-            USING CASE truck_equipment::int
-                WHEN 0 THEN 'NADA'
-                WHEN 1 THEN 'HIDROELEVADOR'
-                WHEN 2 THEN 'HIDROGRUA'
-                ELSE NULL
-            END;
+    -- Fix truck_equipment: convert from int2 ordinal to varchar if needed
+    SELECT data_type INTO col_type
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name   = 'vehicles'
+      AND column_name  = 'truck_equipment';
+
+    IF col_type IN ('smallint', 'integer', 'bigint') THEN
+        EXECUTE '
+            ALTER TABLE vehicles
+                ALTER COLUMN truck_equipment TYPE VARCHAR(255)
+                USING (ARRAY[''NADA'', ''HIDROELEVADOR'', ''HIDROGRUA''])[truck_equipment::int + 1]
+        ';
     END IF;
 END $$;
