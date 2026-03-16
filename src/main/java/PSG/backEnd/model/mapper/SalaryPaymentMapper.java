@@ -15,6 +15,7 @@ public interface SalaryPaymentMapper {
     @Mapping(source = "employee.id", target = "employeeId")
     @Mapping(source = "employee.name", target = "employeeName")
     @Mapping(source = "employee.lastName", target = "employeeLastName")
+    @Mapping(source = "employee.projectArea.name", target = "projectAreaName")
     SalaryPaymentResponseDTO toResponseDto(SalaryPayment salaryPayment);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

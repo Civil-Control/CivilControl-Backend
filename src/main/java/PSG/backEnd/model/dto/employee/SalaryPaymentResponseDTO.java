@@ -35,6 +35,10 @@ public record SalaryPaymentResponseDTO(
 
     @Schema(description = "Gross salary amount paid to the employee.",
             example = "150000.50")
-    BigDecimal amount
+    BigDecimal amount,
+
+    @Schema(description = "Name of the project area the employee belongs to.",
+            example = "Mantenimiento")
+    String projectAreaName
 ) {}
 
