@@ -53,6 +53,12 @@ public record RepairResponseDTO(
                 nullable = true)
         String supplierLegalName,
 
+        @Schema(description = "Trade name of the external supplier who performed the repair. " +
+                "Null if the repair was performed by an internal employee.",
+                example = "AutoFix",
+                nullable = true)
+        String supplierTradeName,
+
         @Schema(description = "Type of repair performed.",
                 example = "CORRECTIVE",
                 allowableValues = {"PREVENTIVE", "CORRECTIVE", "PREDICTIVE"})

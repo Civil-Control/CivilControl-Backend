@@ -20,6 +20,7 @@ public interface RepairMapper {
     @Mapping(target = "vehicleLicensePlate", source = "vehicle.licensePlate")
     @Mapping(target = "supplierId", source = "supplier.id")
     @Mapping(target = "supplierLegalName", source = "supplier.legalName")
+    @Mapping(target = "supplierTradeName", source = "supplier.tradeName")
     @Mapping(target = "repairType", expression = "java(repair.getRepairType().name())")
     RepairResponseDTO toResponseDto(Repair repair);
 
