@@ -82,11 +82,10 @@ public record VehicleDTO(
         @Size(max = 100, message = "{vehicle.storedIn.size}", groups = {OnCreate.class, OnUpdate.class})
         String storedIn,
 
-        @Schema(description = "VTV (Technical Vehicle Verification) expiration date. Must be today or in the future. " +
+        @Schema(description = "VTV (Technical Vehicle Verification) expiration date. " +
                 "VTV is the mandatory periodic technical inspection required for vehicles.",
                 example = "2025-12-31",
                 nullable = true)
-        @FutureOrPresent(message = "{vehicle.vtvExpirationDate.future}", groups = {OnCreate.class, OnUpdate.class})
         LocalDate vtvExpirationDate,
 
         @Schema(description = "Type of jurisdiction where the vehicle is registered. Valid values: PROVINCIAL (provincial registration), " +
