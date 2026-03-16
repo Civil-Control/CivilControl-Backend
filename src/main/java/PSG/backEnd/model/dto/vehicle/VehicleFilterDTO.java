@@ -48,10 +48,10 @@ public record VehicleFilterDTO(
                 nullable = true)
         String projectAreaName,
 
-        @Schema(description = "Filter by storage location. Partial matches are supported.",
-                example = "Warehouse",
+        @Schema(description = "Filter by building name where the vehicle is stored. Partial matches are supported.",
+                example = "Depósito",
                 nullable = true)
-        String storedIn,
+        String buildingName,
 
         @Schema(description = "Filter by VTV expiration date. Exact match required.",
                 example = "2025-12-31",

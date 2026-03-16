@@ -53,9 +53,14 @@ public record VehicleResponseDTO(
                 nullable = true)
         Long projectAreaId,
 
-        @Schema(description = "Physical location where the vehicle is stored or parked.",
-                example = "Main Warehouse - Bay 3")
-        String storedIn,
+        @Schema(description = "ID of the building where the vehicle is stored.",
+                example = "5",
+                nullable = true)
+        Long buildingId,
+
+        @Schema(description = "Name of the building where the vehicle is stored.",
+                example = "Depósito Central")
+        String buildingName,
 
         @Schema(description = "VTV (Technical Vehicle Verification) expiration date.",
                 example = "2025-12-31")

@@ -23,6 +23,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     @Query("SELECT v FROM Vehicle v " +
             "LEFT JOIN v.projectArea pa " +
             "LEFT JOIN v.vehicleType vt " +
+            "LEFT JOIN v.storedInBuilding b " +
             "WHERE (:licensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS string), '%'))) " +
             "AND (:brand IS NULL OR LOWER(CAST(v.brand AS string)) LIKE LOWER(CONCAT('%', CAST(:brand AS string), '%'))) " +
             "AND (:model IS NULL OR LOWER(CAST(v.model AS string)) LIKE LOWER(CONCAT('%', CAST(:model AS string), '%'))) " +
@@ -31,7 +32,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             "AND (:nickName IS NULL OR LOWER(CAST(v.nickName AS string)) LIKE LOWER(CONCAT('%', CAST(:nickName AS string), '%'))) " +
             "AND (:vehicleType IS NULL OR LOWER(CAST(vt.name AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleType AS string), '%'))) " +
             "AND (:projectAreaName IS NULL OR LOWER(CAST(pa.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))) " +
-            "AND (:storedIn IS NULL OR LOWER(CAST(v.storedIn AS string)) LIKE LOWER(CONCAT('%', CAST(:storedIn AS string), '%'))) " +
+            "AND (:buildingName IS NULL OR LOWER(CAST(b.name AS string)) LIKE LOWER(CONCAT('%', CAST(:buildingName AS string), '%'))) " +
             "AND (CAST(:vtvExpirationDate AS date) IS NULL OR v.vtvExpirationDate = :vtvExpirationDate) " +
             "AND (:jurisdictionType IS NULL OR LOWER(CAST(v.jurisdictionType AS string)) LIKE LOWER(CONCAT('%', CAST(:jurisdictionType AS string), '%'))) " +
             "AND (:truckEquipment IS NULL OR LOWER(CAST(v.truckEquipment AS string)) LIKE LOWER(CONCAT('%', CAST(:truckEquipment AS string), '%'))) " +
@@ -45,7 +46,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             @Param("nickName") String nickName,
             @Param("vehicleType") String vehicleType,
             @Param("projectAreaName") String projectAreaName,
-            @Param("storedIn") String storedIn,
+            @Param("buildingName") String buildingName,
             @Param("vtvExpirationDate") LocalDate vtvExpirationDate,
             @Param("jurisdictionType") String jurisdictionType,
             @Param("truckEquipment") String truckEquipment,

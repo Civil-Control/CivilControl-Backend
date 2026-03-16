@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.vehicle;
 
+import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
@@ -53,8 +54,9 @@ public class Vehicle extends TenantEntity {
     @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
 
-    @Column(name = "stored_in", columnDefinition = "VARCHAR(100)")
-    private String storedIn;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "building_id")
+    private Building storedInBuilding;
 
     @Column(name = "vtv_expiration_date")
     private LocalDate vtvExpirationDate;

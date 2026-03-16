@@ -75,12 +75,10 @@ public record VehicleDTO(
                 nullable = true)
         Long projectAreaId,
 
-        @Schema(description = "Physical location where the vehicle is stored or parked. Maximum 100 characters.",
-                example = "Main Warehouse - Bay 3",
-                maxLength = 100,
+        @Schema(description = "ID of the building where the vehicle is stored.",
+                example = "5",
                 nullable = true)
-        @Size(max = 100, message = "{vehicle.storedIn.size}", groups = {OnCreate.class, OnUpdate.class})
-        String storedIn,
+        Long buildingId,
 
         @Schema(description = "VTV (Technical Vehicle Verification) expiration date. " +
                 "VTV is the mandatory periodic technical inspection required for vehicles.",

@@ -64,7 +64,7 @@ public class VehicleService implements IVehicleService {
                 filterDTO.nickName(),
                 filterDTO.vehicleType(),
                 filterDTO.projectAreaName(),
-                filterDTO.storedIn(),
+                filterDTO.buildingName(),
                 filterDTO.vtvExpirationDate(),
                 filterDTO.jurisdictionType(),
                 filterDTO.truckEquipment(),
