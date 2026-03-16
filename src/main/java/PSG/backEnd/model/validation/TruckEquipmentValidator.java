@@ -5,14 +5,16 @@ import PSG.backEnd.model.entity.vehicle.VehicleType;
 import PSG.backEnd.repository.VehicleTypeRepository;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
+@Component
+@RequiredArgsConstructor
 public class TruckEquipmentValidator implements ConstraintValidator<ValidTruckEquipment, VehicleDTO> {
 
-    @Autowired
-    private VehicleTypeRepository vehicleTypeRepository;
+    private final VehicleTypeRepository vehicleTypeRepository;
 
     @Override
     public boolean isValid(VehicleDTO vehicleDTO, ConstraintValidatorContext context) {

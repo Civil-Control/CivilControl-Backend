@@ -60,6 +60,7 @@ public class Vehicle extends TenantEntity {
     private LocalDate vtvExpirationDate;
 
     @Column(name = "jurisdiction_type")
+    @Enumerated(EnumType.STRING)
     private JurisdictionType jurisdictionType;
 
     @Column(name = "truck_equipment")
