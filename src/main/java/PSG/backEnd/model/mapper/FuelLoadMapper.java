@@ -27,7 +27,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "projectAreaId", source = "projectArea.id")
     @Mapping(target = "projectAreaName", source = "projectArea.name")
     @Mapping(target = "gasStationId", source = "gasStation.id")
-    @Mapping(target = "gasStationName", expression = "java(fuelLoad.getGasStation().getSupplier().getLegalName())")
+    @Mapping(target = "gasStationName", expression = "java(fuelLoad.getGasStation() != null ? fuelLoad.getGasStation().getSupplier().getLegalName() : null)")
     FuelLoadResponseDTO toResponseDto(FuelLoad fuelLoad);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
