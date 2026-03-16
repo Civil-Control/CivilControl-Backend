@@ -46,6 +46,17 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             "(NOT EXISTS (SELECT 1 FROM CashPayment cp WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) AND " +
             " NOT EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) AND " +
             " NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true))")
+    Page<PaymentDetails> findAllWithFilters(
+            @Param("paymentMethod") String paymentMethod,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("minAmount") BigDecimal minAmount,
+            @Param("maxAmount") BigDecimal maxAmount,
+            @Param("transactionNumber") String transactionNumber,
+            @Param("supplierId") Long supplierId,
+            Pageable pageable
+    );
+
     /**
      * Returns the PaymentDetails ID of the (non-deleted) payment that includes
      * the given document among its paid-document references, if any.
@@ -57,16 +68,5 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             "AND NOT EXISTS (SELECT 1 FROM CheckPayment chp   WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
             "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true)")
     Optional<Long> findPaymentIdByDocumentId(@Param("documentId") Long documentId);
-
-    Page<PaymentDetails> findAllWithFilters(
-            @Param("paymentMethod") String paymentMethod,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate,
-            @Param("minAmount") BigDecimal minAmount,
-            @Param("maxAmount") BigDecimal maxAmount,
-            @Param("transactionNumber") String transactionNumber,
-            @Param("supplierId") Long supplierId,
-            Pageable pageable
-    );
 }
 
