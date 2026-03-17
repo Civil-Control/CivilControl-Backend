@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.employee;
 
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -39,6 +40,11 @@ public record SalaryPaymentResponseDTO(
 
     @Schema(description = "Name of the project area the employee belongs to.",
             example = "Mantenimiento")
-    String projectAreaName
+    String projectAreaName,
+
+    @Schema(description = "Payment method used for this salary payment.",
+            example = "TRANSFER",
+            nullable = true)
+    PaymentMethod paymentMethod
 ) {}
 

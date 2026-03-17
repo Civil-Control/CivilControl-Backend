@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.employee;
 
 import PSG.backEnd.model.entity.TenantEntity;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,4 +35,8 @@ public class SalaryPayment extends TenantEntity {
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
+    private PaymentMethod paymentMethod;
 }

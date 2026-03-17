@@ -4,6 +4,7 @@ import PSG.backEnd.model.dto.employee.SalaryPaymentBatchDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentFilterDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentResponseDTO;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -75,6 +76,7 @@ public class SalaryPaymentController {
             @Parameter(description = "Filter by maximum payment date") @RequestParam(required = false) LocalDate paymentDateTo,
             @Parameter(description = "Filter by minimum payment amount") @RequestParam(required = false) BigDecimal minAmount,
             @Parameter(description = "Filter by maximum payment amount") @RequestParam(required = false) BigDecimal maxAmount,
+            @Parameter(description = "Filter by payment method (CASH, TRANSFER, CHECK)") @RequestParam(required = false) PaymentMethod paymentMethod,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Available fields: id, paymentDate, amount, salaryFrequency, employeeName, employeeLastName, employeeDni, employeeCuil, employeeId",
@@ -90,7 +92,7 @@ public class SalaryPaymentController {
 
         SalaryPaymentFilterDTO filterDTO = new SalaryPaymentFilterDTO(
                 employeeId, firstName, lastName, salaryFrequency, projectAreaId, paymentDateFrom, paymentDateTo,
-                minAmount, maxAmount
+                minAmount, maxAmount, paymentMethod
         );
 
         return ResponseEntity.ok(iSalaryPaymentService.getAllSalaryPayments(filterDTO, pageable));

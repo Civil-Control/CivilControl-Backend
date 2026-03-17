@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.employee;
 
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -48,6 +49,11 @@ public record SalaryPaymentDTO(
     @NotNull(message = "{validation.required}", groups = OnCreate.class)
     @DecimalMin(value = "0.01", message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
     @Digits(integer = 8, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
-    BigDecimal amount
+    BigDecimal amount,
+
+    @Schema(description = "Payment method used for this salary payment. Values: CASH, TRANSFER, CHECK.",
+            example = "TRANSFER",
+            nullable = true)
+    PaymentMethod paymentMethod
 ) {}
 

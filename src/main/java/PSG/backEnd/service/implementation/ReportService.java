@@ -498,6 +498,7 @@ public class ReportService implements IReportService {
                 filters.endDate(),
                 filters.minAmount(),
                 filters.maxAmount(),
+                null, // paymentMethod - not filtered in reports
                 pageable
         ).getContent();
 
@@ -512,7 +513,7 @@ public class ReportService implements IReportService {
                     .category(MoneyOutflowCategory.SALARY)
                     .description("Pago de salario - " + sp.getSalaryFrequency().getDisplayName())
                     .amount(sp.getAmount())
-                    .paymentMethod(null)
+                    .paymentMethod(sp.getPaymentMethod() != null ? sp.getPaymentMethod().getDisplayName() : null)
                     .beneficiary(employeeName)
                     .reference("Salario " + sp.getPaymentDate().getMonthValue() + "/" + sp.getPaymentDate().getYear())
                     .comment(null)

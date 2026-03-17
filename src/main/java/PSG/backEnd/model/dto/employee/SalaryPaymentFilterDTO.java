@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.employee;
 
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -52,6 +53,11 @@ public record SalaryPaymentFilterDTO(
     @Schema(description = "Filter by maximum payment amount. Returns salary payments with amount less than or equal to this value.",
             example = "200000.00",
             nullable = true)
-    BigDecimal maxAmount
+    BigDecimal maxAmount,
+
+    @Schema(description = "Filter by payment method. Values: CASH, TRANSFER, CHECK.",
+            example = "TRANSFER",
+            nullable = true)
+    PaymentMethod paymentMethod
 ) {}
 

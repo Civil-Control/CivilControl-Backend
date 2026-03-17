@@ -1,6 +1,7 @@
 package PSG.backEnd.repository;
 
 import PSG.backEnd.model.entity.employee.SalaryPayment;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,7 +30,8 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND (CAST(:paymentDateFrom AS date) IS NULL OR sp.paymentDate >= :paymentDateFrom) " +
             "AND (CAST(:paymentDateTo AS date) IS NULL OR sp.paymentDate <= :paymentDateTo) " +
             "AND (CAST(:minAmount AS BigDecimal) IS NULL OR sp.amount >= :minAmount) " +
-            "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.amount <= :maxAmount)")
+            "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.amount <= :maxAmount) " +
+            "AND (CAST(:paymentMethod AS string) IS NULL OR sp.paymentMethod = :paymentMethod)")
     Page<SalaryPayment> findAllWithFilters(
             @Param("employeeId") Long employeeId,
             @Param("firstName") String firstName,
@@ -40,6 +42,7 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             @Param("paymentDateTo") LocalDate paymentDateTo,
             @Param("minAmount") BigDecimal minAmount,
             @Param("maxAmount") BigDecimal maxAmount,
+            @Param("paymentMethod") PaymentMethod paymentMethod,
             Pageable pageable
     );
 

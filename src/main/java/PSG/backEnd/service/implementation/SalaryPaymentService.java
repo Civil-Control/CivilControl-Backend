@@ -73,6 +73,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
                 filterDTO.paymentDateTo(),
                 filterDTO.minAmount(),
                 filterDTO.maxAmount(),
+                filterDTO.paymentMethod(),
                 pageable
         ).map(salaryPaymentMapper::toResponseDto);
     }
