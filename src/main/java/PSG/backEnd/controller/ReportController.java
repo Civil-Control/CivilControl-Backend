@@ -79,10 +79,10 @@ public class ReportController {
             @RequestParam(required = false)
             List<MoneyOutflowCategory> categories,
 
-            @Parameter(description = "Filter by sector ID (project area). If provided, only includes items related to this sector. Note: Insurance policies will be excluded when this filter is applied.",
+            @Parameter(description = "List of sector IDs (project areas) to filter by. If provided, only includes items related to those sectors. Note: Insurance policies will be excluded when this filter is applied.",
                     example = "5")
             @RequestParam(required = false)
-            Long projectAreaId,
+            List<Long> projectAreaIds,
 
             @Parameter(description = "Minimum amount to filter (inclusive)", example = "1000.00")
             @RequestParam(required = false)
@@ -100,14 +100,14 @@ public class ReportController {
             @RequestParam(required = false, defaultValue = "desc")
             String sortOrder
     ) {
-        log.info("Generating money outflow report: startDate={}, endDate={}, categories={}, projectAreaId={}",
-                startDate, endDate, categories, projectAreaId);
+        log.info("Generating money outflow report: startDate={}, endDate={}, categories={}, projectAreaIds={}",
+                startDate, endDate, categories, projectAreaIds);
 
         ReportFilterDTO filters = new ReportFilterDTO(
                 startDate,
                 endDate,
                 categories,
-                projectAreaId,
+                projectAreaIds,
                 minAmount,
                 maxAmount,
                 sortBy,
@@ -173,10 +173,10 @@ public class ReportController {
             @RequestParam(required = false)
             List<MoneyOutflowCategory> categories,
 
-            @Parameter(description = "Filter by sector ID (project area). If provided, only includes items related to this sector. Note: Insurance policies will be excluded when this filter is applied.",
+            @Parameter(description = "List of sector IDs (project areas) to filter by. If provided, only includes items related to those sectors. Note: Insurance policies will be excluded when this filter is applied.",
                     example = "5")
             @RequestParam(required = false)
-            Long projectAreaId,
+            List<Long> projectAreaIds,
 
             @Parameter(description = "Minimum amount to filter (inclusive)", example = "1000.00")
             @RequestParam(required = false)
@@ -194,14 +194,14 @@ public class ReportController {
             @RequestParam(required = false, defaultValue = "desc")
             String sortOrder
     ) {
-        log.info("Downloading money outflow report: format={}, startDate={}, endDate={}, categories={}, projectAreaId={}",
-                format, startDate, endDate, categories, projectAreaId);
+        log.info("Downloading money outflow report: format={}, startDate={}, endDate={}, categories={}, projectAreaIds={}",
+                format, startDate, endDate, categories, projectAreaIds);
 
         ReportFilterDTO filters = new ReportFilterDTO(
                 startDate,
                 endDate,
                 categories,
-                projectAreaId,
+                projectAreaIds,
                 minAmount,
                 maxAmount,
                 sortBy,
@@ -253,10 +253,10 @@ public class ReportController {
             @RequestParam(required = false)
             List<MoneyOutflowCategory> categories,
 
-            @Parameter(description = "Filter by sector ID (project area). If provided, only includes items related to this sector. Note: Insurance policies will be excluded when this filter is applied.",
+            @Parameter(description = "List of sector IDs (project areas) to filter by. If provided, only includes items related to those sectors. Note: Insurance policies will be excluded when this filter is applied.",
                     example = "5")
             @RequestParam(required = false)
-            Long projectAreaId,
+            List<Long> projectAreaIds,
 
             @Parameter(description = "Minimum amount to filter (inclusive)", example = "1000.00")
             @RequestParam(required = false)
@@ -266,14 +266,14 @@ public class ReportController {
             @RequestParam(required = false)
             BigDecimal maxAmount
     ) {
-        log.info("Generating preview: startDate={}, endDate={}, categories={}, projectAreaId={}",
-                startDate, endDate, categories, projectAreaId);
+        log.info("Generating preview: startDate={}, endDate={}, categories={}, projectAreaIds={}",
+                startDate, endDate, categories, projectAreaIds);
 
         ReportFilterDTO filters = new ReportFilterDTO(
                 startDate,
                 endDate,
                 categories,
-                projectAreaId,
+                projectAreaIds,
                 minAmount,
                 maxAmount,
                 "date",

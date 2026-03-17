@@ -116,7 +116,7 @@ public class ReportService implements IReportService {
         Map<MoneyOutflowCategory, BigDecimal> summaryByCategory = calculateSummaryByCategory(items);
 
         // Get project area name if filtered
-        String projectAreaName = getProjectAreaName(filters.projectAreaId());
+        String projectAreaName = getProjectAreaName(filters.projectAreaIds());
 
         // Build report
         MoneyOutflowReportDTO report = MoneyOutflowReportDTO.builder()
@@ -190,7 +190,7 @@ public class ReportService implements IReportService {
         Map<MoneyOutflowCategory, Integer> countByCategory = calculateCountByCategory(items);
 
         // Get project area name if filtered
-        String projectAreaName = getProjectAreaName(filters.projectAreaId());
+        String projectAreaName = getProjectAreaName(filters.projectAreaIds());
 
         // Build preview (without items list)
         MoneyOutflowReportPreviewDTO preview = MoneyOutflowReportPreviewDTO.builder()
@@ -216,13 +216,31 @@ public class ReportService implements IReportService {
     public List<ReportItemDTO> collectMoneyOutflows(ReportFilterDTO filters) {
         log.debug("Collecting money outflows with filters: {}", filters);
 
+        List<Long> areaIds = filters.projectAreaIds();
+        boolean hasAreaFilter = areaIds != null && !areaIds.isEmpty();
+
+        // For multiple areas: collect per area and deduplicate by item ID
+        if (hasAreaFilter && areaIds.size() > 1) {
+            Map<Long, ReportItemDTO> merged = new LinkedHashMap<>();
+            for (Long areaId : areaIds) {
+                ReportFilterDTO singleAreaFilters = new ReportFilterDTO(
+                        filters.startDate(), filters.endDate(), filters.categories(),
+                        List.of(areaId), filters.minAmount(), filters.maxAmount(),
+                        filters.sortBy(), filters.sortOrder()
+                );
+                collectMoneyOutflows(singleAreaFilters).forEach(item -> merged.put(item.id(), item));
+            }
+            log.debug("Collected {} money outflow items across {} areas", merged.size(), areaIds.size());
+            return new ArrayList<>(merged.values());
+        }
+
         List<ReportItemDTO> allItems = new ArrayList<>();
 
         // Check if categories filter is empty or null (means include all)
         boolean includeAll = filters.categories() == null || filters.categories().isEmpty();
 
-        // Check if projectAreaId filter is present - InsurancePolicy must be excluded in this case
-        boolean excludeInsurance = filters.projectAreaId() != null;
+        // Check if projectAreaIds filter is present - InsurancePolicy must be excluded in this case
+        boolean excludeInsurance = hasAreaFilter;
 
         // Collect from all sources based on categories filter
         if (includeAll || filters.categories().contains(MoneyOutflowCategory.INVOICE)) {
@@ -245,12 +263,12 @@ public class ReportService implements IReportService {
             allItems.addAll(collectFromFuelLoads(filters));
         }
 
-        // IMPORTANT: Insurance policies are excluded when projectAreaId filter is applied
+        // IMPORTANT: Insurance policies are excluded when projectAreaIds filter is applied
         // because insurance policies don't have a relationship with project areas
         if (!excludeInsurance && (includeAll || filters.categories().contains(MoneyOutflowCategory.INSURANCE))) {
             allItems.addAll(collectFromInsurances(filters));
         } else if (excludeInsurance && filters.categories() != null && filters.categories().contains(MoneyOutflowCategory.INSURANCE)) {
-            log.debug("Insurance category requested but projectAreaId filter is present - excluding insurance policies");
+            log.debug("Insurance category requested but projectAreaIds filter is present - excluding insurance policies");
         }
 
         if (includeAll || filters.categories().contains(MoneyOutflowCategory.REPAIR)) {
@@ -403,7 +421,7 @@ public class ReportService implements IReportService {
                 null, // documentNumber
                 null, // supplierCuit
                 null, // supplierName
-                filters.projectAreaId(), // projectAreaId - from filter
+                getEffectiveAreaId(filters), // projectAreaId - from filter
                 null, // projectAreaName
                 filters.maxAmount(), // maxTotalAmount
                 filters.minAmount(), // minTotalAmount
@@ -475,7 +493,7 @@ public class ReportService implements IReportService {
                 null, // firstName
                 null, // lastName
                 null, // salaryFrequency
-                filters.projectAreaId(), // projectAreaId - from filter
+                getEffectiveAreaId(filters), // projectAreaId - from filter
                 filters.startDate(),
                 filters.endDate(),
                 filters.minAmount(),
@@ -516,7 +534,7 @@ public class ReportService implements IReportService {
         var servicePayments = servicePaymentRepository.findAllWithFilters(
                 null, // serviceSupplierId
                 null, // buildingId
-                filters.projectAreaId(), // projectAreaId - from filter
+                getEffectiveAreaId(filters), // projectAreaId - from filter
                 null, // serviceType
                 filters.startDate(),
                 filters.endDate(),
@@ -562,7 +580,7 @@ public class ReportService implements IReportService {
                 filters.endDate(),
                 null, // vehicleId
                 null, // vehicleLicensePlate
-                filters.projectAreaId(), // projectAreaId - from filter
+                getEffectiveAreaId(filters), // projectAreaId - from filter
                 filters.minAmount(),
                 filters.maxAmount(),
                 null, // year
@@ -609,7 +627,7 @@ public class ReportService implements IReportService {
                 null, // fuelType
                 null, // vehicleId
                 null, // vehicleLicensePlate
-                filters.projectAreaId(), // projectAreaId - from filter
+                getEffectiveAreaId(filters), // projectAreaId - from filter
                 null, // projectAreaName
                 null, // gasStationId
                 pageable
@@ -724,7 +742,7 @@ public class ReportService implements IReportService {
                 filters.endDate(),
                 null, // vehicleId
                 null, // licensePlate
-                filters.projectAreaId(), // projectAreaId - from filter
+                getEffectiveAreaId(filters), // projectAreaId - from filter
                 filters.minAmount(),
                 filters.maxAmount(),
                 null, // employee
@@ -771,17 +789,29 @@ public class ReportService implements IReportService {
     }
 
     /**
-     * Gets the project area name by ID if provided.
-     * Returns null if projectAreaId is null or not found.
+     * Returns the single effective project area ID from the filter list, or null if no filter.
+     * Only used when iterating with exactly one area ID (recursive single-area calls).
      */
-    private String getProjectAreaName(Long projectAreaId) {
-        if (projectAreaId == null) {
+    private Long getEffectiveAreaId(ReportFilterDTO filters) {
+        List<Long> ids = filters.projectAreaIds();
+        return (ids != null && !ids.isEmpty()) ? ids.get(0) : null;
+    }
+
+    /**
+     * Gets the project area name(s) by ID list if provided.
+     * Returns null if projectAreaIds is null or empty.
+     */
+    private String getProjectAreaName(List<Long> projectAreaIds) {
+        if (projectAreaIds == null || projectAreaIds.isEmpty()) {
             return null;
         }
 
-        return projectAreaRepository.findByIdAndDeletedFalse(projectAreaId)
-                .map(projectArea -> projectArea.getName())
-                .orElse(null);
+        return projectAreaIds.stream()
+                .map(id -> projectAreaRepository.findByIdAndDeletedFalse(id)
+                        .map(pa -> pa.getName())
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining(", "));
     }
 }
 
