@@ -12,7 +12,6 @@ import PSG.backEnd.repository.RepairRepository;
 import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.service.port.IRepairService;
-import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,7 +26,6 @@ public class RepairService implements IRepairService {
     private final RepairMapper repairMapper;
     private final VehicleRepository vehicleRepository;
     private final SupplierRepository supplierRepository;
-    private final MessageSourceHelper messageSourceHelper;
 
     @Override
     @Transactional
@@ -39,9 +37,6 @@ public class RepairService implements IRepairService {
         if (repairDTO.supplierId() != null) {
             validateSupplierExists(repairDTO.supplierId());
         }
-
-        // Validate that at least one of employee or supplierId is provided
-        validateRepairSource(repairDTO);
 
         Repair repair = repairMapper.toEntity(repairDTO);
         Repair savedRepair = repairRepository.save(repair);
@@ -105,9 +100,6 @@ public class RepairService implements IRepairService {
             validateSupplierExists(repairDTO.supplierId());
         }
 
-        // Validate that at least one of employee or supplierId is provided after the update
-        validateRepairSourceForUpdate(repairDTO, existingRepair);
-
         repairMapper.partialUpdate(repairDTO, existingRepair);
         Repair updatedRepair = repairRepository.save(existingRepair);
 
@@ -135,26 +127,4 @@ public class RepairService implements IRepairService {
         }
     }
 
-    private void validateRepairSource(RepairDTO repairDTO) {
-        boolean hasEmployee = repairDTO.employee() != null && !repairDTO.employee().trim().isEmpty();
-        boolean hasSupplier = repairDTO.supplierId() != null;
-
-        if (!hasEmployee && !hasSupplier) {
-            throw new IllegalArgumentException(messageSourceHelper.getMessage("repair.source.required"));
-        }
-    }
-
-    private void validateRepairSourceForUpdate(RepairDTO repairDTO, Repair existingRepair) {
-        // Determine the final values after the update
-        String finalEmployee = repairDTO.employee() != null ? repairDTO.employee() : existingRepair.getEmployee();
-        Long finalSupplierId = repairDTO.supplierId() != null ? repairDTO.supplierId() :
-                              (existingRepair.getSupplier() != null ? existingRepair.getSupplier().getId() : null);
-
-        boolean hasEmployee = finalEmployee != null && !finalEmployee.trim().isEmpty();
-        boolean hasSupplier = finalSupplierId != null;
-
-        if (!hasEmployee && !hasSupplier) {
-            throw new IllegalArgumentException(messageSourceHelper.getMessage("repair.source.required"));
-        }
-    }
 }
