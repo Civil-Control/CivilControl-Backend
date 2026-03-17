@@ -441,11 +441,11 @@ public class ReportService implements IReportService {
      * Builds a description for an invoice.
      */
     private String buildInvoiceDescription(TransactionalDocument doc) {
-        String typeName = doc.getDocumentType().name();
+        String typeName = doc.getDocumentType().getDisplayName();
         String supplierName = doc.getSupplier().getLegalName();
 
         StringBuilder description = new StringBuilder();
-        description.append("Factura ").append(typeName);
+        description.append(typeName);
         description.append(" - ").append(supplierName);
 
         if (doc.getProjectArea() != null) {
@@ -492,11 +492,11 @@ public class ReportService implements IReportService {
                     .id(sp.getId())
                     .date(sp.getPaymentDate())
                     .category(MoneyOutflowCategory.SALARY)
-                    .description("Pago de salario - " + sp.getSalaryFrequency().name())
+                    .description("Pago de salario - " + sp.getSalaryFrequency().getDisplayName())
                     .amount(sp.getAmount())
                     .paymentMethod(null)
                     .beneficiary(employeeName)
-                    .reference("Salario " + sp.getPaymentDate().getMonth() + "/" + sp.getPaymentDate().getYear())
+                    .reference("Salario " + sp.getPaymentDate().getMonthValue() + "/" + sp.getPaymentDate().getYear())
                     .comment(null)
                     .build());
         }
@@ -529,7 +529,7 @@ public class ReportService implements IReportService {
         List<ReportItemDTO> items = new ArrayList<>();
 
         for (ServicePayment sp : servicePayments) {
-            String description = "Pago de servicio: " + sp.getServiceType().name() +
+            String description = "Pago de servicio: " + sp.getServiceType().getDisplayName() +
                                " - " + sp.getBuilding().getName();
 
             items.add(ReportItemDTO.builder()
@@ -583,7 +583,7 @@ public class ReportService implements IReportService {
                     .description(description)
                     .amount(lpp.getAmount())
                     .paymentMethod(null)
-                    .beneficiary(lpp.getJurisdictionType().name())
+                    .beneficiary(lpp.getJurisdictionType().getDisplayName())
                     .reference("Vehículo ID: " + lpp.getVehicleId())
                     .comment(null)
                     .build());
@@ -626,7 +626,7 @@ public class ReportService implements IReportService {
                 continue;
             }
 
-            String description = "Carga de combustible: " + fl.getFuelType().name() +
+            String description = "Carga de combustible: " + fl.getFuelType().getDisplayName() +
                                " - " + fl.getLiters() + "L";
             String beneficiary = fl.getGasStation() != null ?
                                "Estación de servicio (ID: " + fl.getGasStation().getId() + ")" : "Estación de servicio";
@@ -690,7 +690,7 @@ public class ReportService implements IReportService {
                     continue;
                 }
 
-                String description = "Pago de seguro: " + ip.getPolicyType().name() +
+                String description = "Pago de seguro: " + ip.getPolicyType().getDisplayName() +
                                    " - Póliza N° " + ip.getPolicyNumber();
 
                 items.add(ReportItemDTO.builder()
@@ -741,7 +741,7 @@ public class ReportService implements IReportService {
                 continue; // Skip repairs without cost
             }
 
-            String description = "Reparación: " + r.getRepairType().name() +
+            String description = "Reparación: " + r.getRepairType().getDisplayName() +
                                " - Vehículo: " + r.getVehicle().getLicensePlate();
 
             String beneficiary;
