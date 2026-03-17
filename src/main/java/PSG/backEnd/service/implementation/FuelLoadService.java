@@ -12,6 +12,8 @@ import PSG.backEnd.repository.FuelLoadRepository;
 import PSG.backEnd.service.implementation.fuelload.FuelLoadFactory;
 import PSG.backEnd.service.implementation.fuelload.FuelLoadBatchProcessor;
 import PSG.backEnd.service.port.IFuelLoadService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,10 +31,14 @@ public class FuelLoadService implements IFuelLoadService {
     private final FuelLoadFactory fuelLoadFactory;
     private final FuelLoadBatchProcessor batchProcessor;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     @Override
     public FuelLoadResponseDTO createFuelLoad(FuelLoadDTO fuelLoadDTO) {
         FuelLoad fuelLoad = fuelLoadFactory.createFuelLoad(fuelLoadDTO);
         FuelLoad savedFuelLoad = fuelLoadRepository.save(fuelLoad);
+        entityManager.refresh(savedFuelLoad);
         return fuelLoadMapper.toResponseDto(savedFuelLoad);
     }
 
@@ -73,6 +79,7 @@ public class FuelLoadService implements IFuelLoadService {
         FuelLoad existingFuelLoad = findFuelLoadById(id);
         fuelLoadFactory.updateFuelLoad(existingFuelLoad, fuelLoadDTO);
         FuelLoad updatedFuelLoad = fuelLoadRepository.save(existingFuelLoad);
+        entityManager.refresh(updatedFuelLoad);
         return fuelLoadMapper.toResponseDto(updatedFuelLoad);
     }
 
