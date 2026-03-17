@@ -36,6 +36,10 @@ public record VehicleResponseDTO(
                 example = "The Blue Runner")
         String nickName,
 
+        @Schema(description = "Whether the vehicle is deactivated (soft-deleted).",
+                example = "false")
+        boolean deleted,
+
         @Schema(description = "ID del tipo de vehículo.",
                 example = "1")
         Long vehicleTypeId,

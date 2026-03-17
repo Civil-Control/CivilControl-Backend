@@ -76,6 +76,7 @@ public class VehicleController {
             @Parameter(description = "Filter by VTV expiration date") @RequestParam(required = false) LocalDate vtvExpirationDate,
             @Parameter(description = "Filter by jurisdiction type") @RequestParam(required = false) String jurisdictionType,
             @Parameter(description = "Filter by truck equipment type (only for CAMION vehicles)") @RequestParam(required = false) String truckEquipment,
+            @Parameter(description = "Include deactivated vehicles in results (default: false)") @RequestParam(defaultValue = "false") boolean includeInactive,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, licensePlate, brand, model, year, color, nickName, vehicleType, " +
@@ -91,7 +92,8 @@ public class VehicleController {
 
         VehicleFilterDTO filterDTO = new VehicleFilterDTO(
                 licensePlate, brand, model, year, color, nickName,
-                vehicleType, projectAreaName, storedIn, vtvExpirationDate, jurisdictionType, truckEquipment
+                vehicleType, projectAreaName, storedIn, vtvExpirationDate, jurisdictionType, truckEquipment,
+                includeInactive
         );
 
         return ResponseEntity.ok(iVehicleService.getAllVehicles(filterDTO, pageable));
@@ -140,6 +142,18 @@ public class VehicleController {
             @Parameter(description = "Vehicle unique identifier", required = true) @PathVariable Long id) {
         iVehicleService.deleteVehicle(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/activate")
+    @Operation(summary = "Activate a deactivated vehicle",
+            description = "Reactivates a soft-deleted vehicle, making it active again.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Vehicle successfully activated"),
+            @ApiResponse(responseCode = "404", description = "Vehicle not found")
+    })
+    public ResponseEntity<VehicleResponseDTO> activateVehicle(
+            @Parameter(description = "Vehicle unique identifier", required = true) @PathVariable Long id) {
+        return ResponseEntity.ok(iVehicleService.activateVehicle(id));
     }
 
     // ============================================================

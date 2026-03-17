@@ -68,6 +68,7 @@ public class VehicleService implements IVehicleService {
                 filterDTO.vtvExpirationDate(),
                 filterDTO.jurisdictionType(),
                 filterDTO.truckEquipment(),
+                filterDTO.includeInactive(),
                 pageable
         ).map(vehicleMapper::toResponseDto);
     }
@@ -114,6 +115,15 @@ public class VehicleService implements IVehicleService {
 
         vehicle.setDeleted(true);
         vehicleRepository.save(vehicle);
+    }
+
+    @Override
+    @Transactional
+    public VehicleResponseDTO activateVehicle(Long id) {
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() -> new VehicleNotFoundException(id));
+        vehicle.setDeleted(false);
+        return vehicleMapper.toResponseDto(vehicleRepository.save(vehicle));
     }
 
     @Override

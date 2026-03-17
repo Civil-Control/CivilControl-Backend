@@ -68,5 +68,10 @@ public record VehicleFilterDTO(
                 example = "HIDROELEVADOR",
                 allowableValues = {"NADA", "HIDROELEVADOR", "HIDROGRUA"},
                 nullable = true)
-        String truckEquipment
+        String truckEquipment,
+
+        @Schema(description = "When true, includes deactivated (soft-deleted) vehicles in results. Defaults to false.",
+                example = "false",
+                nullable = true)
+        Boolean includeInactive
 ) {}
