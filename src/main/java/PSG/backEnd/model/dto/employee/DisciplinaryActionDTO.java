@@ -29,13 +29,13 @@ public record DisciplinaryActionDTO(
     ActionType actionType,
 
     @Schema(description = "Detailed reason for the disciplinary action. Must clearly explain the circumstances " +
-            "and behavior that led to the action. Minimum 10 characters, maximum 500 characters.",
+            "and behavior that led to the action. Minimum 1 character, maximum 500 characters.",
             example = "Repeated tardiness despite previous warnings. Employee arrived late 5 times in the past two weeks.",
-            minLength = 10,
+            minLength = 1,
             maxLength = 500,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 10, max = 500, message = "Reason must be between 10 and 500 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 1, max = 500, message = "Reason must be between 1 and 500 characters", groups = {OnCreate.class, OnUpdate.class})
     String reason,
 
     @Schema(description = "Date when the disciplinary action was taken or officially recorded. " +

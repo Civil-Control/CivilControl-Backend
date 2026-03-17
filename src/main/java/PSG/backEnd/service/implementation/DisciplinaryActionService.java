@@ -138,7 +138,7 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
         }
 
         // Validar que el motivo tenga un mínimo de caracteres significativos
-        if (disciplinaryActionDTO.reason() != null && disciplinaryActionDTO.reason().trim().length() < 10) {
+        if (disciplinaryActionDTO.reason() != null && disciplinaryActionDTO.reason().trim().length() < 1) {
             throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.reason.minLength"));
         }
     }
@@ -183,7 +183,7 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
         }
 
         // Validar longitud del motivo si se está actualizando
-        if (disciplinaryActionDTO.reason() != null && disciplinaryActionDTO.reason().trim().length() < 10) {
+        if (disciplinaryActionDTO.reason() != null && disciplinaryActionDTO.reason().trim().length() < 1) {
             throw new DisciplinaryActionNotValidException(messageSourceHelper.getMessage("disciplinaryAction.reason.minLength"));
         }
     }
