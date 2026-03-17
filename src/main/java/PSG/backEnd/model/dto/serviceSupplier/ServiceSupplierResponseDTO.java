@@ -22,6 +22,14 @@ public record ServiceSupplierResponseDTO(
 
         @Schema(description = "List of service types provided by this supplier.",
                 example = "[\"LUZ\", \"AGUA\", \"GAS\"]")
-        List<String> providedServices
+        List<String> providedServices,
+
+        @Schema(description = "Trade name of the supplier.",
+                example = "Municipal Services Co.")
+        String supplierTradeName,
+
+        @Schema(description = "CUIT (tax ID) of the supplier.",
+                example = "30-12345678-9")
+        String supplierCuit
 ) {}
 

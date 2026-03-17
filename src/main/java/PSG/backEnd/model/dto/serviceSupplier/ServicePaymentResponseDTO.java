@@ -48,6 +48,14 @@ public record ServicePaymentResponseDTO(
 
         @Schema(description = "Additional comments or notes about the payment.",
                 example = "Payment for November 2025 electricity bill")
-        String comment
+        String comment,
+
+        @Schema(description = "Trade name of the service supplier.",
+                example = "Municipal Services Co.")
+        String supplierTradeName,
+
+        @Schema(description = "CUIT (tax ID) of the service supplier.",
+                example = "30-12345678-9")
+        String supplierCuit
 ) {}
 

@@ -19,6 +19,8 @@ public interface ServiceSupplierMapper {
 
     @Mapping(target = "supplierId", expression = "java(serviceSupplier.getSupplier() != null ? serviceSupplier.getSupplier().getId() : null)")
     @Mapping(target = "supplierName", expression = "java(serviceSupplier.getSupplier() != null ? serviceSupplier.getSupplier().getLegalName() : null)")
+    @Mapping(target = "supplierTradeName", expression = "java(serviceSupplier.getSupplier() != null ? serviceSupplier.getSupplier().getTradeName() : null)")
+    @Mapping(target = "supplierCuit", expression = "java(serviceSupplier.getSupplier() != null ? serviceSupplier.getSupplier().getCuit() : null)")
     @Mapping(target = "providedServices", source = "providedServices", qualifiedByName = "mapServiceTypesToStrings")
     ServiceSupplierResponseDTO toResponseDto(ServiceSupplier serviceSupplier);
 

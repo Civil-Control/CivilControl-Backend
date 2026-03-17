@@ -16,6 +16,8 @@ public interface ServicePaymentMapper {
 
     @Mapping(target = "serviceSupplierId", expression = "java(servicePayment.getServiceSupplier() != null ? servicePayment.getServiceSupplier().getId() : null)")
     @Mapping(target = "supplierName", expression = "java(servicePayment.getServiceSupplier() != null && servicePayment.getServiceSupplier().getSupplier() != null ? servicePayment.getServiceSupplier().getSupplier().getLegalName() : null)")
+    @Mapping(target = "supplierTradeName", expression = "java(servicePayment.getServiceSupplier() != null && servicePayment.getServiceSupplier().getSupplier() != null ? servicePayment.getServiceSupplier().getSupplier().getTradeName() : null)")
+    @Mapping(target = "supplierCuit", expression = "java(servicePayment.getServiceSupplier() != null && servicePayment.getServiceSupplier().getSupplier() != null ? servicePayment.getServiceSupplier().getSupplier().getCuit() : null)")
     @Mapping(target = "buildingId", expression = "java(servicePayment.getBuilding() != null ? servicePayment.getBuilding().getId() : null)")
     @Mapping(target = "buildingName", expression = "java(servicePayment.getBuilding() != null ? servicePayment.getBuilding().getName() : null)")
     ServicePaymentResponseDTO toResponseDto(ServicePayment servicePayment);
