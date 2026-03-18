@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/buildings")
@@ -117,6 +120,17 @@ public class BuildingController {
         BuildingFilterDTO filterDTO = new BuildingFilterDTO(name, code, buildingType, projectAreaId, active);
 
         return ResponseEntity.ok(buildingService.getAllBuildings(filterDTO, pageable));
+    }
+
+    @GetMapping("/types")
+    @Operation(summary = "Get all building types",
+            description = "Returns all available building type options with their enum key and display name. Use the key when creating or updating buildings.")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved building type list")
+    public ResponseEntity<List<Map<String, String>>> getBuildingTypes() {
+        List<Map<String, String>> types = Arrays.stream(BuildingType.values())
+                .map(t -> Map.of("key", t.name(), "displayName", t.getDisplayName()))
+                .toList();
+        return ResponseEntity.ok(types);
     }
 }
 
