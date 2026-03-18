@@ -13,7 +13,7 @@ public interface CheckPaymentMapper {
     @Mapping(target = "issueDate", ignore = true)
     CheckPayment toEntityOnCreate(CheckPaymentDTO dto);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "paymentDetails", source = "paymentDetails")
     @Mapping(target = "issueDate", ignore = true)

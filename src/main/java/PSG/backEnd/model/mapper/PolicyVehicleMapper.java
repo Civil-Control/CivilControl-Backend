@@ -24,7 +24,7 @@ public interface PolicyVehicleMapper {
     @Mapping(target = "autoPolicyId", source = "autoPolicy.id")
     PolicyVehicleResponseDTO toResponseDto(PolicyVehicle policyVehicle);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "vehicle", ignore = true)

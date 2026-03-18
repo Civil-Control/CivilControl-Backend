@@ -22,7 +22,7 @@ public interface UserMapper {
     @Mapping(target = "fullName", expression = "java(user.getFullName())")
     UserResponseDTO toResponseDto(User user);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "deleted", ignore = true)

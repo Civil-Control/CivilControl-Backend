@@ -14,6 +14,6 @@ public interface UserLocationMapper {
 
     UserLocation toEntity(UserLocationDTO dto);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     void partialUpdate(UserLocationDTO dto, @MappingTarget UserLocation location);
 }

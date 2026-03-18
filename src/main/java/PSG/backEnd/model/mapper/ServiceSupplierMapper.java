@@ -24,7 +24,7 @@ public interface ServiceSupplierMapper {
     @Mapping(target = "providedServices", source = "providedServices", qualifiedByName = "mapServiceTypesToStrings")
     ServiceSupplierResponseDTO toResponseDto(ServiceSupplier serviceSupplier);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "supplier", ignore = true)

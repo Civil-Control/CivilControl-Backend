@@ -14,6 +14,6 @@ public interface GasStationPriceMapper {
     @Mapping(target = "fuelType", source = "fuelType")
     GasStationPriceResponseDTO toResponseDto(GasStationPrice gasStationPrice);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     void partialUpdate(GasStationPriceDTO updateDTO, @MappingTarget GasStationPrice gasStationPrice);
 }

@@ -12,7 +12,7 @@ public interface TransferPaymentMapper {
     @Mapping(target = "paymentDetails", source = "paymentDetails")
     TransferPayment toEntityOnCreate(TransferPaymentDTO dto);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "paymentDetails", source = "paymentDetails")
     void updateEntityFromDto(TransferPaymentDTO dto, @MappingTarget TransferPayment entity);

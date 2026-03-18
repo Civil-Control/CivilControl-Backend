@@ -24,7 +24,7 @@ public interface RepairMapper {
     @Mapping(target = "repairType", expression = "java(repair.getRepairType().name())")
     RepairResponseDTO toResponseDto(Repair repair);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "vehicle", source = "vehicleId", qualifiedByName = "vehicleIdToEntity")
     @Mapping(target = "supplier", source = "supplierId", qualifiedByName = "supplierIdToEntity")

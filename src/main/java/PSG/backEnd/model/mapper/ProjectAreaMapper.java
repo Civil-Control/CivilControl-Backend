@@ -15,7 +15,7 @@ public interface ProjectAreaMapper {
 
     ProjectAreaResponseDTO toResponseDto(ProjectArea projectArea);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     void partialUpdate(ProjectAreaDTO updateDTO, @MappingTarget ProjectArea projectArea);

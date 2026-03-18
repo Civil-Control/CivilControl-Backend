@@ -18,7 +18,7 @@ public interface EppDeliveryMapper {
     @Mapping(source = "employee.lastName", target = "employeeLastName")
     EppDeliveryResponseDTO toResponseDto(EppDelivery eppDelivery);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "employee.id", source = "employeeId")

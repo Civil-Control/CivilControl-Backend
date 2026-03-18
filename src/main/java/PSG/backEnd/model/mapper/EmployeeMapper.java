@@ -16,7 +16,7 @@ public interface EmployeeMapper {
     @Mapping(source = "projectArea", target = "projectArea")
     EmployeeResponseDTO toResponseDto(Employee employee);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
