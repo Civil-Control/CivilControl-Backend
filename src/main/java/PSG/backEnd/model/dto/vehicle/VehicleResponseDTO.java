@@ -52,6 +52,11 @@ public record VehicleResponseDTO(
                 example = "Operations Department")
         String projectAreaName,
 
+        @Schema(description = "Color of the project area to which this vehicle is assigned.",
+                example = "#3b82f6",
+                nullable = true)
+        String projectAreaColor,
+
         @Schema(description = "ID of the project area to which this vehicle is assigned.",
                 example = "5",
                 nullable = true)

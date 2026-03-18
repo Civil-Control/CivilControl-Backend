@@ -55,6 +55,11 @@ public record FuelLoadResponseDTO(
                 example = "Operations Department")
         String projectAreaName,
 
+        @Schema(description = "Color of the project area to which this fuel load is assigned.",
+                example = "#3b82f6",
+                nullable = true)
+        String projectAreaColor,
+
         @Schema(description = "ID of the gas station where the fuel load was made.",
                 example = "5")
         Long gasStationId,

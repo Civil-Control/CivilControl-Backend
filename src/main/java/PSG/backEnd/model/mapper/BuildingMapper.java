@@ -17,6 +17,7 @@ public interface BuildingMapper {
 
     @Mapping(target = "projectAreaId", source = "projectArea.id")
     @Mapping(target = "projectAreaName", source = "projectArea.name")
+    @Mapping(target = "projectAreaColor", source = "projectArea.color")
     BuildingResponseDTO toResponseDto(Building building);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

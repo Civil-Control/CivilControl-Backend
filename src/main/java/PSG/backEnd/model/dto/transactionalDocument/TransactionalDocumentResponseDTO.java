@@ -23,6 +23,7 @@ public record TransactionalDocumentResponseDTO(
     BigDecimal discountPercentage,
     Long projectAreaId,
     String projectAreaName,
+    String projectAreaColor,
     String comment,
     boolean paid,
     boolean deleted

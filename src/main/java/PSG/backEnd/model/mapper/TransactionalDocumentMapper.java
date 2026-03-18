@@ -23,6 +23,7 @@ public interface TransactionalDocumentMapper {
     @Mapping(source = "supplier.legalName", target = "supplierName")
     @Mapping(source = "projectArea.id", target = "projectAreaId")
     @Mapping(source = "projectArea.name", target = "projectAreaName")
+    @Mapping(source = "projectArea.color", target = "projectAreaColor")
     @Mapping(expression = "java(entity.getDocumentType().getDisplayName())", target = "documentType")
     TransactionalDocumentResponseDTO toResponseDto(TransactionalDocument entity);
 

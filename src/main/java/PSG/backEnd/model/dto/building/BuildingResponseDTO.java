@@ -38,6 +38,11 @@ public record BuildingResponseDTO(
             nullable = true)
     String projectAreaName,
 
+    @Schema(description = "Color of the project area (sector) to which this building belongs. Null if not assigned to any sector.",
+            example = "#3b82f6",
+            nullable = true)
+    String projectAreaColor,
+
     @Schema(description = "Indicates if the building is active or inactive.",
             example = "true")
     Boolean active,

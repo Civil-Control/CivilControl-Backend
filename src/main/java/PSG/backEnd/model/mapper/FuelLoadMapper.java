@@ -26,6 +26,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "vehicleLicensePlate", source = "vehicle.licensePlate")
     @Mapping(target = "projectAreaId", source = "projectArea.id")
     @Mapping(target = "projectAreaName", source = "projectArea.name")
+    @Mapping(target = "projectAreaColor", source = "projectArea.color")
     @Mapping(target = "gasStationId", source = "gasStation.id")
     @Mapping(target = "gasStationName", expression = "java(fuelLoad.getGasStation() != null ? fuelLoad.getGasStation().getSupplier().getLegalName() : null)")
     FuelLoadResponseDTO toResponseDto(FuelLoad fuelLoad);

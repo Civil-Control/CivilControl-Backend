@@ -21,6 +21,7 @@ public interface VehicleMapper {
 
     @Mapping(target = "projectAreaId", source = "projectArea.id")
     @Mapping(target = "projectAreaName", source = "projectArea.name")
+    @Mapping(target = "projectAreaColor", source = "projectArea.color")
     @Mapping(target = "vehicleTypeId", source = "vehicleType.id")
     @Mapping(target = "vehicleTypeName", source = "vehicleType.name")
     @Mapping(target = "buildingId", source = "storedInBuilding.id")
