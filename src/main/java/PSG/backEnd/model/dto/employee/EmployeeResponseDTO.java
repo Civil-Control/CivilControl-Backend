@@ -8,6 +8,7 @@ import PSG.backEnd.model.enums.employee.EmploymentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Schema(description = "Response Data Transfer Object for employee. " +
         "Contains complete employee information including personal details, employment data, and associated entities.")
@@ -61,9 +62,9 @@ public record EmployeeResponseDTO(
             example = "ACTIVO")
     EmployeeStatus employeeStatus,
 
-    @Schema(description = "Employee's role or job position in the organization. Values: CHOFER, OFICIAL, AYUDANTE, ADMINISTRATIVO, LIMPIEZA, MECANICO, OTRO.",
-            example = "CHOFER")
-    EmployeeRole employeeRole,
+    @Schema(description = "Employee's roles or job positions in the organization.",
+            example = "[\"CHOFER\", \"OFICIAL\"]")
+    List<EmployeeRole> employeeRoles,
 
     @Schema(description = "Date when the employee was hired.",
             example = "2023-01-15")

@@ -10,6 +10,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "employees", uniqueConstraints = {
@@ -66,9 +68,12 @@ public class Employee extends TenantEntity {
     @Column(name = "employee_status", nullable = false)
     private EmployeeStatus employeeStatus;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "employee_roles", joinColumns = @JoinColumn(name = "employee_id"))
     @Enumerated(EnumType.STRING)
-    @Column(name = "employee_role", nullable = false)
-    private EmployeeRole employeeRole;
+    @Column(name = "role", nullable = false)
+    @Builder.Default
+    private List<EmployeeRole> employeeRoles = new ArrayList<>();
 
     @Column(name = "hire_date")
     private LocalDate hireDate;

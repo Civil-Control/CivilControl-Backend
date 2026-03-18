@@ -34,7 +34,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             "AND (:city IS NULL OR LOWER(CAST(e.address.city AS string)) LIKE LOWER(CONCAT('%', CAST(:city AS string), '%'))) " +
             "AND (CAST(:employmentType AS string) IS NULL OR e.employmentType = :employmentType) " +
             "AND (CAST(:employeeStatus AS string) IS NULL OR e.employeeStatus = :employeeStatus) " +
-            "AND (CAST(:employeeRole AS string) IS NULL OR e.employeeRole = :employeeRole) " +
+            "AND (CAST(:employeeRole AS string) IS NULL OR :employeeRole MEMBER OF e.employeeRoles) " +
             "AND (CAST(:hireDateFrom AS date) IS NULL OR e.hireDate >= :hireDateFrom) " +
             "AND (CAST(:hireDateTo AS date) IS NULL OR e.hireDate <= :hireDateTo) " +
             "AND e.deleted = false")

@@ -10,8 +10,10 @@ import PSG.backEnd.model.validation.ValidEmergencyContact;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotEmpty;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Schema(description = "Data Transfer Object for creating or updating an employee. " +
         "Represents complete employee information including personal details, contact information, " +
@@ -125,13 +127,13 @@ public record EmployeeDTO(
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     EmployeeStatus employeeStatus,
 
-    @Schema(description = "Employee's role or job position in the organization. Defines responsibilities and permissions. " +
+    @Schema(description = "Employee's roles or job positions in the organization. One or more roles can be assigned. " +
             "Valid values: CHOFER, OFICIAL, AYUDANTE, ADMINISTRATIVO, LIMPIEZA, MECANICO, OTRO.",
-            example = "CHOFER",
-            allowableValues = {"CHOFER", "OFICIAL", "AYUDANTE", "ADMINISTRATIVO", "LIMPIEZA", "MECANICO", "OTRO"},
+            example = "[\"CHOFER\", \"OFICIAL\"]",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
-    EmployeeRole employeeRole,
+    @NotEmpty(message = "At least one role must be specified", groups = OnCreate.class)
+    List<EmployeeRole> employeeRoles,
 
     @Schema(description = "Date when the employee was hired or started working for the organization. " +
             "Used for seniority calculations and employment history.",
