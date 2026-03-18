@@ -34,6 +34,9 @@ public class ProjectArea extends TenantEntity {
     @Column
     private Boolean deleted;
 
+    @Column(columnDefinition = "VARCHAR(20)")
+    private String color;
+
     @OneToMany(mappedBy = "projectArea", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<TransactionalDocument> transactionalDocuments = new ArrayList<>();

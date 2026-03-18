@@ -36,5 +36,11 @@ public record ProjectAreaDTO(
             example = "true",
             defaultValue = "true",
             nullable = true)
-    Boolean active
+    Boolean active,
+
+    @Schema(description = "Hex color code for visual identification of the area in the UI. Optional field.",
+            example = "#3b82f6",
+            nullable = true)
+    @Size(max = 20, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+    String color
 ) {}

@@ -119,6 +119,7 @@ public class ProjectAreaService implements IProjectAreaService {
         deletedProjectArea.setDeleted(false);
         deletedProjectArea.setActive(projectAreaDTO.active() != null ? projectAreaDTO.active() : true);
         deletedProjectArea.setDescription(projectAreaDTO.description());
+        deletedProjectArea.setColor(projectAreaDTO.color());
 
         ProjectArea reactivatedProjectArea = projectAreaRepository.save(deletedProjectArea);
         return projectAreaMapper.toResponseDto(reactivatedProjectArea);

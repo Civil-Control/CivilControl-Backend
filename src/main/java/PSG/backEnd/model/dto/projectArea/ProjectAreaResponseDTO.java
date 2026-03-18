@@ -5,5 +5,6 @@ public record ProjectAreaResponseDTO(
     String name,
     String description,
     Boolean active,
-    Boolean deleted
+    Boolean deleted,
+    String color
 ) {}
