@@ -154,8 +154,9 @@ public class RoleService implements IRoleService {
 
         List<Permission> allPermissions = permissionRepository.findAll();
 
-        // Agrupar permisos por módulo
+        // Agrupar permisos por módulo, excluyendo permisos internos del sistema (módulo "System")
         Map<String, List<PermissionDTO>> groupedMap = allPermissions.stream()
+                .filter(p -> !"System".equals(p.getModule()))
                 .map(permissionMapper::toDto)
                 .collect(Collectors.groupingBy(PermissionDTO::module));
 
