@@ -145,8 +145,8 @@ public class VehicleController {
     }
 
     @PatchMapping("/{id}/activate")
-    @Operation(summary = "Activate a deactivated vehicle",
-            description = "Reactivates a soft-deleted vehicle, making it active again.")
+    @Operation(summary = "Set vehicle as active (in service)",
+            description = "Marks an inactive vehicle as active/in service. This is an operational status change, not a soft-delete restore.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Vehicle successfully activated"),
             @ApiResponse(responseCode = "404", description = "Vehicle not found")
@@ -154,6 +154,18 @@ public class VehicleController {
     public ResponseEntity<VehicleResponseDTO> activateVehicle(
             @Parameter(description = "Vehicle unique identifier", required = true) @PathVariable Long id) {
         return ResponseEntity.ok(iVehicleService.activateVehicle(id));
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    @Operation(summary = "Set vehicle as inactive (out of service)",
+            description = "Marks a vehicle as inactive/out of service. The vehicle record is preserved and can be reactivated. This is NOT a soft-delete.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Vehicle successfully deactivated"),
+            @ApiResponse(responseCode = "404", description = "Vehicle not found")
+    })
+    public ResponseEntity<VehicleResponseDTO> deactivateVehicle(
+            @Parameter(description = "Vehicle unique identifier", required = true) @PathVariable Long id) {
+        return ResponseEntity.ok(iVehicleService.deactivateVehicle(id));
     }
 
     // ============================================================

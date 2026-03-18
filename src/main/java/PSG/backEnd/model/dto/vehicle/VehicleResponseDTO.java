@@ -36,9 +36,13 @@ public record VehicleResponseDTO(
                 example = "The Blue Runner")
         String nickName,
 
-        @Schema(description = "Whether the vehicle is deactivated (soft-deleted).",
+        @Schema(description = "Whether the vehicle has been soft-deleted (record preservation only — not for operational status).",
                 example = "false")
         boolean deleted,
+
+        @Schema(description = "Whether the vehicle is currently in service. False means temporarily inactive (not the same as soft-deleted).",
+                example = "true")
+        boolean active,
 
         @Schema(description = "ID del tipo de vehículo.",
                 example = "1")

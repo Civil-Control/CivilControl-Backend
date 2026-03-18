@@ -36,7 +36,8 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             "AND (CAST(:vtvExpirationDate AS date) IS NULL OR v.vtvExpirationDate = :vtvExpirationDate) " +
             "AND (:jurisdictionType IS NULL OR LOWER(CAST(v.jurisdictionType AS string)) LIKE LOWER(CONCAT('%', CAST(:jurisdictionType AS string), '%'))) " +
             "AND (:truckEquipment IS NULL OR LOWER(CAST(v.truckEquipment AS string)) LIKE LOWER(CONCAT('%', CAST(:truckEquipment AS string), '%'))) " +
-            "AND (:includeInactive = true OR v.deleted = false)")
+            "AND v.deleted = false " +
+            "AND (:includeInactive = true OR v.active = true)")
     Page<Vehicle> findAllWithFilters(
             @Param("licensePlate") String licensePlate,
             @Param("brand") String brand,

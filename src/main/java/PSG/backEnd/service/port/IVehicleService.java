@@ -13,6 +13,7 @@ public interface IVehicleService {
     VehicleResponseDTO updateVehicle(Long id, VehicleDTO vehicleDTO);
     void deleteVehicle(Long id);
     VehicleResponseDTO activateVehicle(Long id);
+    VehicleResponseDTO deactivateVehicle(Long id);
     Page<VehicleResponseDTO> getAllVehicles(VehicleFilterDTO filterDTO, Pageable pageable);
     Vehicle getEntityById(Long id);
     boolean existsById(Long id);

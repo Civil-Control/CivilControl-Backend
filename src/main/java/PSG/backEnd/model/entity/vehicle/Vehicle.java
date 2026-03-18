@@ -69,8 +69,13 @@ public class Vehicle extends TenantEntity {
     @Enumerated(EnumType.STRING)
     private TruckEquipment truckEquipment;
 
+    /** Soft-delete flag — set to true only for permanent record removal. Never use for operational status. */
     @Column
     private boolean deleted;
+
+    /** Operational status — false means the vehicle is temporarily out of service. Separate from soft-delete. */
+    @Column(nullable = false)
+    private boolean active = true;
 
     @OneToMany(mappedBy = "vehicle", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     @Builder.Default

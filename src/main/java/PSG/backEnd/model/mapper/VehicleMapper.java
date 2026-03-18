@@ -13,6 +13,7 @@ public interface VehicleMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "active", ignore = true)
     @Mapping(target = "fuelLoads", ignore = true)
     @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
     @Mapping(target = "vehicleType", source = "vehicleTypeId", qualifiedByName = "vehicleTypeIdToEntity")
@@ -33,6 +34,7 @@ public interface VehicleMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "active", ignore = true)
     @Mapping(target = "fuelLoads", ignore = true)
     @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
     @Mapping(target = "vehicleType", source = "vehicleTypeId", qualifiedByName = "vehicleTypeIdToEntity")

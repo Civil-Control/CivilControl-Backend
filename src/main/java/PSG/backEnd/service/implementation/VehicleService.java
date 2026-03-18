@@ -120,9 +120,18 @@ public class VehicleService implements IVehicleService {
     @Override
     @Transactional
     public VehicleResponseDTO activateVehicle(Long id) {
-        Vehicle vehicle = vehicleRepository.findById(id)
+        Vehicle vehicle = vehicleRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new VehicleNotFoundException(id));
-        vehicle.setDeleted(false);
+        vehicle.setActive(true);
+        return vehicleMapper.toResponseDto(vehicleRepository.save(vehicle));
+    }
+
+    @Override
+    @Transactional
+    public VehicleResponseDTO deactivateVehicle(Long id) {
+        Vehicle vehicle = vehicleRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new VehicleNotFoundException(id));
+        vehicle.setActive(false);
         return vehicleMapper.toResponseDto(vehicleRepository.save(vehicle));
     }
 
@@ -176,6 +185,7 @@ public class VehicleService implements IVehicleService {
     private VehicleResponseDTO createNewVehicle(VehicleDTO vehicleDTO) {
         Vehicle vehicle = vehicleMapper.toEntity(vehicleDTO);
         vehicle.setDeleted(false);
+        vehicle.setActive(true);
         return vehicleMapper.toResponseDto(vehicleRepository.save(vehicle));
     }
 
