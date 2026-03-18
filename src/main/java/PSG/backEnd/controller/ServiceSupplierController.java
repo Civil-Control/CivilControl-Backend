@@ -94,9 +94,9 @@ public class ServiceSupplierController {
      */
     private String mapSortField(String sortBy) {
         return switch (sortBy) {
-            case "legalName" -> "supplier.legalName";
-            case "tradeName" -> "supplier.tradeName";
-            case "cuit" -> "supplier.cuit";
+            case "legalName", "supplierName" -> "supplier.legalName";
+            case "tradeName", "supplierTradeName" -> "supplier.tradeName";
+            case "cuit", "supplierCuit" -> "supplier.cuit";
             case "defaultDiscountPercentage" -> "supplier.defaultDiscountPercentage";
             case "supplierId" -> "supplier.id";
             default -> sortBy; // For 'id' and any other fields
