@@ -33,14 +33,14 @@ public class Employee extends TenantEntity {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
-    @Column(nullable = false)
+    @Column
     private String dni;
 
-    @Column(nullable = false)
+    @Column
     private String cuil;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_area_id")
+    @JoinColumn(name = "project_area_id", nullable = false)
     private ProjectArea projectArea;
 
     @Embedded
@@ -70,7 +70,7 @@ public class Employee extends TenantEntity {
     @Column(name = "employee_role", nullable = false)
     private EmployeeRole employeeRole;
 
-    @Column(name = "hire_date", nullable = false)
+    @Column(name = "hire_date")
     private LocalDate hireDate;
 
     @Column(name = "end_date")

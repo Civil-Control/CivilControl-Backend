@@ -47,7 +47,6 @@ public record EmployeeDTO(
             minLength = 7,
             maxLength = 8,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
     @Pattern(regexp = "^\\d{7,8}$", message = "DNI must be 7 or 8 digits", groups = {OnCreate.class, OnUpdate.class})
     String dni,
 
@@ -56,7 +55,6 @@ public record EmployeeDTO(
             example = "20-12345678-9",
             pattern = "^\\d{2}-\\d{7,8}-\\d$",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
     @Pattern(regexp = "^\\d{2}-\\d{7,8}-\\d$", message = "CUIL must have XX-XXXXXXXX-X format", groups = {OnCreate.class, OnUpdate.class})
     String cuil,
 
@@ -69,14 +67,12 @@ public record EmployeeDTO(
 
     @Schema(description = "Complete residential address of the employee including street, number, city, province, and postal code.",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     @Valid
     AddressDTO address,
 
     @Schema(description = "Employee's date of birth. Must be a date in the past. Used for age calculation and legal requirements.",
             example = "1990-05-15",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     @Past(message = "Birth date must be in the past", groups = {OnCreate.class, OnUpdate.class})
     LocalDate birthDate,
 
@@ -141,7 +137,6 @@ public record EmployeeDTO(
             "Used for seniority calculations and employment history.",
             example = "2023-01-15",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     LocalDate hireDate,
 
     @Schema(description = "Optional date when the employee's employment ended or contract terminated. " +
