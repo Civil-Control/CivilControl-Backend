@@ -37,7 +37,7 @@ public interface PolicyVehicleRepository extends JpaRepository<PolicyVehicle, Lo
             "AND (CAST(:effectiveFromEnd AS date) IS NULL OR pv.effectiveFrom <= :effectiveFromEnd) " +
             "AND (CAST(:effectiveToStart AS date) IS NULL OR pv.effectiveTo >= :effectiveToStart) " +
             "AND (CAST(:effectiveToEnd AS date) IS NULL OR pv.effectiveTo <= :effectiveToEnd) " +
-            "AND (CAST(:isCancelled AS boolean) IS NULL OR " +
+            "AND (:isCancelled IS NULL OR " +
             "     (:isCancelled = true AND pv.cancellationDate IS NOT NULL) OR " +
             "     (:isCancelled = false AND pv.cancellationDate IS NULL)) " +
             "AND pv.deleted = false " +

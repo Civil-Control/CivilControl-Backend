@@ -23,7 +23,7 @@ public interface DisciplinaryActionRepository extends JpaRepository<Disciplinary
             "AND (CAST(:employeeId AS long) IS NULL OR da.employee.id = :employeeId) " +
             "AND (:employeeSearch IS NULL OR (LOWER(CAST(da.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')) " +
             "     OR LOWER(CAST(da.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')))) " +
-            "AND (CAST(:actionType AS string) IS NULL OR da.actionType = :actionType) " +
+            "AND (:actionType IS NULL OR da.actionType = :actionType) " +
             "AND (CAST(:actionDateFrom AS date) IS NULL OR da.actionDate >= :actionDateFrom) " +
             "AND (CAST(:actionDateTo AS date) IS NULL OR da.actionDate <= :actionDateTo) " +
             "AND (CAST(:endDateFrom AS date) IS NULL OR da.endDate >= :endDateFrom) " +

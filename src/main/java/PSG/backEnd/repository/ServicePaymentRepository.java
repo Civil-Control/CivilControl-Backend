@@ -38,7 +38,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             "AND (CAST(:serviceSupplierId AS long) IS NULL OR sp.serviceSupplier.id = :serviceSupplierId) " +
             "AND (CAST(:buildingId AS long) IS NULL OR sp.building.id = :buildingId) " +
             "AND (CAST(:projectAreaId AS long) IS NULL OR sp.building.projectArea.id = :projectAreaId) " +
-            "AND (CAST(:serviceType AS string) IS NULL OR sp.serviceType = :serviceType) " +
+            "AND (:serviceType IS NULL OR sp.serviceType = :serviceType) " +
             "AND (CAST(:startDate AS date) IS NULL OR sp.paymentDate >= :startDate) " +
             "AND (CAST(:endDate AS date) IS NULL OR sp.paymentDate <= :endDate) " +
             "AND (CAST(:minAmount AS BigDecimal) IS NULL OR sp.amount >= :minAmount) " +

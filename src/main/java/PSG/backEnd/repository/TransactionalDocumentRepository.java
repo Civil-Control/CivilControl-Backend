@@ -42,7 +42,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             AND (CAST(:totalAmount AS BigDecimal) IS NULL OR td.total = :totalAmount)
             AND (CAST(:fromDate AS date) IS NULL OR td.date >= :fromDate)
             AND (CAST(:toDate AS date) IS NULL OR td.date <= :toDate)
-            AND (CAST(:paid AS boolean) IS NULL OR td.paid = :paid)
+            AND (:paid IS NULL OR td.paid = :paid)
             AND (:search IS NULL OR (
                 LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
                 LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR

@@ -24,7 +24,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     @Query("SELECT s FROM Stock s " +
             "WHERE (:name IS NULL OR LOWER(CAST(s.name AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))) " +
             "AND (CAST(:buildingId AS long) IS NULL OR s.building.id = :buildingId) " +
-            "AND (CAST(:stockCategory AS string) IS NULL OR s.stockCategory = :stockCategory) " +
+            "AND (:stockCategory IS NULL OR s.stockCategory = :stockCategory) " +
             "AND (CAST(:minQuantity AS BigDecimal) IS NULL OR s.quantity >= :minQuantity) " +
             "AND (CAST(:maxQuantity AS BigDecimal) IS NULL OR s.quantity <= :maxQuantity) " +
             "AND s.deleted = false " +

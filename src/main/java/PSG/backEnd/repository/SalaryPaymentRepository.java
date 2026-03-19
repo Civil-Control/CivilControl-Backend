@@ -25,13 +25,13 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND (CAST(:employeeId AS long) IS NULL OR sp.employee.id = :employeeId) " +
             "AND (:firstName IS NULL OR LOWER(CAST(sp.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
             "AND (:lastName IS NULL OR LOWER(CAST(sp.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
-            "AND (CAST(:salaryFrequency AS string) IS NULL OR sp.salaryFrequency = :salaryFrequency) " +
+            "AND (:salaryFrequency IS NULL OR sp.salaryFrequency = :salaryFrequency) " +
             "AND (CAST(:projectAreaId AS long) IS NULL OR sp.employee.projectArea.id = :projectAreaId) " +
             "AND (CAST(:paymentDateFrom AS date) IS NULL OR sp.paymentDate >= :paymentDateFrom) " +
             "AND (CAST(:paymentDateTo AS date) IS NULL OR sp.paymentDate <= :paymentDateTo) " +
             "AND (CAST(:minAmount AS BigDecimal) IS NULL OR sp.amount >= :minAmount) " +
             "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.amount <= :maxAmount) " +
-            "AND (CAST(:paymentMethod AS string) IS NULL OR sp.paymentMethod = :paymentMethod) " +
+            "AND (:paymentMethod IS NULL OR sp.paymentMethod = :paymentMethod) " +
             "AND (:search IS NULL OR (LOWER(CAST(sp.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sp.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
     Page<SalaryPayment> findAllWithFilters(

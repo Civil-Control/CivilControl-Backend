@@ -32,9 +32,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             "AND (:cuil IS NULL OR e.cuil LIKE %:cuil%) " +
             "AND (CAST(:projectAreaId AS long) IS NULL OR e.projectArea.id = :projectAreaId) " +
             "AND (:city IS NULL OR LOWER(CAST(e.address.city AS string)) LIKE LOWER(CONCAT('%', CAST(:city AS string), '%'))) " +
-            "AND (CAST(:employmentType AS string) IS NULL OR e.employmentType = :employmentType) " +
-            "AND (CAST(:employeeStatus AS string) IS NULL OR e.employeeStatus = :employeeStatus) " +
-            "AND (CAST(:employeeRole AS string) IS NULL OR :employeeRole MEMBER OF e.employeeRoles) " +
+            "AND (:employmentType IS NULL OR e.employmentType = :employmentType) " +
+            "AND (:employeeStatus IS NULL OR e.employeeStatus = :employeeStatus) " +
+            "AND (:employeeRole IS NULL OR :employeeRole MEMBER OF e.employeeRoles) " +
             "AND (CAST(:hireDateFrom AS date) IS NULL OR e.hireDate >= :hireDateFrom) " +
             "AND (CAST(:hireDateTo AS date) IS NULL OR e.hireDate <= :hireDateTo) " +
             "AND (:search IS NULL OR (LOWER(CAST(e.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
