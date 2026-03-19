@@ -448,6 +448,7 @@ public class ReportService implements IReportService {
                     .beneficiary(doc.getSupplier().getLegalName())
                     .reference(reference)
                     .comment(doc.getComment())
+                    .projectAreaName(doc.getProjectArea() != null ? doc.getProjectArea().getName() : null)
                     .build());
         }
 
@@ -505,7 +506,7 @@ public class ReportService implements IReportService {
         List<ReportItemDTO> items = new ArrayList<>();
 
         for (SalaryPayment sp : salaryPayments) {
-            String employeeName = sp.getEmployee().getName() + " " + sp.getEmployee().getLastName();
+            String employeeName = sp.getEmployee().getLastName() + " " + sp.getEmployee().getName();
 
             items.add(ReportItemDTO.builder()
                     .id(sp.getId())
@@ -517,6 +518,7 @@ public class ReportService implements IReportService {
                     .beneficiary(employeeName)
                     .reference("Salario " + sp.getPaymentDate().getMonthValue() + "/" + sp.getPaymentDate().getYear())
                     .comment(null)
+                    .projectAreaName(sp.getEmployee().getProjectArea() != null ? sp.getEmployee().getProjectArea().getName() : null)
                     .build());
         }
 
@@ -561,6 +563,7 @@ public class ReportService implements IReportService {
                     .beneficiary(sp.getServiceSupplier().getSupplier().getLegalName())
                     .reference(sp.getReferenceNumber())
                     .comment(sp.getComment())
+                    .projectAreaName(sp.getBuilding() != null && sp.getBuilding().getProjectArea() != null ? sp.getBuilding().getProjectArea().getName() : null)
                     .build());
         }
 
@@ -605,6 +608,10 @@ public class ReportService implements IReportService {
                     .beneficiary(lpp.getJurisdictionType().getDisplayName())
                     .reference("Vehículo ID: " + lpp.getVehicleId())
                     .comment(null)
+                    .projectAreaName(lpp.getProjectAreaId() != null
+                            ? projectAreaRepository.findById(lpp.getProjectAreaId())
+                                    .map(a -> a.getName()).orElse(null)
+                            : null)
                     .build());
         }
 
@@ -660,6 +667,7 @@ public class ReportService implements IReportService {
                     .beneficiary(beneficiary)
                     .reference("Ticket: " + fl.getTicketNumber())
                     .comment("Vehículo: " + fl.getVehicle().getLicensePlate())
+                    .projectAreaName(fl.getProjectArea() != null ? fl.getProjectArea().getName() : null)
                     .build());
         }
 
@@ -722,6 +730,7 @@ public class ReportService implements IReportService {
                         .beneficiary("Aseguradora")
                         .reference(ip.getPolicyNumber())
                         .comment("Cuota estimada (" + ip.getNumberOfInstallments() + " cuotas)")
+                        .projectAreaName(null) // Insurance policies have no project area relationship
                         .build());
             }
         }
@@ -782,6 +791,7 @@ public class ReportService implements IReportService {
                     .beneficiary(beneficiary)
                     .reference(null)
                     .comment(r.getDescription())
+                    .projectAreaName(r.getVehicle().getProjectArea() != null ? r.getVehicle().getProjectArea().getName() : null)
                     .build());
         }
 

@@ -54,7 +54,12 @@ public record ReportItemDTO(
     @Schema(description = "Additional comments or notes",
             example = "Pago parcial de factura",
             nullable = true)
-    String comment
+    String comment,
+
+    @Schema(description = "Name of the project area/sector related to this outflow item, if applicable",
+            example = "Obras Norte",
+            nullable = true)
+    String projectAreaName
 ) {
 
     /**
