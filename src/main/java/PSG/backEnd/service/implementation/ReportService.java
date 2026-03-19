@@ -544,6 +544,7 @@ public class ReportService implements IReportService {
                 filters.minAmount(),
                 filters.maxAmount(),
                 null, // referenceNumber
+                null, // supplierName
                 pageable
         ).getContent();
 

@@ -51,6 +51,7 @@ public class GasStationController {
     @ApiResponse(responseCode = "200", description = "Successfully retrieved gas station list")
     public ResponseEntity<Page<GasStationResponseDTO>> getGasStations(
             @Parameter(description = "Filter by supplier ID") @RequestParam(required = false) Long supplierId,
+            @Parameter(description = "Filter by supplier name (case-insensitive search)") @RequestParam(required = false) String supplierName,
             @Parameter(description = "Filter by available fuel types") @RequestParam(required = false) List<String> fuelTypes,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
@@ -65,7 +66,7 @@ public class GasStationController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        GasStationFilterDTO filterDTO = new GasStationFilterDTO(supplierId, fuelTypes);
+        GasStationFilterDTO filterDTO = new GasStationFilterDTO(supplierId, supplierName, fuelTypes);
 
         return ResponseEntity.ok(gasStationService.getAllGasStations(filterDTO, pageable));
     }

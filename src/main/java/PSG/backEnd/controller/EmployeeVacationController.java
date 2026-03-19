@@ -55,6 +55,7 @@ public class EmployeeVacationController {
     @ApiResponse(responseCode = "200", description = "Successfully retrieved employee vacation list")
     public ResponseEntity<Page<EmployeeVacationResponseDTO>> getEmployeeVacations(
             @Parameter(description = "Filter by employee ID") @RequestParam(required = false) Long employeeId,
+            @Parameter(description = "Filter by employee last name (case-insensitive search)") @RequestParam(required = false) String employeeLastName,
             @Parameter(description = "Filter by minimum start date") @RequestParam(required = false) LocalDate startDateFrom,
             @Parameter(description = "Filter by maximum start date") @RequestParam(required = false) LocalDate startDateTo,
             @Parameter(description = "Filter by minimum end date") @RequestParam(required = false) LocalDate endDateFrom,
@@ -78,6 +79,7 @@ public class EmployeeVacationController {
 
         EmployeeVacationFilterDTO filterDTO = new EmployeeVacationFilterDTO(
                 employeeId,
+                employeeLastName,
                 startDateFrom,
                 startDateTo,
                 endDateFrom,

@@ -43,7 +43,9 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             "AND (CAST(:endDate AS date) IS NULL OR sp.paymentDate <= :endDate) " +
             "AND (CAST(:minAmount AS BigDecimal) IS NULL OR sp.amount >= :minAmount) " +
             "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.amount <= :maxAmount) " +
-            "AND (:referenceNumber IS NULL OR LOWER(CAST(sp.referenceNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:referenceNumber AS string), '%')))")
+            "AND (:referenceNumber IS NULL OR LOWER(CAST(sp.referenceNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:referenceNumber AS string), '%'))) " +
+            "AND (:supplierName IS NULL OR LOWER(CAST(sp.serviceSupplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) " +
+            "     OR :supplierName IS NULL OR LOWER(CAST(sp.serviceSupplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')))")
     Page<ServicePayment> findAllWithFilters(
             @Param("serviceSupplierId") Long serviceSupplierId,
             @Param("buildingId") Long buildingId,
@@ -54,6 +56,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             @Param("minAmount") BigDecimal minAmount,
             @Param("maxAmount") BigDecimal maxAmount,
             @Param("referenceNumber") String referenceNumber,
+            @Param("supplierName") String supplierName,
             Pageable pageable
     );
 

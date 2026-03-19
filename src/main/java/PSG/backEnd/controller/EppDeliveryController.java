@@ -72,6 +72,7 @@ public class EppDeliveryController {
     @ApiResponse(responseCode = "200", description = "Successfully retrieved EPP deliveries list")
     public ResponseEntity<Page<EppDeliveryResponseDTO>> getEppDeliveries(
             @Parameter(description = "Filter by employee ID") @RequestParam(required = false) Long employeeId,
+            @Parameter(description = "Filter by employee last name (case-insensitive search)") @RequestParam(required = false) String employeeLastName,
             @Parameter(description = "Filter by minimum delivery date") @RequestParam(required = false) LocalDate deliveryDateFrom,
             @Parameter(description = "Filter by maximum delivery date") @RequestParam(required = false) LocalDate deliveryDateTo,
             @Parameter(description = "Filter by item name (case-insensitive search)") @RequestParam(required = false) String itemName,
@@ -93,7 +94,7 @@ public class EppDeliveryController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         EppDeliveryFilterDTO filterDTO = new EppDeliveryFilterDTO(
-                employeeId, deliveryDateFrom, deliveryDateTo,
+                employeeId, employeeLastName, deliveryDateFrom, deliveryDateTo,
                 itemName, itemType, brand
         );
 

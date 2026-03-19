@@ -82,6 +82,7 @@ public class ServicePaymentService implements IServicePaymentService {
                 filterDTO.minAmount(),
                 filterDTO.maxAmount(),
                 filterDTO.referenceNumber(),
+                filterDTO.supplierName(),
                 pageable
         );
 

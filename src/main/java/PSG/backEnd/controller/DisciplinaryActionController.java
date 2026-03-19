@@ -55,6 +55,7 @@ public class DisciplinaryActionController {
     @ApiResponse(responseCode = "200", description = "Successfully retrieved disciplinary actions list")
     public ResponseEntity<Page<DisciplinaryActionResponseDTO>> getDisciplinaryActions(
             @Parameter(description = "Filter by employee ID") @RequestParam(required = false) Long employeeId,
+            @Parameter(description = "Filter by employee last name (case-insensitive search)") @RequestParam(required = false) String employeeLastName,
             @Parameter(description = "Filter by action type (WARNING, SUSPENSION, TERMINATION)") @RequestParam(required = false) ActionType actionType,
             @Parameter(description = "Filter by minimum action date") @RequestParam(required = false) LocalDate actionDateFrom,
             @Parameter(description = "Filter by maximum action date") @RequestParam(required = false) LocalDate actionDateTo,
@@ -76,7 +77,7 @@ public class DisciplinaryActionController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         DisciplinaryActionFilterDTO filterDTO = new DisciplinaryActionFilterDTO(
-                employeeId, actionType, actionDateFrom, actionDateTo,
+                employeeId, employeeLastName, actionType, actionDateFrom, actionDateTo,
                 endDateFrom, endDateTo
         );
 

@@ -22,11 +22,14 @@ public interface GasStationRepository extends JpaRepository<GasStation, Long> {
             "LEFT JOIN FETCH gs.supplier s " +
             "LEFT JOIN gs.prices p " +
             "WHERE (:supplierId IS NULL OR gs.supplier.id = :supplierId) " +
+            "AND (:supplierName IS NULL OR LOWER(CAST(gs.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) " +
+            "     OR :supplierName IS NULL OR LOWER(CAST(gs.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
             "AND (:fuelTypes IS NULL OR " +
             "     EXISTS (SELECT p2 FROM gs.prices p2 WHERE CAST(p2.fuelType AS string) IN :fuelTypes)) " +
             "AND gs.deleted = false")
     Page<GasStation> findAllWithFilters(
             @Param("supplierId") Long supplierId,
+            @Param("supplierName") String supplierName,
             @Param("fuelTypes") List<String> fuelTypes,
             Pageable pageable
     );

@@ -45,6 +45,7 @@ public class EmployeeVacationService implements IEmployeeVacationService {
     public Page<EmployeeVacationResponseDTO> getAllEmployeeVacations(EmployeeVacationFilterDTO filterDTO, Pageable pageable) {
         return employeeVacationRepository.findAllWithFilters(
                 filterDTO.employeeId(),
+                filterDTO.employeeLastName(),
                 filterDTO.startDateFrom(),
                 filterDTO.startDateTo(),
                 filterDTO.endDateFrom(),

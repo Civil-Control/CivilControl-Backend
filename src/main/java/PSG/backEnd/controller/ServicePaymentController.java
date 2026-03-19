@@ -86,6 +86,9 @@ public class ServicePaymentController {
             @Parameter(description = "Filter by reference number (partial match)")
             @RequestParam(required = false) String referenceNumber,
 
+            @Parameter(description = "Filter by supplier name (case-insensitive search)")
+            @RequestParam(required = false) String supplierName,
+
             @Parameter(description = "Page number (0-indexed)")
             @RequestParam(defaultValue = "0") int page,
 
@@ -110,7 +113,7 @@ public class ServicePaymentController {
 
         ServicePaymentFilterDTO filterDTO = new ServicePaymentFilterDTO(
                 serviceSupplierId, buildingId, projectAreaId, serviceType,
-                startDate, endDate, minAmount, maxAmount, referenceNumber
+                startDate, endDate, minAmount, maxAmount, referenceNumber, supplierName
         );
 
         return ResponseEntity.ok(servicePaymentService.getAllServicePayments(filterDTO, pageable));

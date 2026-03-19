@@ -43,6 +43,10 @@ public record ServicePaymentFilterDTO(
 
         @Schema(description = "Filter by reference number (partial match).",
                 example = "INV-2025")
-        String referenceNumber
+        String referenceNumber,
+
+        @Schema(description = "Filter by service supplier name (legal name or trade name). Partial match search.",
+                example = "Edesur")
+        String supplierName
 ) {}
 

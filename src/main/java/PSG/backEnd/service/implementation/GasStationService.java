@@ -55,6 +55,7 @@ public class GasStationService implements IGasStationService {
     public Page<GasStationResponseDTO> getAllGasStations(GasStationFilterDTO filterDTO, Pageable pageable) {
         Page<GasStation> gasStations = gasStationRepository.findAllWithFilters(
                 filterDTO.supplierId(),
+                filterDTO.supplierName(),
                 filterDTO.fuelTypes(),
                 pageable
         );

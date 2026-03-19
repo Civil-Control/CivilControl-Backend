@@ -21,6 +21,7 @@ public interface DisciplinaryActionRepository extends JpaRepository<Disciplinary
     @Query("SELECT da FROM DisciplinaryAction da " +
             "WHERE da.employee.deleted = false " +
             "AND (CAST(:employeeId AS long) IS NULL OR da.employee.id = :employeeId) " +
+            "AND (:employeeLastName IS NULL OR LOWER(CAST(da.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeLastName AS string), '%'))) " +
             "AND (CAST(:actionType AS string) IS NULL OR da.actionType = :actionType) " +
             "AND (CAST(:actionDateFrom AS date) IS NULL OR da.actionDate >= :actionDateFrom) " +
             "AND (CAST(:actionDateTo AS date) IS NULL OR da.actionDate <= :actionDateTo) " +
@@ -28,6 +29,7 @@ public interface DisciplinaryActionRepository extends JpaRepository<Disciplinary
             "AND (CAST(:endDateTo AS date) IS NULL OR da.endDate <= :endDateTo)")
     Page<DisciplinaryAction> findAllWithFilters(
             @Param("employeeId") Long employeeId,
+            @Param("employeeLastName") String employeeLastName,
             @Param("actionType") ActionType actionType,
             @Param("actionDateFrom") LocalDate actionDateFrom,
             @Param("actionDateTo") LocalDate actionDateTo,
