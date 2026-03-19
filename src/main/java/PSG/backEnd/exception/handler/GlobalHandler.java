@@ -57,6 +57,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -80,14 +82,15 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
             HttpStatusCode status,
             WebRequest request) {
 
-        String errors = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining("; "));
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                fieldErrors.put(error.getField(), error.getDefaultMessage()));
 
         ResponseMessage response = ResponseMessage.builder()
-                .message("Validation errors: " + errors)
+                .message("Datos inválidos. Revise los campos marcados.")
                 .status(HttpStatus.BAD_REQUEST.value())
                 .exception(ex.getClass().getSimpleName())
+                .errors(fieldErrors)
                 .timestamp(LocalDateTime.now())
                 .build();
 
