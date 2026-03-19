@@ -75,6 +75,11 @@ public record VehicleFilterDTO(
                 nullable = true)
         Boolean includeInactive,
 
+        @Schema(description = "Filter by active status. Null returns all, true returns only active, false returns only inactive.",
+                example = "true",
+                nullable = true)
+        Boolean active,
+
         @Schema(description = "Generic search across license plate, brand, model and nickname (case-insensitive partial match).",
                 example = "Toyota",
                 nullable = true)

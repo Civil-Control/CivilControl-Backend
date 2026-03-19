@@ -38,6 +38,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             "AND (:truckEquipment IS NULL OR LOWER(CAST(v.truckEquipment AS string)) LIKE LOWER(CONCAT('%', CAST(:truckEquipment AS string), '%'))) " +
             "AND v.deleted = false " +
             "AND (:includeInactive = true OR v.active = true) " +
+            "AND (:active IS NULL OR v.active = :active) " +
             "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(v.brand AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(v.model AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
@@ -56,6 +57,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             @Param("jurisdictionType") String jurisdictionType,
             @Param("truckEquipment") String truckEquipment,
             @Param("includeInactive") Boolean includeInactive,
+            @Param("active") Boolean active,
             @Param("search") String search,
             Pageable pageable
     );

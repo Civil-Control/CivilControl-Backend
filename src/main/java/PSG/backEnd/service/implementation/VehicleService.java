@@ -69,6 +69,7 @@ public class VehicleService implements IVehicleService {
                 filterDTO.jurisdictionType(),
                 filterDTO.truckEquipment(),
                 filterDTO.includeInactive(),
+                filterDTO.active(),
                 filterDTO.search(),
                 pageable
         ).map(vehicleMapper::toResponseDto);
