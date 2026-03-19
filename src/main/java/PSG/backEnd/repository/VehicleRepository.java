@@ -24,25 +24,25 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             "LEFT JOIN v.projectArea pa " +
             "LEFT JOIN v.vehicleType vt " +
             "LEFT JOIN v.storedInBuilding b " +
-            "WHERE (:licensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS string), '%'))) " +
-            "AND (:brand IS NULL OR LOWER(CAST(v.brand AS string)) LIKE LOWER(CONCAT('%', CAST(:brand AS string), '%'))) " +
-            "AND (:model IS NULL OR LOWER(CAST(v.model AS string)) LIKE LOWER(CONCAT('%', CAST(:model AS string), '%'))) " +
+            "WHERE (:licensePlate IS NULL OR LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', :licensePlate, '%'))) " +
+            "AND (:brand IS NULL OR LOWER(v.brand) LIKE LOWER(CONCAT('%', :brand, '%'))) " +
+            "AND (:model IS NULL OR LOWER(v.model) LIKE LOWER(CONCAT('%', :model, '%'))) " +
             "AND (CAST(:year AS integer) IS NULL OR v.year = :year) " +
-            "AND (:color IS NULL OR LOWER(CAST(v.color AS string)) LIKE LOWER(CONCAT('%', CAST(:color AS string), '%'))) " +
-            "AND (:nickName IS NULL OR LOWER(CAST(v.nickName AS string)) LIKE LOWER(CONCAT('%', CAST(:nickName AS string), '%'))) " +
-            "AND (:vehicleType IS NULL OR LOWER(CAST(vt.name AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleType AS string), '%'))) " +
-            "AND (:projectAreaName IS NULL OR LOWER(CAST(pa.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))) " +
-            "AND (:buildingName IS NULL OR LOWER(CAST(b.name AS string)) LIKE LOWER(CONCAT('%', CAST(:buildingName AS string), '%'))) " +
+            "AND (:color IS NULL OR LOWER(v.color) LIKE LOWER(CONCAT('%', :color, '%'))) " +
+            "AND (:nickName IS NULL OR LOWER(v.nickName) LIKE LOWER(CONCAT('%', :nickName, '%'))) " +
+            "AND (:vehicleType IS NULL OR LOWER(vt.name) LIKE LOWER(CONCAT('%', :vehicleType, '%'))) " +
+            "AND (:projectAreaName IS NULL OR LOWER(pa.name) LIKE LOWER(CONCAT('%', :projectAreaName, '%'))) " +
+            "AND (:buildingName IS NULL OR LOWER(b.name) LIKE LOWER(CONCAT('%', :buildingName, '%'))) " +
             "AND (CAST(:vtvExpirationDate AS date) IS NULL OR v.vtvExpirationDate = :vtvExpirationDate) " +
-            "AND (:jurisdictionType IS NULL OR LOWER(CAST(v.jurisdictionType AS string)) LIKE LOWER(CONCAT('%', CAST(:jurisdictionType AS string), '%'))) " +
-            "AND (:truckEquipment IS NULL OR LOWER(CAST(v.truckEquipment AS string)) LIKE LOWER(CONCAT('%', CAST(:truckEquipment AS string), '%'))) " +
+            "AND (:jurisdictionType IS NULL OR LOWER(v.jurisdictionType) LIKE LOWER(CONCAT('%', :jurisdictionType, '%'))) " +
+            "AND (:truckEquipment IS NULL OR LOWER(v.truckEquipment) LIKE LOWER(CONCAT('%', :truckEquipment, '%'))) " +
             "AND v.deleted = false " +
             "AND (:includeInactive = true OR v.active = true) " +
-            "AND (:active IS NULL OR v.active = :active) " +
-            "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(v.brand AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(v.model AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(v.nickName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
+            "AND (CAST(:active AS boolean) IS NULL OR v.active = :active) " +
+            "AND (:search IS NULL OR (LOWER(v.licensePlate) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "     OR LOWER(v.brand) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "     OR LOWER(v.model) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "     OR LOWER(v.nickName) LIKE LOWER(CONCAT('%', :search, '%'))))")
     Page<Vehicle> findAllWithFilters(
             @Param("licensePlate") String licensePlate,
             @Param("brand") String brand,
