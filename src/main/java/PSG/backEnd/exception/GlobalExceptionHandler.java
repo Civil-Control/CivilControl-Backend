@@ -46,12 +46,14 @@ public class GlobalExceptionHandler {
             HttpStatus status,
             String title,
             String detail,
-            WebRequest request) {
+            WebRequest request,
+            Exception ex) {
 
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
         problemDetail.setTitle(title);
         problemDetail.setInstance(URI.create(getRequestPath(request)));
         problemDetail.setProperty("timestamp", Instant.now());
+        problemDetail.setProperty("exception", ex.getClass().getSimpleName());
 
         return problemDetail;
     }
@@ -113,7 +115,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "Validation Error",
                 message,
-                request
+                request,
+                ex
         );
         problemDetail.setProperty("errors", errors);
 
@@ -136,7 +139,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.NOT_FOUND,
                 "Resource Not Found",
                 ex.getMessage(),
-                request
+                request,
+                ex
         );
 
         return ResponseEntity
@@ -160,7 +164,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.NOT_FOUND,
                 "Entity Not Found",
                 ex.getMessage() != null ? ex.getMessage() : message,
-                request
+                request,
+                ex
         );
 
         return ResponseEntity
@@ -183,7 +188,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "Invalid Argument",
                 ex.getMessage(),
-                request
+                request,
+                ex
         );
 
         return ResponseEntity
@@ -206,7 +212,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT,
                 "Invalid State",
                 ex.getMessage(),
-                request
+                request,
+                ex
         );
 
         return ResponseEntity
@@ -229,7 +236,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "Vehicle Validation Error",
                 ex.getMessage(),
-                request
+                request,
+                ex
         );
 
         return ResponseEntity
@@ -252,7 +260,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT,
                 "Vehicle Already Exists",
                 ex.getMessage(),
-                request
+                request,
+                ex
         );
 
         return ResponseEntity
@@ -275,7 +284,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT,
                 "Vehicle Type Already Exists",
                 ex.getMessage(),
-                request
+                request,
+                ex
         );
 
         return ResponseEntity
@@ -298,7 +308,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT,
                 "Vehicle Data Conflict",
                 ex.getMessage(),
-                request
+                request,
+                ex
         );
 
         return ResponseEntity
@@ -322,7 +333,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Runtime Error",
                 message,
-                request
+                request,
+                ex
         );
 
         return ResponseEntity
@@ -347,7 +359,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal Server Error",
                 message,
-                request
+                request,
+                ex
         );
 
         return ResponseEntity

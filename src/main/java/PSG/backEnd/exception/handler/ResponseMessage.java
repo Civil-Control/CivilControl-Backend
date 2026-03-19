@@ -17,5 +17,7 @@ public class ResponseMessage {
 
     private String message;
 
+    private String exception;
+
     private LocalDateTime timestamp;
 }
