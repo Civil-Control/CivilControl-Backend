@@ -69,6 +69,7 @@ public class RepairService implements IRepairService {
                 filterDTO.supplierId(),
                 filterDTO.supplierLegalName(),
                 filterDTO.repairType(),
+                filterDTO.search(),
                 pageable
         );
 

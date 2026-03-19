@@ -25,6 +25,10 @@ public record BuildingFilterDTO(
 
     @Schema(description = "Filter by active status. Returns active buildings if true, inactive if false.",
             example = "true")
-    Boolean active
+    Boolean active,
+
+    @Schema(description = "Generic search across building name and code (case-insensitive partial match).",
+            example = "PLT")
+    String search
 ) {}
 

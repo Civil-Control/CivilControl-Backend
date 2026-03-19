@@ -65,6 +65,7 @@ public class EmployeeService implements IEmployeeService {
                 filterDTO.employeeRole(),
                 filterDTO.hireDateFrom(),
                 filterDTO.hireDateTo(),
+                filterDTO.search(),
                 pageable
         ).map(employeeMapper::toResponseDto);
     }

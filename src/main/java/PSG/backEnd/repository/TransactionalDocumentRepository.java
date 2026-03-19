@@ -43,6 +43,11 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             AND (CAST(:fromDate AS date) IS NULL OR td.date >= :fromDate)
             AND (CAST(:toDate AS date) IS NULL OR td.date <= :toDate)
             AND (CAST(:paid AS boolean) IS NULL OR td.paid = :paid)
+            AND (:search IS NULL OR (
+                LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
+                LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
+                td.documentNumber LIKE CONCAT('%', :search, '%')
+            ))
             AND td.deleted = false
            """)
     Page<TransactionalDocument> findAllWithFilters(
@@ -57,6 +62,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate,
             @Param("paid") Boolean paid,
+            @Param("search") String search,
             Pageable pageable
     );
 }

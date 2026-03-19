@@ -56,5 +56,10 @@ public record FuelLoadFilterDTO(
         @Schema(description = "Filter by gas station ID.",
                 example = "5",
                 nullable = true)
-        Long gasStationId
+        Long gasStationId,
+
+        @Schema(description = "Generic search across vehicle license plate and fuel type (case-insensitive partial match).",
+                example = "NAFTA",
+                nullable = true)
+        String search
 ) {}

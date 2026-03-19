@@ -69,6 +69,7 @@ public class EmployeeController {
             @Parameter(description = "Filter by employee role (DRIVER, MECHANIC, ADMINISTRATOR, etc.)") @RequestParam(required = false) EmployeeRole employeeRole,
             @Parameter(description = "Filter by minimum hire date") @RequestParam(required = false) LocalDate hireDateFrom,
             @Parameter(description = "Filter by maximum hire date") @RequestParam(required = false) LocalDate hireDateTo,
+            @Parameter(description = "Generic search across name, lastName and DNI (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, name, lastName, dni, cuil, birthDate, hireDate, endDate, " +
@@ -85,7 +86,7 @@ public class EmployeeController {
         EmployeeFilterDTO filterDTO = new EmployeeFilterDTO(
                 name, lastName, dni, cuil, projectAreaId, city,
                 employmentType, employeeStatus, employeeRole,
-                hireDateFrom, hireDateTo
+                hireDateFrom, hireDateTo, search
         );
 
         return ResponseEntity.ok(iEmployeeService.getAllEmployees(filterDTO, pageable));

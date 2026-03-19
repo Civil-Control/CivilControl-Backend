@@ -62,6 +62,7 @@ public class RepairController {
             @Parameter(description = "Filter by supplier ID") @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Filter by supplier legal name") @RequestParam(required = false) String supplierLegalName,
             @Parameter(description = "Filter by repair type") @RequestParam(required = false) String repairType,
+            @Parameter(description = "Generic search across vehicle license plate, employee and supplier (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, date, cost, description, employee, repairType. " +
@@ -78,7 +79,7 @@ public class RepairController {
 
         RepairFilterDTO filterDTO = new RepairFilterDTO(
                 dateFrom, dateTo, vehicleId, vehicleLicensePlate, projectAreaId,
-                minCost, maxCost, employee, supplierId, supplierLegalName, repairType
+                minCost, maxCost, employee, supplierId, supplierLegalName, repairType, search
         );
 
         return ResponseEntity.ok(repairService.getAllRepairs(filterDTO, pageable));

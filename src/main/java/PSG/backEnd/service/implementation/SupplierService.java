@@ -53,6 +53,7 @@ public class SupplierService implements ISupplierService {
                 filterDTO.minDiscountPercentage(),
                 filterDTO.maxDiscountPercentage(),
                 filterDTO.active(),
+                filterDTO.search(),
                 pageable
         ).map(supplierMapper::toResponseDto);
     }

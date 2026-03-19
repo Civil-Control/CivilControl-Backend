@@ -73,5 +73,10 @@ public record VehicleFilterDTO(
         @Schema(description = "When true, includes deactivated (soft-deleted) vehicles in results. Defaults to false.",
                 example = "false",
                 nullable = true)
-        Boolean includeInactive
+        Boolean includeInactive,
+
+        @Schema(description = "Generic search across license plate, brand, model and nickname (case-insensitive partial match).",
+                example = "Toyota",
+                nullable = true)
+        String search
 ) {}

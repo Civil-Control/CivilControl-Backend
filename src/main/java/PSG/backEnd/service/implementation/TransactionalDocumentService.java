@@ -94,6 +94,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 filterDTO.fromDate(),
                 filterDTO.toDate(),
                 filterDTO.paid(),
+                filterDTO.search(),
                 pageable
         ).map(transactionalDocumentMapper::toResponseDto);
     }

@@ -48,6 +48,7 @@ public class ProjectAreaService implements IProjectAreaService {
         return projectAreaRepository.findAllWithFilters(
                 filterDTO.name(),
                 filterDTO.active(),
+                filterDTO.search(),
                 pageable)
                 .map(projectAreaMapper::toResponseDto);
     }

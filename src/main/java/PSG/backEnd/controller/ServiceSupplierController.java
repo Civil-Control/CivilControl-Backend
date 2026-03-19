@@ -62,6 +62,9 @@ public class ServiceSupplierController {
             @Parameter(description = "Filter by supplier CUIT")
             @RequestParam(required = false) String cuit,
 
+            @Parameter(description = "Generic search across legalName, tradeName and CUIT (partial match)")
+            @RequestParam(required = false) String search,
+
             @Parameter(description = "Page number (0-indexed)")
             @RequestParam(defaultValue = "0") int page,
 
@@ -82,7 +85,7 @@ public class ServiceSupplierController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         ServiceSupplierFilterDTO filterDTO = new ServiceSupplierFilterDTO(
-                supplierName, serviceType, cuit
+                supplierName, serviceType, cuit, search
         );
 
         return ResponseEntity.ok(serviceSupplierService.getAllServiceSuppliers(filterDTO, pageable));

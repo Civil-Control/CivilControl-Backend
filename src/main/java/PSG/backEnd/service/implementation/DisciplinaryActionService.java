@@ -52,7 +52,7 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
     public Page<DisciplinaryActionResponseDTO> getAllDisciplinaryActions(DisciplinaryActionFilterDTO filterDTO, Pageable pageable) {
         return disciplinaryActionRepository.findAllWithFilters(
                 filterDTO.employeeId(),
-                filterDTO.employeeLastName(),
+                filterDTO.employeeSearch(),
                 filterDTO.actionType(),
                 filterDTO.actionDateFrom(),
                 filterDTO.actionDateTo(),

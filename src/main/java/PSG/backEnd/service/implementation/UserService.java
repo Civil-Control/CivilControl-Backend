@@ -80,6 +80,7 @@ public class UserService implements IUserService {
                 filterDTO.firstName(),
                 filterDTO.lastName(),
                 filterDTO.enabled(),
+                filterDTO.search(),
                 pageable
         ).map(userMapper::toResponseDto);
     }
@@ -567,6 +568,7 @@ public class UserService implements IUserService {
                 filterDTO.firstName(),
                 filterDTO.lastName(),
                 filterDTO.enabled(),
+                filterDTO.search(),
                 pageable
         ).map(userMapper::toResponseDto);
     }

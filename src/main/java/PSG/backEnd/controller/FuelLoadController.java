@@ -76,6 +76,7 @@ public class FuelLoadController {
             @Parameter(description = "Filter by project area ID") @RequestParam(required = false) Long projectAreaId,
             @Parameter(description = "Filter by project area name (partial match)") @RequestParam(required = false) String projectAreaName,
             @Parameter(description = "Filter by gas station ID") @RequestParam(required = false) Long gasStationId,
+            @Parameter(description = "Generic search across vehicle license plate and fuel type (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, date, branchCode, ticketNumber, fuelType, liters, pricePerLiter, totalAmount. " +
@@ -91,7 +92,7 @@ public class FuelLoadController {
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
-        FuelLoadFilterDTO filterDTO = new FuelLoadFilterDTO(dateFrom, dateTo, branchCode, ticketNumber, fuelType, vehicleId, vehicleLicensePlate, projectAreaId, projectAreaName, gasStationId);
+        FuelLoadFilterDTO filterDTO = new FuelLoadFilterDTO(dateFrom, dateTo, branchCode, ticketNumber, fuelType, vehicleId, vehicleLicensePlate, projectAreaId, projectAreaName, gasStationId, search);
         return ResponseEntity.ok(fuelLoadService.getAllFuelLoads(filterDTO, pageable));
     }
 

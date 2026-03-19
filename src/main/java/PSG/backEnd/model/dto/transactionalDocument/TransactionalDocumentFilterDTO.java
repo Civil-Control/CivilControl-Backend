@@ -14,5 +14,6 @@ public record TransactionalDocumentFilterDTO(
     BigDecimal totalAmount,
     LocalDate fromDate,
     LocalDate toDate,
-    Boolean paid
+    Boolean paid,
+    String search
 ) {}

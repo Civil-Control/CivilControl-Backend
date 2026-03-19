@@ -65,6 +65,7 @@ public class ServiceSupplierService implements IServiceSupplierService {
                 filterDTO.supplierName(),
                 filterDTO.serviceType(),
                 filterDTO.cuit(),
+                filterDTO.search(),
                 pageable
         );
 

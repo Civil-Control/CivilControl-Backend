@@ -109,6 +109,7 @@ public class BuildingController {
             @Parameter(description = "Filter by building type") @RequestParam(required = false) BuildingType buildingType,
             @Parameter(description = "Filter by project area (sector) ID") @RequestParam(required = false) Long projectAreaId,
             @Parameter(description = "Filter by active status") @RequestParam(required = false) Boolean active,
+            @Parameter(description = "Generic search across name and code (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by (e.g., name, code, buildingType, active)") @RequestParam(defaultValue = "id") String sortBy,
@@ -117,7 +118,7 @@ public class BuildingController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        BuildingFilterDTO filterDTO = new BuildingFilterDTO(name, code, buildingType, projectAreaId, active);
+        BuildingFilterDTO filterDTO = new BuildingFilterDTO(name, code, buildingType, projectAreaId, active, search);
 
         return ResponseEntity.ok(buildingService.getAllBuildings(filterDTO, pageable));
     }

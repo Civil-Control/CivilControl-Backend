@@ -68,6 +68,7 @@ public class FuelLoadService implements IFuelLoadService {
                 filterDTO.projectAreaId(),
                 filterDTO.projectAreaName(),
                 filterDTO.gasStationId(),
+                filterDTO.search(),
                 pageable
         );
 

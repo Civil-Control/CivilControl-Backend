@@ -29,11 +29,15 @@ public interface ServiceSupplierRepository extends JpaRepository<ServiceSupplier
             "       LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
             "AND (CAST(:serviceType AS string) IS NULL OR :serviceType IN (SELECT ps2 FROM ss.providedServices ps2)) " +
             "AND (:cuit IS NULL OR s.cuit LIKE %:cuit%) " +
-            "AND ss.deleted = false")
+            "AND ss.deleted = false " +
+            "AND (:search IS NULL OR (LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR s.cuit LIKE CONCAT('%', :search, '%')))")
     Page<ServiceSupplier> findAllWithFilters(
             @Param("supplierName") String supplierName,
             @Param("serviceType") ServiceType serviceType,
             @Param("cuit") String cuit,
+            @Param("search") String search,
             Pageable pageable
     );
 }

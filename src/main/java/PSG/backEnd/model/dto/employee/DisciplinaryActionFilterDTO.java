@@ -13,10 +13,10 @@ public record DisciplinaryActionFilterDTO(
             nullable = true)
     Long employeeId,
 
-    @Schema(description = "Filter by employee last name. Partial match search (case-insensitive).",
+    @Schema(description = "Generic search across employee name and last name (case-insensitive partial match).",
             example = "García",
             nullable = true)
-    String employeeLastName,
+    String employeeSearch,
 
     @Schema(description = "Filter by action type. Values: WARNING, SUSPENSION, TERMINATION.",
             example = "WARNING",

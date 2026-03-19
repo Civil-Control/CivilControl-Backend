@@ -68,7 +68,7 @@ public class EppDeliveryService implements IEppDeliveryService {
     public Page<EppDeliveryResponseDTO> getAllEppDeliveries(EppDeliveryFilterDTO filterDTO, Pageable pageable) {
         return eppDeliveryRepository.findAllWithFilters(
                 filterDTO.employeeId(),
-                filterDTO.employeeLastName(),
+                filterDTO.employeeSearch(),
                 filterDTO.deliveryDateFrom(),
                 filterDTO.deliveryDateTo(),
                 filterDTO.itemName(),

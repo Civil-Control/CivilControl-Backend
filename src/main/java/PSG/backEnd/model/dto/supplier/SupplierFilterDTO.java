@@ -9,5 +9,6 @@ public record SupplierFilterDTO(
     String city,
     BigDecimal minDiscountPercentage,
     BigDecimal maxDiscountPercentage,
-    Boolean active
+    Boolean active,
+    String search
 ) {}

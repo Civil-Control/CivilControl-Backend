@@ -75,6 +75,7 @@ public class ItemService implements IItemService {
         Page<Item> items = itemRepository.findAllWithFilters(
                 filterDTO.name(),
                 filterDTO.description(),
+                filterDTO.search(),
                 pageable
         );
 

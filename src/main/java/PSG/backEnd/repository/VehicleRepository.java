@@ -37,7 +37,11 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             "AND (:jurisdictionType IS NULL OR LOWER(CAST(v.jurisdictionType AS string)) LIKE LOWER(CONCAT('%', CAST(:jurisdictionType AS string), '%'))) " +
             "AND (:truckEquipment IS NULL OR LOWER(CAST(v.truckEquipment AS string)) LIKE LOWER(CONCAT('%', CAST(:truckEquipment AS string), '%'))) " +
             "AND v.deleted = false " +
-            "AND (:includeInactive = true OR v.active = true)")
+            "AND (:includeInactive = true OR v.active = true) " +
+            "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(v.brand AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(v.model AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(v.nickName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
     Page<Vehicle> findAllWithFilters(
             @Param("licensePlate") String licensePlate,
             @Param("brand") String brand,
@@ -52,6 +56,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
             @Param("jurisdictionType") String jurisdictionType,
             @Param("truckEquipment") String truckEquipment,
             @Param("includeInactive") Boolean includeInactive,
+            @Param("search") String search,
             Pageable pageable
     );
 }

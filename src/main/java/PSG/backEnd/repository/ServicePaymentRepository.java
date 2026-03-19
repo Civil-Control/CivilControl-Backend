@@ -45,7 +45,10 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.amount <= :maxAmount) " +
             "AND (:referenceNumber IS NULL OR LOWER(CAST(sp.referenceNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:referenceNumber AS string), '%'))) " +
             "AND (:supplierName IS NULL OR LOWER(CAST(sp.serviceSupplier.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) " +
-            "     OR :supplierName IS NULL OR LOWER(CAST(sp.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')))")
+            "     OR :supplierName IS NULL OR LOWER(CAST(sp.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
+            "AND (:search IS NULL OR (LOWER(CAST(sp.serviceSupplier.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(sp.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR sp.serviceSupplier.supplier.cuit LIKE CONCAT('%', :search, '%')))")
     Page<ServicePayment> findAllWithFilters(
             @Param("serviceSupplierId") Long serviceSupplierId,
             @Param("buildingId") Long buildingId,
@@ -57,6 +60,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             @Param("maxAmount") BigDecimal maxAmount,
             @Param("referenceNumber") String referenceNumber,
             @Param("supplierName") String supplierName,
+            @Param("search") String search,
             Pageable pageable
     );
 

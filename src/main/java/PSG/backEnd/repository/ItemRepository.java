@@ -14,10 +14,13 @@ public interface ItemRepository extends JpaRepository<Item, Long> {
 
     @Query("SELECT i FROM Item i " +
             "WHERE (:name IS NULL OR LOWER(CAST(i.name AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))) " +
-            "AND (:description IS NULL OR LOWER(CAST(i.description AS string)) LIKE LOWER(CONCAT('%', CAST(:description AS string), '%')))")
+           "AND (:description IS NULL OR LOWER(CAST(i.description AS string)) LIKE LOWER(CONCAT('%', CAST(:description AS string), '%'))) " +
+           "AND (:search IS NULL OR (LOWER(CAST(i.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+           "     OR LOWER(CAST(i.description AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
     Page<Item> findAllWithFilters(
             @Param("name") String name,
             @Param("description") String description,
+            @Param("search") String search,
             Pageable pageable
     );
 }

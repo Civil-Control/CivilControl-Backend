@@ -77,6 +77,7 @@ public class VehicleController {
             @Parameter(description = "Filter by jurisdiction type") @RequestParam(required = false) String jurisdictionType,
             @Parameter(description = "Filter by truck equipment type (only for CAMION vehicles)") @RequestParam(required = false) String truckEquipment,
             @Parameter(description = "Include deactivated vehicles in results (default: false)") @RequestParam(defaultValue = "false") boolean includeInactive,
+            @Parameter(description = "Generic search across license plate, brand, model and nickname (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, licensePlate, brand, model, year, color, nickName, vehicleType, " +
@@ -93,7 +94,7 @@ public class VehicleController {
         VehicleFilterDTO filterDTO = new VehicleFilterDTO(
                 licensePlate, brand, model, year, color, nickName,
                 vehicleType, projectAreaName, storedIn, vtvExpirationDate, jurisdictionType, truckEquipment,
-                includeInactive
+                includeInactive, search
         );
 
         return ResponseEntity.ok(iVehicleService.getAllVehicles(filterDTO, pageable));

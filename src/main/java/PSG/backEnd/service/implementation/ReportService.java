@@ -429,6 +429,7 @@ public class ReportService implements IReportService {
                 filters.startDate(), // fromDate
                 filters.endDate(), // toDate
                 null, // paid
+                null, // search
                 pageable
         ).getContent();
 
@@ -500,6 +501,7 @@ public class ReportService implements IReportService {
                 filters.minAmount(),
                 filters.maxAmount(),
                 null, // paymentMethod - not filtered in reports
+                null, // search
                 pageable
         ).getContent();
 
@@ -545,6 +547,7 @@ public class ReportService implements IReportService {
                 filters.maxAmount(),
                 null, // referenceNumber
                 null, // supplierName
+                null, // search
                 pageable
         ).getContent();
 
@@ -639,6 +642,7 @@ public class ReportService implements IReportService {
                 getEffectiveAreaId(filters), // projectAreaId - from filter
                 null, // projectAreaName
                 null, // gasStationId
+                null, // search
                 pageable
         ).getContent();
 
@@ -760,6 +764,7 @@ public class ReportService implements IReportService {
                 null, // supplierId
                 null, // supplierName
                 null, // repairType
+                null, // search
                 pageable
         ).getContent();
 

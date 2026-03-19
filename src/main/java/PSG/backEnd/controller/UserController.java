@@ -89,6 +89,9 @@ public class UserController {
             @Parameter(description = "Filter by enabled status", example = "true")
             @RequestParam(required = false) Boolean enabled,
 
+            @Parameter(description = "Generic search across username and email (partial match)")
+            @RequestParam(required = false) String search,
+
             @Parameter(description = "Page number (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
 
@@ -109,7 +112,7 @@ public class UserController {
                 : Sort.by(resolvedSortBy).ascending();
 
         Pageable pageable = PageRequest.of(page, size, sort);
-        UserFilterDTO filterDTO = new UserFilterDTO(username, email, firstName, lastName, enabled);
+        UserFilterDTO filterDTO = new UserFilterDTO(username, email, firstName, lastName, enabled, search);
 
         // Get current authenticated username to exclude from results
         String currentUsername = authentication != null ? authentication.getName() : null;

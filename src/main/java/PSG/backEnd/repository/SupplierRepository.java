@@ -30,7 +30,10 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             "AND (CAST(:minDiscountPercentage AS BigDecimal) IS NULL OR s.defaultDiscountPercentage >= :minDiscountPercentage) " +
             "AND (CAST(:maxDiscountPercentage AS BigDecimal) IS NULL OR s.defaultDiscountPercentage <= :maxDiscountPercentage) " +
             "AND (CAST(:active AS boolean) IS NULL OR s.active = :active) " +
-            "AND s.deleted = false")
+            "AND s.deleted = false " +
+            "AND (:search IS NULL OR (s.cuit LIKE CONCAT('%', :search, '%') " +
+            "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
     Page<Supplier> findAllWithFilters(
             @Param("cuit") String cuit,
             @Param("legalName") String legalName,
@@ -39,6 +42,7 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             @Param("minDiscountPercentage") BigDecimal minDiscountPercentage,
             @Param("maxDiscountPercentage") BigDecimal maxDiscountPercentage,
             @Param("active") Boolean active,
+            @Param("search") String search,
             Pageable pageable
     );
 }

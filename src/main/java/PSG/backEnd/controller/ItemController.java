@@ -116,6 +116,7 @@ public class ItemController {
     public ResponseEntity<Page<ItemResponseDTO>> getItems(
             @Parameter(description = "Filter by item name (partial match, case-insensitive)", example = "Cemento") @RequestParam(required = false) String name,
             @Parameter(description = "Filter by item description (partial match, case-insensitive)", example = "Portland") @RequestParam(required = false) String description,
+            @Parameter(description = "Generic search across name and description (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by (e.g., name, description, id)", example = "name") @RequestParam(defaultValue = "id") String sortBy,
@@ -124,7 +125,7 @@ public class ItemController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        ItemFilterDTO filterDTO = new ItemFilterDTO(name, description);
+        ItemFilterDTO filterDTO = new ItemFilterDTO(name, description, search);
 
         return ResponseEntity.ok(itemService.list(filterDTO, pageable));
     }

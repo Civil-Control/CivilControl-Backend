@@ -15,7 +15,8 @@ public interface EmployeeVacationRepository extends JpaRepository<EmployeeVacati
             "WHERE ev.deleted = false " +
             "AND ev.employee.deleted = false " +
             "AND (:employeeId IS NULL OR ev.employee.id = :employeeId) " +
-            "AND (:employeeLastName IS NULL OR LOWER(CAST(ev.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeLastName AS string), '%'))) " +
+            "AND (:employeeSearch IS NULL OR (LOWER(CAST(ev.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')) " +
+            "     OR LOWER(CAST(ev.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')))) " +
             "AND (:startDateFrom IS NULL OR ev.startDate >= :startDateFrom) " +
             "AND (:startDateTo IS NULL OR ev.startDate <= :startDateTo) " +
             "AND (:endDateFrom IS NULL OR ev.endDate >= :endDateFrom) " +
@@ -24,7 +25,7 @@ public interface EmployeeVacationRepository extends JpaRepository<EmployeeVacati
             "AND (:maxTotalDays IS NULL OR ev.totalDays <= :maxTotalDays)")
     Page<EmployeeVacation> findAllWithFilters(
             @Param("employeeId") Long employeeId,
-            @Param("employeeLastName") String employeeLastName,
+            @Param("employeeSearch") String employeeSearch,
             @Param("startDateFrom") LocalDate startDateFrom,
             @Param("startDateTo") LocalDate startDateTo,
             @Param("endDateFrom") LocalDate endDateFrom,

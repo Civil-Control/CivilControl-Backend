@@ -59,6 +59,7 @@ public class ProjectAreaController {
     public ResponseEntity<Page<ProjectAreaResponseDTO>> getProjectAreas(
             @Parameter(description = "Filter by project area name (partial match, case-insensitive)", example = "Obras Norte") @RequestParam(required = false) String name,
             @Parameter(description = "Filter by active status - true for active areas only, false for inactive, omit for all", example = "true") @RequestParam(required = false) Boolean active,
+            @Parameter(description = "Generic search across name and description (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by (e.g., name, active, id)", example = "name") @RequestParam(defaultValue = "id") String sortBy,
@@ -67,7 +68,7 @@ public class ProjectAreaController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        ProjectAreaFilterDTO filterDTO = new ProjectAreaFilterDTO(name, active);
+        ProjectAreaFilterDTO filterDTO = new ProjectAreaFilterDTO(name, active, search);
 
         return ResponseEntity.ok(iProjectAreaService.getAllProjectAreas(filterDTO, pageable));
     }

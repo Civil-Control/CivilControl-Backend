@@ -96,6 +96,9 @@ public class TransactionalDocumentController {
             @Parameter(description = "Filter by payment status. True for paid documents, false for unpaid, omit for all.", example = "false")
             @RequestParam(required = false) Boolean paid,
 
+            @Parameter(description = "Generic search across supplier name and document number (partial match)")
+            @RequestParam(required = false) String search,
+
             @Parameter(description = "Page number (0-indexed)", example = "0")
             @RequestParam(defaultValue = "0") int page,
 
@@ -120,7 +123,7 @@ public class TransactionalDocumentController {
 
         TransactionalDocumentFilterDTO filter = new TransactionalDocumentFilterDTO(
                 documentNumber, supplierCuit, supplierName, projectAreaId, projectAreaName, minTotalAmount,
-                maxTotalAmount, totalAmount, fromDate, toDate, paid
+                maxTotalAmount, totalAmount, fromDate, toDate, paid, search
         );
         return ResponseEntity.ok(iTransactionalDocumentService.getAllTransactionalDocuments(filter, pageable));
     }

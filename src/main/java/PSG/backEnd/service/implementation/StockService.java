@@ -53,6 +53,7 @@ public class StockService implements IStockService {
                 filterDTO.stockCategory(),
                 filterDTO.minQuantity(),
                 filterDTO.maxQuantity(),
+                filterDTO.search(),
                 pageable
         ).map(stockMapper::toResponseDto);
     }

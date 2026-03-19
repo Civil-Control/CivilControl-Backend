@@ -16,6 +16,10 @@ public record ServiceSupplierFilterDTO(
 
         @Schema(description = "Filter by supplier CUIT.",
                 example = "20-12345678-9")
-        String cuit
+        String cuit,
+
+        @Schema(description = "Generic search across supplier legal name, trade name and CUIT (case-insensitive partial match).",
+                example = "Municipal")
+        String search
 ) {}
 

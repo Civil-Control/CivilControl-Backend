@@ -55,6 +55,7 @@ public class BuildingService implements IBuildingService {
                 filterDTO.buildingType(),
                 filterDTO.projectAreaId(),
                 filterDTO.active(),
+                filterDTO.search(),
                 pageable
         ).map(buildingMapper::toResponseDto);
     }

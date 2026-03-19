@@ -63,6 +63,7 @@ public class SupplierController {
             @Parameter(description = "Filter by minimum discount percentage", example = "5.00") @RequestParam(required = false) BigDecimal minDiscountPercentage,
             @Parameter(description = "Filter by maximum discount percentage", example = "15.00") @RequestParam(required = false) BigDecimal maxDiscountPercentage,
             @Parameter(description = "Filter by active status - true for active suppliers only", example = "true") @RequestParam(required = false) Boolean active,
+            @Parameter(description = "Generic search across CUIT, legalName and tradeName (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by (e.g., legalName, tradeName, cuit, defaultDiscountPercentage)", example = "legalName") @RequestParam(defaultValue = "id") String sortBy,
@@ -73,7 +74,7 @@ public class SupplierController {
 
         SupplierFilterDTO filterDTO = new SupplierFilterDTO(
                 cuit, legalName, tradeName, city,
-                minDiscountPercentage, maxDiscountPercentage, active
+                minDiscountPercentage, maxDiscountPercentage, active, search
         );
 
         return ResponseEntity.ok(iSupplierService.getAllSuppliers(filterDTO, pageable));

@@ -37,6 +37,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             "AND (CAST(:employeeRole AS string) IS NULL OR :employeeRole MEMBER OF e.employeeRoles) " +
             "AND (CAST(:hireDateFrom AS date) IS NULL OR e.hireDate >= :hireDateFrom) " +
             "AND (CAST(:hireDateTo AS date) IS NULL OR e.hireDate <= :hireDateTo) " +
+            "AND (:search IS NULL OR (LOWER(CAST(e.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(e.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR e.dni LIKE CONCAT('%', :search, '%'))) " +
             "AND e.deleted = false")
     Page<Employee> findAllWithFilters(
             @Param("name") String name,
@@ -50,6 +53,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             @Param("employeeRole") EmployeeRole employeeRole,
             @Param("hireDateFrom") LocalDate hireDateFrom,
             @Param("hireDateTo") LocalDate hireDateTo,
+            @Param("search") String search,
             Pageable pageable
     );
 }

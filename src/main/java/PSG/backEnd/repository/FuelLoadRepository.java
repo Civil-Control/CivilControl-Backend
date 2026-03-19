@@ -36,7 +36,9 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             "AND (:vehicleLicensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleLicensePlate AS string), '%'))) " +
             "AND (CAST(:projectAreaId AS long) IS NULL OR fl.projectArea.id = :projectAreaId) " +
             "AND (:projectAreaName IS NULL OR LOWER(CAST(pa.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))) " +
-            "AND (CAST(:gasStationId AS long) IS NULL OR fl.gasStation.id = :gasStationId)")
+            "AND (CAST(:gasStationId AS long) IS NULL OR fl.gasStation.id = :gasStationId) " +
+            "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(fl.fuelType AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
     Page<FuelLoad> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
@@ -48,6 +50,7 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             @Param("projectAreaId") Long projectAreaId,
             @Param("projectAreaName") String projectAreaName,
             @Param("gasStationId") Long gasStationId,
+            @Param("search") String search,
             Pageable pageable
     );
 }

@@ -62,5 +62,10 @@ public record RepairFilterDTO(
                 example = "PREVENTIVE",
                 allowableValues = {"PREVENTIVE", "CORRECTIVE", "PREDICTIVE"},
                 nullable = true)
-        String repairType
+        String repairType,
+
+        @Schema(description = "Generic search across vehicle license plate, employee and supplier name (case-insensitive partial match).",
+                example = "ABC123",
+                nullable = true)
+        String search
 ) {}

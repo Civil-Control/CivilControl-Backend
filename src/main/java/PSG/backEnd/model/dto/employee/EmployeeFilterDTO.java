@@ -63,6 +63,10 @@ public record EmployeeFilterDTO(
     @Schema(description = "Filter by maximum hire date. Returns employees hired up to this date.",
             example = "2023-12-31",
             nullable = true)
-    LocalDate hireDateTo
+    LocalDate hireDateTo,
+
+    @Schema(description = "Generic search across name, last name and DNI (case-insensitive partial match).",
+            nullable = true)
+    String search
 ) {}
 

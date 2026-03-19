@@ -32,7 +32,10 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             "AND (:employee IS NULL OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:employee AS string), '%'))) " +
             "AND (CAST(:supplierId AS long) IS NULL OR r.supplier.id = :supplierId) " +
             "AND (:supplierName IS NULL OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
-            "AND (:repairType IS NULL OR LOWER(CAST(r.repairType AS string)) LIKE LOWER(CONCAT('%', CAST(:repairType AS string), '%')))")
+            "AND (:repairType IS NULL OR LOWER(CAST(r.repairType AS string)) LIKE LOWER(CONCAT('%', CAST(:repairType AS string), '%'))) " +
+            "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
     Page<Repair> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
@@ -45,6 +48,7 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             @Param("supplierId") Long supplierId,
             @Param("supplierName") String supplierName,
             @Param("repairType") String repairType,
+            @Param("search") String search,
             Pageable pageable
     );
 }

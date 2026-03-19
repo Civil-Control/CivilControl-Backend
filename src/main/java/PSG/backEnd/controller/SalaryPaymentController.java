@@ -77,6 +77,7 @@ public class SalaryPaymentController {
             @Parameter(description = "Filter by minimum payment amount") @RequestParam(required = false) BigDecimal minAmount,
             @Parameter(description = "Filter by maximum payment amount") @RequestParam(required = false) BigDecimal maxAmount,
             @Parameter(description = "Filter by payment method (CASH, TRANSFER, CHECK)") @RequestParam(required = false) PaymentMethod paymentMethod,
+            @Parameter(description = "Generic search across employee name and lastName (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Available fields: id, paymentDate, amount, salaryFrequency, employeeName, employeeLastName, employeeDni, employeeCuil, employeeId",
@@ -92,7 +93,7 @@ public class SalaryPaymentController {
 
         SalaryPaymentFilterDTO filterDTO = new SalaryPaymentFilterDTO(
                 employeeId, firstName, lastName, salaryFrequency, projectAreaId, paymentDateFrom, paymentDateTo,
-                minAmount, maxAmount, paymentMethod
+                minAmount, maxAmount, paymentMethod, search
         );
 
         return ResponseEntity.ok(iSalaryPaymentService.getAllSalaryPayments(filterDTO, pageable));

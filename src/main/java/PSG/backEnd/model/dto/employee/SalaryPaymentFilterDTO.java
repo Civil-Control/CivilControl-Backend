@@ -58,6 +58,10 @@ public record SalaryPaymentFilterDTO(
     @Schema(description = "Filter by payment method. Values: CASH, TRANSFER, CHECK.",
             example = "TRANSFER",
             nullable = true)
-    PaymentMethod paymentMethod
+    PaymentMethod paymentMethod,
+
+    @Schema(description = "Generic search across employee name and last name (case-insensitive partial match).",
+            nullable = true)
+    String search
 ) {}
 

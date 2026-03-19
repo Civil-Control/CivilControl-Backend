@@ -29,5 +29,9 @@ public record StockFilterDTO(
 
     @Schema(description = "Filter by maximum quantity. Returns items with quantity less than or equal to this value.",
             example = "100.00")
-    BigDecimal maxQuantity
+    BigDecimal maxQuantity,
+
+    @Schema(description = "Generic search across stock name and category (case-insensitive partial match).",
+            example = "Hammer")
+    String search
 ) {}

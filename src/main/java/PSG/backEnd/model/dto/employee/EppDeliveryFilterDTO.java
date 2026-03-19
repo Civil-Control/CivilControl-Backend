@@ -12,10 +12,10 @@ public record EppDeliveryFilterDTO(
             nullable = true)
     Long employeeId,
 
-    @Schema(description = "Filter by employee last name. Partial match search (case-insensitive).",
+    @Schema(description = "Generic search across employee name and last name (case-insensitive partial match).",
             example = "García",
             nullable = true)
-    String employeeLastName,
+    String employeeSearch,
 
     @Schema(description = "Filter by minimum delivery date. Returns EPP deliveries from this date onwards.",
             example = "2025-01-01",

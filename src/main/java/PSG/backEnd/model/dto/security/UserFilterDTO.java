@@ -26,6 +26,10 @@ public record UserFilterDTO(
 
         @Schema(description = "Filter by enabled/disabled status",
                 example = "true")
-        Boolean enabled
+        Boolean enabled,
+
+        @Schema(description = "Generic search across username and email (case-insensitive partial match).",
+                example = "garcia")
+        String search
 ) {}
 
