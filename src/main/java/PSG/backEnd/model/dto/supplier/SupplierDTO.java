@@ -22,7 +22,7 @@ public record SupplierDTO(
             pattern = "^\\d{2}-\\d{8}-\\d$",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Pattern(regexp = "^\\d{2}-\\d{8}-\\d$", message = "CUIT must have XX-XXXXXXXX-X format", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^\\d{2}-\\d{8}-\\d$", message = "{supplier.cuit.invalid}", groups = {OnCreate.class, OnUpdate.class})
     String cuit,
 
     @Schema(description = "Official legal name of the supplier company as registered with tax authorities. " +
@@ -32,8 +32,8 @@ public record SupplierDTO(
             maxLength = 50,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 1, max = 50, message = "Legal name must be between 1 and 50 characters", groups = {OnCreate.class, OnUpdate.class})
-    @Pattern(regexp = "^\\s*\\S.*$", message = "Legal name cannot be blank or only spaces", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 1, max = 50, message = "{supplier.legalName.size}", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^\\s*\\S.*$", message = "{validation.notBlank}", groups = {OnCreate.class, OnUpdate.class})
     String legalName,
 
     @Schema(description = "Commercial or trade name used by the supplier for business operations. " +

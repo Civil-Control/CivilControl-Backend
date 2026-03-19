@@ -19,7 +19,7 @@ public record BuildingDTO(
             requiredMode = Schema.RequiredMode.REQUIRED,
             maxLength = 100)
     @NotBlank(groups = OnCreate.class, message = "{validation.required}")
-    @Size(max = 100, groups = {OnCreate.class, OnUpdate.class}, message = "Name must not exceed 100 characters")
+    @Size(max = 100, groups = {OnCreate.class, OnUpdate.class}, message = "{building.name.size}")
     String name,
 
     @Schema(description = "Unique code for the building. Used for internal identification and references.",
@@ -27,7 +27,7 @@ public record BuildingDTO(
             requiredMode = Schema.RequiredMode.REQUIRED,
             maxLength = 50)
     @NotBlank(groups = OnCreate.class, message = "{validation.required}")
-    @Size(max = 50, groups = {OnCreate.class, OnUpdate.class}, message = "Code must not exceed 50 characters")
+    @Size(max = 50, groups = {OnCreate.class, OnUpdate.class}, message = "{building.code.size}")
     String code,
 
     @Schema(description = "Complete address of the building including street, number, city, state, country, and zip code.",

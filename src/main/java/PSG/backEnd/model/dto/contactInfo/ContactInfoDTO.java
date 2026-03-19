@@ -16,7 +16,7 @@ public record ContactInfoDTO(
             example = "[\"contacto@example.com\", \"ventas@example.com\"]",
             requiredMode = Schema.RequiredMode.NOT_REQUIRED,
             nullable = true)
-    List<@Email(message = "Must be a valid email address", groups = {OnCreate.class, OnUpdate.class})
+    List<@Email(message = "{contactInfo.email.invalid}", groups = {OnCreate.class, OnUpdate.class})
          @Size(max = 100, message = "{validation.email}", groups = {OnCreate.class, OnUpdate.class})
          String> email,
 
@@ -29,6 +29,6 @@ public record ContactInfoDTO(
     List<@Pattern(regexp = "^(\\+?[0-9]{10,15})?$",
                  message = "{validation.size}",
                  groups = {OnCreate.class, OnUpdate.class})
-         @Size(max = 30, message = "Phone number must not exceed 30 characters", groups = {OnCreate.class, OnUpdate.class})
+         @Size(max = 30, message = "{contactInfo.phoneNumber.size}", groups = {OnCreate.class, OnUpdate.class})
          String> phoneNumber
 ) {}

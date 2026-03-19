@@ -16,30 +16,30 @@ public record RepairDTO(
         @Schema(description = "Date when the repair was performed. Must be today or in the past.",
                 example = "2024-10-01",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Date is required.", groups = OnCreate.class)
-        @PastOrPresent(message = "Date must be today or in the past.", groups = {OnCreate.class, OnUpdate.class})
+        @NotNull(message = "{repair.date.required}", groups = OnCreate.class)
+        @PastOrPresent(message = "{repair.date.pastOrPresent}", groups = {OnCreate.class, OnUpdate.class})
         LocalDate date,
 
         @Schema(description = "ID of the vehicle that received the repair.",
                 example = "15",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Vehicle ID is required.", groups = OnCreate.class)
-        @Positive(message = "Vehicle ID must be a positive number.", groups = {OnCreate.class, OnUpdate.class})
+        @NotNull(message = "{repair.vehicleId.required}", groups = OnCreate.class)
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long vehicleId,
 
         @Schema(description = "Total cost of the repair. Can be null if the repair was performed by an internal employee. " +
                 "Must be greater than zero if provided.",
                 example = "1500.50",
                 nullable = true)
-        @DecimalMin(value = "0.01", message = "Cost must be greater than zero.", groups = {OnCreate.class, OnUpdate.class})
-        @Digits(integer = 10, fraction = 2, message = "Cost must have at most 10 integer digits and 2 decimal places.", groups = {OnCreate.class, OnUpdate.class})
+        @DecimalMin(value = "0.01", message = "{repair.cost.min}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 10, fraction = 2, message = "{validation.digits}", groups = {OnCreate.class, OnUpdate.class})
         BigDecimal cost,
 
         @Schema(description = "Detailed description of the repair work performed. Maximum 1000 characters.",
                 example = "Replaced brake pads and rotors on front wheels. Performed full brake system inspection.",
                 maxLength = 1000,
                 nullable = true)
-        @Size(max = 1000, message = "Description must be at most 1000 characters.", groups = {OnCreate.class, OnUpdate.class})
+        @Size(max = 1000, message = "{repair.description.size}", groups = {OnCreate.class, OnUpdate.class})
         String description,
 
         @Schema(description = "Name of the internal employee who performed the repair. " +

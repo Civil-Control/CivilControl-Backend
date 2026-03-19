@@ -27,7 +27,7 @@ public record AddressDTO(
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.required}", groups = OnCreate.class)
     @Min(value = 1, message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-    @Max(value = 99999, message = "Street number is too large", groups = {OnCreate.class, OnUpdate.class})
+    @Max(value = 99999, message = "{validation.max}", groups = {OnCreate.class, OnUpdate.class})
     Integer number,
 
     @Schema(description = "City or municipality name. Must contain only letters, spaces, dots, hyphens and apostrophes. " +

@@ -27,7 +27,7 @@ public record EmployeeDTO(
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 2, max = 100, message = "{employee.name.size}", groups = {OnCreate.class, OnUpdate.class})
     @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
     String name,
 
@@ -38,7 +38,7 @@ public record EmployeeDTO(
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "Last name must be between 2 and 100 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 2, max = 100, message = "{employee.lastName.size}", groups = {OnCreate.class, OnUpdate.class})
     @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
     String lastName,
 
@@ -49,7 +49,7 @@ public record EmployeeDTO(
             minLength = 7,
             maxLength = 8,
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @Pattern(regexp = "^\\d{7,8}$", message = "DNI must be 7 or 8 digits", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^\\d{7,8}$", message = "{employee.dni.invalid}", groups = {OnCreate.class, OnUpdate.class})
     String dni,
 
     @Schema(description = "Argentine tax identification number (Código Único de Identificación Laboral). " +
@@ -57,7 +57,7 @@ public record EmployeeDTO(
             example = "20-12345678-9",
             pattern = "^\\d{2}-\\d{7,8}-\\d$",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @Pattern(regexp = "^\\d{2}-\\d{7,8}-\\d$", message = "CUIL must have XX-XXXXXXXX-X format", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^\\d{2}-\\d{7,8}-\\d$", message = "{employee.cuil.invalid}", groups = {OnCreate.class, OnUpdate.class})
     String cuil,
 
     @Schema(description = "Unique identifier of the project area where the employee is assigned. " +
@@ -75,7 +75,7 @@ public record EmployeeDTO(
     @Schema(description = "Employee's date of birth. Must be a date in the past. Used for age calculation and legal requirements.",
             example = "1990-05-15",
             requiredMode = Schema.RequiredMode.REQUIRED)
-    @Past(message = "Birth date must be in the past", groups = {OnCreate.class, OnUpdate.class})
+    @Past(message = "{employee.birthDate.past}", groups = {OnCreate.class, OnUpdate.class})
     LocalDate birthDate,
 
     @Schema(description = "Employee's primary phone number. Can include country code, area code, and must be in valid phone format. " +
@@ -83,7 +83,7 @@ public record EmployeeDTO(
             example = "+54 9 11 1234-5678",
             nullable = true)
     @Pattern(regexp = "^$|^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
-             message = "Invalid phone number format",
+             message = "{contactInfo.phoneNumber.invalid}",
              groups = {OnCreate.class, OnUpdate.class})
     String phoneNumber,
 
@@ -94,9 +94,9 @@ public record EmployeeDTO(
             maxLength = 100,
             nullable = true)
     @Pattern(regexp = "^$|^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$",
-             message = "Email must be valid",
+             message = "{employee.email.invalid}",
              groups = {OnCreate.class, OnUpdate.class})
-    @Size(max = 100, message = "Email must not exceed 100 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(max = 100, message = "{employee.email.size}", groups = {OnCreate.class, OnUpdate.class})
     String email,
 
     @Schema(description = "Emergency contact information for the employee. Includes name, relationship, and phone number " +
@@ -132,7 +132,7 @@ public record EmployeeDTO(
             example = "[\"CHOFER\", \"OFICIAL\"]",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
-    @NotEmpty(message = "At least one role must be specified", groups = OnCreate.class)
+    @NotEmpty(message = "{employee.employeeRole.required}", groups = OnCreate.class)
     List<EmployeeRole> employeeRoles,
 
     @Schema(description = "Date when the employee was hired or started working for the organization. " +

@@ -22,7 +22,7 @@ public record EppDeliveryDTO(
             example = "2025-11-10",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
-    @PastOrPresent(message = "Delivery date cannot be in the future", groups = {OnCreate.class, OnUpdate.class})
+    @PastOrPresent(message = "{eppDelivery.deliveryDate.pastOrPresent}", groups = {OnCreate.class, OnUpdate.class})
     LocalDate deliveryDate,
 
     @Schema(description = "Name of the EPP item delivered. Must be between 2 and 150 characters. " +
@@ -32,7 +32,7 @@ public record EppDeliveryDTO(
             maxLength = 150,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 150, message = "Item name must be between 2 and 150 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 2, max = 150, message = "{eppDelivery.itemName.size}", groups = {OnCreate.class, OnUpdate.class})
     String itemName,
 
     @Schema(description = "Type or category of the EPP item. Must be between 2 and 100 characters. " +
@@ -42,7 +42,7 @@ public record EppDeliveryDTO(
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "Item type must be between 2 and 100 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 2, max = 100, message = "{eppDelivery.itemType.length}", groups = {OnCreate.class, OnUpdate.class})
     String itemType,
 
     @Schema(description = "Brand or manufacturer of the EPP item. Optional field, maximum 100 characters. " +

@@ -22,9 +22,9 @@ public record EmergencyContactDTO(
             example = "+54 9 11 9876-5432",
             maxLength = 30,
             nullable = true)
-    @Size(max = 30, message = "Phone number must not exceed 30 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(max = 30, message = "{emergencyContact.phoneNumber.size}", groups = {OnCreate.class, OnUpdate.class})
     @Pattern(regexp = "^$|^[+]?[(]?[0-9]{1,4}[)]?[-\\s.]?[(]?[0-9]{1,4}[)]?[-\\s.]?[0-9]{1,9}$",
-             message = "Invalid phone number format",
+             message = "{emergencyContact.phoneNumber.invalid}",
              groups = {OnCreate.class, OnUpdate.class})
     String phoneNumber,
 

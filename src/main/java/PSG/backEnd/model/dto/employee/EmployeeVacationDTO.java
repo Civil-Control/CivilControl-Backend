@@ -31,14 +31,14 @@ public record EmployeeVacationDTO(
             minimum = "1",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
-    @Min(value = 1, message = "Total days must be at least 1", groups = {OnCreate.class, OnUpdate.class})
-    @Max(value = 365, message = "Total days cannot exceed 365", groups = {OnCreate.class, OnUpdate.class})
+    @Min(value = 1, message = "{vacation.totalDays.positive}", groups = {OnCreate.class, OnUpdate.class})
+    @Max(value = 365, message = "{validation.max}", groups = {OnCreate.class, OnUpdate.class})
     Integer totalDays,
     @Schema(description = "Optional observations, notes, or comments about the vacation period. " +
             "Can include reasons, special considerations, or administrative notes. Maximum 500 characters.",
             example = "Vacaciones de fin de a?o - Aprobadas por gerencia",
             maxLength = 500,
             nullable = true)
-    @Size(max = 500, message = "Observations must not exceed 500 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(max = 500, message = "{vacation.observations.size}", groups = {OnCreate.class, OnUpdate.class})
     String observations
 ) {}

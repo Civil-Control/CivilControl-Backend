@@ -43,7 +43,7 @@ public record TransactionalDocumentDTO(
             pattern = "\\d{5}",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.required}", groups = OnCreate.class)
-    @Pattern(regexp = "\\d{5}", message = "Branch code must be exactly 5 digits", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "\\d{5}", message = "{document.branchCode.size}", groups = {OnCreate.class, OnUpdate.class})
     String branchCode,
 
     @Schema(description = "Sequential document number within the branch. " +
@@ -52,7 +52,7 @@ public record TransactionalDocumentDTO(
             pattern = "\\d{8}",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.required}", groups = OnCreate.class)
-    @Pattern(regexp = "\\d{8}", message = "Document number must be exactly 8 digits", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "\\d{8}", message = "{document.documentNumber.size}", groups = {OnCreate.class, OnUpdate.class})
     String documentNumber,
 
     @Schema(description = "ID of the supplier that issued this document.",
@@ -72,8 +72,8 @@ public record TransactionalDocumentDTO(
             example = "125.50",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.required}", groups = OnCreate.class)
-    @DecimalMin(value = "0.00", inclusive = true, message = "Other taxes cannot be negative", groups = {OnCreate.class, OnUpdate.class})
-    @Digits(integer = 12, fraction = 2, message = "Other taxes must have up to 12 digits and 2 decimals", groups = {OnCreate.class, OnUpdate.class})
+    @DecimalMin(value = "0.00", inclusive = true, message = "{validation.positiveOrZero}", groups = {OnCreate.class, OnUpdate.class})
+    @Digits(integer = 12, fraction = 2, message = "{validation.digits}", groups = {OnCreate.class, OnUpdate.class})
     BigDecimal otherTaxes,
 
     @Schema(description = "Net total amount (subtotal before taxes). Must be zero or positive.",

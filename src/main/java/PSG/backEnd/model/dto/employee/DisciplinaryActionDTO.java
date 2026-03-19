@@ -35,7 +35,7 @@ public record DisciplinaryActionDTO(
             maxLength = 500,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 1, max = 500, message = "Reason must be between 1 and 500 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 1, max = 500, message = "{disciplinaryAction.reason.size}", groups = {OnCreate.class, OnUpdate.class})
     String reason,
 
     @Schema(description = "Date when the disciplinary action was taken or officially recorded. " +
@@ -43,7 +43,7 @@ public record DisciplinaryActionDTO(
             example = "2025-10-15",
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
-    @PastOrPresent(message = "Action date cannot be in the future", groups = {OnCreate.class, OnUpdate.class})
+    @PastOrPresent(message = "{disciplinaryAction.actionDate.pastOrPresent}", groups = {OnCreate.class, OnUpdate.class})
     LocalDate actionDate,
 
     @Schema(description = "Optional end date for temporary disciplinary actions (e.g., suspension end date). " +
@@ -58,7 +58,7 @@ public record DisciplinaryActionDTO(
             example = "Employee acknowledged the issue and committed to improvement. HR meeting scheduled for follow-up in 30 days.",
             maxLength = 1000,
             nullable = true)
-    @Size(max = 1000, message = "Notes must not exceed 1000 characters", groups = {OnCreate.class, OnUpdate.class})
+    @Size(max = 1000, message = "{disciplinaryAction.notes.size}", groups = {OnCreate.class, OnUpdate.class})
     String notes
 ) {}
 

@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull;
 public record LoginRequestDTO(
 
         @Schema(description = "User authentication credentials", requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "Credentials are required")
+        @NotNull(message = "{user.credentials.required}")
         @Valid
         CredentialsDTO credentials
 ) {}
