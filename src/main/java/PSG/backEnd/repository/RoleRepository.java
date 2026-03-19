@@ -74,7 +74,7 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
             "WHERE r.deleted = false " +
             "AND LOWER(CAST(r.name AS string)) != 'root' " +
             "AND (:name IS NULL OR LOWER(CAST(r.name AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))) " +
-            "AND (CAST(:active AS boolean) IS NULL OR r.active = :active)")
+            "AND (:active IS NULL OR r.active = :active)")
     Page<Role> findAllWithFilters(
             @Param("name") String name,
             @Param("active") Boolean active,

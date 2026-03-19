@@ -29,7 +29,7 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             "AND (:city IS NULL OR LOWER(CAST(s.address.city AS string)) LIKE LOWER(CONCAT('%', CAST(:city AS string), '%'))) " +
             "AND (CAST(:minDiscountPercentage AS BigDecimal) IS NULL OR s.defaultDiscountPercentage >= :minDiscountPercentage) " +
             "AND (CAST(:maxDiscountPercentage AS BigDecimal) IS NULL OR s.defaultDiscountPercentage <= :maxDiscountPercentage) " +
-            "AND (CAST(:active AS boolean) IS NULL OR s.active = :active) " +
+            "AND (:active IS NULL OR s.active = :active) " +
             "AND s.deleted = false " +
             "AND (:search IS NULL OR (s.cuit LIKE CONCAT('%', :search, '%') " +
             "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
