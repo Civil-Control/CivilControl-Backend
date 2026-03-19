@@ -431,6 +431,26 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private TransactionalDocument reactivateExistingDocument(TransactionalDocument document, TransactionalDocumentDTO dto) {
         updateDocumentFromDTO(document, dto);
         document.setDeleted(false);
+
+        if (isInvoice(document.getDocumentType())) {
+            Supplier supplier = document.getSupplier();
+            List<PaymentMethod> methods = supplier.getAllowedPaymentMethods();
+            boolean paid = methods != null
+                    && methods.size() == 1
+                    && methods.contains(PaymentMethod.CASH);
+            document.setPaid(paid);
+
+            if (!paid) {
+                BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
+                BigDecimal pendingBalance = supplier.getPendingBalance() != null
+                        ? supplier.getPendingBalance()
+                        : BigDecimal.ZERO;
+                supplier.setPendingBalance(pendingBalance.add(discountedAmount));
+            }
+        } else {
+            document.setPaid(true);
+        }
+
         return document;
     }
 
