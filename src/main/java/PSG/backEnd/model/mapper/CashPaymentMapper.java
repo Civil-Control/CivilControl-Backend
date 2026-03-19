@@ -13,7 +13,7 @@ public interface CashPaymentMapper {
     @Mapping(target = "paymentDetails", source = "paymentDetails")
     CashPayment toEntityOnCreate(CashPaymentDTO dto);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "paymentDetails", source = "paymentDetails")
     void updateEntityFromDto(CashPaymentDTO dto, @MappingTarget CashPayment entity);

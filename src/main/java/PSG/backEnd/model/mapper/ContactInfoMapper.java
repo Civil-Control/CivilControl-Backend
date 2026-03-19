@@ -18,7 +18,7 @@ public interface ContactInfoMapper {
 
     ContactInfoResponseDTO toResponseDto(ContactInfo contactInfo);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "email", ignore = true)
     @Mapping(target = "phoneNumber", ignore = true)

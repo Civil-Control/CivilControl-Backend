@@ -12,6 +12,6 @@ public interface AddressMapper {
 
     AddressResponseDTO toResponseDto(Address address);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     void partialUpdate(AddressDTO updateDTO, @MappingTarget Address address);
 }

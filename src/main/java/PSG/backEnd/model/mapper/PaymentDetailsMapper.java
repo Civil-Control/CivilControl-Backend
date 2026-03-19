@@ -22,7 +22,7 @@ public interface PaymentDetailsMapper {
     @Mapping(target = "checkPayment", ignore = true)
     PaymentDetails toEntity(PaymentDetailsDTO dto);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "supplier", source = "supplierId")
     @Mapping(target = "paidDocuments", source = "paidDocumentIds")

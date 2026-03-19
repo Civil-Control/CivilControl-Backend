@@ -14,7 +14,7 @@ public interface VehicleTypeMapper {
 
     VehicleTypeResponseDTO toResponseDto(VehicleType vehicleType);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tenantId", ignore = true)
     void partialUpdate(VehicleTypeDTO vehicleTypeDTO, @MappingTarget VehicleType vehicleType);

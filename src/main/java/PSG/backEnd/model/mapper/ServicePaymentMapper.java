@@ -22,7 +22,7 @@ public interface ServicePaymentMapper {
     @Mapping(target = "buildingName", expression = "java(servicePayment.getBuilding() != null ? servicePayment.getBuilding().getName() : null)")
     ServicePaymentResponseDTO toResponseDto(ServicePayment servicePayment);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "serviceSupplier", ignore = true)

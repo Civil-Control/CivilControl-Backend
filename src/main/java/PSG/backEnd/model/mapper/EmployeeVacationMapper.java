@@ -15,7 +15,7 @@ public interface EmployeeVacationMapper {
     @Mapping(source = "employee.lastName", target = "employeeLastName")
     EmployeeVacationResponseDTO toResponseDto(EmployeeVacation employeeVacation);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "employee", ignore = true)

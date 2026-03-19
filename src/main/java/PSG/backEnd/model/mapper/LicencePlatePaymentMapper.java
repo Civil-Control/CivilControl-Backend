@@ -23,7 +23,7 @@ public interface LicencePlatePaymentMapper {
     @Mapping(target = "projectAreaId", source = "licencePlatePayment.projectAreaId")
     LicencePlatePaymentResponseDTO toResponseDto(LicencePlatePayment licencePlatePayment, Vehicle vehicle);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     void partialUpdate(LicencePlatePaymentDTO updateDTO, @MappingTarget LicencePlatePayment licencePlatePayment);
 }

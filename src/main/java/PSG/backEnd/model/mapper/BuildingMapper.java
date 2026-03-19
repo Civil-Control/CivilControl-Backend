@@ -20,7 +20,7 @@ public interface BuildingMapper {
     @Mapping(target = "projectAreaColor", source = "projectArea.color")
     BuildingResponseDTO toResponseDto(Building building);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "stockItems", ignore = true)

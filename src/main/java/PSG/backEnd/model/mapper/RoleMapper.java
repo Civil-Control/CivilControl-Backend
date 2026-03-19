@@ -22,7 +22,7 @@ public interface RoleMapper {
 
     RoleSimpleDTO toSimpleDto(Role role);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "permissions", ignore = true)
     @Mapping(target = "deleted", ignore = true)

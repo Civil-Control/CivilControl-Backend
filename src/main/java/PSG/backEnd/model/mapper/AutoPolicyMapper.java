@@ -18,7 +18,7 @@ public interface AutoPolicyMapper {
     @Mapping(target = "insurancePolicyId", source = "insurancePolicy.id")
     AutoPolicyResponseDTO toResponseDto(AutoPolicy autoPolicy);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "insurancePolicy", source = "insurancePolicyId", qualifiedByName = "insurancePolicyIdToEntity")

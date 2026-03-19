@@ -17,7 +17,7 @@ public interface DisciplinaryActionMapper {
     @Mapping(source = "employee.lastName", target = "employeeLastName")
     DisciplinaryActionResponseDTO toResponseDto(DisciplinaryAction disciplinaryAction);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "employee.id", source = "employeeId")
     void partialUpdate(DisciplinaryActionDTO updateDTO, @MappingTarget DisciplinaryAction disciplinaryAction);

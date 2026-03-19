@@ -12,7 +12,7 @@ public interface EmergencyContactMapper {
 
     EmergencyContactResponseDTO toResponseDto(EmergencyContact emergencyContact);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     void partialUpdate(EmergencyContactDTO updateDTO, @MappingTarget EmergencyContact emergencyContact);
 }
 

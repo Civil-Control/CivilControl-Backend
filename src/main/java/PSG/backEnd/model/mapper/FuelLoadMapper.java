@@ -31,7 +31,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "gasStationName", expression = "java(fuelLoad.getGasStation() != null ? fuelLoad.getGasStation().getSupplier().getLegalName() : null)")
     FuelLoadResponseDTO toResponseDto(FuelLoad fuelLoad);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "pricePerLiter", ignore = true)
     @Mapping(target = "totalAmount", ignore = true)

@@ -27,7 +27,7 @@ public interface TransactionalDocumentMapper {
     @Mapping(expression = "java(entity.getDocumentType().getDisplayName())", target = "documentType")
     TransactionalDocumentResponseDTO toResponseDto(TransactionalDocument entity);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "paid", ignore = true)

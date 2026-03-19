@@ -31,7 +31,7 @@ public interface VehicleMapper {
     @Mapping(target = "truckEquipment", source = "truckEquipment")
     VehicleResponseDTO toResponseDto(Vehicle vehicle);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "active", ignore = true)
