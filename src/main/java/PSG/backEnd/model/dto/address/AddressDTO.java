@@ -16,7 +16,8 @@ public record AddressDTO(
             maxLength = 200,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 200, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 2, max = 200, message = "{validation.size}", groups = OnCreate.class)
+    @Size(max = 200, message = "{validation.size}", groups = OnUpdate.class)
     String street,
 
     @Schema(description = "Street number or building number. Must be a positive integer between 1 and 99999.",
@@ -36,8 +37,9 @@ public record AddressDTO(
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
-    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 2, max = 100, message = "{validation.size}", groups = OnCreate.class)
+    @Size(max = 100, message = "{validation.size}", groups = OnUpdate.class)
+    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = OnCreate.class)
     String city,
 
     @Schema(description = "State or province name. Must contain only letters, spaces, dots, hyphens and apostrophes. " +
@@ -47,8 +49,9 @@ public record AddressDTO(
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
-    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 2, max = 100, message = "{validation.size}", groups = OnCreate.class)
+    @Size(max = 100, message = "{validation.size}", groups = OnUpdate.class)
+    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = OnCreate.class)
     String state,
 
     @Schema(description = "Country name. Must contain only letters, spaces, dots, hyphens and apostrophes. " +
@@ -58,8 +61,9 @@ public record AddressDTO(
             maxLength = 100,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
-    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+    @Size(min = 2, max = 100, message = "{validation.size}", groups = OnCreate.class)
+    @Size(max = 100, message = "{validation.size}", groups = OnUpdate.class)
+    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = OnCreate.class)
     String country,
 
     @Schema(description = "Postal code or ZIP code. Must be between 4 and 20 alphanumeric characters in uppercase. " +
@@ -70,6 +74,6 @@ public record AddressDTO(
             maxLength = 20,
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Pattern(regexp = "^[A-Z0-9]{4,20}$", message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^[A-Z0-9]{4,20}$", message = "{validation.size}", groups = OnCreate.class)
     String zipCode
 ) {}
