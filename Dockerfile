@@ -4,13 +4,13 @@ WORKDIR /app
 
 # Copiamos solo lo necesario (pom.xml primero para cachear dependencias)
 COPY pom.xml .
-RUN mvn -q -DskipTests dependency:go-offline
+RUN mvn -q -Dmaven.test.skip=true dependency:go-offline dependency:resolve-plugins
 
 # Copiamos el código fuente
 COPY src ./src
 
 # Compilamos y empaquetamos
-RUN mvn -q -DskipTests package
+RUN mvn -Dmaven.test.skip=true package
 
 # ===== STAGE 2: Run =====
 FROM eclipse-temurin:21-jre
