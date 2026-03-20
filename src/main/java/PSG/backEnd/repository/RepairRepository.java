@@ -1,6 +1,7 @@
 package PSG.backEnd.repository;
 
 import PSG.backEnd.model.entity.vehicle.Repair;
+import PSG.backEnd.model.enums.vehicle.RepairType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -32,7 +33,7 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             "AND (:employee IS NULL OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:employee AS string), '%'))) " +
             "AND (CAST(:supplierId AS long) IS NULL OR r.supplier.id = :supplierId) " +
             "AND (:supplierName IS NULL OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
-            "AND (:repairType IS NULL OR EXISTS (SELECT rt FROM Repair r2 JOIN r2.repairTypes rt WHERE r2 = r AND CAST(rt AS string) = :repairType)) " +
+            "AND (:repairType IS NULL OR :repairType MEMBER OF r.repairTypes) " +
             "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
@@ -47,7 +48,7 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             @Param("employee") String employee,
             @Param("supplierId") Long supplierId,
             @Param("supplierName") String supplierName,
-            @Param("repairType") String repairType,
+            @Param("repairType") RepairType repairType,
             @Param("search") String search,
             Pageable pageable
     );

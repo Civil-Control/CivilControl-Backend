@@ -7,6 +7,7 @@ import PSG.backEnd.model.dto.vehicle.RepairDTO;
 import PSG.backEnd.model.dto.vehicle.RepairFilterDTO;
 import PSG.backEnd.model.dto.vehicle.RepairResponseDTO;
 import PSG.backEnd.model.entity.vehicle.Repair;
+import PSG.backEnd.model.enums.vehicle.RepairType;
 import PSG.backEnd.model.mapper.RepairMapper;
 import PSG.backEnd.repository.RepairRepository;
 import PSG.backEnd.repository.SupplierRepository;
@@ -57,6 +58,10 @@ public class RepairService implements IRepairService {
             validateSupplierExists(filterDTO.supplierId());
         }
 
+        RepairType repairTypeEnum = filterDTO.repairType() != null
+                ? RepairType.valueOf(filterDTO.repairType())
+                : null;
+
         Page<Repair> repairs = repairRepository.findAllWithFilters(
                 filterDTO.dateFrom(),
                 filterDTO.dateTo(),
@@ -68,7 +73,7 @@ public class RepairService implements IRepairService {
                 filterDTO.employee(),
                 filterDTO.supplierId(),
                 filterDTO.supplierLegalName(),
-                filterDTO.repairType(),
+                repairTypeEnum,
                 filterDTO.search(),
                 pageable
         );
