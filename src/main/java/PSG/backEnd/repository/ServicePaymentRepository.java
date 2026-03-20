@@ -48,7 +48,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             "     OR :supplierName IS NULL OR LOWER(CAST(sp.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
             "AND (:search IS NULL OR (LOWER(CAST(sp.serviceSupplier.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sp.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR sp.serviceSupplier.supplier.cuit LIKE CONCAT('%', CAST(:search AS string), '%')))"))
+            "     OR sp.serviceSupplier.supplier.cuit LIKE CONCAT('%', CAST(:search AS string), '%')))")
     Page<ServicePayment> findAllWithFilters(
             @Param("serviceSupplierId") Long serviceSupplierId,
             @Param("buildingId") Long buildingId,
