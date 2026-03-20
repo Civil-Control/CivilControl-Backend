@@ -134,10 +134,10 @@ public class EmployeeService implements IEmployeeService {
     }
 
     private void validateNewEmployee(EmployeeDTO employeeDTO) {
-        if (employeeRepository.existsByDniAndDeletedFalse(employeeDTO.dni())) {
+        if (employeeDTO.dni() != null && employeeRepository.existsByDniAndDeletedFalse(employeeDTO.dni())) {
             throw new EmployeeAlreadyExistsException(messageSourceHelper.getMessage("employee.dni.exists", employeeDTO.dni()));
         }
-        if (employeeRepository.existsByCuilAndDeletedFalse(employeeDTO.cuil())) {
+        if (employeeDTO.cuil() != null && employeeRepository.existsByCuilAndDeletedFalse(employeeDTO.cuil())) {
             throw new EmployeeAlreadyExistsException(messageSourceHelper.getMessage("employee.cuil.exists", employeeDTO.cuil()));
         }
     }
@@ -162,10 +162,12 @@ public class EmployeeService implements IEmployeeService {
             throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.endDate.beforeHireDate"));
         }
 
-        String cuilDigits = employeeDTO.cuil().replaceAll("-", "");
-        String dniFromCuil = cuilDigits.substring(2, cuilDigits.length() - 1);
-        if (!dniFromCuil.equals(employeeDTO.dni())) {
-            throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.cuil.mismatch"));
+        if (employeeDTO.dni() != null && employeeDTO.cuil() != null) {
+            String cuilDigits = employeeDTO.cuil().replaceAll("-", "");
+            String dniFromCuil = cuilDigits.substring(2, cuilDigits.length() - 1);
+            if (!dniFromCuil.equals(employeeDTO.dni())) {
+                throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.cuil.mismatch"));
+            }
         }
     }
 
@@ -188,10 +190,10 @@ public class EmployeeService implements IEmployeeService {
             }
         }
 
-        if (employeeDTO.cuil() != null || employeeDTO.dni() != null) {
-            String cuil = employeeDTO.cuil() != null ? employeeDTO.cuil() : existingEmployee.getCuil();
-            String dni = employeeDTO.dni() != null ? employeeDTO.dni() : existingEmployee.getDni();
+        String cuil = employeeDTO.cuil() != null ? employeeDTO.cuil() : existingEmployee.getCuil();
+        String dni = employeeDTO.dni() != null ? employeeDTO.dni() : existingEmployee.getDni();
 
+        if (cuil != null && dni != null) {
             String cuilDigits = cuil.replaceAll("-", "");
             String dniFromCuil = cuilDigits.substring(2, cuilDigits.length() - 1);
             if (!dniFromCuil.equals(dni)) {
@@ -201,17 +203,21 @@ public class EmployeeService implements IEmployeeService {
     }
 
     private Optional<Employee> findDeletedEmployee(EmployeeDTO employeeDTO) {
-        Optional<Employee> deletedEmployee = employeeRepository.findByDniAndDeletedTrue(employeeDTO.dni());
-        if (deletedEmployee.isEmpty()) {
-            deletedEmployee = employeeRepository.findByCuilAndDeletedTrue(employeeDTO.cuil());
+        if (employeeDTO.dni() != null) {
+            Optional<Employee> deletedEmployee = employeeRepository.findByDniAndDeletedTrue(employeeDTO.dni());
+            if (deletedEmployee.isPresent()) return deletedEmployee;
         }
-        return deletedEmployee;
+        if (employeeDTO.cuil() != null) {
+            return employeeRepository.findByCuilAndDeletedTrue(employeeDTO.cuil());
+        }
+        return Optional.empty();
     }
 
     private EmployeeResponseDTO reactivateEmployee(Employee employee, EmployeeDTO employeeDTO) {
         ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaId())
                 .orElseThrow(() -> new ProjectAreaNotFoundException(employeeDTO.projectAreaId()));
 
+        clearSoftDeletedConflicts(employeeDTO, employee.getId());
         employee.setProjectArea(projectArea);
         employeeMapper.partialUpdate(employeeDTO, employee);
         employee.setDeleted(false);
@@ -225,9 +231,23 @@ public class EmployeeService implements IEmployeeService {
         ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaId())
                 .orElseThrow(() -> new ProjectAreaNotFoundException(employeeDTO.projectAreaId()));
 
+        clearSoftDeletedConflicts(employeeDTO, null);
         employee.setProjectArea(projectArea);
         employee.setDeleted(false);
         return employeeMapper.toResponseDto(employeeRepository.save(employee));
+    }
+
+    private void clearSoftDeletedConflicts(EmployeeDTO employeeDTO, Long excludeId) {
+        if (employeeDTO.dni() != null) {
+            employeeRepository.findByDniAndDeletedTrue(employeeDTO.dni())
+                .filter(e -> !e.getId().equals(excludeId))
+                .ifPresent(e -> { e.setDni(null); employeeRepository.save(e); });
+        }
+        if (employeeDTO.cuil() != null) {
+            employeeRepository.findByCuilAndDeletedTrue(employeeDTO.cuil())
+                .filter(e -> !e.getId().equals(excludeId))
+                .ifPresent(e -> { e.setCuil(null); employeeRepository.save(e); });
+        }
     }
 
     private void validateUniqueFieldsForUpdate(EmployeeDTO employeeDTO, Employee existingEmployee) {
@@ -236,6 +256,9 @@ public class EmployeeService implements IEmployeeService {
             if (employeeRepository.existsByDniAndDeletedFalse(employeeDTO.dni())) {
                 throw new EmployeeAlreadyExistsException(messageSourceHelper.getMessage("employee.dni.exists", employeeDTO.dni()));
             }
+            // Liberar DNI de empleados eliminados para evitar violación de constraint
+            employeeRepository.findByDniAndDeletedTrue(employeeDTO.dni())
+                .ifPresent(deleted -> { deleted.setDni(null); employeeRepository.save(deleted); });
         }
 
         // Validar CUIL si está siendo actualizado
@@ -243,6 +266,9 @@ public class EmployeeService implements IEmployeeService {
             if (employeeRepository.existsByCuilAndDeletedFalse(employeeDTO.cuil())) {
                 throw new EmployeeAlreadyExistsException(messageSourceHelper.getMessage("employee.cuil.exists", employeeDTO.cuil()));
             }
+            // Liberar CUIL de empleados eliminados para evitar violación de constraint
+            employeeRepository.findByCuilAndDeletedTrue(employeeDTO.cuil())
+                .ifPresent(deleted -> { deleted.setCuil(null); employeeRepository.save(deleted); });
         }
     }
 

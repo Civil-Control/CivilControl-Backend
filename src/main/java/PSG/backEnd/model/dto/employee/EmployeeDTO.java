@@ -48,7 +48,7 @@ public record EmployeeDTO(
             pattern = "^\\d{7,8}$",
             minLength = 7,
             maxLength = 8,
-            requiredMode = Schema.RequiredMode.REQUIRED)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     @Pattern(regexp = "^\\d{7,8}$", message = "{employee.dni.invalid}", groups = {OnCreate.class, OnUpdate.class})
     String dni,
 
@@ -56,7 +56,7 @@ public record EmployeeDTO(
             "Must follow the format XX-XXXXXXXX-X where X represents digits.",
             example = "20-12345678-9",
             pattern = "^\\d{2}-\\d{7,8}-\\d$",
-            requiredMode = Schema.RequiredMode.REQUIRED)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     @Pattern(regexp = "^\\d{2}-\\d{7,8}-\\d$", message = "{employee.cuil.invalid}", groups = {OnCreate.class, OnUpdate.class})
     String cuil,
 
