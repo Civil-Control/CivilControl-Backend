@@ -35,7 +35,7 @@ public abstract class GasStationMapper {
     @Mapping(target = "prices", source = ".", qualifiedByName = "mapPricesToResponseDTO")
     public abstract GasStationResponseDTO toResponseDto(GasStation gasStation);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "fuelLoads", ignore = true)
