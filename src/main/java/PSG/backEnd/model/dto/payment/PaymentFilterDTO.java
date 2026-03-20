@@ -26,5 +26,8 @@ public record PaymentFilterDTO(
         @Size(max = 50, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
         String transactionNumber,
 
+        @Size(max = 255, message = "{validation.size}")
+        String supplierName,
+
         Long supplierId
 ) {}

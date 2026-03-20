@@ -227,6 +227,7 @@ public class PaymentService implements IPaymentService {
                 filter.minAmount(),
                 filter.maxAmount(),
                 filter.transactionNumber(),
+                filter.supplierName(),
                 filter.supplierId(),
                 pageable
         ).map(this::mapToPaymentResponse);

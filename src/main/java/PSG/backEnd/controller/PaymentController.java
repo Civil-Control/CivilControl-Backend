@@ -103,7 +103,8 @@ public class PaymentController {
             @Parameter(description = "Filter by maximum payment date (inclusive). Format: yyyy-MM-dd", example = "2025-12-31") @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             @Parameter(description = "Filter by minimum payment amount", example = "1000.00") @RequestParam(required = false) BigDecimal minAmount,
             @Parameter(description = "Filter by maximum payment amount", example = "50000.00") @RequestParam(required = false) BigDecimal maxAmount,
-            @Parameter(description = "Filter by transaction number (for transfers only, partial match)", example = "TRF20250115") @RequestParam(required = false) String transactionNumber,
+            @Parameter(description = "Filter by transaction number (check number or transfer number)", example = "TRF20250115") @RequestParam(required = false) String transactionNumber,
+            @Parameter(description = "Filter by supplier name (partial match on legal or trade name)", example = "Proveedor SA") @RequestParam(required = false) String supplierName,
             @Parameter(description = "Filter by supplier ID who received the payment", example = "42") @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
@@ -121,7 +122,7 @@ public class PaymentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         PaymentFilterDTO filter = new PaymentFilterDTO(
-                paymentMethod, startDate, endDate, minAmount, maxAmount, transactionNumber, supplierId
+                paymentMethod, startDate, endDate, minAmount, maxAmount, transactionNumber, supplierName, supplierId
         );
         return ResponseEntity.ok(paymentService.findAll(filter, pageable));
     }

@@ -42,6 +42,7 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             "(:transactionNumber IS NULL OR " +
             "  (EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND chp.checkNumber = :transactionNumber) OR " +
             "   EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.transactionNumber = :transactionNumber))) AND " +
+            "(:supplierName IS NULL OR LOWER(pd.supplier.legalName) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR LOWER(pd.supplier.tradeName) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) AND " +
             "(:supplierId IS NULL OR pd.supplier.id = :supplierId) AND " +
             "(NOT EXISTS (SELECT 1 FROM CashPayment cp WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) AND " +
             " NOT EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) AND " +
@@ -53,6 +54,7 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             @Param("minAmount") BigDecimal minAmount,
             @Param("maxAmount") BigDecimal maxAmount,
             @Param("transactionNumber") String transactionNumber,
+            @Param("supplierName") String supplierName,
             @Param("supplierId") Long supplierId,
             Pageable pageable
     );
