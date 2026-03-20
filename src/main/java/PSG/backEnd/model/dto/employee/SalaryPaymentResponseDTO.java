@@ -38,9 +38,20 @@ public record SalaryPaymentResponseDTO(
             example = "150000.50")
     BigDecimal amount,
 
-    @Schema(description = "Name of the project area the employee belongs to.",
-            example = "Mantenimiento")
+    @Schema(description = "ID of the project area directly assigned to this payment.",
+            example = "5",
+            nullable = true)
+    Long projectAreaId,
+
+    @Schema(description = "Name of the project area directly assigned to this payment.",
+            example = "Mantenimiento",
+            nullable = true)
     String projectAreaName,
+
+    @Schema(description = "Color of the project area directly assigned to this payment.",
+            example = "#FF5733",
+            nullable = true)
+    String projectAreaColor,
 
     @Schema(description = "Payment method used for this salary payment.",
             example = "TRANSFER",

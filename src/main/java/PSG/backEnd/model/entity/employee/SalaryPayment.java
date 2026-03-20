@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.employee;
 
+import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
@@ -39,4 +40,8 @@ public class SalaryPayment extends TenantEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
     private PaymentMethod paymentMethod;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_id")
+    private ProjectArea projectArea;
 }

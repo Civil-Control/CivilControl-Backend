@@ -54,6 +54,12 @@ public record SalaryPaymentDTO(
     @Schema(description = "Payment method used for this salary payment. Values: CASH, TRANSFER, CHECK.",
             example = "TRANSFER",
             nullable = true)
-    PaymentMethod paymentMethod
+    PaymentMethod paymentMethod,
+
+    @Schema(description = "ID of the project area to which this salary payment is assigned. Independent of the employee's project area. Optional field.",
+            example = "10",
+            nullable = true)
+    @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+    Long projectAreaId
 ) {}
 

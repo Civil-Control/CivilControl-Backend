@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
+import PSG.backEnd.exception.projectarea.ProjectAreaNotFoundException;
 import PSG.backEnd.exception.salaryPayment.DuplicateSalaryPaymentException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotFoundException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotValidException;
@@ -8,10 +9,12 @@ import PSG.backEnd.model.dto.employee.SalaryPaymentBatchDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentFilterDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentResponseDTO;
+import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.entity.employee.SalaryPayment;
 import PSG.backEnd.model.mapper.SalaryPaymentMapper;
 import PSG.backEnd.repository.EmployeeRepository;
+import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
 import PSG.backEnd.service.port.ISalaryPaymentService;
 import PSG.backEnd.service.util.MessageSourceHelper;
@@ -31,6 +34,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
 
     private final SalaryPaymentRepository salaryPaymentRepository;
     private final EmployeeRepository employeeRepository;
+    private final ProjectAreaRepository projectAreaRepository;
     private final SalaryPaymentMapper salaryPaymentMapper;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -47,6 +51,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
 
         SalaryPayment salaryPayment = salaryPaymentMapper.toEntity(salaryPaymentDTO);
         salaryPayment.setEmployee(employee);
+        salaryPayment.setProjectArea(resolveProjectArea(salaryPaymentDTO.projectAreaId()));
 
         SalaryPayment savedSalaryPayment = salaryPaymentRepository.save(salaryPayment);
         return salaryPaymentMapper.toResponseDto(savedSalaryPayment);
@@ -107,6 +112,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         }
 
         salaryPaymentMapper.partialUpdate(salaryPaymentDTO, existingSalaryPayment);
+        existingSalaryPayment.setProjectArea(resolveProjectArea(salaryPaymentDTO.projectAreaId()));
         SalaryPayment updatedSalaryPayment = salaryPaymentRepository.save(existingSalaryPayment);
         return salaryPaymentMapper.toResponseDto(updatedSalaryPayment);
     }
@@ -186,6 +192,12 @@ public class SalaryPaymentService implements ISalaryPaymentService {
             case SEMANAL:
                 break;
         }
+    }
+
+    private ProjectArea resolveProjectArea(Long projectAreaId) {
+        if (projectAreaId == null) return null;
+        return projectAreaRepository.findByIdAndDeletedFalse(projectAreaId)
+                .orElseThrow(() -> new ProjectAreaNotFoundException(projectAreaId));
     }
 }
 
