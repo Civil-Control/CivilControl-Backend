@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Schema(description = "Response DTO containing complete information about a vehicle repair, " +
         "including related vehicle and supplier details.")
@@ -59,8 +60,7 @@ public record RepairResponseDTO(
                 nullable = true)
         String supplierTradeName,
 
-        @Schema(description = "Type of repair performed.",
-                example = "CORRECTIVE",
-                allowableValues = {"PREVENTIVE", "CORRECTIVE", "PREDICTIVE"})
-        String repairType
+        @Schema(description = "Types of repair performed.",
+                example = "[\"ARRANQUE\", \"SISTEMA_ELECTRICO\"]")
+        List<String> repairTypes
 ) {}

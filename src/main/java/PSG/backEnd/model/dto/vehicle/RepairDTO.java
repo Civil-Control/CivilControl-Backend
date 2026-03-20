@@ -1,6 +1,5 @@
 package PSG.backEnd.model.dto.vehicle;
 
-import PSG.backEnd.model.enums.vehicle.RepairType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -8,6 +7,7 @@ import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Schema(description = "Data Transfer Object for creating or updating a vehicle repair. " +
         "A repair can be performed either by an internal employee or an external supplier.")
@@ -57,11 +57,9 @@ public record RepairDTO(
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long supplierId,
 
-        @Schema(description = "Type of repair performed. Valid values: PREVENTIVE (scheduled maintenance), " +
-                "CORRECTIVE (fixing a problem), PREDICTIVE (based on diagnostics).",
-                example = "CORRECTIVE",
-                requiredMode = Schema.RequiredMode.REQUIRED,
-                allowableValues = {"PREVENTIVE", "CORRECTIVE", "PREDICTIVE"})
-        @NotNull(message = "{repair.repairType.required}", groups = OnCreate.class)
-        RepairType repairType
+        @Schema(description = "Types of repair performed. At least one type is required on create.",
+                example = "[\"ARRANQUE\", \"SISTEMA_ELECTRICO\"]",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotEmpty(message = "{repair.repairType.required}", groups = OnCreate.class)
+        List<String> repairTypes
 ) {}

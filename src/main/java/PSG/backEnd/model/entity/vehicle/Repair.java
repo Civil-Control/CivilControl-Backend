@@ -8,6 +8,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "repairs")
@@ -44,8 +46,11 @@ public class Repair extends TenantEntity {
     @JoinColumn(name = "supplier_id")
     private Supplier supplier;
 
-    @Column(name = "repair_type", nullable = false)
+    @ElementCollection
+    @CollectionTable(name = "repair_types", joinColumns = @JoinColumn(name = "repair_id"))
+    @Column(name = "type")
     @Enumerated(EnumType.STRING)
-    private RepairType repairType;
+    @Builder.Default
+    private List<RepairType> repairTypes = new ArrayList<>();
 
 }
