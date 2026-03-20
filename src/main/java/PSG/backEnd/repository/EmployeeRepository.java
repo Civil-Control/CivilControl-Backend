@@ -39,7 +39,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
             "AND (CAST(:hireDateTo AS date) IS NULL OR e.hireDate <= :hireDateTo) " +
             "AND (:search IS NULL OR (LOWER(CAST(e.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(e.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR e.dni LIKE CONCAT('%', :search, '%'))) " +
+            "     OR e.dni LIKE CONCAT('%', CAST(:search AS string), '%'))) " +
             "AND e.deleted = false")
     Page<Employee> findAllWithFilters(
             @Param("name") String name,

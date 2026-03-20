@@ -32,7 +32,7 @@ public interface ServiceSupplierRepository extends JpaRepository<ServiceSupplier
             "AND ss.deleted = false " +
             "AND (:search IS NULL OR (LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR s.cuit LIKE CONCAT('%', :search, '%')))")
+            "     OR s.cuit LIKE CONCAT('%', CAST(:search AS string), '%')))"))
     Page<ServiceSupplier> findAllWithFilters(
             @Param("supplierName") String supplierName,
             @Param("serviceType") ServiceType serviceType,

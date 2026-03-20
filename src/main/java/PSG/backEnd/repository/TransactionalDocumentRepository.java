@@ -46,7 +46,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             AND (:search IS NULL OR (
                 LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
                 LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
-                td.documentNumber LIKE CONCAT('%', :search, '%')
+                td.documentNumber LIKE CONCAT('%', CAST(:search AS string), '%')
             ))
             AND td.deleted = false
            """)
