@@ -96,5 +96,19 @@ public record InsurancePolicyDTO(
                 nullable = true)
         @Min(value = 1, message = "{insurancePolicy.numberOfInstallments.positive}", groups = {OnCreate.class, OnUpdate.class})
         @Max(value = 12, message = "{insurancePolicy.numberOfInstallments.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Integer numberOfInstallments
+        Integer numberOfInstallments,
+
+        @Schema(description = "Total premium amount for the policy. Must be zero or greater.",
+                example = "50000.00",
+                nullable = true)
+        @DecimalMin(value = "0.0", inclusive = true, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 13, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        BigDecimal premioTotal,
+
+        @Schema(description = "Monthly premium amount, calculated as premioTotal / numberOfInstallments.",
+                example = "4166.67",
+                nullable = true)
+        @DecimalMin(value = "0.0", inclusive = true, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 13, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        BigDecimal premioMensual
 ) {}

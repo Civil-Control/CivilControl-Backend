@@ -65,6 +65,12 @@ public class InsurancePolicy extends TenantEntity {
     @Column(name = "number_of_installments")
     private Integer numberOfInstallments;
 
+    @Column(name = "premio_total", precision = 15, scale = 2)
+    private BigDecimal premioTotal;
+
+    @Column(name = "premio_mensual", precision = 15, scale = 2)
+    private BigDecimal premioMensual;
+
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     private Boolean deleted = false;

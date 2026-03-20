@@ -62,5 +62,13 @@ public record InsurancePolicyResponseDTO(
 
         @Schema(description = "Number of payment installments for the policy premium.",
                 example = "12")
-        Integer numberOfInstallments
+        Integer numberOfInstallments,
+
+        @Schema(description = "Total premium amount for the policy.",
+                example = "50000.00")
+        BigDecimal premioTotal,
+
+        @Schema(description = "Monthly premium amount.",
+                example = "4166.67")
+        BigDecimal premioMensual
 ) {}
