@@ -15,6 +15,7 @@ import PSG.backEnd.model.entity.vehicle.LicencePlatePayment;
 import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
+import PSG.backEnd.model.enums.vehicle.RepairType;
 import PSG.backEnd.repository.*;
 import PSG.backEnd.service.export.IReportExporter;
 import PSG.backEnd.service.port.IReportService;
@@ -775,7 +776,10 @@ public class ReportService implements IReportService {
                 continue; // Skip repairs without cost
             }
 
-            String description = "Reparación: " + r.getRepairType().getDisplayName() +
+            String repairTypeNames = r.getRepairTypes().stream()
+                    .map(RepairType::getDisplayName)
+                    .collect(java.util.stream.Collectors.joining(", "));
+            String description = "Reparación: " + repairTypeNames +
                                " - Vehículo: " + r.getVehicle().getLicensePlate();
 
             String beneficiary;
