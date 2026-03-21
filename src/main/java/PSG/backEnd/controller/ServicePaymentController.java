@@ -128,11 +128,14 @@ public class ServicePaymentController {
      */
     private String mapSortField(String sortBy) {
         return switch (sortBy) {
+            case "supplierName" -> "serviceSupplier.supplier.legalName";
+            case "supplierTradeName" -> "serviceSupplier.supplier.tradeName";
+            case "supplierCuit" -> "serviceSupplier.supplier.cuit";
             case "serviceSupplierId" -> "serviceSupplier.id";
             case "buildingName" -> "building.name";
             case "buildingCode" -> "building.code";
             case "buildingId" -> "building.id";
-            default -> sortBy; // For 'id', 'paymentDate', 'amount', 'serviceType', 'referenceNumber', etc.
+            default -> sortBy;
         };
     }
 
