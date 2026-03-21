@@ -37,6 +37,9 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             "AND (CAST(:projectAreaId AS long) IS NULL OR fl.projectArea.id = :projectAreaId) " +
             "AND (:projectAreaName IS NULL OR LOWER(CAST(pa.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))) " +
             "AND (CAST(:gasStationId AS long) IS NULL OR fl.gasStation.id = :gasStationId) " +
+            "AND (:gasStationName IS NULL OR LOWER(CAST(gs.name AS string)) LIKE LOWER(CONCAT('%', CAST(:gasStationName AS string), '%'))) " +
+            "AND (CAST(:totalAmountMin AS big_decimal) IS NULL OR fl.totalAmount >= :totalAmountMin) " +
+            "AND (CAST(:totalAmountMax AS big_decimal) IS NULL OR fl.totalAmount <= :totalAmountMax) " +
             "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(fl.fuelType AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
     Page<FuelLoad> findAllWithFilters(
@@ -51,6 +54,9 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             @Param("projectAreaName") String projectAreaName,
             @Param("gasStationId") Long gasStationId,
             @Param("search") String search,
+            @Param("gasStationName") String gasStationName,
+            @Param("totalAmountMin") java.math.BigDecimal totalAmountMin,
+            @Param("totalAmountMax") java.math.BigDecimal totalAmountMax,
             Pageable pageable
     );
 }

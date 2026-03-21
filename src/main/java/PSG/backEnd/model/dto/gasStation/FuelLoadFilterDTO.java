@@ -2,6 +2,7 @@ package PSG.backEnd.model.dto.gasStation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Schema(description = "Filter criteria for querying fuel load transactions. All fields are optional and can be combined.")
@@ -61,5 +62,20 @@ public record FuelLoadFilterDTO(
         @Schema(description = "Generic search across vehicle license plate and fuel type (case-insensitive partial match).",
                 example = "NAFTA",
                 nullable = true)
-        String search
+        String search,
+
+        @Schema(description = "Filter by gas station name. Partial matches are supported.",
+                example = "YPF Centro",
+                nullable = true)
+        String gasStationName,
+
+        @Schema(description = "Filter fuel loads with total amount >= this value.",
+                example = "1000.00",
+                nullable = true)
+        BigDecimal totalAmountMin,
+
+        @Schema(description = "Filter fuel loads with total amount <= this value.",
+                example = "50000.00",
+                nullable = true)
+        BigDecimal totalAmountMax
 ) {}

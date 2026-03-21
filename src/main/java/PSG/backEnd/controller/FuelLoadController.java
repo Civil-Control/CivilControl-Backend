@@ -76,6 +76,9 @@ public class FuelLoadController {
             @Parameter(description = "Filter by project area ID") @RequestParam(required = false) Long projectAreaId,
             @Parameter(description = "Filter by project area name (partial match)") @RequestParam(required = false) String projectAreaName,
             @Parameter(description = "Filter by gas station ID") @RequestParam(required = false) Long gasStationId,
+            @Parameter(description = "Filter by gas station name (partial match)") @RequestParam(required = false) String gasStationName,
+            @Parameter(description = "Filter by minimum total amount (inclusive)") @RequestParam(required = false) java.math.BigDecimal totalAmountMin,
+            @Parameter(description = "Filter by maximum total amount (inclusive)") @RequestParam(required = false) java.math.BigDecimal totalAmountMax,
             @Parameter(description = "Generic search across vehicle license plate and fuel type (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
@@ -92,7 +95,7 @@ public class FuelLoadController {
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
-        FuelLoadFilterDTO filterDTO = new FuelLoadFilterDTO(dateFrom, dateTo, branchCode, ticketNumber, fuelType, vehicleId, vehicleLicensePlate, projectAreaId, projectAreaName, gasStationId, search);
+        FuelLoadFilterDTO filterDTO = new FuelLoadFilterDTO(dateFrom, dateTo, branchCode, ticketNumber, fuelType, vehicleId, vehicleLicensePlate, projectAreaId, projectAreaName, gasStationId, search, gasStationName, totalAmountMin, totalAmountMax);
         return ResponseEntity.ok(fuelLoadService.getAllFuelLoads(filterDTO, pageable));
     }
 
@@ -108,8 +111,9 @@ public class FuelLoadController {
             case "vehicleId" -> "vehicle.id";
             case "projectAreaName" -> "projectArea.name";
             case "projectAreaId" -> "projectArea.id";
+            case "gasStationName" -> "gasStation.name";
             case "gasStationId" -> "gasStation.id";
-            default -> sortBy; // For 'id', 'date', 'branchCode', 'ticketNumber', 'fuelType', 'liters', 'pricePerLiter', 'totalAmount', etc.
+            default -> sortBy;
         };
     }
 
