@@ -10,10 +10,10 @@ import PSG.backEnd.repository.VehicleTypeRepository;
 import PSG.backEnd.service.port.IVehicleTypeService;
 import PSG.backEnd.service.util.TenantContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -43,11 +43,9 @@ public class VehicleTypeService implements IVehicleTypeService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<VehicleTypeResponseDTO> getAllVehicleTypes() {
-        return vehicleTypeRepository.findAll()
-                .stream()
-                .map(vehicleTypeMapper::toResponseDto)
-                .toList();
+    public Page<VehicleTypeResponseDTO> getAllVehicleTypes(String name, Boolean requiresTruckEquipment, Pageable pageable) {
+        return vehicleTypeRepository.findAllWithFilters(name, requiresTruckEquipment, pageable)
+                .map(vehicleTypeMapper::toResponseDto);
     }
 
     @Override

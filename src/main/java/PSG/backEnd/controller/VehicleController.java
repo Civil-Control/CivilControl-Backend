@@ -25,7 +25,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/vehicles")
@@ -190,10 +189,19 @@ public class VehicleController {
 
     @GetMapping("/types")
     @Operation(summary = "Get all vehicle types",
-            description = "Returns the full list of available vehicle types.")
+            description = "Returns a paginated and filterable list of available vehicle types.")
     @ApiResponse(responseCode = "200", description = "Vehicle type list successfully retrieved")
-    public ResponseEntity<List<VehicleTypeResponseDTO>> getAllVehicleTypes() {
-        return ResponseEntity.ok(iVehicleTypeService.getAllVehicleTypes());
+    public ResponseEntity<Page<VehicleTypeResponseDTO>> getAllVehicleTypes(
+            @Parameter(description = "Filter by name (partial match)") @RequestParam(required = false) String name,
+            @Parameter(description = "Filter by truck equipment requirement") @RequestParam(required = false) Boolean requiresTruckEquipment,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Field to sort by") @RequestParam(defaultValue = "name") String sortBy,
+            @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        return ResponseEntity.ok(iVehicleTypeService.getAllVehicleTypes(name, requiresTruckEquipment, pageable));
     }
 
     @GetMapping("/types/{id}")
