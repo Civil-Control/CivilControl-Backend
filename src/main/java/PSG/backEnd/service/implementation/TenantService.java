@@ -72,6 +72,10 @@ public class TenantService implements ITenantService {
     @Override
     @Transactional
     public TenantResponseDTO updateTenant(Long id, TenantDTO tenantDTO) {
+        Long currentTenantId = TenantContext.getCurrentTenant();
+        if (!id.equals(currentTenantId)) {
+            throw new TenantNotValidException(messageSourceHelper.getMessage("tenant.update.forbidden"));
+        }
         Tenant existingTenant = tenantRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new TenantNotFoundException(id));
         validateTenantUpdate(id, tenantDTO);
