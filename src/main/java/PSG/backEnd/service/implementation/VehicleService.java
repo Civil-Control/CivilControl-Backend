@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 @Service
@@ -55,6 +56,11 @@ public class VehicleService implements IVehicleService {
     @Override
     @Transactional(readOnly = true)
     public Page<VehicleResponseDTO> getAllVehicles(VehicleFilterDTO filterDTO, Pageable pageable) {
+        // Translate vtvExpired boolean into date-range boundaries for the repository query
+        LocalDate today = LocalDate.now();
+        LocalDate vtvBefore = (filterDTO.vtvExpired() != null && filterDTO.vtvExpired()) ? today : null;
+        LocalDate vtvSince  = (filterDTO.vtvExpired() != null && !filterDTO.vtvExpired()) ? today : null;
+
         return vehicleRepository.findAllWithFilters(
                 filterDTO.licensePlate(),
                 filterDTO.brand(),
@@ -71,6 +77,8 @@ public class VehicleService implements IVehicleService {
                 filterDTO.includeInactive(),
                 filterDTO.active(),
                 filterDTO.search(),
+                vtvBefore,
+                vtvSince,
                 pageable
         ).map(vehicleMapper::toResponseDto);
     }

@@ -83,5 +83,10 @@ public record VehicleFilterDTO(
         @Schema(description = "Generic search across license plate, brand, model and nickname (case-insensitive partial match).",
                 example = "Toyota",
                 nullable = true)
-        String search
+        String search,
+
+        @Schema(description = "Filter by VTV expiration status. true = expired or missing (vtvExpirationDate < today or null), false = valid (vtvExpirationDate >= today). Null = no filter.",
+                example = "true",
+                nullable = true)
+        Boolean vtvExpired
 ) {}

@@ -79,6 +79,7 @@ public class VehicleController {
             @Parameter(description = "Include deactivated vehicles in results (default: false)") @RequestParam(defaultValue = "false") boolean includeInactive,
             @Parameter(description = "Filter by active status (null=all, true=only active, false=only inactive)") @RequestParam(required = false) Boolean active,
             @Parameter(description = "Generic search across license plate, brand, model and nickname (partial match)") @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by VTV status: true = expired or missing, false = valid. Null = no filter.") @RequestParam(required = false) Boolean vtvExpired,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, licensePlate, brand, model, year, color, nickName, vehicleType, " +
@@ -95,7 +96,7 @@ public class VehicleController {
         VehicleFilterDTO filterDTO = new VehicleFilterDTO(
                 licensePlate, brand, model, year, color, nickName,
                 vehicleType, projectAreaName, storedIn, vtvExpirationDate, jurisdictionType, truckEquipment,
-                includeInactive, active, search
+                includeInactive, active, search, vtvExpired
         );
 
         return ResponseEntity.ok(iVehicleService.getAllVehicles(filterDTO, pageable));
