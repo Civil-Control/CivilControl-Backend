@@ -111,7 +111,7 @@ public class FuelLoadController {
             case "vehicleId" -> "vehicle.id";
             case "projectAreaName" -> "projectArea.name";
             case "projectAreaId" -> "projectArea.id";
-            case "gasStationName" -> "gasStation.name";
+            case "gasStationName" -> "gasStation.supplier.legalName";
             case "gasStationId" -> "gasStation.id";
             default -> sortBy;
         };
