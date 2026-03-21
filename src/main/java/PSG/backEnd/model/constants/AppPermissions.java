@@ -437,6 +437,26 @@ public final class AppPermissions {
      */
     public static final String REPORT_EXPORT = "REPORT_EXPORT";
 
+    // ==================== MODULE: TENANTS ====================
+    
+    /**
+     * Module: Tenants
+     * Allows viewing tenant (company) information.
+     */
+    public static final String TENANT_READ = "TENANT_READ";
+    
+    /**
+     * Module: Tenants
+     * Allows creating and editing tenant information.
+     */
+    public static final String TENANT_WRITE = "TENANT_WRITE";
+    
+    /**
+     * Module: Tenants
+     * Allows deleting tenants.
+     */
+    public static final String TENANT_DELETE = "TENANT_DELETE";
+
     // ==================== MODULE: SYSTEM ====================
     
     /**
