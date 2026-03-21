@@ -13,6 +13,9 @@ import org.springframework.stereotype.Component;
  * Aspect to enable tenant filtering on repository operations.
  * Automatically enables the Hibernate 'tenantFilter' before any repository method execution.
  *
+ * Excludes repositories whose entities do NOT have @Filter / @FilterDef
+ * (e.g., PermissionRepository, TenantRepository) to avoid unnecessary filter activation.
+ *
  * @author Maximo Andriola
  * @since 2026-02-18
  */
@@ -25,10 +28,13 @@ public class TenantFilterAspect {
     private final EntityManager entityManager;
 
     /**
-     * Enables tenant filter before any repository method execution.
+     * Enables tenant filter before any repository method execution,
+     * excluding repositories that operate on non-tenant entities.
      * Sets the current tenant ID from TenantContext as the filter parameter.
      */
-    @Before("execution(* PSG.backEnd.repository..*(..))")
+    @Before("execution(* PSG.backEnd.repository..*(..)) " +
+            "&& !execution(* PSG.backEnd.repository.PermissionRepository.*(..)) " +
+            "&& !execution(* PSG.backEnd.repository.TenantRepository.*(..))")
     public void enableTenantFilter() {
         Long tenantId = TenantContext.getCurrentTenant();
 

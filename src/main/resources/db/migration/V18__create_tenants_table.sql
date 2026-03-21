@@ -16,3 +16,7 @@ CREATE TABLE tenants (
     active BOOLEAN NOT NULL DEFAULT TRUE,
     deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
+
+-- Seed default tenant (ESEA SA) to ensure company settings work from first boot
+INSERT INTO tenants (id, name, cuit, legal_name, city, state, country, active, deleted)
+VALUES (1, 'ESEA SA', '30-12345678-9', 'ESEA Sociedad Anónima', 'Buenos Aires', 'Buenos Aires', 'Argentina', TRUE, FALSE);

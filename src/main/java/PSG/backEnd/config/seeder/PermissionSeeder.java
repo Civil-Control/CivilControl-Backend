@@ -83,6 +83,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("TRANSACTIONAL_DOCUMENT_", "Transactional Documents");
         MODULE_MAP.put("BUILDING_", "Buildings");
         MODULE_MAP.put("PROJECT_AREA_", "Project Areas");
+        MODULE_MAP.put("TENANT_", "Tenants");
         MODULE_MAP.put("REPORT_", "Reports");
         MODULE_MAP.put("DATA_", "System");
         MODULE_MAP.put("USER_", "System");
@@ -112,6 +113,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("TRANSACTIONAL_DOCUMENT_", "Documentos Transaccionales");
         MODULE_SPANISH_MAP.put("BUILDING_", "Edificios");
         MODULE_SPANISH_MAP.put("PROJECT_AREA_", "Áreas de Proyecto");
+        MODULE_SPANISH_MAP.put("TENANT_", "Empresa");
         MODULE_SPANISH_MAP.put("REPORT_", "Reportes");
         MODULE_SPANISH_MAP.put("DATA_", "Sistema");
         MODULE_SPANISH_MAP.put("USER_", "Sistema");
@@ -166,11 +168,12 @@ public class PermissionSeeder implements CommandLineRunner {
         // report: report
         WORK_MODULE_MAP.put("REPORT_", "report");
 
-        // company: supplier, item, building, projectArea
+        // company: supplier, item, building, projectArea, tenant
         WORK_MODULE_MAP.put("SUPPLIER_", "company");
         WORK_MODULE_MAP.put("ITEM_", "company");
         WORK_MODULE_MAP.put("BUILDING_", "company");
         WORK_MODULE_MAP.put("PROJECT_AREA_", "company");
+        WORK_MODULE_MAP.put("TENANT_", "company");
 
         // administration: user, role, permission
         WORK_MODULE_MAP.put("USER_", "administration");
@@ -474,6 +477,7 @@ public class PermissionSeeder implements CommandLineRunner {
         adjustmentMap.put("Áreas de Proyecto", "áreas de proyecto");
         adjustmentMap.put("Reportes", "reportes");
         adjustmentMap.put("Sistema", "sistema");
+        adjustmentMap.put("Empresa", "la empresa");
 
         return adjustmentMap.getOrDefault(module, module.toLowerCase());
     }

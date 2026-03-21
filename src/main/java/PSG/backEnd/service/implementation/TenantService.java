@@ -29,6 +29,7 @@ public class TenantService implements ITenantService {
     private final TenantRepository tenantRepository;
     private final TenantMapper tenantMapper;
     private final MessageSourceHelper messageSourceHelper;
+    private final TenantProvisioningService tenantProvisioningService;
 
     @Override
     @Transactional
@@ -154,7 +155,17 @@ public class TenantService implements ITenantService {
     private TenantResponseDTO createNewTenant(TenantDTO tenantDTO) {
         Tenant tenant = tenantMapper.toEntity(tenantDTO);
         tenant.setDeleted(false);
-        return tenantMapper.toResponseDto(tenantRepository.save(tenant));
+        Tenant savedTenant = tenantRepository.save(tenant);
+
+        // Provision the new tenant with default roles and admin user
+        tenantProvisioningService.provisionNewTenant(
+                savedTenant.getId(),
+                "admin@" + savedTenant.getName().toLowerCase().replaceAll("\\s+", "") + ".com",
+                "admin",
+                "Admin123"
+        );
+
+        return tenantMapper.toResponseDto(savedTenant);
     }
 
     private void handleDataIntegrityViolation(DataIntegrityViolationException e, TenantDTO tenantDTO) {
