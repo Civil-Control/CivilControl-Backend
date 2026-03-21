@@ -24,6 +24,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 import java.time.LocalDate;
 
 @RestController
@@ -34,6 +37,7 @@ public class FuelLoadController {
 
     private final IFuelLoadService fuelLoadService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.FUEL_LOAD_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new fuel load",
             description = "Records a new fuel load transaction for a vehicle. Automatically calculates the total amount based on the gas station's current fuel price.")
@@ -48,6 +52,7 @@ public class FuelLoadController {
         return new ResponseEntity<>(createdFuelLoad, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.FUEL_LOAD_WRITE + "')")
     @PostMapping("/batch")
     @Operation(summary = "Create multiple fuel loads in batch",
             description = "Records multiple fuel load transactions at once. Returns a summary with successful and failed operations. Continues processing even if some records fail validation.")
@@ -61,6 +66,7 @@ public class FuelLoadController {
         return new ResponseEntity<>(result, status);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.FUEL_LOAD_READ + "')")
     @GetMapping
     @Operation(summary = "Get all fuel loads with filters",
             description = "Retrieves a paginated list of fuel load transactions with optional filtering by date range, branch code, ticket number, fuel type, vehicle, project area, and gas station. Supports sorting and pagination.")
@@ -117,6 +123,7 @@ public class FuelLoadController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.FUEL_LOAD_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get fuel load by ID",
             description = "Retrieves detailed information about a specific fuel load transaction by its unique identifier, including calculated amounts and related entity details.")
@@ -128,6 +135,7 @@ public class FuelLoadController {
         return ResponseEntity.ok(fuelLoadService.getFuelLoadById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.FUEL_LOAD_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update fuel load",
             description = "Updates an existing fuel load transaction. Only provided fields will be updated. Total amount is recalculated if liters or gas station changes.")
@@ -141,6 +149,7 @@ public class FuelLoadController {
         return ResponseEntity.ok(fuelLoadService.updateFuelLoad(id, fuelLoadDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.FUEL_LOAD_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete fuel load",
             description = "Deletes a fuel load transaction from the system. This operation cannot be undone.")

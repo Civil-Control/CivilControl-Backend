@@ -25,6 +25,9 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 @RestController
 @RequestMapping("/api/v1/service-payments")
 @RequiredArgsConstructor
@@ -35,6 +38,7 @@ public class ServicePaymentController {
 
     private final IServicePaymentService servicePaymentService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_PAYMENT_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new service payment",
             description = "Registers a new payment for a utility service (electricity, water, gas, etc.) for a specific building. " +
@@ -52,6 +56,7 @@ public class ServicePaymentController {
         return new ResponseEntity<>(createdServicePayment, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_PAYMENT_READ + "')")
     @GetMapping
     @Operation(summary = "Get all service payments with filters",
             description = "Retrieves a paginated list of service payments with optional filtering by service supplier, " +
@@ -139,6 +144,7 @@ public class ServicePaymentController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_PAYMENT_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get service payment by ID",
             description = "Retrieves detailed information about a specific service payment by its unique identifier, " +
@@ -153,6 +159,7 @@ public class ServicePaymentController {
         return ResponseEntity.ok(servicePaymentService.getServicePaymentById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_PAYMENT_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update service payment",
             description = "Updates an existing service payment record. Only provided fields will be updated. " +
@@ -171,6 +178,7 @@ public class ServicePaymentController {
         return ResponseEntity.ok(servicePaymentService.updateServicePayment(id, servicePaymentDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_PAYMENT_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete service payment",
             description = "Performs a soft deletion of a service payment. The record is marked as deleted but remains in the database " +

@@ -17,8 +17,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import PSG.backEnd.model.constants.AppPermissions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -38,6 +40,7 @@ public class ReportController {
 
     private final IReportService reportService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
     @GetMapping("/money-outflows")
     @Operation(
             summary = "Generate money outflow report data",
@@ -122,6 +125,7 @@ public class ReportController {
         return ResponseEntity.ok(report);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
     @GetMapping("/money-outflows/download")
     @Operation(
             summary = "Download money outflow report file",
@@ -215,6 +219,7 @@ public class ReportController {
         return response;
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_VIEW + "')")
     @GetMapping("/money-outflows/preview")
     @Operation(
             summary = "Preview report statistics",

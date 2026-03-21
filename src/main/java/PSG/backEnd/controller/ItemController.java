@@ -23,6 +23,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 
+import PSG.backEnd.model.constants.AppPermissions;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/v1/items")
 @RequiredArgsConstructor
@@ -33,6 +36,7 @@ public class ItemController {
 
     private final IItemService itemService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ITEM_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new item",
             description = "Creates a new item in the catalog. Items represent purchasable goods or services that can be referenced in transactional documents. " +
@@ -59,6 +63,7 @@ public class ItemController {
         return ResponseEntity.created(location).body(created);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ITEM_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update item",
             description = "Updates an existing item in the catalog. Only provided fields will be updated. " +
@@ -80,6 +85,7 @@ public class ItemController {
         return ResponseEntity.ok(updated);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ITEM_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete item",
             description = "Performs a soft delete of an item from the catalog. The item is marked as deleted but remains in the database for historical purposes. " +
@@ -95,6 +101,7 @@ public class ItemController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ITEM_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get item by ID",
             description = "Retrieves detailed information about a specific item by its unique identifier, including its name and description.")
@@ -108,6 +115,7 @@ public class ItemController {
         return ResponseEntity.ok(item);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ITEM_READ + "')")
     @GetMapping
     @Operation(summary = "Get all items with filters",
             description = "Retrieves a paginated list of items with optional filtering by name and description (partial match). " +

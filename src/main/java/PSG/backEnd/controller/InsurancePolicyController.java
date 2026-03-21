@@ -31,6 +31,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+import PSG.backEnd.model.constants.AppPermissions;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/v1/insurance-policies")
 @RequiredArgsConstructor
@@ -42,6 +45,7 @@ public class InsurancePolicyController {
 
     // ========== INSURANCE POLICY ENDPOINTS ==========
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new insurance policy",
             description = "Registers a new insurance policy with coverage details, effective dates, and payment terms. Validates that effective dates are in proper order.")
@@ -55,6 +59,7 @@ public class InsurancePolicyController {
         return new ResponseEntity<>(createdPolicy, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_READ + "')")
     @GetMapping
     @Operation(summary = "Get all insurance policies with filters",
             description = "Retrieves a paginated list of insurance policies with optional filtering by policy number, type, status, dates, and cancellation status. Supports sorting and pagination.")
@@ -87,6 +92,7 @@ public class InsurancePolicyController {
         return ResponseEntity.ok(policies);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get insurance policy by ID",
             description = "Retrieves detailed information about a specific insurance policy by its unique identifier.")
@@ -100,6 +106,7 @@ public class InsurancePolicyController {
         return ResponseEntity.ok(policy);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update insurance policy",
             description = "Updates an existing insurance policy. Only provided fields will be updated. Validates that effective dates remain in proper order.")
@@ -115,6 +122,7 @@ public class InsurancePolicyController {
         return ResponseEntity.ok(updatedPolicy);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete insurance policy",
             description = "Deletes an insurance policy from the system. This operation cannot be undone. Policies with associated vehicles may have restrictions.")
@@ -131,6 +139,7 @@ public class InsurancePolicyController {
 
     // ========== POLICY VEHICLE ENDPOINTS ==========
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_WRITE + "')")
     @PostMapping("/{insurancePolicyId}/vehicles")
     @Operation(summary = "Add vehicle to insurance policy",
             description = "Associates a vehicle with an insurance policy. Automatically creates or retrieves the AutoPolicy if the policy type is AUTO. Includes coverage dates for the specific vehicle.")
@@ -146,6 +155,7 @@ public class InsurancePolicyController {
         return new ResponseEntity<>(createdVehicle, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_READ + "')")
     @GetMapping("/{insurancePolicyId}/vehicles")
     @Operation(summary = "Get vehicles by insurance policy",
             description = "Retrieves all vehicles associated with a specific insurance policy with optional filtering by vehicle details, dates, and cancellation status.")
@@ -174,6 +184,7 @@ public class InsurancePolicyController {
         return ResponseEntity.ok(vehicles);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_READ + "')")
     @GetMapping("/vehicles")
     @Operation(summary = "Get all policy vehicles with filters",
             description = "Retrieves a paginated list of all policy-vehicle associations with optional filtering by vehicle, policy, dates, and cancellation status.")
@@ -205,6 +216,7 @@ public class InsurancePolicyController {
         return ResponseEntity.ok(vehicles);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_READ + "')")
     @GetMapping("/vehicles/by-vehicle/{vehicleId}")
     @Operation(summary = "Get all policies for a vehicle",
             description = "Retrieves all insurance policies associated with a specific vehicle, including historical and active policies.")
@@ -218,6 +230,7 @@ public class InsurancePolicyController {
         return ResponseEntity.ok(policies);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_READ + "')")
     @GetMapping("/vehicles/{policyVehicleId}")
     @Operation(summary = "Get policy vehicle by ID",
             description = "Retrieves detailed information about a specific policy-vehicle association by its unique identifier.")
@@ -231,6 +244,7 @@ public class InsurancePolicyController {
         return ResponseEntity.ok(vehicle);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_WRITE + "')")
     @PatchMapping("/vehicles/{policyVehicleId}")
     @Operation(summary = "Update policy vehicle",
             description = "Updates an existing policy-vehicle association. Can update coverage dates and cancellation status.")
@@ -246,6 +260,7 @@ public class InsurancePolicyController {
         return ResponseEntity.ok(updatedVehicle);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_DELETE + "')")
     @DeleteMapping("/vehicles/{policyVehicleId}")
     @Operation(summary = "Remove vehicle from policy",
             description = "Removes a vehicle from an insurance policy. This operation cannot be undone.")

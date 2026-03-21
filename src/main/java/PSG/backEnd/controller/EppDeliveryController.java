@@ -22,6 +22,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -34,6 +37,7 @@ public class EppDeliveryController {
 
     private final IEppDeliveryService iEppDeliveryService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EPP_DELIVERY_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new EPP delivery",
             description = "Registers a new EPP delivery to an employee. Records the delivery date, item details (name, type, brand), " +
@@ -49,6 +53,7 @@ public class EppDeliveryController {
         return new ResponseEntity<>(createdEppDelivery, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EPP_DELIVERY_WRITE + "')")
     @PostMapping("/batch")
     @Operation(summary = "Create multiple EPP deliveries in batch",
             description = "Creates multiple EPP delivery records in a single request. Each delivery is processed individually. " +
@@ -64,6 +69,7 @@ public class EppDeliveryController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EPP_DELIVERY_READ + "')")
     @GetMapping
     @Operation(summary = "Get all EPP deliveries with filters",
             description = "Retrieves a paginated list of EPP deliveries with optional filtering by employee, delivery date range, " +
@@ -116,6 +122,7 @@ public class EppDeliveryController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EPP_DELIVERY_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get EPP delivery by ID",
             description = "Retrieves detailed information about a specific EPP delivery by its unique identifier. " +
@@ -129,6 +136,7 @@ public class EppDeliveryController {
         return ResponseEntity.ok(iEppDeliveryService.getEppDeliveryById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EPP_DELIVERY_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update EPP delivery",
             description = "Updates an existing EPP delivery record. Only provided fields will be updated. Allows updating delivery date, " +
@@ -145,6 +153,7 @@ public class EppDeliveryController {
         return ResponseEntity.ok(updatedEppDelivery);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EPP_DELIVERY_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete EPP delivery",
             description = "Soft deletes an EPP delivery record. The record is marked as deleted but remains in the database for audit purposes. " +

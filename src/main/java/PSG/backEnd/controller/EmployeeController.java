@@ -24,6 +24,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 import java.time.LocalDate;
 
 @RestController
@@ -34,6 +37,7 @@ public class EmployeeController {
 
     private final IEmployeeService iEmployeeService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new employee",
             description = "Registers a new employee in the system. Includes personal information (name, DNI, CUIL, birth date), " +
@@ -51,6 +55,7 @@ public class EmployeeController {
         return new ResponseEntity<>(createdEmployee, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_READ + "')")
     @GetMapping
     @Operation(summary = "Get all employees with filters",
             description = "Retrieves a paginated list of employees with optional filtering by name, last name, DNI, CUIL, project area, " +
@@ -92,6 +97,7 @@ public class EmployeeController {
         return ResponseEntity.ok(iEmployeeService.getAllEmployees(filterDTO, pageable));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get employee by ID",
             description = "Retrieves detailed information about a specific employee by their unique identifier. " +
@@ -105,6 +111,7 @@ public class EmployeeController {
         return ResponseEntity.ok(iEmployeeService.getEmployeeById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update employee",
             description = "Updates an existing employee record. Only provided fields will be updated. Allows updating personal information, " +
@@ -121,6 +128,7 @@ public class EmployeeController {
         return ResponseEntity.ok(iEmployeeService.updateEmployee(id, employeeDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete employee",
             description = "Deletes an employee record from the system. This operation cannot be undone. " +

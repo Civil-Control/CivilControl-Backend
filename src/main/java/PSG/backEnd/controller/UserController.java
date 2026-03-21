@@ -17,10 +17,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import PSG.backEnd.model.constants.AppPermissions;
 import java.net.URI;
 
 /**
@@ -41,6 +43,7 @@ public class UserController {
 
     private final IUserService userService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.USER_MANAGEMENT + "')")
     @PostMapping
     @Operation(summary = "Create a new user",
             description = "Creates a new user in the system with assigned roles. " +
@@ -65,6 +68,7 @@ public class UserController {
         return ResponseEntity.created(location).body(created);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.USER_MANAGEMENT + "')")
     @GetMapping
     @Operation(summary = "Get all users with filters",
             description = "Retrieves a paginated list of users with optional filtering by username, email, name, and enabled status. " +
@@ -141,6 +145,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.USER_MANAGEMENT + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get user by ID",
             description = "Retrieves detailed information about a specific user including all assigned roles. " +
@@ -156,6 +161,7 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.USER_MANAGEMENT + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update user",
             description = "Updates an existing user. Only provided fields will be updated. " +
@@ -177,6 +183,7 @@ public class UserController {
         return ResponseEntity.ok(updated);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.USER_MANAGEMENT + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete user",
             description = "Performs a soft delete of a user from the system. " +

@@ -22,6 +22,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 import java.time.LocalDate;
 
 @RestController
@@ -32,6 +35,7 @@ public class DisciplinaryActionController {
 
     private final IDisciplinaryActionService iDisciplinaryActionService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.DISCIPLINARY_ACTION_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new disciplinary action",
             description = "Registers a new disciplinary action for an employee. Includes action type (warning, suspension, termination), " +
@@ -48,6 +52,7 @@ public class DisciplinaryActionController {
         return new ResponseEntity<>(createdAction, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.DISCIPLINARY_ACTION_READ + "')")
     @GetMapping
     @Operation(summary = "Get all disciplinary actions with filters",
             description = "Retrieves a paginated list of disciplinary actions with optional filtering by employee, action type, " +
@@ -99,6 +104,7 @@ public class DisciplinaryActionController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.DISCIPLINARY_ACTION_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get disciplinary action by ID",
             description = "Retrieves detailed information about a specific disciplinary action by its unique identifier.")
@@ -111,6 +117,7 @@ public class DisciplinaryActionController {
         return ResponseEntity.ok(iDisciplinaryActionService.getDisciplinaryActionById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.DISCIPLINARY_ACTION_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update disciplinary action",
             description = "Updates an existing disciplinary action record. Only provided fields will be updated. Allows updating action type, " +
@@ -127,6 +134,7 @@ public class DisciplinaryActionController {
         return ResponseEntity.ok(iDisciplinaryActionService.updateDisciplinaryAction(id, disciplinaryActionDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.DISCIPLINARY_ACTION_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete disciplinary action",
             description = "Deletes a disciplinary action record from the system. This operation cannot be undone. " +

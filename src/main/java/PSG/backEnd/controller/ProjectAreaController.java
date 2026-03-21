@@ -21,6 +21,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import PSG.backEnd.model.constants.AppPermissions;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/v1/project-areas")
 @RequiredArgsConstructor
@@ -32,6 +35,7 @@ public class ProjectAreaController {
 
     private final IProjectAreaService iProjectAreaService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PROJECT_AREA_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new project area",
             description = "Creates a new project area in the system. Project areas help organize resources, employees, and vehicles by division, department, or location. " +
@@ -51,6 +55,7 @@ public class ProjectAreaController {
         return new ResponseEntity<>(createdProjectArea, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PROJECT_AREA_READ + "')")
     @GetMapping
     @Operation(summary = "Get all project areas with filters",
             description = "Retrieves a paginated list of project areas with optional filtering by name and active status. " +
@@ -73,6 +78,7 @@ public class ProjectAreaController {
         return ResponseEntity.ok(iProjectAreaService.getAllProjectAreas(filterDTO, pageable));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PROJECT_AREA_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get project area by ID",
             description = "Retrieves detailed information about a specific project area by its unique identifier, including name, description, and active status.")
@@ -85,6 +91,7 @@ public class ProjectAreaController {
         return ResponseEntity.ok(iProjectAreaService.getProjectAreaById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PROJECT_AREA_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update project area",
             description = "Updates an existing project area. Only provided fields will be updated. " +
@@ -105,6 +112,7 @@ public class ProjectAreaController {
         return ResponseEntity.ok(iProjectAreaService.updateProjectArea(id, projectAreaDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PROJECT_AREA_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete project area",
             description = "Performs a soft delete of a project area from the system. The area is marked as deleted but remains in the database for historical purposes and audit trails. " +

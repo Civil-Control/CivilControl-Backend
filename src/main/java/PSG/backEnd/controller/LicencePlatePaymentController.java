@@ -26,6 +26,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import PSG.backEnd.model.constants.AppPermissions;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/v1/licence-plate-payments")
 @RequiredArgsConstructor
@@ -34,6 +37,7 @@ public class LicencePlatePaymentController {
 
     private final ILicencePlatePaymentService licencePlatePaymentService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.LICENCE_PLATE_PAYMENT_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new licence plate payment",
             description = "Creates a new licence plate payment record for a vehicle. Includes payment details such as amount, year, period, and jurisdiction type.")
@@ -48,6 +52,7 @@ public class LicencePlatePaymentController {
         return new ResponseEntity<>(createdPayment, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.LICENCE_PLATE_PAYMENT_WRITE + "')")
     @PostMapping("/batch")
     @Operation(summary = "Create multiple licence plate payments in batch",
             description = "Creates multiple licence plate payment records in a single request.")
@@ -62,6 +67,7 @@ public class LicencePlatePaymentController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.LICENCE_PLATE_PAYMENT_READ + "')")
     @GetMapping
     @Operation(summary = "Get all licence plate payments with filters",
             description = "Retrieves a paginated list of licence plate payments with optional filtering by date range, vehicle, amount, year, period, and jurisdiction.")
@@ -114,6 +120,7 @@ public class LicencePlatePaymentController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.LICENCE_PLATE_PAYMENT_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get licence plate payment by ID",
             description = "Retrieves detailed information about a specific licence plate payment by its unique identifier.")
@@ -126,6 +133,7 @@ public class LicencePlatePaymentController {
         return ResponseEntity.ok(licencePlatePaymentService.getLicencePlatePaymentById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.LICENCE_PLATE_PAYMENT_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update licence plate payment",
             description = "Updates an existing licence plate payment record. Only provided fields will be updated.")
@@ -140,6 +148,7 @@ public class LicencePlatePaymentController {
         return ResponseEntity.ok(licencePlatePaymentService.updateLicencePlatePayment(id, licencePlatePaymentDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.LICENCE_PLATE_PAYMENT_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete licence plate payment",
             description = "Deletes a licence plate payment record from the system. This operation cannot be undone.")

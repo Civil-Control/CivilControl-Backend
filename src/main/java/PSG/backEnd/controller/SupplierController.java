@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 @RestController
 @RequestMapping("/api/v1/suppliers")
 @RequiredArgsConstructor
@@ -31,6 +34,7 @@ public class SupplierController {
 
     private final ISupplierService iSupplierService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SUPPLIER_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new supplier",
             description = "Registers a new supplier in the system. Includes validation for unique CUIT (tax ID), address details, contact information, and accepted payment methods. " +
@@ -50,6 +54,7 @@ public class SupplierController {
         return new ResponseEntity<>(createdSupplier, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SUPPLIER_READ + "')")
     @GetMapping
     @Operation(summary = "Get all suppliers with filters",
             description = "Retrieves a paginated list of suppliers with optional filtering by CUIT, legal name, trade name, city, discount percentage range, and active status. " +
@@ -80,6 +85,7 @@ public class SupplierController {
         return ResponseEntity.ok(iSupplierService.getAllSuppliers(filterDTO, pageable));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SUPPLIER_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get supplier by ID",
             description = "Retrieves detailed information about a specific supplier by its unique identifier, including full address, contact information, payment methods, and default discount.")
@@ -92,6 +98,7 @@ public class SupplierController {
         return ResponseEntity.ok(iSupplierService.getSupplierById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SUPPLIER_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update supplier",
             description = "Updates an existing supplier's information. Only provided fields will be updated. " +
@@ -113,6 +120,7 @@ public class SupplierController {
         return ResponseEntity.ok(iSupplierService.updateSupplier(id, supplierDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SUPPLIER_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete supplier",
             description = "Performs a soft delete of a supplier from the system. The supplier is marked as deleted but remains in the database for historical purposes and audit trails. " +

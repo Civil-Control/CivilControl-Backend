@@ -17,9 +17,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import PSG.backEnd.model.constants.AppPermissions;
 import java.net.URI;
 
 @RestController
@@ -30,6 +32,7 @@ public class TenantController {
 
     private final ITenantService tenantService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TENANT_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new tenant")
     @ApiResponses(value = {
@@ -48,6 +51,7 @@ public class TenantController {
         return ResponseEntity.created(location).body(created);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TENANT_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update tenant")
     @ApiResponses(value = {
@@ -63,6 +67,7 @@ public class TenantController {
         return ResponseEntity.ok(updated);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TENANT_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete tenant")
     @ApiResponses(value = {
@@ -82,6 +87,7 @@ public class TenantController {
         return ResponseEntity.ok(tenant);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TENANT_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get tenant by ID")
     @ApiResponses(value = {
@@ -93,6 +99,7 @@ public class TenantController {
         return ResponseEntity.ok(tenant);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TENANT_READ + "')")
     @GetMapping
     @Operation(summary = "Get all tenants with filters")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved tenant list")

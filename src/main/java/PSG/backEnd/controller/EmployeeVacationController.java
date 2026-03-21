@@ -21,6 +21,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 import java.time.LocalDate;
 
 @RestController
@@ -31,6 +34,7 @@ public class EmployeeVacationController {
 
     private final IEmployeeVacationService iEmployeeVacationService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_VACATION_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new employee vacation",
             description = "Registers a new vacation period for an employee. Includes start date, end date, total days, " +
@@ -47,6 +51,7 @@ public class EmployeeVacationController {
         return new ResponseEntity<>(createdVacation, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_VACATION_READ + "')")
     @GetMapping
     @Operation(summary = "Get all employee vacations with filters",
             description = "Retrieves a paginated list of employee vacations with optional filtering by employee ID, " +
@@ -106,6 +111,7 @@ public class EmployeeVacationController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_VACATION_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get employee vacation by ID",
             description = "Retrieves detailed information about a specific employee vacation by its unique identifier. " +
@@ -119,6 +125,7 @@ public class EmployeeVacationController {
         return ResponseEntity.ok(iEmployeeVacationService.getEmployeeVacationById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_VACATION_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update employee vacation",
             description = "Updates an existing employee vacation record. Only provided fields will be updated. " +
@@ -135,6 +142,7 @@ public class EmployeeVacationController {
         return ResponseEntity.ok(iEmployeeVacationService.updateEmployeeVacation(id, employeeVacationDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_VACATION_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete employee vacation",
             description = "Soft deletes an employee vacation record from the system. The vacation record is marked as deleted " +

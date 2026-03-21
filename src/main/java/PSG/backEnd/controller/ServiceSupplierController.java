@@ -22,6 +22,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 @RestController
 @RequestMapping("/api/v1/service-suppliers")
 @RequiredArgsConstructor
@@ -30,6 +33,7 @@ public class ServiceSupplierController {
 
     private final IServiceSupplierService serviceSupplierService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_SUPPLIER_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new service supplier",
             description = "Registers a new service supplier with the provided service types. Each supplier can only have one service supplier record. " +
@@ -47,6 +51,7 @@ public class ServiceSupplierController {
         return new ResponseEntity<>(createdServiceSupplier, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_SUPPLIER_READ + "')")
     @GetMapping
     @Operation(summary = "Get all service suppliers with filters",
             description = "Retrieves a paginated list of service suppliers with optional filtering by supplier name, CUIT, or service type. " +
@@ -106,6 +111,7 @@ public class ServiceSupplierController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_SUPPLIER_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get service supplier by ID",
             description = "Retrieves detailed information about a specific service supplier by its unique identifier, " +
@@ -120,6 +126,7 @@ public class ServiceSupplierController {
         return ResponseEntity.ok(serviceSupplierService.getServiceSupplierById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_SUPPLIER_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update service supplier",
             description = "Updates an existing service supplier record. Only provided fields will be updated. " +
@@ -138,6 +145,7 @@ public class ServiceSupplierController {
         return ResponseEntity.ok(serviceSupplierService.updateServiceSupplier(id, serviceSupplierDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_SUPPLIER_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete service supplier",
             description = "Performs a soft deletion of a service supplier. The record is marked as deleted but remains in the database. " +

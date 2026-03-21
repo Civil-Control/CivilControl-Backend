@@ -28,6 +28,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 @RestController
 @RequestMapping("/api/v1/salary-payments")
 @RequiredArgsConstructor
@@ -36,6 +39,7 @@ public class SalaryPaymentController {
 
     private final ISalaryPaymentService iSalaryPaymentService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new salary payment",
             description = "Registers a new salary payment for an employee. Includes employee identification, payment date, " +
@@ -52,6 +56,7 @@ public class SalaryPaymentController {
         return new ResponseEntity<>(createdSalaryPayment, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_WRITE + "')")
     @PostMapping("/batch")
     @Operation(summary = "Create multiple salary payments in one request")
     public ResponseEntity<List<SalaryPaymentResponseDTO>> createBatchSalaryPayments(
@@ -60,6 +65,7 @@ public class SalaryPaymentController {
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_READ + "')")
     @GetMapping
     @Operation(summary = "Get all salary payments",
             description = "Retrieves a paginated list of salary payments with optional filtering by employee (ID, first name, last name), " +
@@ -119,6 +125,7 @@ public class SalaryPaymentController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get salary payment by ID",
             description = "Retrieves detailed information about a specific salary payment by its unique identifier. " +
@@ -132,6 +139,7 @@ public class SalaryPaymentController {
         return ResponseEntity.ok(iSalaryPaymentService.getSalaryPaymentById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update salary payment",
             description = "Updates an existing salary payment record. Only provided fields will be updated. Allows updating payment date, " +
@@ -148,6 +156,7 @@ public class SalaryPaymentController {
         return ResponseEntity.ok(iSalaryPaymentService.updateSalaryPayment(id, salaryPaymentDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete salary payment",
             description = "Deletes a salary payment record from the system. This operation cannot be undone. " +

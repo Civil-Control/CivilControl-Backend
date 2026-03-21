@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import PSG.backEnd.model.constants.AppPermissions;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/v1/payments")
 @RequiredArgsConstructor
@@ -34,6 +37,7 @@ public class PaymentController {
 
     private final IPaymentService paymentService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_WRITE + "')")
     @PostMapping("/cash")
     @Operation(summary = "Create a cash payment",
             description = "Registers a new payment made in cash (efectivo). Include payment date, amount, supplier, " +
@@ -53,6 +57,7 @@ public class PaymentController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_WRITE + "')")
     @PostMapping("/transfer")
     @Operation(summary = "Create a bank transfer payment",
             description = "Registers a new payment made via bank transfer (transferencia). " +
@@ -72,6 +77,7 @@ public class PaymentController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_WRITE + "')")
     @PostMapping("/check")
     @Operation(summary = "Create a check payment",
             description = "Registers a new payment made by check (cheque). " +
@@ -91,6 +97,7 @@ public class PaymentController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
     @GetMapping
     @Operation(summary = "Get all payments with filters",
             description = "Retrieves a paginated list of all payments (cash, transfer, and check) with optional filtering. " +
@@ -143,6 +150,7 @@ public class PaymentController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
     @GetMapping("/by-document/{documentId}")
     @Operation(summary = "Get payment ID by document ID",
             description = "Returns the payment-details ID of the active payment that covers the given document. Returns 204 if no payment is linked.")
@@ -153,6 +161,7 @@ public class PaymentController {
                 .orElse(ResponseEntity.noContent().build());
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get payment by ID",
             description = "Retrieves a payment by its PaymentDetails ID, automatically resolving the payment type (cash, transfer or check). " +
@@ -166,6 +175,7 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
     @GetMapping("/cash/{id}")
     @Operation(summary = "Get cash payment by ID",
             description = "Retrieves detailed information about a specific cash payment by its unique identifier.")
@@ -179,6 +189,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
     @GetMapping("/transfer/{id}")
     @Operation(summary = "Get transfer payment by ID",
             description = "Retrieves detailed information about a specific bank transfer payment by its unique identifier, " +
@@ -193,6 +204,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
     @GetMapping("/check/{id}")
     @Operation(summary = "Get check payment by ID",
             description = "Retrieves detailed information about a specific check payment by its unique identifier, " +
@@ -207,6 +219,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_WRITE + "')")
     @PatchMapping("/cash/{id}")
     @Operation(summary = "Update cash payment",
             description = "Updates an existing cash payment. Only provided fields will be updated. " +
@@ -227,6 +240,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_WRITE + "')")
     @PatchMapping("/transfer/{id}")
     @Operation(summary = "Update transfer payment",
             description = "Updates an existing bank transfer payment. Only provided fields will be updated. " +
@@ -247,6 +261,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_WRITE + "')")
     @PatchMapping("/check/{id}")
     @Operation(summary = "Update check payment",
             description = "Updates an existing check payment. Only provided fields will be updated. " +
@@ -267,6 +282,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete payment by ID",
             description = "Performs a soft delete of a payment by its PaymentDetails ID, automatically resolving the type (cash, transfer or check). " +
@@ -281,6 +297,7 @@ public class PaymentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_DELETE + "')")
     @DeleteMapping("/cash/{id}")
     @Operation(summary = "Delete cash payment",
             description = "Performs a soft delete of a cash payment. The payment is marked as deleted but remains in the database for audit trails. " +
@@ -296,6 +313,7 @@ public class PaymentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_DELETE + "')")
     @DeleteMapping("/transfer/{id}")
     @Operation(summary = "Delete transfer payment",
             description = "Performs a soft delete of a bank transfer payment. The payment is marked as deleted but remains in the database for audit trails. " +
@@ -311,6 +329,7 @@ public class PaymentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_DELETE + "')")
     @DeleteMapping("/check/{id}")
     @Operation(summary = "Delete check payment",
             description = "Performs a soft delete of a check payment. The payment is marked as deleted but remains in the database for audit trails. " +

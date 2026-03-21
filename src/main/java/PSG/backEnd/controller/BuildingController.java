@@ -22,6 +22,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
@@ -35,6 +38,7 @@ public class BuildingController {
 
     private final IBuildingService buildingService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.BUILDING_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new building",
             description = "Creates a new building in the system. Includes validation for unique building codes and automatic handling of previously deleted buildings with the same code.")
@@ -56,6 +60,7 @@ public class BuildingController {
         return ResponseEntity.created(location).body(created);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.BUILDING_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update building",
             description = "Updates an existing building in the system. Only provided fields will be updated. Validates that the building exists and isn't marked as deleted.")
@@ -72,6 +77,7 @@ public class BuildingController {
         return ResponseEntity.ok(updated);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.BUILDING_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete building",
             description = "Performs a soft delete of a building from the system. The building is marked as deleted but remains in the database for historical purposes. Cannot delete buildings with active stock items.")
@@ -86,6 +92,7 @@ public class BuildingController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.BUILDING_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get building by ID",
             description = "Retrieves detailed information about a specific building by its unique identifier.")
@@ -99,6 +106,7 @@ public class BuildingController {
         return ResponseEntity.ok(building);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.BUILDING_READ + "')")
     @GetMapping
     @Operation(summary = "Get all buildings with filters",
             description = "Retrieves a paginated list of buildings with optional filtering by name, code, type, project area (sector), and active status. Supports sorting by any field.")
@@ -123,6 +131,7 @@ public class BuildingController {
         return ResponseEntity.ok(buildingService.getAllBuildings(filterDTO, pageable));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.BUILDING_READ + "')")
     @GetMapping("/types")
     @Operation(summary = "Get all building types",
             description = "Returns all available building type options with their enum key and display name. Use the key when creating or updating buildings.")

@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import PSG.backEnd.model.constants.AppPermissions;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/v1/gas-stations")
 @RequiredArgsConstructor
@@ -31,6 +34,7 @@ public class GasStationController {
 
     private final IGasStationService gasStationService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.GAS_STATION_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new gas station",
             description = "Registers a new gas station with fuel prices. Each gas station must belong to a supplier and have at least one fuel price defined.")
@@ -45,6 +49,7 @@ public class GasStationController {
         return new ResponseEntity<>(createdGasStation, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.GAS_STATION_READ + "')")
     @GetMapping
     @Operation(summary = "Get all gas stations with filters",
             description = "Retrieves a paginated list of gas stations with optional filtering by supplier and available fuel types. Supports sorting and pagination.")
@@ -93,6 +98,7 @@ public class GasStationController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.GAS_STATION_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get gas station by ID",
             description = "Retrieves detailed information about a specific gas station by its unique identifier, including all fuel prices.")
@@ -105,6 +111,7 @@ public class GasStationController {
         return ResponseEntity.ok(gasStationService.getGasStationById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.GAS_STATION_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update gas station",
             description = "Updates an existing gas station record. Only provided fields will be updated. Can update supplier assignment and fuel prices.")
@@ -119,6 +126,7 @@ public class GasStationController {
         return ResponseEntity.ok(gasStationService.updateGasStation(id, gasStationDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.GAS_STATION_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete gas station",
             description = "Performs a soft deletion of a gas station. The record is marked as deleted but remains in the database. " +

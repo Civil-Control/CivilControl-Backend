@@ -25,6 +25,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.math.BigDecimal;
 import java.net.URI;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 @RestController
 @RequestMapping("/api/v1/stocks")
 @RequiredArgsConstructor
@@ -33,6 +36,7 @@ public class StockController {
 
     private final IStockService stockService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.STOCK_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new stock item",
             description = "Creates a new stock item in the inventory system. Includes validation for unique items and automatic handling of previously deleted items with the same characteristics.")
@@ -54,6 +58,7 @@ public class StockController {
         return ResponseEntity.created(location).body(created);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.STOCK_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update stock item",
             description = "Updates an existing stock item in the inventory. Only provided fields will be updated. Validates that the item exists and isn't marked as deleted.")
@@ -70,6 +75,7 @@ public class StockController {
         return ResponseEntity.ok(updated);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.STOCK_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete stock item",
             description = "Performs a soft delete of a stock item from the inventory. The item is marked as deleted but remains in the database for historical purposes.")
@@ -83,6 +89,7 @@ public class StockController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.STOCK_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get stock item by ID",
             description = "Retrieves detailed information about a specific stock item by its unique identifier.")
@@ -96,6 +103,7 @@ public class StockController {
         return ResponseEntity.ok(stock);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.STOCK_READ + "')")
     @GetMapping
     @Operation(summary = "Get all stock items with filters",
             description = "Retrieves a paginated list of stock items with optional filtering by name, building, category, and quantity range. Supports sorting by any field.")

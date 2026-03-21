@@ -19,8 +19,10 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import PSG.backEnd.model.constants.AppPermissions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -34,6 +36,7 @@ public class TransactionalDocumentController {
 
     private final ITransactionalDocumentService iTransactionalDocumentService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new transactional document",
             description = "Registers a new transactional document (invoice, credit note, or debit note) in the system. " +
@@ -56,6 +59,7 @@ public class TransactionalDocumentController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_READ + "')")
     @GetMapping
     @Operation(summary = "Get all transactional documents with filters",
             description = "Retrieves a paginated list of transactional documents with optional filtering by document number, supplier information, " +
@@ -144,6 +148,7 @@ public class TransactionalDocumentController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get transactional document by ID",
             description = "Retrieves detailed information about a specific transactional document by its unique identifier, " +
@@ -158,6 +163,7 @@ public class TransactionalDocumentController {
         return ResponseEntity.ok(iTransactionalDocumentService.getTransactionalDocumentById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update transactional document",
             description = "Updates an existing transactional document. Only provided fields will be updated. " +
@@ -182,6 +188,7 @@ public class TransactionalDocumentController {
         return ResponseEntity.ok(iTransactionalDocumentService.updateTransactionalDocument(id, transactionalDocumentDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete transactional document",
             description = "Performs a soft delete of a transactional document. The document is marked as deleted but remains in the database for audit trails and historical records. " +

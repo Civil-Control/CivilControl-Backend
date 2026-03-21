@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import PSG.backEnd.model.constants.AppPermissions;
+
 @RestController
 @RequestMapping("/api/v1/repairs")
 @RequiredArgsConstructor
@@ -32,6 +35,7 @@ public class RepairController {
 
     private final IRepairService repairService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new repair",
                description = "Creates a new vehicle repair record. The repair can be performed either by an internal employee or an external supplier.")
@@ -46,6 +50,7 @@ public class RepairController {
         return new ResponseEntity<>(createdRepair, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_READ + "')")
     @GetMapping
     @Operation(summary = "Get all repairs with filters",
                description = "Retrieves a paginated list of repairs with optional filtering.")
@@ -103,6 +108,7 @@ public class RepairController {
         };
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get repair by ID",
                description = "Retrieves detailed information about a specific repair.")
@@ -115,6 +121,7 @@ public class RepairController {
         return ResponseEntity.ok(repairService.getRepairById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update repair",
                description = "Updates an existing repair record. Only provided fields will be updated.")
@@ -129,6 +136,7 @@ public class RepairController {
         return ResponseEntity.ok(repairService.updateRepair(id, repairDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete repair",
                description = "Deletes a repair record from the system.")

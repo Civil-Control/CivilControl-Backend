@@ -22,8 +22,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import PSG.backEnd.model.constants.AppPermissions;
 import java.time.LocalDate;
 
 @RestController
@@ -39,6 +41,7 @@ public class VehicleController {
     // VEHICLE ENDPOINTS
     // ============================================================
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_WRITE + "')")
     @PostMapping
     @Operation(summary = "Create a new vehicle",
             description = "Registers a new vehicle in the system. Includes vehicle identification (license plate), specifications (brand, model, year), " +
@@ -57,6 +60,7 @@ public class VehicleController {
         return new ResponseEntity<>(createdVehicle, HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_READ + "')")
     @GetMapping
     @Operation(summary = "Get all vehicles with filters",
             description = "Retrieves a paginated list of vehicles with optional filtering by license plate, brand, model, year, color, " +
@@ -101,6 +105,7 @@ public class VehicleController {
         return ResponseEntity.ok(iVehicleService.getAllVehicles(filterDTO, pageable));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get vehicle by ID",
             description = "Retrieves detailed information about a specific vehicle by its unique identifier.")
@@ -113,6 +118,7 @@ public class VehicleController {
         return ResponseEntity.ok(iVehicleService.getVehicleById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update vehicle",
             description = "Updates an existing vehicle record. Only provided fields will be updated. Allows updating vehicle specifications, " +
@@ -131,6 +137,7 @@ public class VehicleController {
         return ResponseEntity.ok(iVehicleService.updateVehicle(id, vehicleDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete vehicle",
             description = "Deletes a vehicle record from the system. This operation cannot be undone. " +
@@ -146,6 +153,7 @@ public class VehicleController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_WRITE + "')")
     @PatchMapping("/{id}/activate")
     @Operation(summary = "Set vehicle as active (in service)",
             description = "Marks an inactive vehicle as active/in service. This is an operational status change, not a soft-delete restore.")
@@ -158,6 +166,7 @@ public class VehicleController {
         return ResponseEntity.ok(iVehicleService.activateVehicle(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_WRITE + "')")
     @PatchMapping("/{id}/deactivate")
     @Operation(summary = "Set vehicle as inactive (out of service)",
             description = "Marks a vehicle as inactive/out of service. The vehicle record is preserved and can be reactivated. This is NOT a soft-delete.")
@@ -174,6 +183,7 @@ public class VehicleController {
     // VEHICLE TYPE ENDPOINTS
     // ============================================================
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_WRITE + "')")
     @PostMapping("/types")
     @Operation(summary = "Create a new vehicle type",
             description = "Registers a new vehicle type in the system.")
@@ -187,6 +197,7 @@ public class VehicleController {
         return new ResponseEntity<>(iVehicleTypeService.createVehicleType(vehicleTypeDTO), HttpStatus.CREATED);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_READ + "')")
     @GetMapping("/types")
     @Operation(summary = "Get all vehicle types",
             description = "Returns a paginated and filterable list of available vehicle types.")
@@ -204,6 +215,7 @@ public class VehicleController {
         return ResponseEntity.ok(iVehicleTypeService.getAllVehicleTypes(name, requiresTruckEquipment, pageable));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_READ + "')")
     @GetMapping("/types/{id}")
     @Operation(summary = "Get vehicle type by ID",
             description = "Returns the information of a specific vehicle type.")
@@ -216,6 +228,7 @@ public class VehicleController {
         return ResponseEntity.ok(iVehicleTypeService.getVehicleTypeById(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_WRITE + "')")
     @PatchMapping("/types/{id}")
     @Operation(summary = "Update vehicle type",
             description = "Updates an existing vehicle type. Only provided fields will be updated.")
@@ -231,6 +244,7 @@ public class VehicleController {
         return ResponseEntity.ok(iVehicleTypeService.updateVehicleType(id, vehicleTypeDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_DELETE + "')")
     @DeleteMapping("/types/{id}")
     @Operation(summary = "Delete vehicle type",
             description = "Deletes a vehicle type from the system. Cannot be deleted if there are associated vehicles.")

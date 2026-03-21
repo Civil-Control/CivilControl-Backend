@@ -18,9 +18,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import PSG.backEnd.model.constants.AppPermissions;
 import java.net.URI;
 import java.util.List;
 
@@ -42,6 +44,7 @@ public class RoleController {
 
     private final IRoleService roleService;
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
     @PostMapping
     @Operation(summary = "Create a new role",
             description = "Creates a new role in the system by grouping selected permissions. " +
@@ -65,6 +68,7 @@ public class RoleController {
         return ResponseEntity.created(location).body(created);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
     @GetMapping
     @Operation(summary = "Get all roles with filters",
             description = "Retrieves a paginated list of roles with optional filtering by name and active status. " +
@@ -102,6 +106,7 @@ public class RoleController {
         return ResponseEntity.ok(roles);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get role by ID",
             description = "Retrieves detailed information about a specific role including all its assigned permissions.")
@@ -116,6 +121,7 @@ public class RoleController {
         return ResponseEntity.ok(role);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update role",
             description = "Updates an existing role. Only provided fields will be updated. " +
@@ -136,6 +142,7 @@ public class RoleController {
         return ResponseEntity.ok(updated);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete role",
             description = "Performs a soft delete of a role from the system. " +
@@ -155,6 +162,7 @@ public class RoleController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
     @GetMapping("/{id}/users")
     @Operation(summary = "Get users assigned to a role",
             description = "Retrieves all active users that have the specified role assigned.")
@@ -169,6 +177,7 @@ public class RoleController {
         return ResponseEntity.ok(users);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
     @GetMapping("/permissions")
     @Operation(summary = "Get all available permissions",
             description = "Retrieves all permissions available in the system, grouped by module. " +
