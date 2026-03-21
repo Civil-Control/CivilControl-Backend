@@ -74,6 +74,14 @@ public class TenantController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/me")
+    @Operation(summary = "Get current tenant")
+    @ApiResponse(responseCode = "200", description = "Current tenant found")
+    public ResponseEntity<TenantResponseDTO> getCurrentTenant() {
+        TenantResponseDTO tenant = tenantService.getCurrentTenant();
+        return ResponseEntity.ok(tenant);
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get tenant by ID")
     @ApiResponses(value = {

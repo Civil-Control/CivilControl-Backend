@@ -12,6 +12,7 @@ import PSG.backEnd.model.mapper.TenantMapper;
 import PSG.backEnd.repository.TenantRepository;
 import PSG.backEnd.service.port.ITenantService;
 import PSG.backEnd.service.util.MessageSourceHelper;
+import PSG.backEnd.service.util.TenantContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -50,6 +51,13 @@ public class TenantService implements ITenantService {
                 filterDTO.search(),
                 pageable
         ).map(tenantMapper::toResponseDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TenantResponseDTO getCurrentTenant() {
+        Long tenantId = TenantContext.getCurrentTenant();
+        return getTenantById(tenantId);
     }
 
     @Override

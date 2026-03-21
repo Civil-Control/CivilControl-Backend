@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 public interface ITenantService {
     TenantResponseDTO createTenant(TenantDTO tenantDTO);
     TenantResponseDTO getTenantById(Long id);
+    TenantResponseDTO getCurrentTenant();
     TenantResponseDTO updateTenant(Long id, TenantDTO tenantDTO);
     void deleteTenant(Long id);
     Page<TenantResponseDTO> getAllTenants(TenantFilterDTO filterDTO, Pageable pageable);
