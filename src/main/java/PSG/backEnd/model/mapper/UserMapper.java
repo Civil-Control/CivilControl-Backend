@@ -1,10 +1,15 @@
 package PSG.backEnd.model.mapper;
 
+import PSG.backEnd.model.dto.security.RoleSimpleDTO;
 import PSG.backEnd.model.dto.security.UserRequestDTO;
 import PSG.backEnd.model.dto.security.UserResponseDTO;
 import PSG.backEnd.model.entity.UserLocation;
+import PSG.backEnd.model.entity.security.Role;
 import PSG.backEnd.model.entity.security.User;
 import org.mapstruct.*;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Mapper for User entity.
@@ -20,7 +25,23 @@ public interface UserMapper {
     User toEntity(UserRequestDTO requestDTO);
 
     @Mapping(target = "fullName", expression = "java(user.getFullName())")
+    @Mapping(target = "roles", source = "roles", qualifiedByName = "activeRolesOnly")
     UserResponseDTO toResponseDto(User user);
+
+    /**
+     * Maps only non-deleted roles to RoleSimpleDTO set.
+     * Prevents deleted roles from reaching the frontend.
+     */
+    @Named("activeRolesOnly")
+    default Set<RoleSimpleDTO> mapActiveRoles(Set<Role> roles) {
+        if (roles == null) return Set.of();
+        return roles.stream()
+                .filter(role -> !Boolean.TRUE.equals(role.getDeleted()))
+                .map(this::roleToSimpleDto)
+                .collect(Collectors.toSet());
+    }
+
+    RoleSimpleDTO roleToSimpleDto(Role role);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
