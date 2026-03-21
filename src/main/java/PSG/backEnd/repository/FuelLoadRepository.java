@@ -27,6 +27,7 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             "LEFT JOIN fl.vehicle v " +
             "LEFT JOIN fl.projectArea pa " +
             "LEFT JOIN fl.gasStation gs " +
+            "LEFT JOIN gs.supplier gsS " +
             "WHERE (CAST(:dateFrom AS date) IS NULL OR fl.date >= :dateFrom) " +
             "AND (CAST(:dateTo AS date) IS NULL OR fl.date <= :dateTo) " +
             "AND (:branchCode IS NULL OR LOWER(CAST(fl.branchCode AS string)) LIKE LOWER(CONCAT('%', CAST(:branchCode AS string), '%'))) " +
@@ -37,7 +38,8 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             "AND (CAST(:projectAreaId AS long) IS NULL OR fl.projectArea.id = :projectAreaId) " +
             "AND (:projectAreaName IS NULL OR LOWER(CAST(pa.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))) " +
             "AND (CAST(:gasStationId AS long) IS NULL OR fl.gasStation.id = :gasStationId) " +
-            "AND (:gasStationName IS NULL OR LOWER(CAST(gs.name AS string)) LIKE LOWER(CONCAT('%', CAST(:gasStationName AS string), '%'))) " +
+            "AND (:gasStationName IS NULL OR LOWER(CAST(gsS.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:gasStationName AS string), '%')) " +
+            "     OR :gasStationName IS NULL OR LOWER(CAST(gsS.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:gasStationName AS string), '%'))) " +
             "AND (CAST(:totalAmountMin AS big_decimal) IS NULL OR fl.totalAmount >= :totalAmountMin) " +
             "AND (CAST(:totalAmountMax AS big_decimal) IS NULL OR fl.totalAmount <= :totalAmountMax) " +
             "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
