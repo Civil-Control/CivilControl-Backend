@@ -57,6 +57,9 @@ public class GasStationService implements IGasStationService {
                 filterDTO.supplierId(),
                 filterDTO.supplierName(),
                 filterDTO.fuelTypes(),
+                filterDTO.supplierTradeName(),
+                filterDTO.supplierCuit(),
+                filterDTO.supplierActive(),
                 pageable
         );
 

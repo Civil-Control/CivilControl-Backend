@@ -52,6 +52,9 @@ public class GasStationController {
     public ResponseEntity<Page<GasStationResponseDTO>> getGasStations(
             @Parameter(description = "Filter by supplier ID") @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Filter by supplier name (case-insensitive search)") @RequestParam(required = false) String supplierName,
+            @Parameter(description = "Filter by supplier trade name (partial match)") @RequestParam(required = false) String supplierTradeName,
+            @Parameter(description = "Filter by supplier CUIT (partial match)") @RequestParam(required = false) String supplierCuit,
+            @Parameter(description = "Filter by supplier active status") @RequestParam(required = false) Boolean supplierActive,
             @Parameter(description = "Filter by available fuel types") @RequestParam(required = false) List<String> fuelTypes,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
@@ -66,7 +69,7 @@ public class GasStationController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        GasStationFilterDTO filterDTO = new GasStationFilterDTO(supplierId, supplierName, fuelTypes);
+        GasStationFilterDTO filterDTO = new GasStationFilterDTO(supplierId, supplierName, fuelTypes, supplierTradeName, supplierCuit, supplierActive);
 
         return ResponseEntity.ok(gasStationService.getAllGasStations(filterDTO, pageable));
     }
@@ -77,17 +80,16 @@ public class GasStationController {
      */
     private String mapSortField(String sortBy) {
         return switch (sortBy) {
-            case "supplierLegalName" -> "supplier.legalName";
+            case "supplierName", "supplierLegalName" -> "supplier.legalName";
             case "supplierTradeName" -> "supplier.tradeName";
             case "supplierCuit" -> "supplier.cuit";
             case "supplierDefaultDiscountPercentage" -> "supplier.defaultDiscountPercentage";
             case "supplierId" -> "supplier.id";
-            // Keep backward compatibility with old field names
             case "legalName" -> "supplier.legalName";
             case "tradeName" -> "supplier.tradeName";
             case "cuit" -> "supplier.cuit";
             case "defaultDiscountPercentage" -> "supplier.defaultDiscountPercentage";
-            default -> sortBy; // For 'id' and any other fields
+            default -> sortBy;
         };
     }
 

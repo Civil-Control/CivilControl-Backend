@@ -651,6 +651,9 @@ public class ReportService implements IReportService {
                 null, // projectAreaName
                 null, // gasStationId
                 null, // search
+                null, // gasStationName
+                null, // totalAmountMin
+                null, // totalAmountMax
                 pageable
         ).getContent();
 

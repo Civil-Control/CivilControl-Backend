@@ -20,5 +20,17 @@ public record GasStationFilterDTO(
         @Schema(description = "Filter by available fuel types. Gas stations offering any of these fuel types will be returned.",
                 example = "[\"NAFTA_SUPER\", \"DIESEL\"]",
                 nullable = true)
-        List<String> fuelTypes
+        List<String> fuelTypes,
+
+        @Schema(description = "Filter by supplier trade name. Partial match.",
+                nullable = true)
+        String supplierTradeName,
+
+        @Schema(description = "Filter by supplier CUIT. Partial match.",
+                nullable = true)
+        String supplierCuit,
+
+        @Schema(description = "Filter by supplier active status.",
+                nullable = true)
+        Boolean supplierActive
 ) {}
