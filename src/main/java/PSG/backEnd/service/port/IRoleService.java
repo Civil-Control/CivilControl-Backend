@@ -4,8 +4,11 @@ import PSG.backEnd.model.dto.security.GroupedPermissionsDTO;
 import PSG.backEnd.model.dto.security.RoleFilterDTO;
 import PSG.backEnd.model.dto.security.RoleRequestDTO;
 import PSG.backEnd.model.dto.security.RoleResponseDTO;
+import PSG.backEnd.model.dto.security.UserResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 /**
  * Service interface for role management.
@@ -44,9 +47,18 @@ public interface IRoleService {
 
     /**
      * Deletes (soft delete) a role from the system.
+     * If the role has assigned users, they must be reassigned to newRoleId.
      * @param id ID of the role to delete
+     * @param newRoleId ID of the role to reassign users to (null if no users)
      */
-    void deleteRole(Long id);
+    void deleteRole(Long id, Long newRoleId);
+
+    /**
+     * Gets all active users assigned to a specific role.
+     * @param roleId Role ID
+     * @return List of users with this role
+     */
+    List<UserResponseDTO> getUsersByRoleId(Long roleId);
 
     /**
      * Gets all available permissions grouped by module.

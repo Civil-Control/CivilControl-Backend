@@ -4,6 +4,7 @@ import PSG.backEnd.model.dto.security.GroupedPermissionsDTO;
 import PSG.backEnd.model.dto.security.RoleFilterDTO;
 import PSG.backEnd.model.dto.security.RoleRequestDTO;
 import PSG.backEnd.model.dto.security.RoleResponseDTO;
+import PSG.backEnd.model.dto.security.UserResponseDTO;
 import PSG.backEnd.service.port.IRoleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 /**
  * REST controller for role management.
@@ -137,18 +139,34 @@ public class RoleController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete role",
             description = "Performs a soft delete of a role from the system. " +
-                         "The role is marked as deleted but remains in the database for historical purposes. " +
+                         "If the role has users assigned, a newRoleId must be provided to reassign them. " +
                          "Cannot delete system roles (ROOT, ADMIN).")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Role successfully deleted"),
-            @ApiResponse(responseCode = "400", description = "Cannot delete system role or role in use"),
+            @ApiResponse(responseCode = "400", description = "Cannot delete system role or role has users without reassignment"),
             @ApiResponse(responseCode = "404", description = "Role not found")
     })
     public ResponseEntity<Void> deleteRole(
             @Parameter(description = "Role unique identifier", required = true, example = "1")
-            @PathVariable Long id) {
-        roleService.deleteRole(id);
+            @PathVariable Long id,
+            @Parameter(description = "ID of the role to reassign affected users to")
+            @RequestParam(required = false) Long newRoleId) {
+        roleService.deleteRole(id, newRoleId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/users")
+    @Operation(summary = "Get users assigned to a role",
+            description = "Retrieves all active users that have the specified role assigned.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Role not found")
+    })
+    public ResponseEntity<List<UserResponseDTO>> getUsersByRole(
+            @Parameter(description = "Role unique identifier", required = true, example = "1")
+            @PathVariable Long id) {
+        List<UserResponseDTO> users = roleService.getUsersByRoleId(id);
+        return ResponseEntity.ok(users);
     }
 
     @GetMapping("/permissions")

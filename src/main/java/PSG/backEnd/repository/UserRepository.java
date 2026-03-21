@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -65,6 +66,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Checks if a user exists by ID (excluding deleted).
      */
     boolean existsByIdAndDeletedFalse(Long id);
+
+    /**
+     * Finds active users that have a specific role assigned.
+     */
+    List<User> findByRoles_IdAndDeletedFalse(Long roleId);
 
     /**
      * Gets all non-deleted users.

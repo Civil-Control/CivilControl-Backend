@@ -8,10 +8,13 @@ import PSG.backEnd.exception.role.RoleNotValidException;
 import PSG.backEnd.model.dto.security.*;
 import PSG.backEnd.model.entity.security.Permission;
 import PSG.backEnd.model.entity.security.Role;
+import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.model.mapper.PermissionMapper;
 import PSG.backEnd.model.mapper.RoleMapper;
+import PSG.backEnd.model.mapper.UserMapper;
 import PSG.backEnd.repository.PermissionRepository;
 import PSG.backEnd.repository.RoleRepository;
+import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IRoleService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Collectors;
 
 /**
@@ -36,8 +40,10 @@ public class RoleService implements IRoleService {
 
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final UserRepository userRepository;
     private final RoleMapper roleMapper;
     private final PermissionMapper permissionMapper;
+    private final UserMapper userMapper;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
@@ -131,7 +137,7 @@ public class RoleService implements IRoleService {
 
     @Override
     @Transactional
-    public void deleteRole(Long id) {
+    public void deleteRole(Long id, Long newRoleId) {
         log.info("Deleting role with id: {}", id);
 
         Role role = roleRepository.findByIdAndDeletedFalse(id)
@@ -140,11 +146,51 @@ public class RoleService implements IRoleService {
         // Validate that the role can be deleted
         validateRoleDeletion(role);
 
+        // Check if any users have this role assigned
+        List<User> affectedUsers = userRepository.findByRoles_IdAndDeletedFalse(id);
+
+        if (!affectedUsers.isEmpty()) {
+            if (newRoleId == null) {
+                throw new RoleNotValidException(
+                        "No se puede eliminar el rol '" + role.getName() + "' porque tiene " +
+                        affectedUsers.size() + " usuario(s) asignado(s). Debe reasignarlos a otro rol.");
+            }
+
+            if (newRoleId.equals(id)) {
+                throw new RoleNotValidException("El rol de destino no puede ser el mismo que se va a eliminar.");
+            }
+
+            Role newRole = roleRepository.findByIdAndDeletedFalse(newRoleId)
+                    .orElseThrow(() -> new RoleNotFoundException(newRoleId));
+
+            // Reassign users: remove old role, add new role
+            for (User user : affectedUsers) {
+                user.getRoles().removeIf(r -> r.getId().equals(id));
+                user.getRoles().add(newRole);
+                userRepository.save(user);
+            }
+
+            log.info("Reassigned {} users from role '{}' to role '{}'",
+                    affectedUsers.size(), role.getName(), newRole.getName());
+        }
+
         role.setDeleted(true);
         role.setActive(false);
         roleRepository.save(role);
 
         log.info("Role deleted successfully: {}", role.getName());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponseDTO> getUsersByRoleId(Long roleId) {
+        roleRepository.findByIdAndDeletedFalse(roleId)
+                .orElseThrow(() -> new RoleNotFoundException(roleId));
+
+        return userRepository.findByRoles_IdAndDeletedFalse(roleId)
+                .stream()
+                .map(userMapper::toResponseDto)
+                .collect(Collectors.toList());
     }
 
     @Override
