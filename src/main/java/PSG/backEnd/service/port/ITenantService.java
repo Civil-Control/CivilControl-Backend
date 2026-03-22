@@ -1,5 +1,6 @@
 package PSG.backEnd.service.port;
 
+import PSG.backEnd.model.dto.tenant.TenantCreateDTO;
 import PSG.backEnd.model.dto.tenant.TenantDTO;
 import PSG.backEnd.model.dto.tenant.TenantFilterDTO;
 import PSG.backEnd.model.dto.tenant.TenantResponseDTO;
@@ -8,7 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface ITenantService {
-    TenantResponseDTO createTenant(TenantDTO tenantDTO);
+    TenantResponseDTO createTenant(TenantCreateDTO createDTO);
     TenantResponseDTO getTenantById(Long id);
     TenantResponseDTO getCurrentTenant();
     TenantResponseDTO updateTenant(Long id, TenantDTO tenantDTO);

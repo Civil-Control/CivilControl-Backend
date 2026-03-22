@@ -4,6 +4,7 @@ import PSG.backEnd.exception.tenant.TenantAlreadyExistsException;
 import PSG.backEnd.exception.tenant.TenantDataConflictException;
 import PSG.backEnd.exception.tenant.TenantNotFoundException;
 import PSG.backEnd.exception.tenant.TenantNotValidException;
+import PSG.backEnd.model.dto.tenant.TenantCreateDTO;
 import PSG.backEnd.model.dto.tenant.TenantDTO;
 import PSG.backEnd.model.dto.tenant.TenantFilterDTO;
 import PSG.backEnd.model.dto.tenant.TenantResponseDTO;
@@ -33,13 +34,14 @@ public class TenantService implements ITenantService {
 
     @Override
     @Transactional
-    public TenantResponseDTO createTenant(TenantDTO tenantDTO) {
+    public TenantResponseDTO createTenant(TenantCreateDTO createDTO) {
+        TenantDTO tenantDTO = createDTO.tenant();
         validateNewTenant(tenantDTO);
         Optional<Tenant> deletedTenant = findDeletedTenant(tenantDTO);
         if (deletedTenant.isPresent()) {
-            return reactivateTenant(deletedTenant.get(), tenantDTO);
+            return reactivateTenant(deletedTenant.get(), tenantDTO, createDTO);
         }
-        return createNewTenant(tenantDTO);
+        return createNewTenant(tenantDTO, createDTO);
     }
 
     @Override
@@ -149,26 +151,36 @@ public class TenantService implements ITenantService {
         return tenantRepository.findByCuitAndDeletedTrue(tenantDTO.cuit());
     }
 
-    private TenantResponseDTO reactivateTenant(Tenant tenant, TenantDTO tenantDTO) {
+    private TenantResponseDTO reactivateTenant(Tenant tenant, TenantDTO tenantDTO, TenantCreateDTO createDTO) {
         tenantMapper.partialUpdate(tenantDTO, tenant);
         tenant.setDeleted(false);
         tenant.setActive(tenantDTO.active() != null ? tenantDTO.active() : true);
-        return tenantMapper.toResponseDto(tenantRepository.save(tenant));
+        Tenant savedTenant = tenantRepository.save(tenant);
+
+        tenantProvisioningService.provisionNewTenant(
+                savedTenant.getId(),
+                createDTO.ownerEmail(),
+                createDTO.ownerUsername(),
+                createDTO.ownerPassword(),
+                createDTO.ownerFirstName(),
+                createDTO.ownerLastName()
+        );
+
+        return tenantMapper.toResponseDto(savedTenant);
     }
 
-    private TenantResponseDTO createNewTenant(TenantDTO tenantDTO) {
+    private TenantResponseDTO createNewTenant(TenantDTO tenantDTO, TenantCreateDTO createDTO) {
         Tenant tenant = tenantMapper.toEntity(tenantDTO);
         tenant.setDeleted(false);
         Tenant savedTenant = tenantRepository.save(tenant);
 
-        // Provision the new tenant with default system roles and owner user
         tenantProvisioningService.provisionNewTenant(
                 savedTenant.getId(),
-                "admin@" + savedTenant.getName().toLowerCase().replaceAll("\\s+", "") + ".com",
-                "admin",
-                "Admin123",
-                "System",
-                "Administrator"
+                createDTO.ownerEmail(),
+                createDTO.ownerUsername(),
+                createDTO.ownerPassword(),
+                createDTO.ownerFirstName(),
+                createDTO.ownerLastName()
         );
 
         return tenantMapper.toResponseDto(savedTenant);

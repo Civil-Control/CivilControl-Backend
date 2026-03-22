@@ -1,5 +1,6 @@
 package PSG.backEnd.controller;
 
+import PSG.backEnd.model.dto.tenant.TenantCreateDTO;
 import PSG.backEnd.model.dto.tenant.TenantDTO;
 import PSG.backEnd.model.dto.tenant.TenantFilterDTO;
 import PSG.backEnd.model.dto.tenant.TenantResponseDTO;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.groups.Default;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,7 +43,7 @@ public class TenantController {
             @ApiResponse(responseCode = "409", description = "Tenant already exists with the same CUIT")
     })
     public ResponseEntity<TenantResponseDTO> createTenant(
-            @Validated(OnCreate.class) @RequestBody TenantDTO dto) {
+            @Validated({Default.class, OnCreate.class}) @RequestBody TenantCreateDTO dto) {
         TenantResponseDTO created = tenantService.createTenant(dto);
         URI location = ServletUriComponentsBuilder
                 .fromCurrentRequest()
