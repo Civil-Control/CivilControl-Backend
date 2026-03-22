@@ -86,8 +86,8 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("TENANT_", "Tenants");
         MODULE_MAP.put("REPORT_", "Reports");
         MODULE_MAP.put("DATA_", "System");
-        MODULE_MAP.put("USER_", "System");
-        MODULE_MAP.put("ROLE_", "System");
+        MODULE_MAP.put("USER_", "Users");
+        MODULE_MAP.put("ROLE_", "Roles");
         MODULE_MAP.put("SYSTEM_", "System");
         MODULE_MAP.put("AUDIT_", "System");
         MODULE_MAP.put("EXCEPTION_LOG_", "System");
@@ -116,8 +116,8 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("TENANT_", "Empresa");
         MODULE_SPANISH_MAP.put("REPORT_", "Reportes");
         MODULE_SPANISH_MAP.put("DATA_", "Sistema");
-        MODULE_SPANISH_MAP.put("USER_", "Sistema");
-        MODULE_SPANISH_MAP.put("ROLE_", "Sistema");
+        MODULE_SPANISH_MAP.put("USER_", "Usuarios");
+        MODULE_SPANISH_MAP.put("ROLE_", "Roles");
         MODULE_SPANISH_MAP.put("SYSTEM_", "Sistema");
         MODULE_SPANISH_MAP.put("AUDIT_", "Sistema");
         MODULE_SPANISH_MAP.put("EXCEPTION_LOG_", "Sistema");
