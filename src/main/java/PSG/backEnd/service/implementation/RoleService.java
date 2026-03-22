@@ -22,6 +22,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +56,9 @@ public class RoleService implements IRoleService {
 
         // Validar datos del rol
         validateNewRole(requestDTO);
+
+        // Validar que el usuario autenticado posee todos los permisos que intenta asignar
+        validateUserCanAssignPermissions(requestDTO.permissionIds());
 
         // Check if there's a deleted role with the same name
         Optional<Role> deletedRole = roleRepository.findByName(requestDTO.name())
@@ -121,6 +127,8 @@ public class RoleService implements IRoleService {
             if (requestDTO.permissionIds().isEmpty()) {
                 throw new RoleNotValidException(messageSourceHelper.getMessage("role.permissions.required"));
             }
+            // Validar que el usuario autenticado posee todos los permisos que intenta asignar
+            validateUserCanAssignPermissions(requestDTO.permissionIds());
             Set<Permission> permissions = validateAndGetPermissions(requestDTO.permissionIds());
             existingRole.setPermissions(permissions);
         }
@@ -200,9 +208,15 @@ public class RoleService implements IRoleService {
 
         List<Permission> allPermissions = permissionRepository.findAll();
 
+        // Obtener los permisos del usuario autenticado para filtrar
+        Set<String> currentUserPermissionNames = getAuthenticatedUserPermissionNames();
+        boolean isGodMode = isAuthenticatedUserGodMode();
+
         // Agrupar permisos por módulo, excluyendo permisos internos del sistema (módulo "System")
+        // y filtrando solo los permisos que el usuario autenticado posee
         Map<String, List<PermissionDTO>> groupedMap = allPermissions.stream()
                 .filter(p -> !"System".equals(p.getModule()))
+                .filter(p -> isGodMode || currentUserPermissionNames.contains(p.getName()))
                 .map(permissionMapper::toDto)
                 .collect(Collectors.groupingBy(PermissionDTO::module));
 
@@ -216,6 +230,60 @@ public class RoleService implements IRoleService {
     }
 
     // ==================== Métodos privados de validación ====================
+
+    /**
+     * Obtiene los nombres de permisos del usuario autenticado.
+     */
+    private Set<String> getAuthenticatedUserPermissionNames() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return Collections.emptySet();
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(a -> !a.startsWith("ROLE_"))
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Verifica si el usuario autenticado tiene God Mode (ROLE_ROOT o ROLE_ADMIN).
+     */
+    private boolean isAuthenticatedUserGodMode() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> "ROLE_ROOT".equals(a) || "ROLE_ADMIN".equals(a));
+    }
+
+    /**
+     * Valida que el usuario autenticado posee TODOS los permisos que intenta asignar a un rol.
+     * Previene escalación de privilegios: un usuario no puede asignar permisos que no tiene.
+     * Usuarios con God Mode (ROOT/ADMIN) están exentos de esta validación.
+     */
+    private void validateUserCanAssignPermissions(Set<Long> permissionIds) {
+        if (isAuthenticatedUserGodMode()) {
+            return;
+        }
+
+        Set<String> userPermissions = getAuthenticatedUserPermissionNames();
+
+        List<Permission> requestedPermissions = permissionRepository.findAllById(permissionIds)
+                .stream().toList();
+
+        List<String> unauthorizedPermissions = requestedPermissions.stream()
+                .filter(p -> !userPermissions.contains(p.getName()))
+                .map(Permission::getSpanishTranslation)
+                .toList();
+
+        if (!unauthorizedPermissions.isEmpty()) {
+            String permissionNames = String.join(", ", unauthorizedPermissions);
+            throw new RoleNotValidException(
+                    messageSourceHelper.getMessage("role.permissions.escalation", permissionNames));
+        }
+    }
 
     /**
      * Validates data for a new role.
