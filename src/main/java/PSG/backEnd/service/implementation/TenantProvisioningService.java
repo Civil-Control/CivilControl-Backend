@@ -20,11 +20,12 @@ import java.util.Set;
 
 /**
  * Service responsible for provisioning new tenants with their initial data structure.
- * This includes creating base roles (ROOT, ADMIN, USER) and an admin user.
+ * Creates three immutable system roles (OWNER, ADMIN, LECTOR) and the owner user.
  *
- * This service is designed to work in multi-tenant environments where each tenant
- * needs isolated data. It explicitly assigns tenantId to all entities, bypassing
- * the TenantContext which may not be available during seeding or API-driven provisioning.
+ * System Roles:
+ * - OWNER: All permissions. Assigned to the first user of the tenant. Cannot be modified.
+ * - ADMIN: Same permissions as OWNER except cannot modify OWNER users/role. Cannot be modified.
+ * - LECTOR: Read-only access to all modules. Cannot be modified.
  *
  * @author Maximo Andriola
  * @since 2026-02-18
@@ -34,6 +35,10 @@ import java.util.Set;
 @Slf4j
 public class TenantProvisioningService {
 
+    public static final String ROLE_OWNER = "OWNER";
+    public static final String ROLE_ADMIN = "ADMIN";
+    public static final String ROLE_LECTOR = "LECTOR";
+
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PermissionRepository permissionRepository;
@@ -41,88 +46,86 @@ public class TenantProvisioningService {
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * Provisions a new tenant with initial roles and admin user.
+     * Provisions a new tenant with system roles and the owner user.
      * This method is idempotent - it will skip creation if roles/users already exist.
      *
      * @param tenantId The ID of the tenant to provision
-     * @param adminEmail Email for the admin user
-     * @param username Username for the admin user
-     * @param password Plain text password (will be encoded)
-     * @throws IllegalArgumentException if tenantId is null or invalid
+     * @param ownerEmail Email for the owner user
+     * @param ownerUsername Username for the owner user
+     * @param ownerPassword Plain text password (will be encoded)
+     * @param ownerFirstName First name of the owner
+     * @param ownerLastName Last name of the owner
      */
     @Transactional
-    public void provisionNewTenant(Long tenantId, String adminEmail, String username, String password) {
+    public void provisionNewTenant(Long tenantId, String ownerEmail, String ownerUsername,
+                                   String ownerPassword, String ownerFirstName, String ownerLastName) {
         if (tenantId == null || tenantId <= 0) {
             throw new IllegalArgumentException("Tenant ID must be a positive number");
         }
 
         log.info("=== Starting tenant provisioning for Tenant ID: {} ===", tenantId);
 
-        // Create base roles
-        Role rootRole = createRootRole(tenantId);
+        // Create immutable system roles
+        Role ownerRole = createOwnerRole(tenantId);
         Role adminRole = createAdminRole(tenantId);
-        Role userRole = createUserRole(tenantId);
+        Role lectorRole = createLectorRole(tenantId);
 
-        // Create admin user
-        createAdminUser(tenantId, adminEmail, username, password, rootRole);
+        // Create owner user with OWNER role
+        createOwnerUser(tenantId, ownerEmail, ownerUsername, ownerPassword,
+                ownerFirstName, ownerLastName, ownerRole);
 
         log.info("=== Tenant provisioning completed for Tenant ID: {} ===", tenantId);
     }
 
     /**
-     * Creates ROOT role with all permissions for the specified tenant.
-     * ROOT role is for system administrators and developers only.
+     * Creates OWNER role with all permissions for the specified tenant.
+     * This is a system role and cannot be modified, renamed, or deleted.
      */
-    private Role createRootRole(Long tenantId) {
-        // Check if ROOT role already exists for this tenant
-        if (roleRepository.existsByNameAndTenantId("ROOT", tenantId)) {
-            log.info("ROOT role already exists for tenant {}, skipping...", tenantId);
-            return roleRepository.findByNameAndTenantId("ROOT", tenantId)
+    private Role createOwnerRole(Long tenantId) {
+        if (roleRepository.existsByNameAndTenantId(ROLE_OWNER, tenantId)) {
+            log.info("OWNER role already exists for tenant {}, skipping...", tenantId);
+            return roleRepository.findByNameAndTenantId(ROLE_OWNER, tenantId)
                     .orElseThrow(() -> new IllegalStateException("Role exists but cannot be retrieved"));
         }
 
-        log.info("Creating ROOT role for tenant {}...", tenantId);
+        log.info("Creating OWNER role for tenant {}...", tenantId);
 
-        // Get all permissions (permissions are shared across tenants)
         List<Permission> allPermissions = permissionRepository.findAll();
 
-        Role rootRole = Role.builder()
-                .name("ROOT")
-                .description("Super administrator with all permissions. Cannot be deleted or modified.")
+        Role ownerRole = Role.builder()
+                .name(ROLE_OWNER)
+                .description("Propietario del tenant con todos los permisos. Rol del sistema, no se puede modificar ni eliminar.")
                 .permissions(new HashSet<>(allPermissions))
                 .active(true)
                 .deleted(false)
+                .systemRole(true)
                 .build();
 
-        // CRITICAL: Explicitly set tenantId (bypasses TenantContext)
-        rootRole.setTenantId(tenantId);
+        ownerRole.setTenantId(tenantId);
+        ownerRole = roleRepository.save(ownerRole);
+        log.info("OWNER role created for tenant {} with {} permissions", tenantId, allPermissions.size());
 
-        rootRole = roleRepository.save(rootRole);
-        log.info("ROOT role created for tenant {} with {} permissions", tenantId, allPermissions.size());
-
-        return rootRole;
+        return ownerRole;
     }
 
     /**
-     * Creates ADMIN role with most administrative permissions for the specified tenant.
-     * ADMIN role excludes system-critical and developer-only permissions.
+     * Creates ADMIN role with the same permissions as OWNER, except it cannot modify
+     * OWNER users or the OWNER role. This is a system role.
      */
     private Role createAdminRole(Long tenantId) {
-        // Check if ADMIN role already exists for this tenant
-        if (roleRepository.existsByNameAndTenantId("ADMIN", tenantId)) {
+        if (roleRepository.existsByNameAndTenantId(ROLE_ADMIN, tenantId)) {
             log.info("ADMIN role already exists for tenant {}, skipping...", tenantId);
-            return roleRepository.findByNameAndTenantId("ADMIN", tenantId)
+            return roleRepository.findByNameAndTenantId(ROLE_ADMIN, tenantId)
                     .orElseThrow(() -> new IllegalStateException("Role exists but cannot be retrieved"));
         }
 
         log.info("Creating ADMIN role for tenant {}...", tenantId);
 
-        // Get permissions for admin (exclude ROOT-only permissions)
         List<Permission> allPermissions = permissionRepository.findAll();
         Set<Permission> adminPermissions = new HashSet<>();
 
         for (Permission permission : allPermissions) {
-            // Exclude ROOT-only permissions (system-critical and developer tools)
+            // Exclude system-internal and developer-only permissions
             if (!permission.getName().contains("SYSTEM_") &&
                 !permission.getName().contains("AUDIT_") &&
                 !permission.getName().contains("EXCEPTION_LOG_")) {
@@ -131,16 +134,15 @@ public class TenantProvisioningService {
         }
 
         Role adminRole = Role.builder()
-                .name("ADMIN")
-                .description("Administrator with most permissions for daily operations")
+                .name(ROLE_ADMIN)
+                .description("Administrador con la mayoría de permisos. Rol del sistema, no se puede modificar ni eliminar.")
                 .permissions(adminPermissions)
                 .active(true)
                 .deleted(false)
+                .systemRole(true)
                 .build();
 
-        // CRITICAL: Explicitly set tenantId
         adminRole.setTenantId(tenantId);
-
         adminRole = roleRepository.save(adminRole);
         log.info("ADMIN role created for tenant {} with {} permissions", tenantId, adminPermissions.size());
 
@@ -148,99 +150,82 @@ public class TenantProvisioningService {
     }
 
     /**
-     * Creates USER role with basic read permissions for the specified tenant.
+     * Creates LECTOR role with read-only permissions for all modules.
+     * This is a system role.
      */
-    private Role createUserRole(Long tenantId) {
-        // Check if USER role already exists for this tenant
-        if (roleRepository.existsByNameAndTenantId("USER", tenantId)) {
-            log.info("USER role already exists for tenant {}, skipping...", tenantId);
-            return roleRepository.findByNameAndTenantId("USER", tenantId)
+    private Role createLectorRole(Long tenantId) {
+        if (roleRepository.existsByNameAndTenantId(ROLE_LECTOR, tenantId)) {
+            log.info("LECTOR role already exists for tenant {}, skipping...", tenantId);
+            return roleRepository.findByNameAndTenantId(ROLE_LECTOR, tenantId)
                     .orElseThrow(() -> new IllegalStateException("Role exists but cannot be retrieved"));
         }
 
-        log.info("Creating USER role for tenant {}...", tenantId);
+        log.info("Creating LECTOR role for tenant {}...", tenantId);
 
-        // Get only READ permissions
         List<Permission> allPermissions = permissionRepository.findAll();
-        Set<Permission> userPermissions = new HashSet<>();
+        Set<Permission> readPermissions = new HashSet<>();
 
         for (Permission permission : allPermissions) {
-            if (permission.getName().contains("_READ")) {
-                userPermissions.add(permission);
+            if (permission.getName().endsWith("_READ") ||
+                permission.getName().equals("REPORT_VIEW")) {
+                readPermissions.add(permission);
             }
         }
 
-        Role userRole = Role.builder()
-                .name("USER")
-                .description("Basic user with read-only permissions")
-                .permissions(userPermissions)
+        Role lectorRole = Role.builder()
+                .name(ROLE_LECTOR)
+                .description("Lectura de todos los módulos. Rol del sistema, no se puede modificar ni eliminar.")
+                .permissions(readPermissions)
                 .active(true)
                 .deleted(false)
+                .systemRole(true)
                 .build();
 
-        // CRITICAL: Explicitly set tenantId
-        userRole.setTenantId(tenantId);
+        lectorRole.setTenantId(tenantId);
+        lectorRole = roleRepository.save(lectorRole);
+        log.info("LECTOR role created for tenant {} with {} permissions", tenantId, readPermissions.size());
 
-        userRole = roleRepository.save(userRole);
-        log.info("USER role created for tenant {} with {} permissions", tenantId, userPermissions.size());
-
-        return userRole;
+        return lectorRole;
     }
 
     /**
-     * Creates the admin user for the specified tenant.
-     *
-     * @param tenantId The tenant ID
-     * @param adminEmail Email for the admin user
-     * @param username Username for authentication
-     * @param password Plain text password (will be encoded)
-     * @param rootRole The ROOT role to assign to this user
+     * Creates the owner user for the specified tenant with the OWNER role.
      */
-    private void createAdminUser(Long tenantId, String adminEmail, String username, String password, Role rootRole) {
-        // Check if admin user already exists for this tenant
+    private void createOwnerUser(Long tenantId, String email, String username,
+                                 String password, String firstName, String lastName, Role ownerRole) {
         if (credentialsRepository.existsByUsernameAndTenantId(username, tenantId)) {
-            log.info("Admin user '{}' already exists for tenant {}, skipping...", username, tenantId);
+            log.info("Owner user '{}' already exists for tenant {}, skipping...", username, tenantId);
             return;
         }
 
-        log.info("Creating admin user '{}' for tenant {}...", username, tenantId);
+        log.info("Creating owner user '{}' for tenant {}...", username, tenantId);
 
-        // Create credentials
         Credentials credentials = Credentials.builder()
                 .username(username)
                 .password(passwordEncoder.encode(password))
                 .deleted(false)
                 .build();
-
-        // CRITICAL: Explicitly set tenantId
         credentials.setTenantId(tenantId);
 
-        // Create user
-        User adminUser = User.builder()
+        User ownerUser = User.builder()
                 .credentials(credentials)
-                .email(adminEmail)
-                .firstName("System")
-                .lastName("Administrator")
-                .jobTitle("System Administrator")
+                .email(email)
+                .firstName(firstName)
+                .lastName(lastName)
+                .jobTitle("Propietario")
                 .enabled(true)
                 .deleted(false)
-                .roles(Set.of(rootRole))
+                .roles(Set.of(ownerRole))
                 .build();
+        ownerUser.setTenantId(tenantId);
 
-        // CRITICAL: Explicitly set tenantId
-        adminUser.setTenantId(tenantId);
+        credentials.setUser(ownerUser);
+        userRepository.save(ownerUser);
 
-        // Set bidirectional relationship
-        credentials.setUser(adminUser);
-
-        // Save user (cascades to credentials)
-        userRepository.save(adminUser);
-
-        log.info("Admin user created successfully for tenant {}", tenantId);
+        log.info("Owner user created successfully for tenant {}", tenantId);
         log.info("  Username: {}", username);
-        log.info("  Email: {}", adminEmail);
-        log.info("  Role: ROOT");
-        log.info("=== IMPORTANT: Change the admin password after first login! ===");
+        log.info("  Email: {}", email);
+        log.info("  Role: OWNER");
     }
 }
 

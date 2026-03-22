@@ -161,12 +161,14 @@ public class TenantService implements ITenantService {
         tenant.setDeleted(false);
         Tenant savedTenant = tenantRepository.save(tenant);
 
-        // Provision the new tenant with default roles and admin user
+        // Provision the new tenant with default system roles and owner user
         tenantProvisioningService.provisionNewTenant(
                 savedTenant.getId(),
                 "admin@" + savedTenant.getName().toLowerCase().replaceAll("\\s+", "") + ".com",
                 "admin",
-                "Admin123"
+                "Admin123",
+                "System",
+                "Administrator"
         );
 
         return tenantMapper.toResponseDto(savedTenant);

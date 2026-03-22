@@ -60,7 +60,9 @@ public class RoleAndUserSeeder implements CommandLineRunner {
                     DEFAULT_TENANT_ID,
                     DEFAULT_ADMIN_EMAIL,
                     DEFAULT_ADMIN_USERNAME,
-                    DEFAULT_ADMIN_PASSWORD
+                    DEFAULT_ADMIN_PASSWORD,
+                    "System",
+                    "Administrator"
             );
         } finally {
             TenantContext.clear();

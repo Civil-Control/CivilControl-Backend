@@ -27,7 +27,7 @@ public class CustomMethodSecurityExpressionRoot extends SecurityExpressionRoot
     /**
      * Roles that have "God Mode" (full system access).
      */
-    private static final String GOD_ROLE_ROOT = "ROLE_ROOT";
+    private static final String GOD_ROLE_OWNER = "ROLE_OWNER";
     private static final String GOD_ROLE_ADMIN = "ROLE_ADMIN";
 
     public CustomMethodSecurityExpressionRoot(Authentication authentication) {
@@ -38,7 +38,7 @@ public class CustomMethodSecurityExpressionRoot extends SecurityExpressionRoot
      * Custom method to check if the user has God Mode.
      * Can be used in @PreAuthorize expressions like: @PreAuthorize("isGodMode() or hasAuthority('SOME_PERMISSION')")
      *
-     * @return true if the user has ROLE_ROOT or ROLE_ADMIN
+     * @return true if the user has ROLE_OWNER or ROLE_ADMIN
      */
     public boolean isGodMode() {
         if (getAuthentication() == null || getAuthentication().getAuthorities() == null) {
@@ -47,7 +47,7 @@ public class CustomMethodSecurityExpressionRoot extends SecurityExpressionRoot
 
         for (GrantedAuthority authority : getAuthentication().getAuthorities()) {
             String authorityName = authority.getAuthority();
-            if (GOD_ROLE_ROOT.equals(authorityName) || GOD_ROLE_ADMIN.equals(authorityName)) {
+            if (GOD_ROLE_OWNER.equals(authorityName) || GOD_ROLE_ADMIN.equals(authorityName)) {
                 return true;
             }
         }

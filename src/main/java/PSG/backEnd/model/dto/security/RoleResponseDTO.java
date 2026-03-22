@@ -27,6 +27,9 @@ public record RoleResponseDTO(
         Set<PermissionDTO> permissions,
 
         @Schema(description = "Indicates if the role is active", example = "true")
-        Boolean active
+        Boolean active,
+
+        @Schema(description = "Indicates if this is a system-defined role (immutable)", example = "false")
+        Boolean systemRole
 ) {}
 

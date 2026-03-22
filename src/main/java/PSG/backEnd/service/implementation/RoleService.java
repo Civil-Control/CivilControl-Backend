@@ -57,6 +57,9 @@ public class RoleService implements IRoleService {
         // Validar datos del rol
         validateNewRole(requestDTO);
 
+        // No se puede crear un rol con nombre reservado del sistema
+        validateNotSystemRoleName(requestDTO.name());
+
         // Validar que el usuario autenticado posee todos los permisos que intenta asignar
         validateUserCanAssignPermissions(requestDTO.permissionIds());
 
@@ -100,6 +103,9 @@ public class RoleService implements IRoleService {
 
         Role existingRole = roleRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new RoleNotFoundException(id));
+
+        // No se puede modificar un rol del sistema
+        validateNotSystemRole(existingRole);
 
         // Validar actualización
         validateRoleUpdate(id, requestDTO);
@@ -150,6 +156,9 @@ public class RoleService implements IRoleService {
 
         Role role = roleRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new RoleNotFoundException(id));
+
+        // No se puede eliminar un rol del sistema
+        validateNotSystemRole(role);
 
         // Validate that the role can be deleted
         validateRoleDeletion(role);
@@ -255,7 +264,7 @@ public class RoleService implements IRoleService {
         }
         return authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch(a -> "ROLE_ROOT".equals(a) || "ROLE_ADMIN".equals(a));
+                .anyMatch(a -> "ROLE_OWNER".equals(a) || "ROLE_ADMIN".equals(a));
     }
 
     /**
@@ -282,6 +291,28 @@ public class RoleService implements IRoleService {
             String permissionNames = String.join(", ", unauthorizedPermissions);
             throw new RoleNotValidException(
                     messageSourceHelper.getMessage("role.permissions.escalation", permissionNames));
+        }
+    }
+
+    /**
+     * Valida que el rol no sea un rol del sistema (inmutable).
+     */
+    private void validateNotSystemRole(Role role) {
+        if (Boolean.TRUE.equals(role.getSystemRole())) {
+            throw new RoleNotValidException(
+                    messageSourceHelper.getMessage("role.systemRole.immutable", role.getName()));
+        }
+    }
+
+    /**
+     * Valida que el nombre no sea un nombre reservado para roles del sistema.
+     */
+    private void validateNotSystemRoleName(String name) {
+        if (name == null) return;
+        String upper = name.trim().toUpperCase();
+        if ("OWNER".equals(upper) || "ADMIN".equals(upper) || "LECTOR".equals(upper)) {
+            throw new RoleNotValidException(
+                    messageSourceHelper.getMessage("role.systemRole.reservedName", name));
         }
     }
 
@@ -385,19 +416,10 @@ public class RoleService implements IRoleService {
 
     /**
      * Validates that a role can be deleted.
+     * System role protection is handled by validateNotSystemRole() called earlier.
      */
     private void validateRoleDeletion(Role role) {
-        // Additional validations can be added here, for example:
-        // - Don't allow deletion of system roles (ROOT, ADMIN)
-        // - Verify that there are no active users with this role
-
-        // Protect system roles
-        if ("ROOT".equalsIgnoreCase(role.getName()) ||
-            "ADMIN".equalsIgnoreCase(role.getName()) ||
-            "ROLE_ROOT".equalsIgnoreCase(role.getName()) ||
-            "ROLE_ADMIN".equalsIgnoreCase(role.getName())) {
-            throw new RoleNotValidException(messageSourceHelper.getMessage("role.cannotDeleteSystem", role.getName()));
-        }
+        // Additional business validations for deletion can be added here
     }
 
     /**

@@ -16,6 +16,7 @@ public interface RoleMapper {
     @Mapping(target = "permissions", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "active", ignore = true)
+    @Mapping(target = "systemRole", ignore = true)
     Role toEntity(RoleRequestDTO requestDTO);
 
     RoleResponseDTO toResponseDto(Role role);
@@ -26,6 +27,7 @@ public interface RoleMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "permissions", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "systemRole", ignore = true)
     void partialUpdate(RoleRequestDTO updateDTO, @MappingTarget Role role);
 }
 

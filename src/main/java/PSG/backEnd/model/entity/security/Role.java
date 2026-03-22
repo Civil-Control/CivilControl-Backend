@@ -65,5 +65,13 @@ public class Role extends TenantEntity {
      */
     @Column(nullable = false)
     private Boolean deleted;
+
+    /**
+     * Indicates if this is a system-defined role (OWNER, ADMIN, LECTOR).
+     * System roles cannot be modified, renamed, or deleted.
+     */
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean systemRole = false;
 }
 
