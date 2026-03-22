@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -79,6 +80,22 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
             @Param("active") Boolean active,
             Pageable pageable
     );
+
+    /**
+     * Finds the maximum position value among non-deleted roles for the current tenant.
+     */
+    @Query("SELECT COALESCE(MAX(r.position), 0) FROM Role r WHERE r.deleted = false")
+    int findMaxPosition();
+
+    /**
+     * Finds all non-deleted roles ordered by position ascending.
+     */
+    List<Role> findByDeletedFalseOrderByPositionAsc();
+
+    /**
+     * Finds all non-deleted roles by their IDs.
+     */
+    List<Role> findByIdInAndDeletedFalse(List<Long> ids);
 
 }
 

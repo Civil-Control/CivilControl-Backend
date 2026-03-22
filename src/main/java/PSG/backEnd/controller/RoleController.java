@@ -2,6 +2,7 @@ package PSG.backEnd.controller;
 
 import PSG.backEnd.model.dto.security.GroupedPermissionsDTO;
 import PSG.backEnd.model.dto.security.RoleFilterDTO;
+import PSG.backEnd.model.dto.security.RoleReorderDTO;
 import PSG.backEnd.model.dto.security.RoleRequestDTO;
 import PSG.backEnd.model.dto.security.RoleResponseDTO;
 import PSG.backEnd.model.dto.security.UserResponseDTO;
@@ -189,5 +190,35 @@ public class RoleController {
     public ResponseEntity<GroupedPermissionsDTO> getAllPermissions() {
         GroupedPermissionsDTO permissions = roleService.getAllPermissionsGrouped();
         return ResponseEntity.ok(permissions);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
+    @PutMapping("/reorder")
+    @Operation(summary = "Reorder roles",
+            description = "Applies new hierarchical positions to roles. " +
+                         "System roles (OWNER, ADMIN, LECTOR) must keep their original positions. " +
+                         "Users can only reorder roles below their own hierarchical position.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Roles reordered successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid positions or hierarchy violation")
+    })
+    public ResponseEntity<List<RoleResponseDTO>> reorderRoles(
+            @Valid @RequestBody RoleReorderDTO reorderDTO) {
+        roleService.reorderRoles(reorderDTO);
+        List<RoleResponseDTO> ordered = roleService.getAllRolesOrdered();
+        return ResponseEntity.ok(ordered);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
+    @GetMapping("/ordered")
+    @Operation(summary = "Get all roles ordered by hierarchy",
+            description = "Retrieves all non-deleted roles ordered by hierarchical position (ascending). " +
+                         "Position 1 = highest authority (OWNER).")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Ordered roles retrieved successfully")
+    })
+    public ResponseEntity<List<RoleResponseDTO>> getAllRolesOrdered() {
+        List<RoleResponseDTO> roles = roleService.getAllRolesOrdered();
+        return ResponseEntity.ok(roles);
     }
 }

@@ -24,6 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -103,6 +106,9 @@ public class UserService implements IUserService {
         User existingUser = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
+        // Validar inmunidad jerárquica
+        validateHierarchyImmunity(existingUser);
+
         // Validar actualización
         validateUserUpdate(id, requestDTO);
 
@@ -178,6 +184,9 @@ public class UserService implements IUserService {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
+        // Validar inmunidad jerárquica
+        validateHierarchyImmunity(user);
+
         // Validar que el usuario pueda ser eliminado
         validateUserDeletion(user);
 
@@ -201,6 +210,54 @@ public class UserService implements IUserService {
     }
 
     // ==================== Métodos privados de validación ====================
+
+    /**
+     * Verifica si el usuario autenticado tiene God Mode (ROLE_OWNER o ROLE_ADMIN).
+     */
+    private boolean isAuthenticatedUserGodMode() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getAuthorities() == null) return false;
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> "ROLE_OWNER".equals(a) || "ROLE_ADMIN".equals(a));
+    }
+
+    /**
+     * Obtiene la posición jerárquica más alta (número más bajo) del usuario autenticado.
+     */
+    private int getAuthenticatedUserHighestPosition() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            return Integer.MAX_VALUE;
+        }
+        return user.getRoles().stream()
+                .filter(r -> !r.getDeleted() && r.getActive())
+                .mapToInt(Role::getPosition)
+                .min()
+                .orElse(Integer.MAX_VALUE);
+    }
+
+    /**
+     * Valida inmunidad jerárquica: un usuario no puede modificar/eliminar a otro usuario
+     * que tenga un rol con posición igual o superior (número menor o igual).
+     * God Mode (OWNER/ADMIN) está exento.
+     */
+    private void validateHierarchyImmunity(User targetUser) {
+        if (isAuthenticatedUserGodMode()) return;
+
+        int callerPosition = getAuthenticatedUserHighestPosition();
+        int targetPosition = targetUser.getRoles().stream()
+                .filter(r -> !r.getDeleted() && r.getActive())
+                .mapToInt(Role::getPosition)
+                .min()
+                .orElse(Integer.MAX_VALUE);
+
+        if (callerPosition >= targetPosition) {
+            throw new UserNotValidException(
+                    messageSourceHelper.getMessage("user.hierarchy.cannotManage",
+                            targetUser.getFirstName() + " " + targetUser.getLastName()));
+        }
+    }
 
     /**
      * Validates data for a new user.

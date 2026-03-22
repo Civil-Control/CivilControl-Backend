@@ -22,6 +22,9 @@ public record RoleSimpleDTO(
         Boolean active,
 
         @Schema(description = "Indicates if this is a system-defined role (immutable)", example = "false")
-        Boolean systemRole
+        Boolean systemRole,
+
+        @Schema(description = "Hierarchical position (1 = highest authority)", example = "1")
+        Integer position
 ) {}
 

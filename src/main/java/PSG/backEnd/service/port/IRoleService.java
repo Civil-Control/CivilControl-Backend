@@ -2,6 +2,7 @@ package PSG.backEnd.service.port;
 
 import PSG.backEnd.model.dto.security.GroupedPermissionsDTO;
 import PSG.backEnd.model.dto.security.RoleFilterDTO;
+import PSG.backEnd.model.dto.security.RoleReorderDTO;
 import PSG.backEnd.model.dto.security.RoleRequestDTO;
 import PSG.backEnd.model.dto.security.RoleResponseDTO;
 import PSG.backEnd.model.dto.security.UserResponseDTO;
@@ -72,5 +73,17 @@ public interface IRoleService {
      * @return true if exists, false otherwise
      */
     boolean existsById(Long id);
+
+    /**
+     * Reorders roles by applying new positions.
+     * @param reorderDTO DTO with the list of role-position assignments
+     */
+    void reorderRoles(RoleReorderDTO reorderDTO);
+
+    /**
+     * Gets all non-deleted roles ordered by hierarchical position (ascending).
+     * @return List of roles ordered by position
+     */
+    List<RoleResponseDTO> getAllRolesOrdered();
 }
 

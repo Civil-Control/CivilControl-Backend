@@ -73,5 +73,14 @@ public class Role extends TenantEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean systemRole = false;
+
+    /**
+     * Hierarchical position of the role within the tenant.
+     * Position 1 = highest authority (OWNER). Higher numbers = lower authority.
+     * Uniqueness per tenant is enforced in business logic, not via DB constraint.
+     */
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer position = 0;
 }
 

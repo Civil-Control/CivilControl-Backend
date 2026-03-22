@@ -107,6 +107,9 @@ public class RoleService implements IRoleService {
         // No se puede modificar un rol del sistema
         validateNotSystemRole(existingRole);
 
+        // Validar jerarquía: el usuario debe tener posición superior al rol que modifica
+        validateHierarchyForManage(existingRole);
+
         // Validar actualización
         validateRoleUpdate(id, requestDTO);
 
@@ -159,6 +162,9 @@ public class RoleService implements IRoleService {
 
         // No se puede eliminar un rol del sistema
         validateNotSystemRole(role);
+
+        // Validar jerarquía: el usuario debe tener posición superior al rol que elimina
+        validateHierarchyForManage(role);
 
         // Validate that the role can be deleted
         validateRoleDeletion(role);
@@ -238,7 +244,105 @@ public class RoleService implements IRoleService {
         return roleRepository.existsByIdAndDeletedFalse(id);
     }
 
+    @Override
+    @Transactional
+    public void reorderRoles(RoleReorderDTO reorderDTO) {
+        log.info("Reordering roles: {} entries", reorderDTO.entries().size());
+
+        int callerPosition = getAuthenticatedUserHighestPosition();
+
+        // Load all roles referenced in the request
+        List<Long> requestedIds = reorderDTO.entries().stream()
+                .map(RoleReorderDTO.RolePositionEntry::roleId)
+                .toList();
+        List<Role> roles = roleRepository.findByIdInAndDeletedFalse(requestedIds);
+
+        if (roles.size() != requestedIds.size()) {
+            throw new RoleNotValidException(messageSourceHelper.getMessage("role.hierarchy.missingRoles"));
+        }
+
+        // Build a map for quick lookup
+        Map<Long, Role> roleMap = roles.stream()
+                .collect(Collectors.toMap(Role::getId, r -> r));
+
+        // Validate: caller cannot reorder roles above their own position
+        // Validate: system roles must keep positions 1, 2, 3
+        Set<Integer> usedPositions = new HashSet<>();
+        for (RoleReorderDTO.RolePositionEntry entry : reorderDTO.entries()) {
+            Role role = roleMap.get(entry.roleId());
+
+            if (Boolean.TRUE.equals(role.getSystemRole())) {
+                // System roles keep their original position — reject change
+                if (!role.getPosition().equals(entry.position())) {
+                    throw new RoleNotValidException(
+                            messageSourceHelper.getMessage("role.hierarchy.systemRolePosition"));
+                }
+            }
+
+            // Non-god-mode users cannot move a role above their own position
+            if (!isAuthenticatedUserGodMode() && entry.position() < callerPosition) {
+                throw new RoleNotValidException(
+                        messageSourceHelper.getMessage("role.hierarchy.cannotReorderAbove"));
+            }
+
+            if (!usedPositions.add(entry.position())) {
+                throw new RoleNotValidException(
+                        messageSourceHelper.getMessage("role.hierarchy.positionConflict"));
+            }
+        }
+
+        // Apply new positions
+        for (RoleReorderDTO.RolePositionEntry entry : reorderDTO.entries()) {
+            Role role = roleMap.get(entry.roleId());
+            role.setPosition(entry.position());
+        }
+
+        roleRepository.saveAll(roles);
+        log.info("Roles reordered successfully");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoleResponseDTO> getAllRolesOrdered() {
+        return roleRepository.findByDeletedFalseOrderByPositionAsc().stream()
+                .map(roleMapper::toResponseDto)
+                .toList();
+    }
+
     // ==================== Métodos privados de validación ====================
+
+    /**
+     * Obtiene la posición jerárquica más alta (número más bajo) del usuario autenticado.
+     * Si el usuario no tiene roles, devuelve Integer.MAX_VALUE (sin autoridad).
+     */
+    private int getAuthenticatedUserHighestPosition() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof User user)) {
+            return Integer.MAX_VALUE;
+        }
+        return user.getRoles().stream()
+                .filter(r -> !r.getDeleted() && r.getActive())
+                .mapToInt(Role::getPosition)
+                .min()
+                .orElse(Integer.MAX_VALUE);
+    }
+
+    /**
+     * Valida que el usuario autenticado tiene autoridad jerárquica para gestionar un rol.
+     * Un usuario solo puede editar/eliminar roles con posición estrictamente mayor (número más alto)
+     * que su propia posición más alta. God Mode está exento.
+     */
+    private void validateHierarchyForManage(Role targetRole) {
+        if (isAuthenticatedUserGodMode()) {
+            return;
+        }
+        int callerPosition = getAuthenticatedUserHighestPosition();
+        if (callerPosition >= targetRole.getPosition()) {
+            throw new RoleNotValidException(
+                    messageSourceHelper.getMessage("role.hierarchy.cannotManage",
+                            targetRole.getName(), targetRole.getPosition(), callerPosition));
+        }
+    }
 
     /**
      * Obtiene los nombres de permisos del usuario autenticado.
@@ -444,6 +548,19 @@ public class RoleService implements IRoleService {
         Set<Permission> permissions = validateAndGetPermissions(requestDTO.permissionIds());
         newRole.setPermissions(permissions);
 
+        // Assign position: new custom roles go to the bottom of the hierarchy
+        int maxPosition = roleRepository.findMaxPosition();
+        newRole.setPosition(maxPosition + 1);
+
+        // Validate the caller has a higher position than the new role
+        if (!isAuthenticatedUserGodMode()) {
+            int callerPosition = getAuthenticatedUserHighestPosition();
+            if (callerPosition >= newRole.getPosition()) {
+                throw new RoleNotValidException(
+                        messageSourceHelper.getMessage("role.hierarchy.newRolePosition"));
+            }
+        }
+
         Role savedRole = roleRepository.save(newRole);
         log.info("New role created successfully: {} with {} permissions",
                 savedRole.getName(), savedRole.getPermissions().size());
@@ -473,6 +590,10 @@ public class RoleService implements IRoleService {
         // Update permissions
         Set<Permission> permissions = validateAndGetPermissions(requestDTO.permissionIds());
         deletedRole.setPermissions(permissions);
+
+        // Reactivated role goes to the bottom of the hierarchy
+        int maxPosition = roleRepository.findMaxPosition();
+        deletedRole.setPosition(maxPosition + 1);
 
         Role reactivatedRole = roleRepository.save(deletedRole);
         log.info("Role reactivated successfully: {}", reactivatedRole.getName());

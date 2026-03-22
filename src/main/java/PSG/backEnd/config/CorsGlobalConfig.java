@@ -28,7 +28,7 @@ public class CorsGlobalConfig {
         ));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"));
         // enumera explícitamente para evitar 403 por “header no permitido”
-        cfg.setAllowedHeaders(List.of("Authorization","Content-Type","Accept","X-Requested-With"));
+        cfg.setAllowedHeaders(List.of("Authorization","Content-Type","Accept","X-Requested-With","X-Skip-Global-Error"));
         cfg.setExposedHeaders(List.of("Location","Content-Disposition"));
         cfg.setAllowCredentials(true);
         cfg.setMaxAge(3600L);

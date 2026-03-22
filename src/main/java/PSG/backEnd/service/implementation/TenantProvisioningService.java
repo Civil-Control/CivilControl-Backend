@@ -99,6 +99,7 @@ public class TenantProvisioningService {
                 .active(true)
                 .deleted(false)
                 .systemRole(true)
+                .position(1)
                 .build();
 
         ownerRole.setTenantId(tenantId);
@@ -140,6 +141,7 @@ public class TenantProvisioningService {
                 .active(true)
                 .deleted(false)
                 .systemRole(true)
+                .position(2)
                 .build();
 
         adminRole.setTenantId(tenantId);
@@ -179,6 +181,7 @@ public class TenantProvisioningService {
                 .active(true)
                 .deleted(false)
                 .systemRole(true)
+                .position(3)
                 .build();
 
         lectorRole.setTenantId(tenantId);
