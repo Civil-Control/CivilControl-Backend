@@ -221,4 +221,17 @@ public class RoleController {
         List<RoleResponseDTO> roles = roleService.getAllRolesOrdered();
         return ResponseEntity.ok(roles);
     }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.USER_MANAGEMENT + "')")
+    @GetMapping("/assignable")
+    @Operation(summary = "Get roles assignable by the current user",
+            description = "Returns only the roles the current user is allowed to assign. " +
+                         "OWNER is never returned. Non-God-Mode users only see roles at or below their position, plus LECTOR.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Assignable roles retrieved successfully")
+    })
+    public ResponseEntity<List<RoleResponseDTO>> getAssignableRoles() {
+        List<RoleResponseDTO> roles = roleService.getAssignableRoles();
+        return ResponseEntity.ok(roles);
+    }
 }

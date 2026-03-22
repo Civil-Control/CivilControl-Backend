@@ -309,6 +309,27 @@ public class RoleService implements IRoleService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoleResponseDTO> getAssignableRoles() {
+        int callerPosition = getAuthenticatedUserHighestPosition();
+        boolean godMode = isAuthenticatedUserGodMode();
+
+        return roleRepository.findByDeletedFalseOrderByPositionAsc().stream()
+                .filter(role -> {
+                    // OWNER (position 1) is never assignable
+                    if (role.getPosition() != null && role.getPosition() == 1) return false;
+                    // God mode can assign any non-OWNER role
+                    if (godMode) return true;
+                    // LECTOR is always assignable
+                    if ("LECTOR".equalsIgnoreCase(role.getName())) return true;
+                    // Otherwise, only roles at or below caller's position
+                    return role.getPosition() != null && role.getPosition() >= callerPosition;
+                })
+                .map(roleMapper::toResponseDto)
+                .toList();
+    }
+
     // ==================== Métodos privados de validación ====================
 
     /**

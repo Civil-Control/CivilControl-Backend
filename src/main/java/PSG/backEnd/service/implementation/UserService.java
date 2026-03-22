@@ -525,13 +525,36 @@ public class UserService implements IUserService {
 
     /**
      * Validates and retrieves roles by their IDs.
+     * Enforces role assignment hierarchy rules:
+     * - OWNER role (position 1) is NEVER assignable via API.
+     * - Non-God-Mode users can only assign roles at their position or below,
+     *   except LECTOR which anyone can assign.
      */
     private Set<Role> validateAndGetRoles(Set<Long> roleIds) {
         Set<Role> roles = new HashSet<>();
+        int callerPosition = getAuthenticatedUserHighestPosition();
+        boolean godMode = isAuthenticatedUserGodMode();
 
         for (Long roleId : roleIds) {
             Role role = roleRepository.findByIdAndDeletedFalse(roleId)
                     .orElseThrow(() -> new RoleNotFoundException(roleId));
+
+            // OWNER (position 1) is NEVER assignable — only the tenant creator has it
+            if (role.getPosition() != null && role.getPosition() == 1) {
+                throw new UserNotValidException(
+                        messageSourceHelper.getMessage("user.role.ownerNotAssignable"));
+            }
+
+            // God mode users (OWNER/ADMIN) can assign any non-OWNER role
+            if (!godMode) {
+                // LECTOR exception: anyone with user management can assign it
+                boolean isLector = "LECTOR".equalsIgnoreCase(role.getName());
+                if (!isLector && role.getPosition() != null && role.getPosition() < callerPosition) {
+                    throw new UserNotValidException(
+                            messageSourceHelper.getMessage("user.role.cannotAssignAbove", role.getName()));
+                }
+            }
+
             roles.add(role);
         }
 

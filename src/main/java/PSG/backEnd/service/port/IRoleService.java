@@ -85,5 +85,13 @@ public interface IRoleService {
      * @return List of roles ordered by position
      */
     List<RoleResponseDTO> getAllRolesOrdered();
+
+    /**
+     * Gets roles that the current user is allowed to assign to other users.
+     * Excludes OWNER (never assignable) and roles above the caller's position
+     * (except LECTOR which is always assignable).
+     * @return List of assignable roles ordered by position
+     */
+    List<RoleResponseDTO> getAssignableRoles();
 }
 
