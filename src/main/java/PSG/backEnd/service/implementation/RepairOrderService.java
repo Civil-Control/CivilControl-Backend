@@ -188,7 +188,8 @@ public class RepairOrderService implements IRepairOrderService {
     private boolean currentUserHasReadPermission() {
         return SecurityContextHolder.getContext().getAuthentication().getAuthorities()
                 .stream()
-                .anyMatch(a -> a.getAuthority().equals(AppPermissions.REPAIR_ORDER_READ));
+                .anyMatch(a -> a.getAuthority().equals(AppPermissions.REPAIR_ORDER_READ)
+                            || a.getAuthority().equals(AppPermissions.REPAIR_ORDER_WRITE));
     }
 
     private void validateOwnership(RepairOrder order) {
@@ -203,7 +204,7 @@ public class RepairOrderService implements IRepairOrderService {
     }
 
     private void validateEditableStatus(RepairOrder order) {
-        if (order.getStatus() != RepairOrderStatus.PENDIENTE) {
+        if (order.getStatus() == RepairOrderStatus.COMPLETADA) {
             throw new RepairOrderNotValidException(
                     MessageSourceHelper.getMessageStatic("repairOrder.editOnlyPending")
             );

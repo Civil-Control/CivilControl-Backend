@@ -105,10 +105,10 @@ public class RepairOrderController {
         return ResponseEntity.ok(repairOrderService.getRepairOrderById(id));
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_ORDER_CREATE + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_ORDER_CREATE + "') or hasAuthority('" + AppPermissions.REPAIR_ORDER_WRITE + "')")
     @PatchMapping("/{id}")
     @Operation(summary = "Update a repair order",
-               description = "Updates description or date of a repair order. Only allowed when status is PENDIENTE. The caller must be the owner.")
+               description = "Updates description or date of a repair order. Only allowed when status is PENDIENTE or EN_PROCESO. Field operators can only edit their own orders.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Repair order successfully updated"),
             @ApiResponse(responseCode = "400", description = "Invalid data, not owner, or status is not PENDIENTE"),
@@ -120,10 +120,10 @@ public class RepairOrderController {
         return ResponseEntity.ok(repairOrderService.updateRepairOrder(id, dto));
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_ORDER_CREATE + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_ORDER_CREATE + "') or hasAuthority('" + AppPermissions.REPAIR_ORDER_WRITE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a repair order",
-               description = "Soft-deletes a repair order. Only allowed when status is PENDIENTE. The caller must be the owner.")
+               description = "Soft-deletes a repair order. Only allowed when status is PENDIENTE. Field operators can only delete their own orders.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Repair order successfully deleted"),
             @ApiResponse(responseCode = "400", description = "Not owner or status is not PENDIENTE"),
