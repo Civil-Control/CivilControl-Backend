@@ -125,9 +125,11 @@ public record TransactionalDocumentDTO(
             example = "false")
     boolean deleted,
 
-    @Schema(description = "List of items included in the document. At least one item is required. " +
+    @Schema(description = "List of basic items included in the document. " +
+            "May be empty if the document expense is fully covered by linked records " +
+            "(Repairs, Fuel Loads, Salary Payments or Stock entries). " +
             "Each item includes description, quantity, price, and tax details.",
-            requiredMode = Schema.RequiredMode.REQUIRED)
+            nullable = true)
     @Valid
     @NotNull(groups = OnCreate.class, message = "{validation.notNull}")
     List<ItemDetailDTO> items
