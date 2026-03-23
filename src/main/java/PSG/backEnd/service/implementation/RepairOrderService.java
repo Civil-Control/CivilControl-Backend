@@ -108,7 +108,6 @@ public class RepairOrderService implements IRepairOrderService {
     public void deleteRepairOrder(Long id) {
         RepairOrder order = findOrderById(id);
         validateOwnership(order);
-        validateDeleteableStatus(order);
         order.setDeleted(true);
         repairOrderRepository.save(order);
     }
