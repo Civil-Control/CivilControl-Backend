@@ -69,6 +69,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("SALARY_PAYMENT_", "Salary Payments");
         MODULE_MAP.put("EPP_DELIVERY_", "EPP Deliveries");
         MODULE_MAP.put("VEHICLE_", "Vehicles");
+        MODULE_MAP.put("REPAIR_ORDER_", "Repair Orders");
         MODULE_MAP.put("REPAIR_", "Repairs");
         MODULE_MAP.put("INSURANCE_POLICY_", "Insurance Policies");
         MODULE_MAP.put("LICENCE_PLATE_PAYMENT_", "Licence Plate Payments");
@@ -99,6 +100,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("SALARY_PAYMENT_", "Pagos de Salarios");
         MODULE_SPANISH_MAP.put("EPP_DELIVERY_", "Entrega de EPP");
         MODULE_SPANISH_MAP.put("VEHICLE_", "Vehículos");
+        MODULE_SPANISH_MAP.put("REPAIR_ORDER_", "Órdenes de Reparación");
         MODULE_SPANISH_MAP.put("REPAIR_", "Reparaciones");
         MODULE_SPANISH_MAP.put("INSURANCE_POLICY_", "Pólizas de Seguro");
         MODULE_SPANISH_MAP.put("LICENCE_PLATE_PAYMENT_", "Pagos de Patentes");
@@ -161,7 +163,8 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_MAP.put("SALARY_PAYMENT_", "personal");
         WORK_MODULE_MAP.put("EPP_DELIVERY_", "personal");
 
-        // mechanic: repair, stock
+        // mechanic: repair, repairOrder, stock
+        WORK_MODULE_MAP.put("REPAIR_ORDER_", "mechanic");
         WORK_MODULE_MAP.put("REPAIR_", "mechanic");
         WORK_MODULE_MAP.put("STOCK_", "mechanic");
 
