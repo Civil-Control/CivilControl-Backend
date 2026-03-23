@@ -159,6 +159,26 @@ public final class AppPermissions {
      */
     public static final String REPAIR_DELETE = "REPAIR_DELETE";
 
+    // ==================== MODULE: REPAIR ORDERS ====================
+
+    /**
+     * Module: Repair Orders
+     * Allows field operators to create repair orders and manage their own.
+     */
+    public static final String REPAIR_ORDER_CREATE = "REPAIR_ORDER_CREATE";
+
+    /**
+     * Module: Repair Orders
+     * Allows workshop staff to view all repair orders in the tenant.
+     */
+    public static final String REPAIR_ORDER_READ = "REPAIR_ORDER_READ";
+
+    /**
+     * Module: Repair Orders
+     * Allows workshop staff to change order status and complete orders.
+     */
+    public static final String REPAIR_ORDER_WRITE = "REPAIR_ORDER_WRITE";
+
     // ==================== MODULE: INSURANCE POLICIES ====================
     
     /**

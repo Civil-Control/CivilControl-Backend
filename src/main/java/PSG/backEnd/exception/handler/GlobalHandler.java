@@ -426,6 +426,18 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         return buildResponse(ex, HttpStatus.CONFLICT);
     }
 
+    // ==================== RepairOrder Exceptions ====================
+
+    @ExceptionHandler(PSG.backEnd.exception.vehicle.RepairOrderNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleRepairOrderNotFoundException(PSG.backEnd.exception.vehicle.RepairOrderNotFoundException ex) {
+        return buildResponse(ex, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(PSG.backEnd.exception.vehicle.RepairOrderNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleRepairOrderNotValidException(PSG.backEnd.exception.vehicle.RepairOrderNotValidException ex) {
+        return buildResponse(ex, HttpStatus.BAD_REQUEST);
+    }
+
     // ==================== InsurancePolicy Exceptions ====================
 
     @ExceptionHandler(PSG.backEnd.exception.insurance.InsurancePolicyNotFoundException.class)

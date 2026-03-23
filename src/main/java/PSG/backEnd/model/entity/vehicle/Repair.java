@@ -53,4 +53,9 @@ public class Repair extends TenantEntity {
     @Builder.Default
     private List<RepairType> repairTypes = new ArrayList<>();
 
+    /** Nullable — present only when this repair was completed from a RepairOrder */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "repair_order_id")
+    private RepairOrder repairOrder;
+
 }

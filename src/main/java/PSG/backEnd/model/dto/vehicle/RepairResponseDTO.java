@@ -62,5 +62,9 @@ public record RepairResponseDTO(
 
         @Schema(description = "Types of repair performed.",
                 example = "[\"ARRANQUE\", \"SISTEMA_ELECTRICO\"]")
-        List<String> repairTypes
+        List<String> repairTypes,
+
+        @Schema(description = "The repair order that originated this repair, if any.",
+                nullable = true)
+        RepairOrderResponseDTO repairOrder
 ) {}
