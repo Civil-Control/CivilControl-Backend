@@ -1,16 +1,19 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.supplier.SupplierNotValidException;
+import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
 import PSG.backEnd.exception.vehicle.RepairNotFoundException;
 import PSG.backEnd.exception.vehicle.VehicleNotValidException;
 import PSG.backEnd.model.dto.vehicle.RepairDTO;
 import PSG.backEnd.model.dto.vehicle.RepairFilterDTO;
 import PSG.backEnd.model.dto.vehicle.RepairResponseDTO;
+import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.vehicle.RepairType;
 import PSG.backEnd.model.mapper.RepairMapper;
 import PSG.backEnd.repository.RepairRepository;
 import PSG.backEnd.repository.SupplierRepository;
+import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.service.port.IRepairService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +30,7 @@ public class RepairService implements IRepairService {
     private final RepairMapper repairMapper;
     private final VehicleRepository vehicleRepository;
     private final SupplierRepository supplierRepository;
+    private final TransactionalDocumentRepository transactionalDocumentRepository;
 
     @Override
     @Transactional
@@ -40,6 +44,7 @@ public class RepairService implements IRepairService {
         }
 
         Repair repair = repairMapper.toEntity(repairDTO);
+        repair.setTransactionalDocument(resolveDocument(repairDTO.transactionalDocumentId()));
         Repair savedRepair = repairRepository.save(repair);
 
         return repairMapper.toResponseDto(savedRepair);
@@ -75,6 +80,7 @@ public class RepairService implements IRepairService {
                 filterDTO.supplierLegalName(),
                 repairTypeEnum,
                 filterDTO.search(),
+                filterDTO.transactionalDocumentId(),
                 pageable
         );
 
@@ -107,6 +113,7 @@ public class RepairService implements IRepairService {
         }
 
         repairMapper.partialUpdate(repairDTO, existingRepair);
+        existingRepair.setTransactionalDocument(resolveDocument(repairDTO.transactionalDocumentId()));
         Repair updatedRepair = repairRepository.save(existingRepair);
 
         return repairMapper.toResponseDto(updatedRepair);
@@ -131,6 +138,12 @@ public class RepairService implements IRepairService {
         if (!supplierRepository.existsByIdAndDeletedFalse(supplierId)) {
             throw new SupplierNotValidException(supplierId);
         }
+    }
+
+    private TransactionalDocument resolveDocument(Long documentId) {
+        if (documentId == null) return null;
+        return transactionalDocumentRepository.findByIdAndDeletedFalse(documentId)
+                .orElseThrow(() -> new TransactionalDocumentNotFoundException(documentId));
     }
 
 }

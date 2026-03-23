@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.vehicle;
 
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -66,5 +67,9 @@ public record RepairResponseDTO(
 
         @Schema(description = "The repair order that originated this repair, if any.",
                 nullable = true)
-        RepairOrderResponseDTO repairOrder
+        RepairOrderResponseDTO repairOrder,
+
+        @Schema(description = "Linked transactional document summary, if any.",
+                nullable = true)
+        TransactionalDocumentSummaryDTO transactionalDocument
 ) {}

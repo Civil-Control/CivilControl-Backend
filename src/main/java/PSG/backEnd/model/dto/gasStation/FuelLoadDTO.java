@@ -79,6 +79,12 @@ public record FuelLoadDTO(
                 nullable = true)
         @DecimalMin(value = "0.01", message = "{fuelLoad.pricePerLiter.positive}", groups = {OnCreate.class, OnUpdate.class})
         @Digits(integer = 8, fraction = 2, message = "{validation.digits}", groups = {OnCreate.class, OnUpdate.class})
-        java.math.BigDecimal pricePerLiter
+        java.math.BigDecimal pricePerLiter,
+
+        @Schema(description = "Optional ID of a transactional document (purchase invoice) to link to this fuel load.",
+                example = "42",
+                nullable = true)
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+        Long transactionalDocumentId
 
 ) {}

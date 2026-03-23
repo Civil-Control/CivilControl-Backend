@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.employee;
 
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -56,6 +57,10 @@ public record SalaryPaymentResponseDTO(
     @Schema(description = "Payment method used for this salary payment.",
             example = "TRANSFER",
             nullable = true)
-    PaymentMethod paymentMethod
+    PaymentMethod paymentMethod,
+
+    @Schema(description = "Linked transactional document summary, if any.",
+            nullable = true)
+    TransactionalDocumentSummaryDTO transactionalDocument
 ) {}
 

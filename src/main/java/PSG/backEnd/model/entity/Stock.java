@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity;
 
+import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.enums.StockCategory;
 import jakarta.persistence.*;
 import lombok.*;
@@ -37,4 +38,9 @@ public class Stock extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "building_id")
     private Building building;
+
+    /** Nullable — linked purchase document for this stock item. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transactional_document_id")
+    private TransactionalDocument transactionalDocument;
 }

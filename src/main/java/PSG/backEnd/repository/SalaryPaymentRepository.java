@@ -33,7 +33,8 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.amount <= :maxAmount) " +
             "AND (:paymentMethod IS NULL OR sp.paymentMethod = :paymentMethod) " +
             "AND (:search IS NULL OR (LOWER(CAST(sp.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(sp.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
+            "     OR LOWER(CAST(sp.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))) " +
+            "AND (CAST(:transactionalDocumentId AS long) IS NULL OR sp.transactionalDocument.id = :transactionalDocumentId)")
     Page<SalaryPayment> findAllWithFilters(
             @Param("employeeId") Long employeeId,
             @Param("firstName") String firstName,
@@ -46,6 +47,7 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             @Param("maxAmount") BigDecimal maxAmount,
             @Param("paymentMethod") PaymentMethod paymentMethod,
             @Param("search") String search,
+            @Param("transactionalDocumentId") Long transactionalDocumentId,
             Pageable pageable
     );
 

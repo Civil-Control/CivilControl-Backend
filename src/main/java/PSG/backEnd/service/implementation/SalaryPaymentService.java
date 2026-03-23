@@ -16,6 +16,9 @@ import PSG.backEnd.model.mapper.SalaryPaymentMapper;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
+import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
+import PSG.backEnd.model.entity.TransactionalDocument;
+import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.ISalaryPaymentService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     private final ProjectAreaRepository projectAreaRepository;
     private final SalaryPaymentMapper salaryPaymentMapper;
     private final MessageSourceHelper messageSourceHelper;
+    private final TransactionalDocumentRepository transactionalDocumentRepository;
 
     @Override
     @Transactional
@@ -52,6 +56,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         SalaryPayment salaryPayment = salaryPaymentMapper.toEntity(salaryPaymentDTO);
         salaryPayment.setEmployee(employee);
         salaryPayment.setProjectArea(resolveProjectArea(salaryPaymentDTO.projectAreaId()));
+        salaryPayment.setTransactionalDocument(resolveDocument(salaryPaymentDTO.transactionalDocumentId()));
 
         SalaryPayment savedSalaryPayment = salaryPaymentRepository.save(salaryPayment);
         return salaryPaymentMapper.toResponseDto(savedSalaryPayment);
@@ -80,6 +85,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
                 filterDTO.maxAmount(),
                 filterDTO.paymentMethod(),
                 filterDTO.search(),
+                filterDTO.transactionalDocumentId(),
                 pageable
         ).map(salaryPaymentMapper::toResponseDto);
     }
@@ -113,6 +119,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
 
         salaryPaymentMapper.partialUpdate(salaryPaymentDTO, existingSalaryPayment);
         existingSalaryPayment.setProjectArea(resolveProjectArea(salaryPaymentDTO.projectAreaId()));
+        existingSalaryPayment.setTransactionalDocument(resolveDocument(salaryPaymentDTO.transactionalDocumentId()));
         SalaryPayment updatedSalaryPayment = salaryPaymentRepository.save(existingSalaryPayment);
         return salaryPaymentMapper.toResponseDto(updatedSalaryPayment);
     }
@@ -198,6 +205,12 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         if (projectAreaId == null) return null;
         return projectAreaRepository.findByIdAndDeletedFalse(projectAreaId)
                 .orElseThrow(() -> new ProjectAreaNotFoundException(projectAreaId));
+    }
+
+    private TransactionalDocument resolveDocument(Long documentId) {
+        if (documentId == null) return null;
+        return transactionalDocumentRepository.findByIdAndDeletedFalse(documentId)
+                .orElseThrow(() -> new TransactionalDocumentNotFoundException(documentId));
     }
 }
 

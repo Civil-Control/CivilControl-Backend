@@ -115,6 +115,7 @@ public class StockController {
             @Parameter(description = "Minimum quantity threshold") @RequestParam(required = false) BigDecimal minQuantity,
             @Parameter(description = "Maximum quantity threshold") @RequestParam(required = false) BigDecimal maxQuantity,
             @Parameter(description = "Generic search across item name and category (partial match)") @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by linked transactional document ID") @RequestParam(required = false) Long transactionalDocumentId,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by (e.g., name, quantity, stockCategory)") @RequestParam(defaultValue = "id") String sortBy,
@@ -123,7 +124,7 @@ public class StockController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        StockFilterDTO filterDTO = new StockFilterDTO(name, buildingId, stockCategory, minQuantity, maxQuantity, search);
+        StockFilterDTO filterDTO = new StockFilterDTO(name, buildingId, stockCategory, minQuantity, maxQuantity, search, transactionalDocumentId);
 
         return ResponseEntity.ok(stockService.getAllStocks(filterDTO, pageable));
     }

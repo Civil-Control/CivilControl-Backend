@@ -61,5 +61,8 @@ public record RepairDTO(
                 example = "[\"ARRANQUE\", \"SISTEMA_ELECTRICO\"]",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotEmpty(message = "{repair.repairType.required}", groups = OnCreate.class)
-        List<String> repairTypes
+        List<String> repairTypes,
+
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+        Long transactionalDocumentId
 ) {}

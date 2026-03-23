@@ -36,7 +36,8 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             "AND (:repairType IS NULL OR :repairType MEMBER OF r.repairTypes) " +
             "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
+            "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))) " +
+            "AND (CAST(:transactionalDocumentId AS long) IS NULL OR r.transactionalDocument.id = :transactionalDocumentId)")
     Page<Repair> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
@@ -50,6 +51,7 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             @Param("supplierName") String supplierName,
             @Param("repairType") RepairType repairType,
             @Param("search") String search,
+            @Param("transactionalDocumentId") Long transactionalDocumentId,
             Pageable pageable
     );
 }

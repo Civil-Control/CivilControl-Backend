@@ -77,5 +77,10 @@ public record FuelLoadFilterDTO(
         @Schema(description = "Filter fuel loads with total amount <= this value.",
                 example = "50000.00",
                 nullable = true)
-        BigDecimal totalAmountMax
+        BigDecimal totalAmountMax,
+
+        @Schema(description = "Filter by linked transactional document ID.",
+                example = "7",
+                nullable = true)
+        Long transactionalDocumentId
 ) {}

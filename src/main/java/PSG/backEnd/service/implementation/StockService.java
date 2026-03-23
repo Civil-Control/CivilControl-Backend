@@ -10,6 +10,9 @@ import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.mapper.StockMapper;
 import PSG.backEnd.repository.StockRepository;
+import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
+import PSG.backEnd.model.entity.TransactionalDocument;
+import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.IBuildingService;
 import PSG.backEnd.service.port.IStockService;
 import PSG.backEnd.service.util.MessageSourceHelper;
@@ -30,6 +33,7 @@ public class StockService implements IStockService {
     private final StockMapper stockMapper;
     private final IBuildingService buildingService;
     private final MessageSourceHelper messageSourceHelper;
+    private final TransactionalDocumentRepository transactionalDocumentRepository;
 
     @Override
     @Transactional
@@ -54,6 +58,7 @@ public class StockService implements IStockService {
                 filterDTO.minQuantity(),
                 filterDTO.maxQuantity(),
                 filterDTO.search(),
+                filterDTO.transactionalDocumentId(),
                 pageable
         ).map(stockMapper::toResponseDto);
     }
@@ -81,6 +86,7 @@ public class StockService implements IStockService {
             existingStock.setBuilding(building);
         }
 
+        existingStock.setTransactionalDocument(resolveDocument(stockDTO.transactionalDocumentId()));
         Stock updatedStock = stockRepository.save(existingStock);
         return stockMapper.toResponseDto(updatedStock);
     }
@@ -182,6 +188,7 @@ public class StockService implements IStockService {
             Building building = buildingService.getEntityById(stockDTO.buildingId());
             stock.setBuilding(building);
         }
+        stock.setTransactionalDocument(resolveDocument(stockDTO.transactionalDocumentId()));
         return stockMapper.toResponseDto(stockRepository.save(stock));
     }
 
@@ -191,7 +198,14 @@ public class StockService implements IStockService {
         // Set building relationship
         Building building = buildingService.getEntityById(stockDTO.buildingId());
         stock.setBuilding(building);
+        stock.setTransactionalDocument(resolveDocument(stockDTO.transactionalDocumentId()));
         return stockMapper.toResponseDto(stockRepository.save(stock));
+    }
+
+    private TransactionalDocument resolveDocument(Long documentId) {
+        if (documentId == null) return null;
+        return transactionalDocumentRepository.findByIdAndDeletedFalse(documentId)
+                .orElseThrow(() -> new TransactionalDocumentNotFoundException(documentId));
     }
 }
 

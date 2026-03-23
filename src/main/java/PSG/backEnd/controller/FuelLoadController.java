@@ -86,6 +86,7 @@ public class FuelLoadController {
             @Parameter(description = "Filter by minimum total amount (inclusive)") @RequestParam(required = false) java.math.BigDecimal totalAmountMin,
             @Parameter(description = "Filter by maximum total amount (inclusive)") @RequestParam(required = false) java.math.BigDecimal totalAmountMax,
             @Parameter(description = "Generic search across vehicle license plate and fuel type (partial match)") @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by linked transactional document ID") @RequestParam(required = false) Long transactionalDocumentId,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, date, branchCode, ticketNumber, fuelType, liters, pricePerLiter, totalAmount. " +
@@ -101,7 +102,7 @@ public class FuelLoadController {
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
-        FuelLoadFilterDTO filterDTO = new FuelLoadFilterDTO(dateFrom, dateTo, branchCode, ticketNumber, fuelType, vehicleId, vehicleLicensePlate, projectAreaId, projectAreaName, gasStationId, search, gasStationName, totalAmountMin, totalAmountMax);
+        FuelLoadFilterDTO filterDTO = new FuelLoadFilterDTO(dateFrom, dateTo, branchCode, ticketNumber, fuelType, vehicleId, vehicleLicensePlate, projectAreaId, projectAreaName, gasStationId, search, gasStationName, totalAmountMin, totalAmountMax, transactionalDocumentId);
         return ResponseEntity.ok(fuelLoadService.getAllFuelLoads(filterDTO, pageable));
     }
 

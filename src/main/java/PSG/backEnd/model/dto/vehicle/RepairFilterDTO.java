@@ -67,5 +67,10 @@ public record RepairFilterDTO(
         @Schema(description = "Generic search across vehicle license plate, employee and supplier name (case-insensitive partial match).",
                 example = "ABC123",
                 nullable = true)
-        String search
+        String search,
+
+        @Schema(description = "Filter by linked transactional document ID.",
+                example = "7",
+                nullable = true)
+        Long transactionalDocumentId
 ) {}

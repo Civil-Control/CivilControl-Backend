@@ -1,8 +1,10 @@
 package PSG.backEnd.model.mapper;
 
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
 import PSG.backEnd.model.dto.vehicle.RepairDTO;
 import PSG.backEnd.model.dto.vehicle.RepairOrderResponseDTO;
 import PSG.backEnd.model.dto.vehicle.RepairResponseDTO;
+import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.entity.vehicle.RepairOrder;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
@@ -21,6 +23,7 @@ public interface RepairMapper {
     @Mapping(target = "supplier", source = "supplierId", qualifiedByName = "supplierIdToEntity")
     @Mapping(target = "repairTypes", source = "repairTypes", qualifiedByName = "stringsToRepairTypes")
     @Mapping(target = "repairOrder", ignore = true)
+    @Mapping(target = "transactionalDocument", ignore = true)
     Repair toEntity(RepairDTO repairDTO);
 
     @Mapping(target = "vehicleId", source = "vehicle.id")
@@ -30,6 +33,7 @@ public interface RepairMapper {
     @Mapping(target = "supplierTradeName", source = "supplier.tradeName")
     @Mapping(target = "repairTypes", source = "repairTypes", qualifiedByName = "repairTypesToStrings")
     @Mapping(target = "repairOrder", source = "repairOrder", qualifiedByName = "mapRepairOrderToDto")
+    @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
     RepairResponseDTO toResponseDto(Repair repair);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
@@ -38,6 +42,7 @@ public interface RepairMapper {
     @Mapping(target = "supplier", source = "supplierId", qualifiedByName = "supplierIdToEntity")
     @Mapping(target = "repairTypes", source = "repairTypes", qualifiedByName = "stringsToRepairTypes")
     @Mapping(target = "repairOrder", ignore = true)
+    @Mapping(target = "transactionalDocument", ignore = true)
     void partialUpdate(RepairDTO updateDTO, @MappingTarget Repair repair);
 
     @Named("stringsToRepairTypes")
@@ -90,6 +95,20 @@ public interface RepairMapper {
                 order.getCreatedByUser() != null
                         ? order.getCreatedByUser().getFirstName() + " " + order.getCreatedByUser().getLastName()
                         : null
+        );
+    }
+
+    @Named("documentToSummaryDto")
+    default TransactionalDocumentSummaryDTO documentToSummaryDto(TransactionalDocument doc) {
+        if (doc == null) return null;
+        return new TransactionalDocumentSummaryDTO(
+                doc.getId(),
+                doc.getDocumentType() != null ? doc.getDocumentType().name() : null,
+                doc.getBranchCode(),
+                doc.getDocumentNumber(),
+                doc.getSupplier() != null ? doc.getSupplier().getLegalName() : null,
+                doc.getTotal(),
+                doc.getDate()
         );
     }
 }

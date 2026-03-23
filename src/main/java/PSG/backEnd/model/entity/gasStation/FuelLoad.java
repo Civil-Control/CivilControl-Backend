@@ -2,6 +2,7 @@ package PSG.backEnd.model.entity.gasStation;
 
 import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.TenantEntity;
+import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.enums.vehicle.FuelType;
 import jakarta.persistence.*;
@@ -56,4 +57,9 @@ public class FuelLoad extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "gas_station_id")
     private GasStation gasStation;
+
+    /** Nullable — linked purchase document for this fuel load. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transactional_document_id")
+    private TransactionalDocument transactionalDocument;
 }

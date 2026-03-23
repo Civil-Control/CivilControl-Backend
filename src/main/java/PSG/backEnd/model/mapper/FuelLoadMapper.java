@@ -2,6 +2,8 @@ package PSG.backEnd.model.mapper;
 
 import PSG.backEnd.model.dto.gasStation.FuelLoadDTO;
 import PSG.backEnd.model.dto.gasStation.FuelLoadResponseDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
+import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.entity.gasStation.GasStation;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
@@ -18,6 +20,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
     @Mapping(target = "gasStation", source = "gasStationId", qualifiedByName = "gasStationIdToEntity")
     @Mapping(target = "fuelType", source = "fuelType")
+    @Mapping(target = "transactionalDocument", ignore = true)
     FuelLoad toEntity(FuelLoadDTO fuelLoadDTO);
 
     @Mapping(target = "date", source = "date", dateFormat = "yyyy-MM-dd")
@@ -29,6 +32,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "projectAreaColor", source = "projectArea.color")
     @Mapping(target = "gasStationId", source = "gasStation.id")
     @Mapping(target = "gasStationName", expression = "java(fuelLoad.getGasStation() != null ? fuelLoad.getGasStation().getSupplier().getLegalName() : null)")
+    @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
     FuelLoadResponseDTO toResponseDto(FuelLoad fuelLoad);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
@@ -38,6 +42,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "vehicle", source = "vehicleId", qualifiedByName = "vehicleIdToEntity")
     @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
     @Mapping(target = "gasStation", source = "gasStationId", qualifiedByName = "gasStationIdToEntity")
+    @Mapping(target = "transactionalDocument", ignore = true)
     void partialUpdate(FuelLoadDTO updateDTO, @MappingTarget FuelLoad fuelLoad);
 
     @Named("vehicleIdToEntity")
@@ -68,5 +73,19 @@ public interface FuelLoadMapper {
         GasStation gasStation = new GasStation();
         gasStation.setId(gasStationId);
         return gasStation;
+    }
+
+    @Named("documentToSummaryDto")
+    default TransactionalDocumentSummaryDTO documentToSummaryDto(TransactionalDocument doc) {
+        if (doc == null) return null;
+        return new TransactionalDocumentSummaryDTO(
+                doc.getId(),
+                doc.getDocumentType() != null ? doc.getDocumentType().name() : null,
+                doc.getBranchCode(),
+                doc.getDocumentNumber(),
+                doc.getSupplier() != null ? doc.getSupplier().getLegalName() : null,
+                doc.getTotal(),
+                doc.getDate()
+        );
     }
 }

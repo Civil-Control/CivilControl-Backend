@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.stock;
 
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
 import PSG.backEnd.model.enums.StockCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -29,5 +30,9 @@ public record StockResponseDTO(
             allowableValues = {"HERRAMIENTAS_MANUALES", "HERRAMIENTAS_ELECTRICAS", "EQUIPOS_PESADOS",
                     "MAQUINARIA", "INSUMOS", "SEGURIDAD_PERSONAL", "ROPA_TRABAJO", "EQUIPAMIENTO_OBRA",
                     "ACCESORIO_VEHICULAR", "LIMPIEZA_MANTENIMIENTO", "REPUESTOS", "OTROS"})
-    StockCategory stockCategory
+    StockCategory stockCategory,
+
+    @Schema(description = "Linked transactional document summary, if any.",
+            nullable = true)
+    TransactionalDocumentSummaryDTO transactionalDocument
 ) {}

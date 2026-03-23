@@ -510,6 +510,7 @@ public class ReportService implements IReportService {
                 filters.maxAmount(),
                 null, // paymentMethod - not filtered in reports
                 null, // search
+                null, // transactionalDocumentId
                 pageable
         ).getContent();
 
@@ -654,6 +655,7 @@ public class ReportService implements IReportService {
                 null, // gasStationName
                 null, // totalAmountMin
                 null, // totalAmountMax
+                null, // transactionalDocumentId
                 pageable
         ).getContent();
 
@@ -836,6 +838,7 @@ public class ReportService implements IReportService {
                 null, // supplierName
                 null, // repairType
                 null, // search
+                null, // transactionalDocumentId
                 pageable
         ).getContent();
 

@@ -2,6 +2,7 @@ package PSG.backEnd.model.entity.vehicle;
 
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.TenantEntity;
+import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.enums.vehicle.RepairType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -57,5 +58,9 @@ public class Repair extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "repair_order_id")
     private RepairOrder repairOrder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transactional_document_id")
+    private TransactionalDocument transactionalDocument;
 
 }

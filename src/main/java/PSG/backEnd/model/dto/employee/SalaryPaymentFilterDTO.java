@@ -62,6 +62,7 @@ public record SalaryPaymentFilterDTO(
 
     @Schema(description = "Generic search across employee name and last name (case-insensitive partial match).",
             nullable = true)
-    String search
+    String search,
+    Long transactionalDocumentId
 ) {}
 

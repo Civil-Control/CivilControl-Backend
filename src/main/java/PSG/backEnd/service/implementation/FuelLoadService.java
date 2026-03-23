@@ -1,14 +1,17 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.gasStation.FuelLoadNotFoundException;
+import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
 import PSG.backEnd.model.dto.gasStation.FuelLoadDTO;
 import PSG.backEnd.model.dto.gasStation.FuelLoadFilterDTO;
 import PSG.backEnd.model.dto.gasStation.FuelLoadResponseDTO;
 import PSG.backEnd.model.dto.gasStation.FuelLoadBatchDTO;
 import PSG.backEnd.model.dto.gasStation.FuelLoadBatchResponseDTO;
+import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.mapper.FuelLoadMapper;
 import PSG.backEnd.repository.FuelLoadRepository;
+import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.implementation.fuelload.FuelLoadFactory;
 import PSG.backEnd.service.implementation.fuelload.FuelLoadBatchProcessor;
 import PSG.backEnd.service.port.IFuelLoadService;
@@ -27,7 +30,7 @@ public class FuelLoadService implements IFuelLoadService {
 
     private final FuelLoadRepository fuelLoadRepository;
     private final FuelLoadMapper fuelLoadMapper;
-
+    private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final FuelLoadFactory fuelLoadFactory;
     private final FuelLoadBatchProcessor batchProcessor;
 
@@ -37,6 +40,7 @@ public class FuelLoadService implements IFuelLoadService {
     @Override
     public FuelLoadResponseDTO createFuelLoad(FuelLoadDTO fuelLoadDTO) {
         FuelLoad fuelLoad = fuelLoadFactory.createFuelLoad(fuelLoadDTO);
+        fuelLoad.setTransactionalDocument(resolveDocument(fuelLoadDTO.transactionalDocumentId()));
         FuelLoad savedFuelLoad = fuelLoadRepository.save(fuelLoad);
         entityManager.refresh(savedFuelLoad);
         return fuelLoadMapper.toResponseDto(savedFuelLoad);
@@ -72,6 +76,7 @@ public class FuelLoadService implements IFuelLoadService {
                 filterDTO.gasStationName(),
                 filterDTO.totalAmountMin(),
                 filterDTO.totalAmountMax(),
+                filterDTO.transactionalDocumentId(),
                 pageable
         );
 
@@ -82,6 +87,7 @@ public class FuelLoadService implements IFuelLoadService {
     public FuelLoadResponseDTO updateFuelLoad(Long id, FuelLoadDTO fuelLoadDTO) {
         FuelLoad existingFuelLoad = findFuelLoadById(id);
         fuelLoadFactory.updateFuelLoad(existingFuelLoad, fuelLoadDTO);
+        existingFuelLoad.setTransactionalDocument(resolveDocument(fuelLoadDTO.transactionalDocumentId()));
         FuelLoad updatedFuelLoad = fuelLoadRepository.save(existingFuelLoad);
         entityManager.refresh(updatedFuelLoad);
         return fuelLoadMapper.toResponseDto(updatedFuelLoad);
@@ -100,5 +106,11 @@ public class FuelLoadService implements IFuelLoadService {
     private FuelLoad findFuelLoadById(Long id) {
         return fuelLoadRepository.findById(id)
                 .orElseThrow(() -> new FuelLoadNotFoundException(id));
+    }
+
+    private TransactionalDocument resolveDocument(Long documentId) {
+        if (documentId == null) return null;
+        return transactionalDocumentRepository.findByIdAndDeletedFalse(documentId)
+                .orElseThrow(() -> new TransactionalDocumentNotFoundException(documentId));
     }
 }

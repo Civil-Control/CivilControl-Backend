@@ -66,5 +66,8 @@ public record FuelLoadResponseDTO(
 
         @Schema(description = "Name of the gas station where the fuel load was made.",
                 example = "Shell Station Downtown")
-        String gasStationName
+        String gasStationName,
+
+        @Schema(description = "Linked transactional document summary, if any.", nullable = true)
+        PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO transactionalDocument
 ) {}
