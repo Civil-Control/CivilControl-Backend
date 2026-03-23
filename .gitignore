@@ -76,6 +76,8 @@ repair_*.ps1
 MANUAL_REPAIR_*.sql
 SOLUCION_*.md
 *_REPAIR_*.sql
+# Never ignore Flyway versioned migrations (Windows case-insensitive matching workaround)
+!src/main/resources/db/migration/V*.sql
 
 ### Credentials and Sensitive Information ###
 # NEVER commit credentials files
