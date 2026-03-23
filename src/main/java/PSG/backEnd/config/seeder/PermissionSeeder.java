@@ -243,8 +243,9 @@ public class PermissionSeeder implements CommandLineRunner {
                         Permission permission = existingPermission.get();
                         boolean updated = false;
 
-                        if (permission.getSpanishTranslation() == null || permission.getSpanishTranslation().isEmpty()) {
-                            permission.setSpanishTranslation(generateSpanishTranslation(permissionName));
+                        String expectedTranslation = generateSpanishTranslation(permissionName);
+                        if (!expectedTranslation.equals(permission.getSpanishTranslation())) {
+                            permission.setSpanishTranslation(expectedTranslation);
                             updated = true;
                         }
 
