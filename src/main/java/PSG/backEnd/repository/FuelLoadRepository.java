@@ -21,6 +21,8 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
     List<FuelLoad> findByProjectAreaId(Long projectAreaId);
     List<FuelLoad> findByGasStationId(Long gasStationId);
 
+    List<FuelLoad> findByTransactionalDocumentId(Long transactionalDocumentId);
+
     boolean existsByTicketNumberAndBranchCode(String ticketNumber, String branchCode);
 
     @Query("SELECT fl FROM FuelLoad fl " +

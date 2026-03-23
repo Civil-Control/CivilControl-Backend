@@ -1,5 +1,6 @@
 package PSG.backEnd.service.port;
 
+import PSG.backEnd.model.dto.transactionalDocument.LinkedRecordsSummaryDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentFilterDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
@@ -17,6 +18,7 @@ public interface ITransactionalDocumentService {
     TransactionalDocumentResponseDTO updateTransactionalDocument(Long id, TransactionalDocumentDTO transactionalDocumentDTO);
     void updateTransactionalDocumentStatus(Long documentId, Long supplierId, BigDecimal amount);
     void revertTransactionalDocumentStatusIfExists(Long documentId, Long supplierId);
-    void deleteTransactionalDocument(Long id);
+    LinkedRecordsSummaryDTO getLinkedRecordsSummary(Long id);
+    void deleteTransactionalDocument(Long id, boolean deleteLinkedRecords);
     TransactionalDocument getEntityById(Long id);
 }

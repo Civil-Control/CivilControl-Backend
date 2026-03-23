@@ -5,16 +5,25 @@ import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentAlreadyActiveException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
 import PSG.backEnd.model.dto.item.ItemDetailDTO;
+import PSG.backEnd.model.dto.transactionalDocument.LinkedRecordItemDTO;
+import PSG.backEnd.model.dto.transactionalDocument.LinkedRecordsSummaryDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentFilterDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
 import PSG.backEnd.model.entity.*;
+import PSG.backEnd.model.entity.employee.SalaryPayment;
+import PSG.backEnd.model.entity.gasStation.FuelLoad;
+import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.mapper.ItemDetailMapper;
 import PSG.backEnd.model.mapper.TransactionalDocumentMapper;
+import PSG.backEnd.repository.FuelLoadRepository;
 import PSG.backEnd.repository.ItemDetailRepository;
 import PSG.backEnd.repository.ItemRepository;
+import PSG.backEnd.repository.RepairRepository;
+import PSG.backEnd.repository.SalaryPaymentRepository;
+import PSG.backEnd.repository.StockRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.IProjectAreaService;
 import PSG.backEnd.service.port.ISupplierService;
@@ -46,6 +55,11 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final IProjectAreaService iProjectAreaService;
     private final ISupplierService iSupplierService;
     private final MessageSourceHelper messageSourceHelper;
+
+    private final RepairRepository repairRepository;
+    private final FuelLoadRepository fuelLoadRepository;
+    private final SalaryPaymentRepository salaryPaymentRepository;
+    private final StockRepository stockRepository;
 
     @Override
     @Transactional
@@ -291,8 +305,45 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public LinkedRecordsSummaryDTO getLinkedRecordsSummary(Long id) {
+        List<LinkedRecordItemDTO> repairs = repairRepository.findByTransactionalDocumentId(id)
+                .stream()
+                .map(r -> new LinkedRecordItemDTO(r.getId(),
+                        "Reparación – " + r.getVehicle().getLicensePlate()
+                                + (r.getEmployee() != null ? " (" + r.getEmployee() + ")" : "")
+                                + " – " + r.getDate()))
+                .toList();
+
+        List<LinkedRecordItemDTO> fuelLoads = fuelLoadRepository.findByTransactionalDocumentId(id)
+                .stream()
+                .map(fl -> new LinkedRecordItemDTO(fl.getId(),
+                        fl.getVehicle().getLicensePlate()
+                                + " – " + fl.getLiters().stripTrailingZeros().toPlainString()
+                                + "L " + fl.getFuelType()
+                                + " – " + fl.getDate()))
+                .toList();
+
+        List<LinkedRecordItemDTO> salaryPayments = salaryPaymentRepository.findByTransactionalDocumentId(id)
+                .stream()
+                .map(sp -> new LinkedRecordItemDTO(sp.getId(),
+                        sp.getEmployee().getLastName() + ", " + sp.getEmployee().getName()
+                                + " – " + sp.getPaymentDate()))
+                .toList();
+
+        List<LinkedRecordItemDTO> stocks = stockRepository.findByTransactionalDocumentIdAndDeletedFalse(id)
+                .stream()
+                .map(s -> new LinkedRecordItemDTO(s.getId(),
+                        s.getName() + " – "
+                                + s.getQuantity().stripTrailingZeros().toPlainString() + " uds."))
+                .toList();
+
+        return new LinkedRecordsSummaryDTO(repairs, fuelLoads, salaryPayments, stocks);
+    }
+
+    @Override
     @Transactional
-    public void deleteTransactionalDocument(Long id) {
+    public void deleteTransactionalDocument(Long id, boolean deleteLinkedRecords) {
         TransactionalDocument document = getEntityById(id);
 
         // If the document is an unpaid invoice, we need to revert its impact on the balance
@@ -304,6 +355,19 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 ? supplier.getPendingBalance()
                 : BigDecimal.ZERO;
             supplier.setPendingBalance(currentBalance.subtract(discountedAmount));
+        }
+
+        if (deleteLinkedRecords) {
+            // Hard-delete Repair, FuelLoad, SalaryPayment (no soft-delete support on these entities)
+            repairRepository.deleteAll(repairRepository.findByTransactionalDocumentId(id));
+            fuelLoadRepository.deleteAll(fuelLoadRepository.findByTransactionalDocumentId(id));
+            salaryPaymentRepository.deleteAll(salaryPaymentRepository.findByTransactionalDocumentId(id));
+
+            // Soft-delete Stock items
+            stockRepository.findByTransactionalDocumentIdAndDeletedFalse(id).forEach(s -> {
+                s.setDeleted(true);
+                s.setTransactionalDocument(null);
+            });
         }
 
         document.setDeleted(true);

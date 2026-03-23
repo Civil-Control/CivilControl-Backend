@@ -17,6 +17,8 @@ import java.util.Optional;
 public interface StockRepository extends JpaRepository<Stock, Long> {
     List<Stock> findByDeletedFalse();
     Optional<Stock> findByIdAndDeletedFalse(Long id);
+
+    List<Stock> findByTransactionalDocumentIdAndDeletedFalse(Long transactionalDocumentId);
     Optional<Stock> findByNameAndDeletedTrue(String name);
     boolean existsByNameAndDeletedFalse(String name);
     boolean existsByIdAndDeletedFalse(Long id);

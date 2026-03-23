@@ -20,6 +20,8 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
 
     List<Repair> findBySupplierId(Long supplierId);
 
+    List<Repair> findByTransactionalDocumentId(Long transactionalDocumentId);
+
     @Query("SELECT r FROM Repair r " +
             "LEFT JOIN r.vehicle v " +
             "LEFT JOIN r.supplier s " +

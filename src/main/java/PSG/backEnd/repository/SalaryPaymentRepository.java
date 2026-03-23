@@ -20,6 +20,8 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
     List<SalaryPayment> findByEmployeeId(Long employeeId);
     Optional<SalaryPayment> findByIdAndEmployeeDeletedFalse(Long id);
 
+    List<SalaryPayment> findByTransactionalDocumentId(Long transactionalDocumentId);
+
     @Query("SELECT sp FROM SalaryPayment sp " +
             "WHERE sp.employee.deleted = false " +
             "AND (CAST(:employeeId AS long) IS NULL OR sp.employee.id = :employeeId) " +

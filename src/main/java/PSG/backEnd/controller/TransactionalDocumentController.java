@@ -3,6 +3,7 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentFilterDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
+import PSG.backEnd.model.dto.transactionalDocument.LinkedRecordsSummaryDTO;
 import PSG.backEnd.model.validation.ValidationGroups;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -188,6 +189,21 @@ public class TransactionalDocumentController {
         return ResponseEntity.ok(iTransactionalDocumentService.updateTransactionalDocument(id, transactionalDocumentDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_READ + "')")
+    @GetMapping("/{id}/linked-records")
+    @Operation(summary = "Get linked records for a transactional document",
+            description = "Returns a summary of all records (repairs, fuel loads, salary payments, stock items) "
+                    + "currently linked to the specified transactional document. Used before deletion to inform the user.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Linked records summary returned"),
+            @ApiResponse(responseCode = "404", description = "Transactional document not found")
+    })
+    public ResponseEntity<LinkedRecordsSummaryDTO> getLinkedRecords(
+            @Parameter(description = "Transactional document unique identifier", required = true, example = "1")
+            @PathVariable Long id) {
+        return ResponseEntity.ok(iTransactionalDocumentService.getLinkedRecordsSummary(id));
+    }
+
     @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete transactional document",
@@ -200,8 +216,10 @@ public class TransactionalDocumentController {
     })
     public ResponseEntity<Void> deleteTransactionalDocument(
             @Parameter(description = "Transactional document unique identifier", required = true, example = "1")
-            @PathVariable Long id) {
-        iTransactionalDocumentService.deleteTransactionalDocument(id);
+            @PathVariable Long id,
+            @Parameter(description = "When true, also deletes linked records (repairs, fuel loads, salary payments) and soft-deletes stock items", example = "false")
+            @RequestParam(defaultValue = "false") boolean deleteLinkedRecords) {
+        iTransactionalDocumentService.deleteTransactionalDocument(id, deleteLinkedRecords);
         return ResponseEntity.noContent().build();
     }
 }
