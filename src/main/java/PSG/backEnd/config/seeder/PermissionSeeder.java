@@ -86,6 +86,10 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("BUILDING_", "Buildings");
         MODULE_MAP.put("PROJECT_AREA_", "Project Areas");
         MODULE_MAP.put("TENANT_", "Tenants");
+        MODULE_MAP.put("WORK_CONTRACT_", "Work Contracts");
+        MODULE_MAP.put("CERTIFICATION_", "Certifications");
+        MODULE_MAP.put("CLIENT_", "Clients");
+        MODULE_MAP.put("SALES_DOCUMENT_", "Sales Documents");
         MODULE_MAP.put("REPORT_", "Reports");
         MODULE_MAP.put("DATA_", "System");
         MODULE_MAP.put("USER_", "Users");
@@ -118,6 +122,10 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("BUILDING_", "Edificios");
         MODULE_SPANISH_MAP.put("PROJECT_AREA_", "Áreas de Proyecto");
         MODULE_SPANISH_MAP.put("TENANT_", "Empresa");
+        MODULE_SPANISH_MAP.put("WORK_CONTRACT_", "Contratos de Obra");
+        MODULE_SPANISH_MAP.put("CERTIFICATION_", "Certificaciones");
+        MODULE_SPANISH_MAP.put("CLIENT_", "Clientes");
+        MODULE_SPANISH_MAP.put("SALES_DOCUMENT_", "Comprobantes de Venta");
         MODULE_SPANISH_MAP.put("REPORT_", "Reportes");
         MODULE_SPANISH_MAP.put("DATA_", "Sistema");
         MODULE_SPANISH_MAP.put("USER_", "Usuarios");
@@ -171,6 +179,14 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_MAP.put("STOCK_", "mechanic");
         WORK_MODULE_MAP.put("STOCK_PURCHASE_", "mechanic");
 
+        // clients: client, salesDocument
+        WORK_MODULE_MAP.put("CLIENT_", "clients");
+        WORK_MODULE_MAP.put("SALES_DOCUMENT_", "clients");
+
+        // contracts: workContract, certification
+        WORK_MODULE_MAP.put("WORK_CONTRACT_", "contracts");
+        WORK_MODULE_MAP.put("CERTIFICATION_", "contracts");
+
         // report: report
         WORK_MODULE_MAP.put("REPORT_", "report");
 
@@ -197,6 +213,8 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_SPANISH_MAP.put("mechanic", "Mecánica");
         WORK_MODULE_SPANISH_MAP.put("report", "Reportes");
         WORK_MODULE_SPANISH_MAP.put("company", "Empresa");
+        WORK_MODULE_SPANISH_MAP.put("clients", "Clientes");
+        WORK_MODULE_SPANISH_MAP.put("contracts", "Contratos");
         WORK_MODULE_SPANISH_MAP.put("administration", "Administración");
     }
 

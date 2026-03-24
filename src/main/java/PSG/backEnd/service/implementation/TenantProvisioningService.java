@@ -82,20 +82,28 @@ public class TenantProvisioningService {
      * This is a system role and cannot be modified, renamed, or deleted.
      */
     private Role createOwnerRole(Long tenantId) {
+        List<Permission> allPermissions = permissionRepository.findAll();
+        Set<Permission> allPermsSet = new HashSet<>(allPermissions);
+
         if (roleRepository.existsByNameAndTenantId(ROLE_OWNER, tenantId)) {
-            log.info("OWNER role already exists for tenant {}, skipping...", tenantId);
-            return roleRepository.findByNameAndTenantId(ROLE_OWNER, tenantId)
+            Role existingRole = roleRepository.findByNameAndTenantId(ROLE_OWNER, tenantId)
                     .orElseThrow(() -> new IllegalStateException("Role exists but cannot be retrieved"));
+            if (!existingRole.getPermissions().containsAll(allPermsSet)) {
+                existingRole.setPermissions(allPermsSet);
+                existingRole = roleRepository.save(existingRole);
+                log.info("OWNER role synced for tenant {} with {} permissions", tenantId, allPermissions.size());
+            } else {
+                log.info("OWNER role already up-to-date for tenant {}", tenantId);
+            }
+            return existingRole;
         }
 
         log.info("Creating OWNER role for tenant {}...", tenantId);
 
-        List<Permission> allPermissions = permissionRepository.findAll();
-
         Role ownerRole = Role.builder()
                 .name(ROLE_OWNER)
                 .description("Propietario del tenant con todos los permisos. Rol del sistema, no se puede modificar ni eliminar.")
-                .permissions(new HashSet<>(allPermissions))
+                .permissions(allPermsSet)
                 .active(true)
                 .deleted(false)
                 .systemRole(true)
@@ -114,25 +122,30 @@ public class TenantProvisioningService {
      * OWNER users or the OWNER role. This is a system role.
      */
     private Role createAdminRole(Long tenantId) {
-        if (roleRepository.existsByNameAndTenantId(ROLE_ADMIN, tenantId)) {
-            log.info("ADMIN role already exists for tenant {}, skipping...", tenantId);
-            return roleRepository.findByNameAndTenantId(ROLE_ADMIN, tenantId)
-                    .orElseThrow(() -> new IllegalStateException("Role exists but cannot be retrieved"));
-        }
-
-        log.info("Creating ADMIN role for tenant {}...", tenantId);
-
         List<Permission> allPermissions = permissionRepository.findAll();
         Set<Permission> adminPermissions = new HashSet<>();
-
         for (Permission permission : allPermissions) {
-            // Exclude system-internal and developer-only permissions
             if (!permission.getName().contains("SYSTEM_") &&
                 !permission.getName().contains("AUDIT_") &&
                 !permission.getName().contains("EXCEPTION_LOG_")) {
                 adminPermissions.add(permission);
             }
         }
+
+        if (roleRepository.existsByNameAndTenantId(ROLE_ADMIN, tenantId)) {
+            Role existingRole = roleRepository.findByNameAndTenantId(ROLE_ADMIN, tenantId)
+                    .orElseThrow(() -> new IllegalStateException("Role exists but cannot be retrieved"));
+            if (!existingRole.getPermissions().containsAll(adminPermissions)) {
+                existingRole.setPermissions(adminPermissions);
+                existingRole = roleRepository.save(existingRole);
+                log.info("ADMIN role synced for tenant {} with {} permissions", tenantId, adminPermissions.size());
+            } else {
+                log.info("ADMIN role already up-to-date for tenant {}", tenantId);
+            }
+            return existingRole;
+        }
+
+        log.info("Creating ADMIN role for tenant {}...", tenantId);
 
         Role adminRole = Role.builder()
                 .name(ROLE_ADMIN)
@@ -156,23 +169,29 @@ public class TenantProvisioningService {
      * This is a system role.
      */
     private Role createLectorRole(Long tenantId) {
-        if (roleRepository.existsByNameAndTenantId(ROLE_LECTOR, tenantId)) {
-            log.info("LECTOR role already exists for tenant {}, skipping...", tenantId);
-            return roleRepository.findByNameAndTenantId(ROLE_LECTOR, tenantId)
-                    .orElseThrow(() -> new IllegalStateException("Role exists but cannot be retrieved"));
-        }
-
-        log.info("Creating LECTOR role for tenant {}...", tenantId);
-
         List<Permission> allPermissions = permissionRepository.findAll();
         Set<Permission> readPermissions = new HashSet<>();
-
         for (Permission permission : allPermissions) {
             if (permission.getName().endsWith("_READ") ||
                 permission.getName().equals("REPORT_VIEW")) {
                 readPermissions.add(permission);
             }
         }
+
+        if (roleRepository.existsByNameAndTenantId(ROLE_LECTOR, tenantId)) {
+            Role existingRole = roleRepository.findByNameAndTenantId(ROLE_LECTOR, tenantId)
+                    .orElseThrow(() -> new IllegalStateException("Role exists but cannot be retrieved"));
+            if (!existingRole.getPermissions().containsAll(readPermissions)) {
+                existingRole.setPermissions(readPermissions);
+                existingRole = roleRepository.save(existingRole);
+                log.info("LECTOR role synced for tenant {} with {} permissions", tenantId, readPermissions.size());
+            } else {
+                log.info("LECTOR role already up-to-date for tenant {}", tenantId);
+            }
+            return existingRole;
+        }
+
+        log.info("Creating LECTOR role for tenant {}...", tenantId);
 
         Role lectorRole = Role.builder()
                 .name(ROLE_LECTOR)
