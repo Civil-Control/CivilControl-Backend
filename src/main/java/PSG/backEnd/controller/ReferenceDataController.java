@@ -192,17 +192,48 @@ public class ReferenceDataController {
     }
 
     // ── Clients ───────────────────────────────────────────────────
-    // Needed by: SalesDocument
+    // Needed by: SalesDocument, WorkContract
     @GetMapping("/clients")
     @Operation(summary = "Client references for form dropdowns")
     @ApiResponse(responseCode = "200", description = "List of clients (id + label)")
     @PreAuthorize(
         "hasAnyAuthority("
         + "'" + AppPermissions.CLIENT_READ + "',"
-        + "'" + AppPermissions.SALES_DOCUMENT_WRITE + "'"
+        + "'" + AppPermissions.SALES_DOCUMENT_WRITE + "',"
+        + "'" + AppPermissions.WORK_CONTRACT_WRITE + "'"
         + ")"
     )
     public ResponseEntity<List<ReferenceItem>> getClientReferences() {
         return ResponseEntity.ok(referenceDataService.getClientReferences());
+    }
+
+    // ── Work Contracts ────────────────────────────────────────────
+    // Needed by: Certification
+    @GetMapping("/work-contracts")
+    @Operation(summary = "Work contract references for form dropdowns")
+    @ApiResponse(responseCode = "200", description = "List of work contracts (id + label)")
+    @PreAuthorize(
+        "hasAnyAuthority("
+        + "'" + AppPermissions.WORK_CONTRACT_READ + "',"
+        + "'" + AppPermissions.CERTIFICATION_WRITE + "'"
+        + ")"
+    )
+    public ResponseEntity<List<ReferenceItem>> getWorkContractReferences() {
+        return ResponseEntity.ok(referenceDataService.getWorkContractReferences());
+    }
+
+    // ── Sales Documents ───────────────────────────────────────────
+    // Needed by: Certification (optional salesDocumentId field)
+    @GetMapping("/sales-documents")
+    @Operation(summary = "Sales document references for form dropdowns")
+    @ApiResponse(responseCode = "200", description = "List of sales documents (id + label)")
+    @PreAuthorize(
+        "hasAnyAuthority("
+        + "'" + AppPermissions.SALES_DOCUMENT_READ + "',"
+        + "'" + AppPermissions.CERTIFICATION_WRITE + "'"
+        + ")"
+    )
+    public ResponseEntity<List<ReferenceItem>> getSalesDocumentReferences() {
+        return ResponseEntity.ok(referenceDataService.getSalesDocumentReferences());
     }
 }

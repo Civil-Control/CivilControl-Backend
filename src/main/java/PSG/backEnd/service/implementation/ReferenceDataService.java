@@ -6,7 +6,10 @@ import PSG.backEnd.model.dto.reference.ReferenceItem;
 import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
 import PSG.backEnd.model.entity.Client;
 import PSG.backEnd.repository.ClientRepository;
+import PSG.backEnd.repository.SalesDocumentRepository;
 import PSG.backEnd.model.entity.*;
+import PSG.backEnd.model.entity.contracts.WorkContract;
+import PSG.backEnd.repository.WorkContractRepository;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.entity.gasStation.GasStation;
 import PSG.backEnd.model.entity.serviceSupplier.ServiceSupplier;
@@ -41,6 +44,8 @@ public class ReferenceDataService implements IReferenceDataService {
     private final ItemRepository itemRepository;
     private final ServiceSupplierRepository serviceSupplierRepository;
     private final ClientRepository clientRepository;
+    private final WorkContractRepository workContractRepository;
+    private final SalesDocumentRepository salesDocumentRepository;
 
     @Override
     public List<VehicleReferenceItem> getVehicleReferences() {
@@ -142,6 +147,30 @@ public class ReferenceDataService implements IReferenceDataService {
                 .filter(c -> Boolean.TRUE.equals(c.getActive()))
                 .map(c -> new ReferenceItem(c.getId(),
                         c.getTradeName() != null ? c.getTradeName() : c.getBusinessName()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ReferenceItem> getWorkContractReferences() {
+        return workContractRepository.findByDeletedFalse().stream()
+                .map(wc -> new ReferenceItem(wc.getId(),
+                        wc.getContractNumber() + " — " + wc.getClient().getBusinessName()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ReferenceItem> getSalesDocumentReferences() {
+        return salesDocumentRepository.findAll().stream()
+                .filter(sd -> !Boolean.TRUE.equals(sd.getDeleted()))
+                .map(sd -> {
+                    String label = sd.getDocumentType().name()
+                            + " " + nullSafe(sd.getBranchCode())
+                            + "-" + nullSafe(sd.getDocumentNumber());
+                    if (sd.getTotal() != null) {
+                        label += " — $" + String.format("%,.0f", sd.getTotal());
+                    }
+                    return new ReferenceItem(sd.getId(), label);
+                })
                 .collect(Collectors.toList());
     }
 }

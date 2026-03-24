@@ -507,6 +507,16 @@ public final class AppPermissions {
     public static final String SALES_DOCUMENT_WRITE = "SALES_DOCUMENT_WRITE";
     public static final String SALES_DOCUMENT_DELETE = "SALES_DOCUMENT_DELETE";
 
+    // ==================== MODULE: WORK CONTRACTS ====================
+    public static final String WORK_CONTRACT_READ = "WORK_CONTRACT_READ";
+    public static final String WORK_CONTRACT_WRITE = "WORK_CONTRACT_WRITE";
+    public static final String WORK_CONTRACT_DELETE = "WORK_CONTRACT_DELETE";
+
+    // ==================== MODULE: CERTIFICATIONS ====================
+    public static final String CERTIFICATION_READ = "CERTIFICATION_READ";
+    public static final String CERTIFICATION_WRITE = "CERTIFICATION_WRITE";
+    public static final String CERTIFICATION_DELETE = "CERTIFICATION_DELETE";
+
     // ==================== MODULE: SYSTEM ====================
     
     /**
