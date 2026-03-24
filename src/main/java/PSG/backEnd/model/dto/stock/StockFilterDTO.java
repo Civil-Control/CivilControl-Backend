@@ -33,6 +33,5 @@ public record StockFilterDTO(
 
     @Schema(description = "Generic search across stock name and category (case-insensitive partial match).",
             example = "Hammer")
-    String search,
-    Long transactionalDocumentId
+    String search
 ) {}

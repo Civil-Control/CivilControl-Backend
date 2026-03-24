@@ -6,10 +6,10 @@ public record LinkedRecordsSummaryDTO(
         List<LinkedRecordItemDTO> repairs,
         List<LinkedRecordItemDTO> fuelLoads,
         List<LinkedRecordItemDTO> salaryPayments,
-        List<LinkedRecordItemDTO> stocks
+        List<LinkedRecordItemDTO> stockPurchases
 ) {
     public boolean hasAny() {
         return !repairs.isEmpty() || !fuelLoads.isEmpty()
-                || !salaryPayments.isEmpty() || !stocks.isEmpty();
+                || !salaryPayments.isEmpty() || !stockPurchases.isEmpty();
     }
 }

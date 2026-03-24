@@ -47,8 +47,5 @@ public record StockDTO(
                     "MAQUINARIA", "INSUMOS", "SEGURIDAD_PERSONAL", "ROPA_TRABAJO", "EQUIPAMIENTO_OBRA",
                     "ACCESORIO_VEHICULAR", "LIMPIEZA_MANTENIMIENTO", "REPUESTOS", "OTROS"})
     @NotNull(groups = OnCreate.class, message = "{validation.required}")
-    StockCategory stockCategory,
-
-    @Positive(groups = {OnCreate.class, OnUpdate.class}, message = "{validation.positive}")
-    Long transactionalDocumentId
+    StockCategory stockCategory
 ) {}

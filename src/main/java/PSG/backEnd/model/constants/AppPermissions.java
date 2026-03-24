@@ -297,6 +297,26 @@ public final class AppPermissions {
      */
     public static final String STOCK_DELETE = "STOCK_DELETE";
 
+    // ==================== MODULE: STOCK PURCHASES ====================
+
+    /**
+     * Module: Stock Purchases
+     * Allows viewing stock purchase records.
+     */
+    public static final String STOCK_PURCHASE_READ = "STOCK_PURCHASE_READ";
+
+    /**
+     * Module: Stock Purchases
+     * Allows creating and editing stock purchases.
+     */
+    public static final String STOCK_PURCHASE_WRITE = "STOCK_PURCHASE_WRITE";
+
+    /**
+     * Module: Stock Purchases
+     * Allows deleting stock purchases.
+     */
+    public static final String STOCK_PURCHASE_DELETE = "STOCK_PURCHASE_DELETE";
+
     // ==================== MODULE: SUPPLIERS ====================
     
     /**

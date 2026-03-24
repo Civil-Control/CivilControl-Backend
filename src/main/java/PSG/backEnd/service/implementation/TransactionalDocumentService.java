@@ -23,9 +23,10 @@ import PSG.backEnd.repository.ItemDetailRepository;
 import PSG.backEnd.repository.ItemRepository;
 import PSG.backEnd.repository.RepairRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
-import PSG.backEnd.repository.StockRepository;
+import PSG.backEnd.repository.StockPurchaseRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.IProjectAreaService;
+import PSG.backEnd.service.port.IStockPurchaseService;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
 import PSG.backEnd.service.util.MessageSourceHelper;
@@ -59,7 +60,8 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final RepairRepository repairRepository;
     private final FuelLoadRepository fuelLoadRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
-    private final StockRepository stockRepository;
+    private final StockPurchaseRepository stockPurchaseRepository;
+    private final IStockPurchaseService iStockPurchaseService;
 
     @Override
     @Transactional
@@ -331,14 +333,13 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                                 + " – " + sp.getPaymentDate()))
                 .toList();
 
-        List<LinkedRecordItemDTO> stocks = stockRepository.findByTransactionalDocumentIdAndDeletedFalse(id)
+        List<LinkedRecordItemDTO> stockPurchases = stockPurchaseRepository.findByTransactionalDocumentId(id)
                 .stream()
-                .map(s -> new LinkedRecordItemDTO(s.getId(),
-                        s.getName() + " – "
-                                + s.getQuantity().stripTrailingZeros().toPlainString() + " uds."))
+                .map(sp -> new LinkedRecordItemDTO(sp.getId(),
+                        "Compra de Stock – " + sp.getQuantity().stripTrailingZeros().toPlainString() + " uds."))
                 .toList();
 
-        return new LinkedRecordsSummaryDTO(repairs, fuelLoads, salaryPayments, stocks);
+        return new LinkedRecordsSummaryDTO(repairs, fuelLoads, salaryPayments, stockPurchases);
     }
 
     @Override
@@ -363,11 +364,9 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             fuelLoadRepository.deleteAll(fuelLoadRepository.findByTransactionalDocumentId(id));
             salaryPaymentRepository.deleteAll(salaryPaymentRepository.findByTransactionalDocumentId(id));
 
-            // Soft-delete Stock items
-            stockRepository.findByTransactionalDocumentIdAndDeletedFalse(id).forEach(s -> {
-                s.setDeleted(true);
-                s.setTransactionalDocument(null);
-            });
+            // Hard-delete StockPurchase records and reverse stock quantities
+            stockPurchaseRepository.findByTransactionalDocumentId(id)
+                    .forEach(sp -> iStockPurchaseService.deleteStockPurchase(sp.getId()));
         }
 
         document.setDeleted(true);
