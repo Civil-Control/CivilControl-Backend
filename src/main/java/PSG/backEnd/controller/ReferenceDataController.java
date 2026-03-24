@@ -2,7 +2,9 @@ package PSG.backEnd.controller;
 
 import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
+import PSG.backEnd.model.dto.reference.GasStationReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
+import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
 import PSG.backEnd.service.port.IReferenceDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -63,7 +65,7 @@ public class ReferenceDataController {
         + "'" + AppPermissions.INSURANCE_POLICY_WRITE + "'"
         + ")"
     )
-    public ResponseEntity<List<ReferenceItem>> getVehicleReferences() {
+    public ResponseEntity<List<VehicleReferenceItem>> getVehicleReferences() {
         return ResponseEntity.ok(referenceDataService.getVehicleReferences());
     }
 
@@ -155,7 +157,7 @@ public class ReferenceDataController {
         + "'" + AppPermissions.FUEL_LOAD_WRITE + "'"
         + ")"
     )
-    public ResponseEntity<List<ReferenceItem>> getGasStationReferences() {
+    public ResponseEntity<List<GasStationReferenceItem>> getGasStationReferences() {
         return ResponseEntity.ok(referenceDataService.getGasStationReferences());
     }
 

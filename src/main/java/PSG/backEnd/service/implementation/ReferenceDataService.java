@@ -1,7 +1,9 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
+import PSG.backEnd.model.dto.reference.GasStationReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
+import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
 import PSG.backEnd.model.entity.*;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.entity.gasStation.GasStation;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -37,7 +40,7 @@ public class ReferenceDataService implements IReferenceDataService {
     private final ServiceSupplierRepository serviceSupplierRepository;
 
     @Override
-    public List<ReferenceItem> getVehicleReferences() {
+    public List<VehicleReferenceItem> getVehicleReferences() {
         return vehicleRepository.findByDeletedFalse().stream()
                 .filter(Vehicle::isActive)
                 .map(v -> {
@@ -46,7 +49,8 @@ public class ReferenceDataService implements IReferenceDataService {
                         label += " · " + nullSafe(v.getBrand()) + " " + nullSafe(v.getModel());
                         label = label.trim();
                     }
-                    return new ReferenceItem(v.getId(), label);
+                    Long paId = v.getProjectArea() != null ? v.getProjectArea().getId() : null;
+                    return new VehicleReferenceItem(v.getId(), label, paId);
                 })
                 .collect(Collectors.toList());
     }
@@ -89,14 +93,18 @@ public class ReferenceDataService implements IReferenceDataService {
     }
 
     @Override
-    public List<ReferenceItem> getGasStationReferences() {
+    public List<GasStationReferenceItem> getGasStationReferences() {
         return gasStationRepository.findByDeletedFalse().stream()
                 .map(gs -> {
                     Supplier sup = gs.getSupplier();
                     String label = sup != null
                             ? (sup.getTradeName() != null ? sup.getTradeName() : sup.getLegalName())
                             : "Estación #" + gs.getId();
-                    return new ReferenceItem(gs.getId(), label);
+                    Map<String, java.math.BigDecimal> pricesMap = gs.getPrices().stream()
+                            .collect(Collectors.toMap(
+                                    p -> p.getFuelType().name(),
+                                    PSG.backEnd.model.entity.gasStation.GasStationPrice::getPrice));
+                    return new GasStationReferenceItem(gs.getId(), label, pricesMap);
                 })
                 .collect(Collectors.toList());
     }

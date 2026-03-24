@@ -1,7 +1,9 @@
 package PSG.backEnd.service.port;
 
 import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
+import PSG.backEnd.model.dto.reference.GasStationReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
+import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
 
 import java.util.List;
 
@@ -16,7 +18,7 @@ import java.util.List;
  */
 public interface IReferenceDataService {
 
-    List<ReferenceItem> getVehicleReferences();
+    List<VehicleReferenceItem> getVehicleReferences();
 
     List<EmployeeReferenceItem> getEmployeeReferences();
 
@@ -26,7 +28,7 @@ public interface IReferenceDataService {
 
     List<ReferenceItem> getProjectAreaReferences();
 
-    List<ReferenceItem> getGasStationReferences();
+    List<GasStationReferenceItem> getGasStationReferences();
 
     List<ReferenceItem> getItemReferences();
 
