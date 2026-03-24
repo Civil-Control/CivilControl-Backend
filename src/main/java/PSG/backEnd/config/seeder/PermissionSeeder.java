@@ -242,7 +242,7 @@ public class PermissionSeeder implements CommandLineRunner {
                                 permissionName, permission.getModule(), permission.getWorkModule(),
                                 permission.getSpanishTranslation(), permission.getSpanishDescription());
                     } else {
-                        // Update existing permission if spanish translation, work module or spanish description is missing
+                        // Update existing permission if any generated field has drifted from the expected value
                         Permission permission = existingPermission.get();
                         boolean updated = false;
 
@@ -252,8 +252,16 @@ public class PermissionSeeder implements CommandLineRunner {
                             updated = true;
                         }
 
-                        if (permission.getWorkModule() == null || permission.getWorkModule().isEmpty()) {
-                            permission.setWorkModule(getWorkModuleForPermission(permissionName));
+                        String expectedModule = getModuleForPermission(permissionName);
+                        if (!expectedModule.equals(permission.getModule())) {
+                            permission.setModule(expectedModule);
+                            updated = true;
+                        }
+
+                        String expectedWorkModule = getWorkModuleForPermission(permissionName);
+                        if (permission.getWorkModule() == null || permission.getWorkModule().isEmpty()
+                                || !expectedWorkModule.equals(permission.getWorkModule())) {
+                            permission.setWorkModule(expectedWorkModule);
                             updated = true;
                         }
 
@@ -286,15 +294,22 @@ public class PermissionSeeder implements CommandLineRunner {
     }
 
     /**
+     * Finds the value whose key is the longest prefix of permissionName.
+     * Longest-prefix-first ensures e.g. STOCK_PURCHASE_ beats STOCK_ for STOCK_PURCHASE_READ.
+     */
+    private String bestPrefixMatch(String permissionName, Map<String, String> prefixMap, String defaultValue) {
+        return prefixMap.entrySet().stream()
+                .filter(e -> permissionName.startsWith(e.getKey()))
+                .max(java.util.Comparator.comparingInt(e -> e.getKey().length()))
+                .map(Map.Entry::getValue)
+                .orElse(defaultValue);
+    }
+
+    /**
      * Determines which module a permission belongs to based on its prefix.
      */
     private String getModuleForPermission(String permissionName) {
-        for (Map.Entry<String, String> entry : MODULE_MAP.entrySet()) {
-            if (permissionName.startsWith(entry.getKey())) {
-                return entry.getValue();
-            }
-        }
-        return "General"; // Default module if no prefix matches
+        return bestPrefixMatch(permissionName, MODULE_MAP, "General");
     }
 
     /**
@@ -302,12 +317,7 @@ public class PermissionSeeder implements CommandLineRunner {
      * Returns the high-level grouping like "vehicles", "personal", "administration", etc.
      */
     private String getWorkModuleForPermission(String permissionName) {
-        for (Map.Entry<String, String> entry : WORK_MODULE_MAP.entrySet()) {
-            if (permissionName.startsWith(entry.getKey())) {
-                return entry.getValue();
-            }
-        }
-        return "general"; // Default work module if no prefix matches
+        return bestPrefixMatch(permissionName, WORK_MODULE_MAP, "general");
     }
 
     /**
@@ -358,18 +368,19 @@ public class PermissionSeeder implements CommandLineRunner {
      * Converts GAS_STATION_READ to "Estación de Servicios - Lectura", etc.
      */
     private String generateSpanishTranslation(String permissionName) {
-        // First, try to find the module prefix
+        // Find the longest matching prefix (prevents STOCK_ beating STOCK_PURCHASE_, etc.)
         String moduleSpanish = null;
         String actionSpanish = null;
 
-        for (Map.Entry<String, String> entry : MODULE_SPANISH_MAP.entrySet()) {
-            if (permissionName.startsWith(entry.getKey())) {
-                moduleSpanish = entry.getValue();
-                // Extract the action part (everything after the module prefix)
-                String actionPart = permissionName.substring(entry.getKey().length());
-                actionSpanish = ACTION_SPANISH_MAP.getOrDefault(actionPart, actionPart);
-                break;
-            }
+        java.util.Optional<Map.Entry<String, String>> bestEntry = MODULE_SPANISH_MAP.entrySet().stream()
+                .filter(e -> permissionName.startsWith(e.getKey()))
+                .max(java.util.Comparator.comparingInt(e -> e.getKey().length()));
+
+        if (bestEntry.isPresent()) {
+            Map.Entry<String, String> entry = bestEntry.get();
+            moduleSpanish = entry.getValue();
+            String actionPart = permissionName.substring(entry.getKey().length());
+            actionSpanish = ACTION_SPANISH_MAP.getOrDefault(actionPart, actionPart);
         }
 
         // If no module prefix matched, try to parse it manually
@@ -420,14 +431,15 @@ public class PermissionSeeder implements CommandLineRunner {
         String moduleSpanish = null;
         String actionVerb = null;
 
-        for (Map.Entry<String, String> entry : MODULE_SPANISH_MAP.entrySet()) {
-            if (permissionName.startsWith(entry.getKey())) {
-                moduleSpanish = entry.getValue();
-                // Extract the action part (everything after the module prefix)
-                String actionPart = permissionName.substring(entry.getKey().length());
-                actionVerb = actionDescriptionMap.getOrDefault(actionPart, actionPart.toLowerCase());
-                break;
-            }
+        java.util.Optional<Map.Entry<String, String>> bestDescEntry = MODULE_SPANISH_MAP.entrySet().stream()
+                .filter(e -> permissionName.startsWith(e.getKey()))
+                .max(java.util.Comparator.comparingInt(e -> e.getKey().length()));
+
+        if (bestDescEntry.isPresent()) {
+            Map.Entry<String, String> entry = bestDescEntry.get();
+            moduleSpanish = entry.getValue();
+            String actionPart = permissionName.substring(entry.getKey().length());
+            actionVerb = actionDescriptionMap.getOrDefault(actionPart, actionPart.toLowerCase());
         }
 
         // If no module prefix matched, try to parse it manually
@@ -475,6 +487,8 @@ public class PermissionSeeder implements CommandLineRunner {
         adjustmentMap.put("Cargas de Combustible", "cargas de combustible");
         adjustmentMap.put("Inventario", "inventario");
         adjustmentMap.put("Stock", "stock");
+        adjustmentMap.put("Compras de Stock", "compras de stock");
+        adjustmentMap.put("Órdenes de Reparación", "órdenes de reparación");
         adjustmentMap.put("Proveedores", "proveedores");
         adjustmentMap.put("Proveedores de Servicios", "proveedores de servicios");
         adjustmentMap.put("Pagos de Servicios", "pagos de servicios");
