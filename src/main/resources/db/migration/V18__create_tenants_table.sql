@@ -1,4 +1,4 @@
-CREATE TABLE tenants (
+CREATE TABLE IF NOT EXISTS tenants (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     cuit VARCHAR(13) NOT NULL UNIQUE,
@@ -18,5 +18,7 @@ CREATE TABLE tenants (
 );
 
 -- Seed default tenant (ESEA SA) to ensure company settings work from first boot
+-- ON CONFLICT: idempotent so this migration can run even if the tenant was already seeded by Hibernate DDL.
 INSERT INTO tenants (id, name, cuit, legal_name, city, state, country, active, deleted)
-VALUES (1, 'ESEA SA', '30-12345678-9', 'ESEA Sociedad Anónima', 'Buenos Aires', 'Buenos Aires', 'Argentina', TRUE, FALSE);
+VALUES (1, 'ESEA SA', '30-12345678-9', 'ESEA Sociedad Anónima', 'Buenos Aires', 'Buenos Aires', 'Argentina', TRUE, FALSE)
+ON CONFLICT (id) DO NOTHING;
