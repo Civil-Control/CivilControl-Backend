@@ -497,6 +497,16 @@ public final class AppPermissions {
      */
     public static final String TENANT_DELETE = "TENANT_DELETE";
 
+    // ==================== MODULE: CLIENTS ====================
+    public static final String CLIENT_READ = "CLIENT_READ";
+    public static final String CLIENT_WRITE = "CLIENT_WRITE";
+    public static final String CLIENT_DELETE = "CLIENT_DELETE";
+
+    // ==================== MODULE: SALES DOCUMENTS ====================
+    public static final String SALES_DOCUMENT_READ = "SALES_DOCUMENT_READ";
+    public static final String SALES_DOCUMENT_WRITE = "SALES_DOCUMENT_WRITE";
+    public static final String SALES_DOCUMENT_DELETE = "SALES_DOCUMENT_DELETE";
+
     // ==================== MODULE: SYSTEM ====================
     
     /**

@@ -4,6 +4,8 @@ import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
 import PSG.backEnd.model.dto.reference.GasStationReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
 import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
+import PSG.backEnd.model.entity.Client;
+import PSG.backEnd.repository.ClientRepository;
 import PSG.backEnd.model.entity.*;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.entity.gasStation.GasStation;
@@ -38,6 +40,7 @@ public class ReferenceDataService implements IReferenceDataService {
     private final GasStationRepository gasStationRepository;
     private final ItemRepository itemRepository;
     private final ServiceSupplierRepository serviceSupplierRepository;
+    private final ClientRepository clientRepository;
 
     @Override
     public List<VehicleReferenceItem> getVehicleReferences() {
@@ -131,5 +134,14 @@ public class ReferenceDataService implements IReferenceDataService {
 
     private static String nullSafe(String value) {
         return value != null ? value : "";
+    }
+
+    @Override
+    public List<ReferenceItem> getClientReferences() {
+        return clientRepository.findByDeletedFalse().stream()
+                .filter(c -> Boolean.TRUE.equals(c.getActive()))
+                .map(c -> new ReferenceItem(c.getId(),
+                        c.getTradeName() != null ? c.getTradeName() : c.getBusinessName()))
+                .collect(Collectors.toList());
     }
 }

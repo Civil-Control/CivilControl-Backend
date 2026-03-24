@@ -190,4 +190,19 @@ public class ReferenceDataController {
     public ResponseEntity<List<ReferenceItem>> getServiceSupplierReferences() {
         return ResponseEntity.ok(referenceDataService.getServiceSupplierReferences());
     }
+
+    // ── Clients ───────────────────────────────────────────────────
+    // Needed by: SalesDocument
+    @GetMapping("/clients")
+    @Operation(summary = "Client references for form dropdowns")
+    @ApiResponse(responseCode = "200", description = "List of clients (id + label)")
+    @PreAuthorize(
+        "hasAnyAuthority("
+        + "'" + AppPermissions.CLIENT_READ + "',"
+        + "'" + AppPermissions.SALES_DOCUMENT_WRITE + "'"
+        + ")"
+    )
+    public ResponseEntity<List<ReferenceItem>> getClientReferences() {
+        return ResponseEntity.ok(referenceDataService.getClientReferences());
+    }
 }

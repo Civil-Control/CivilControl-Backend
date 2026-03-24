@@ -33,4 +33,6 @@ public interface IReferenceDataService {
     List<ReferenceItem> getItemReferences();
 
     List<ReferenceItem> getServiceSupplierReferences();
+
+    List<ReferenceItem> getClientReferences();
 }

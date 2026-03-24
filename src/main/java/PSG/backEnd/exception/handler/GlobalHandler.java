@@ -454,5 +454,22 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ResponseMessage> handleInsurancePolicyDataConflictException(PSG.backEnd.exception.insurance.InsurancePolicyDataConflictException ex) {
         return buildResponse(ex, HttpStatus.CONFLICT);
     }
+
+    // ==================== Client Exceptions ====================
+
+    @ExceptionHandler(PSG.backEnd.exception.client.ClientNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleClientNotFoundException(PSG.backEnd.exception.client.ClientNotFoundException ex) {
+        return buildResponse(ex, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(PSG.backEnd.exception.client.ClientAlreadyExistsException.class)
+    public ResponseEntity<ResponseMessage> handleClientAlreadyExistsException(PSG.backEnd.exception.client.ClientAlreadyExistsException ex) {
+        return buildResponse(ex, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(PSG.backEnd.exception.client.SalesDocumentNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleSalesDocumentNotFoundException(PSG.backEnd.exception.client.SalesDocumentNotFoundException ex) {
+        return buildResponse(ex, HttpStatus.NOT_FOUND);
+    }
 }
 
