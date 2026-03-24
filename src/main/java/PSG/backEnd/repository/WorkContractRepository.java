@@ -38,8 +38,8 @@ public interface WorkContractRepository extends JpaRepository<WorkContract, Long
             AND (:search IS NULL OR (
                 LOWER(wc.contractNumber) LIKE LOWER(CONCAT('%', :search, '%'))
                 OR LOWER(wc.description) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(wc.client.businessName) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(COALESCE(wc.client.tradeName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CAST(wc.client.businessName AS string)) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(CAST(COALESCE(wc.client.tradeName, '') AS string)) LIKE LOWER(CONCAT('%', :search, '%'))
             ))
             """)
     Page<WorkContract> findAllWithFilters(
