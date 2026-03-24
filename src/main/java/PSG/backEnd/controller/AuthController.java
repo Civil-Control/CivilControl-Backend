@@ -3,6 +3,7 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.auth.AuthResponseDTO;
 import PSG.backEnd.model.dto.auth.LoginRequestDTO;
 import PSG.backEnd.model.dto.auth.RefreshTokenRequestDTO;
+import PSG.backEnd.model.dto.auth.UserProfileDTO;
 import PSG.backEnd.service.port.IAuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -72,17 +73,18 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    @Operation(summary = "Get current user info",
-            description = "Returns information about the currently authenticated user.")
+    @Operation(summary = "Get current user profile",
+            description = "Returns the authenticated user's profile including current roles and permissions. " +
+                         "The frontend uses this to refresh cached user data without requiring re-login.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "User info retrieved successfully"),
+            @ApiResponse(responseCode = "200", description = "User profile retrieved successfully"),
             @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
-    public ResponseEntity<String> getCurrentUser(Authentication authentication) {
+    public ResponseEntity<UserProfileDTO> getCurrentUser(Authentication authentication) {
         if (authentication != null && authentication.isAuthenticated()) {
-            return ResponseEntity.ok("Authenticated as: " + authentication.getName());
+            return ResponseEntity.ok(authService.getUserProfile(authentication.getName()));
         }
-        return ResponseEntity.status(401).body("Not authenticated");
+        return ResponseEntity.status(401).build();
     }
 }
 

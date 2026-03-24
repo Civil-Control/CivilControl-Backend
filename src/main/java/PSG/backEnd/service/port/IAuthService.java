@@ -3,6 +3,7 @@ package PSG.backEnd.service.port;
 import PSG.backEnd.model.dto.auth.AuthResponseDTO;
 import PSG.backEnd.model.dto.auth.LoginRequestDTO;
 import PSG.backEnd.model.dto.auth.RefreshTokenRequestDTO;
+import PSG.backEnd.model.dto.auth.UserProfileDTO;
 
 /**
  * Service interface for authentication operations.
@@ -29,5 +30,12 @@ public interface IAuthService {
      * @param username Username to logout
      */
     void logout(String username);
+
+    /**
+     * Returns the current user's profile including up-to-date roles and permissions.
+     * @param username Authenticated username (from JWT)
+     * @return User profile DTO
+     */
+    UserProfileDTO getUserProfile(String username);
 }
 

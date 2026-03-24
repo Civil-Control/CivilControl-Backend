@@ -5,6 +5,7 @@ import PSG.backEnd.exception.auth.InvalidTokenException;
 import PSG.backEnd.model.dto.auth.AuthResponseDTO;
 import PSG.backEnd.model.dto.auth.LoginRequestDTO;
 import PSG.backEnd.model.dto.auth.RefreshTokenRequestDTO;
+import PSG.backEnd.model.dto.auth.UserProfileDTO;
 import PSG.backEnd.model.dto.security.RoleResponseDTO;
 import PSG.backEnd.model.dto.security.UserLocationDTO;
 import PSG.backEnd.model.entity.security.User;
@@ -139,11 +140,7 @@ public class AuthService implements IAuthService {
      * Builds the authentication response DTO.
      */
     private AuthResponseDTO buildAuthResponse(User user, String accessToken, String refreshToken) {
-        // Convert only active and non-deleted roles
-        Set<RoleResponseDTO> roleDTOs = user.getRoles().stream()
-                .filter(role -> role.getActive() && !role.getDeleted())
-                .map(roleMapper::toResponseDto)
-                .collect(Collectors.toSet());
+        Set<RoleResponseDTO> roleDTOs = buildRoleDTOs(user);
 
         return new AuthResponseDTO(
                 user.getId(),
@@ -158,6 +155,31 @@ public class AuthService implements IAuthService {
                 roleDTOs,
                 user.getLocation() != null ? userLocationMapper.toDto(user.getLocation()) : null
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfileDTO getUserProfile(String username) {
+        User user = userRepository.findByCredentialsUsernameAndDeletedFalse(username)
+                .orElseThrow(() -> new InvalidTokenException(
+                        messageSourceHelper.getMessage("auth.userNotFound")));
+
+        return new UserProfileDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail(),
+                buildRoleDTOs(user),
+                user.getLocation() != null ? userLocationMapper.toDto(user.getLocation()) : null
+        );
+    }
+
+    private Set<RoleResponseDTO> buildRoleDTOs(User user) {
+        return user.getRoles().stream()
+                .filter(role -> role.getActive() && !role.getDeleted())
+                .map(roleMapper::toResponseDto)
+                .collect(Collectors.toSet());
     }
 }
 
