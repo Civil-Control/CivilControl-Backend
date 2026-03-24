@@ -1,6 +1,7 @@
 package PSG.backEnd.controller;
 
 import PSG.backEnd.model.constants.AppPermissions;
+import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
 import PSG.backEnd.service.port.IReferenceDataService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -80,7 +81,7 @@ public class ReferenceDataController {
         + "'" + AppPermissions.EPP_DELIVERY_WRITE + "'"
         + ")"
     )
-    public ResponseEntity<List<ReferenceItem>> getEmployeeReferences() {
+    public ResponseEntity<List<EmployeeReferenceItem>> getEmployeeReferences() {
         return ResponseEntity.ok(referenceDataService.getEmployeeReferences());
     }
 

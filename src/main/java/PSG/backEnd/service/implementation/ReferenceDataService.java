@@ -1,5 +1,6 @@
 package PSG.backEnd.service.implementation;
 
+import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
 import PSG.backEnd.model.entity.*;
 import PSG.backEnd.model.entity.employee.Employee;
@@ -51,10 +52,12 @@ public class ReferenceDataService implements IReferenceDataService {
     }
 
     @Override
-    public List<ReferenceItem> getEmployeeReferences() {
+    public List<EmployeeReferenceItem> getEmployeeReferences() {
         return employeeRepository.findByDeletedFalse().stream()
-                .map(e -> new ReferenceItem(e.getId(),
-                        nullSafe(e.getLastName()) + ", " + nullSafe(e.getName())))
+                .map(e -> new EmployeeReferenceItem(
+                        e.getId(),
+                        nullSafe(e.getLastName()) + ", " + nullSafe(e.getName()),
+                        e.getProjectArea() != null ? e.getProjectArea().getId() : null))
                 .collect(Collectors.toList());
     }
 

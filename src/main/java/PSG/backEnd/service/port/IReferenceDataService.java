@@ -1,5 +1,6 @@
 package PSG.backEnd.service.port;
 
+import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
 
 import java.util.List;
@@ -17,7 +18,7 @@ public interface IReferenceDataService {
 
     List<ReferenceItem> getVehicleReferences();
 
-    List<ReferenceItem> getEmployeeReferences();
+    List<EmployeeReferenceItem> getEmployeeReferences();
 
     List<ReferenceItem> getSupplierReferences();
 
