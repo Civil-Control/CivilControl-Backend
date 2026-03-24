@@ -30,7 +30,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
             "AND (CAST(:maxQuantity AS BigDecimal) IS NULL OR s.quantity <= :maxQuantity) " +
             "AND s.deleted = false " +
             "AND (:search IS NULL OR (LOWER(CAST(s.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(s.stockCategory AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))"))
+            "     OR LOWER(CAST(s.stockCategory AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
     Page<Stock> findAllWithFilters(
             @Param("name") String name,
             @Param("buildingId") Long buildingId,
