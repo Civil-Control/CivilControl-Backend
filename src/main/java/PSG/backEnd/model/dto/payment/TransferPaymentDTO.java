@@ -17,15 +17,14 @@ public record TransferPaymentDTO(
         @Valid
         PaymentDetailsDTO paymentDetails,
 
-        @Schema(description = "Unique transaction number or reference provided by the bank. " +
-                "Must contain only letters and digits. Length between 6 and 100 characters. " +
+        @Schema(description = "Optional transaction number or reference provided by the bank. " +
+                "If provided, must contain only letters and digits. Length between 6 and 100 characters. " +
                 "This number is used to track and verify the transfer.",
                 example = "TRF20240315ABC123XYZ",
                 pattern = "^[a-zA-Z0-9]{6,100}$",
                 minLength = 6,
                 maxLength = 100,
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotBlank(message = "{payment.transactionNumber.required}", groups = OnCreate.class)
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(min = 6, max = 100, message = "{payment.transactionNumber.size}", groups = {OnCreate.class, OnUpdate.class})
         @Pattern(
                 regexp = "^[a-zA-Z0-9]+$",

@@ -25,13 +25,11 @@ public record CheckPaymentDTO(
         @NotNull(message = "{payment.dueDate.required}", groups = OnCreate.class)
         LocalDate dueDate,
 
-        @Schema(description = "Check number as printed on the physical check. " +
-                "Can contain letters, digits, hyphens, and spaces. Maximum 50 characters. " +
-                "This is the unique identifier of the check.",
+        @Schema(description = "Optional check number as printed on the physical check. " +
+                "Can contain letters, digits, hyphens, and spaces. Maximum 50 characters.",
                 example = "12345678",
                 maxLength = 50,
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotBlank(message = "{payment.checkNumber.required}", groups = OnCreate.class)
+                requiredMode = Schema.RequiredMode.NOT_REQUIRED)
         @Size(max = 50, message = "{payment.checkNumber.size}", groups = {OnCreate.class, OnUpdate.class})
         String checkNumber,
 
