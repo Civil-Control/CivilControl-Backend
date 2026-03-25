@@ -43,5 +43,7 @@ public record StockPurchaseDTO(
 
         @Schema(description = "Optional transactional document (invoice/receipt) ID.", example = "42")
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Long transactionalDocumentId
+        Long transactionalDocumentId,
+
+        Integer documentSortOrder
 ) {}

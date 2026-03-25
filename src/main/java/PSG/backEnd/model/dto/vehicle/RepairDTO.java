@@ -64,5 +64,7 @@ public record RepairDTO(
         List<String> repairTypes,
 
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Long transactionalDocumentId
+        Long transactionalDocumentId,
+
+        Integer documentSortOrder
 ) {}

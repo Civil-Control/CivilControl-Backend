@@ -69,5 +69,7 @@ public record FuelLoadResponseDTO(
         String gasStationName,
 
         @Schema(description = "Linked transactional document summary, if any.", nullable = true)
-        PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO transactionalDocument
+        PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO transactionalDocument,
+
+        Integer documentSortOrder
 ) {}

@@ -50,4 +50,8 @@ public class SalaryPayment extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transactional_document_id")
     private TransactionalDocument transactionalDocument;
+
+    @Column(name = "document_sort_order", nullable = false)
+    @Builder.Default
+    private Integer documentSortOrder = 0;
 }

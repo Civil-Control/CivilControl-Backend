@@ -63,6 +63,8 @@ public record SalaryPaymentDTO(
     Long projectAreaId,
 
     @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-    Long transactionalDocumentId
+    Long transactionalDocumentId,
+
+    Integer documentSortOrder
 ) {}
 

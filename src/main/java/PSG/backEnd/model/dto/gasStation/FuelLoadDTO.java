@@ -85,6 +85,8 @@ public record FuelLoadDTO(
                 example = "42",
                 nullable = true)
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Long transactionalDocumentId
+        Long transactionalDocumentId,
+
+        Integer documentSortOrder
 
 ) {}

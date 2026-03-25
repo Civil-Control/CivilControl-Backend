@@ -228,6 +228,9 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         if (dto.ivaPercentage() != null) {
             existingItem.setIvaPercentage(dto.ivaPercentage());
         }
+        if (dto.documentSortOrder() != null) {
+            existingItem.setDocumentSortOrder(dto.documentSortOrder());
+        }
 
         // Handle total amount - use provided value or calculate it
         if (dto.totalAmount() != null) {
@@ -257,6 +260,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 .unitAmount(itemDetailDTO.unitAmount())
                 .quantity(itemDetailDTO.quantity())
                 .ivaPercentage(itemDetailDTO.ivaPercentage())
+                .documentSortOrder(itemDetailDTO.documentSortOrder() != null ? itemDetailDTO.documentSortOrder() : 0)
                 .build();
 
         // Handle total amount - use provided value or calculate it

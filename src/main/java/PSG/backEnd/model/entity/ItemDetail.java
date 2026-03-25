@@ -39,6 +39,10 @@ public class ItemDetail extends TenantEntity {
     @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(name = "document_sort_order", nullable = false)
+    @Builder.Default
+    private Integer documentSortOrder = 0;
+
     @PrePersist
     @PreUpdate
     private void calculateTotalAmount() {

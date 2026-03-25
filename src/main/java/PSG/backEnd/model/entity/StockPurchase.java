@@ -39,4 +39,8 @@ public class StockPurchase extends TenantEntity {
 
     @Column(name = "transactional_document_id")
     private Long transactionalDocumentId;
+
+    @Column(name = "document_sort_order", nullable = false)
+    @Builder.Default
+    private Integer documentSortOrder = 0;
 }

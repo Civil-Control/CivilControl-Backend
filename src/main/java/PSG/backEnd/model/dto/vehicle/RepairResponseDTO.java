@@ -71,5 +71,7 @@ public record RepairResponseDTO(
 
         @Schema(description = "Linked transactional document summary, if any.",
                 nullable = true)
-        TransactionalDocumentSummaryDTO transactionalDocument
+        TransactionalDocumentSummaryDTO transactionalDocument,
+
+        Integer documentSortOrder
 ) {}

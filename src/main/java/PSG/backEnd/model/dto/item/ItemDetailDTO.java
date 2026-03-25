@@ -30,5 +30,7 @@ public record ItemDetailDTO(
 
     @DecimalMin(value = "0.01", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.positive}")
     @Digits(integer = 19, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.pattern}")
-    BigDecimal totalAmount
+    BigDecimal totalAmount,
+
+    Integer documentSortOrder
 ) {}

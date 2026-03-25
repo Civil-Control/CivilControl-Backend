@@ -36,5 +36,7 @@ public record StockPurchaseResponseDTO(
         String notes,
 
         @Schema(description = "ID of the linked transactional document.", example = "42")
-        Long transactionalDocumentId
+        Long transactionalDocumentId,
+
+        Integer documentSortOrder
 ) {}

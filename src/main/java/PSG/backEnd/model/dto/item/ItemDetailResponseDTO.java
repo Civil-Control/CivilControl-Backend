@@ -9,5 +9,6 @@ public record ItemDetailResponseDTO(
     BigDecimal ivaPercentage,
     BigDecimal totalAmount,
     Long itemId,
-    String itemName
+    String itemName,
+    Integer documentSortOrder
 ) {}
