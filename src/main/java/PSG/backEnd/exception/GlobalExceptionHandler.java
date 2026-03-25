@@ -6,13 +6,17 @@ import PSG.backEnd.exception.vehicle.VehicleNotValidException;
 import PSG.backEnd.exception.vehicle.VehicleTypeAlreadyExistsException;
 import PSG.backEnd.service.implementation.ExceptionAuditService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -122,6 +126,91 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
+                .body(problemDetail);
+    }
+
+    /**
+     * Handles Jakarta Bean Validation constraint violations at the entity level.
+     * Returns field-level errors in the same format as MethodArgumentNotValidException.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleConstraintViolationException(
+            ConstraintViolationException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        Map<String, String> errors = ex.getConstraintViolations().stream()
+                .collect(Collectors.toMap(
+                        v -> extractFieldName(v),
+                        ConstraintViolation::getMessage,
+                        (existing, replacement) -> existing
+                ));
+
+        String message = getMessage("error.validation");
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                "Validation Error",
+                message,
+                request,
+                ex
+        );
+        problemDetail.setProperty("errors", errors);
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(problemDetail);
+    }
+
+    /**
+     * Handles malformed request bodies (invalid JSON, wrong types, bad date formats, etc.)
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetail> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        String message = getMessage("error.messageNotReadable");
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                "Invalid Request Format",
+                message,
+                request,
+                ex
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(problemDetail);
+    }
+
+    /**
+     * Handles database constraint violations (unique constraints, FK violations, etc.)
+     * that were not caught at the service layer.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ProblemDetail> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        String message = getMessage("error.dataIntegrity");
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.CONFLICT,
+                "Data Integrity Error",
+                message,
+                request,
+                ex
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
                 .body(problemDetail);
     }
 
@@ -366,6 +455,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(problemDetail);
+    }
+
+    /**
+     * Extracts the field name from a ConstraintViolation's property path.
+     */
+    private String extractFieldName(ConstraintViolation<?> violation) {
+        String path = violation.getPropertyPath().toString();
+        int lastDot = path.lastIndexOf('.');
+        return lastDot >= 0 ? path.substring(lastDot + 1) : path;
     }
 
     /**
