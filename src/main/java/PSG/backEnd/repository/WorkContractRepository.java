@@ -27,7 +27,7 @@ public interface WorkContractRepository extends JpaRepository<WorkContract, Long
             WHERE wc.deleted = false
             AND wc.tenantId = :tenantId
             AND (:clientId IS NULL OR wc.client.id = :clientId)
-            AND (:contractNumber IS NULL OR LOWER(wc.contractNumber) LIKE LOWER(CONCAT('%', :contractNumber, '%')))
+            AND (:contractNumber IS NULL OR LOWER(CAST(wc.contractNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:contractNumber AS string), '%')))
             AND (:projectAreaId IS NULL OR wc.projectArea.id = :projectAreaId)
             AND (:status IS NULL OR wc.status = :status)
             AND (:currency IS NULL OR wc.currency = :currency)
@@ -36,10 +36,8 @@ public interface WorkContractRepository extends JpaRepository<WorkContract, Long
             AND (CAST(:minContractedAmount AS BigDecimal) IS NULL OR wc.contractedAmount >= :minContractedAmount)
             AND (CAST(:maxContractedAmount AS BigDecimal) IS NULL OR wc.contractedAmount <= :maxContractedAmount)
             AND (:search IS NULL OR (
-                LOWER(wc.contractNumber) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(wc.description) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(CAST(wc.client.businessName AS string)) LIKE LOWER(CONCAT('%', :search, '%'))
-                OR LOWER(CAST(COALESCE(wc.client.tradeName, '') AS string)) LIKE LOWER(CONCAT('%', :search, '%'))
+                LOWER(CAST(wc.contractNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+                OR LOWER(CAST(wc.description AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
             ))
             """)
     Page<WorkContract> findAllWithFilters(
