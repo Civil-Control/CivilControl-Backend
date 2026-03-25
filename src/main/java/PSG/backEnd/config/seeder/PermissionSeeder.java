@@ -179,13 +179,13 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_MAP.put("STOCK_", "mechanic");
         WORK_MODULE_MAP.put("STOCK_PURCHASE_", "mechanic");
 
-        // clients: client, salesDocument
+        // clients: client, salesDocument, workContract, certification
         WORK_MODULE_MAP.put("CLIENT_", "clients");
         WORK_MODULE_MAP.put("SALES_DOCUMENT_", "clients");
 
         // contracts: workContract, certification
-        WORK_MODULE_MAP.put("WORK_CONTRACT_", "contracts");
-        WORK_MODULE_MAP.put("CERTIFICATION_", "contracts");
+        WORK_MODULE_MAP.put("WORK_CONTRACT_", "clients");
+        WORK_MODULE_MAP.put("CERTIFICATION_", "clients");
 
         // report: report
         WORK_MODULE_MAP.put("REPORT_", "report");
@@ -214,7 +214,6 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_SPANISH_MAP.put("report", "Reportes");
         WORK_MODULE_SPANISH_MAP.put("company", "Empresa");
         WORK_MODULE_SPANISH_MAP.put("clients", "Clientes");
-        WORK_MODULE_SPANISH_MAP.put("contracts", "Contratos");
         WORK_MODULE_SPANISH_MAP.put("administration", "Administración");
     }
 
