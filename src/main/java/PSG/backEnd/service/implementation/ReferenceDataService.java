@@ -112,7 +112,8 @@ public class ReferenceDataService implements IReferenceDataService {
                             .collect(Collectors.toMap(
                                     p -> p.getFuelType().name(),
                                     PSG.backEnd.model.entity.gasStation.GasStationPrice::getPrice));
-                    return new GasStationReferenceItem(gs.getId(), label, pricesMap);
+                    Long supplierId = sup != null ? sup.getId() : null;
+                    return new GasStationReferenceItem(gs.getId(), label, pricesMap, supplierId);
                 })
                 .collect(Collectors.toList());
     }

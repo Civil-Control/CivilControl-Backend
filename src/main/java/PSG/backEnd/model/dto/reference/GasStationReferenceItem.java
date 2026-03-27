@@ -20,5 +20,7 @@ public record GasStationReferenceItem(
         @Schema(description = "Human-readable label for display", example = "YPF Km 12")
         String label,
         @Schema(description = "Map of fuel type name to price per litre. Key = FuelType enum name.")
-        Map<String, BigDecimal> prices
+        Map<String, BigDecimal> prices,
+        @Schema(description = "ID of the supplier linked to this gas station")
+        Long supplierId
 ) {}
