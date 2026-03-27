@@ -10,6 +10,7 @@ import org.mapstruct.*;
 public interface StockPurchaseMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "documentSortOrder", defaultExpression = "java(0)")
     StockPurchase toEntity(StockPurchaseDTO dto);
 
     @Mapping(target = "id", source = "purchase.id")
@@ -24,7 +25,8 @@ public interface StockPurchaseMapper {
     @Mapping(target = "transactionalDocumentId", source = "purchase.transactionalDocumentId")
     StockPurchaseResponseDTO toResponseDto(StockPurchase purchase, Stock stock);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "transactionalDocumentId", ignore = true)
     void partialUpdate(StockPurchaseDTO dto, @MappingTarget StockPurchase purchase);
 }

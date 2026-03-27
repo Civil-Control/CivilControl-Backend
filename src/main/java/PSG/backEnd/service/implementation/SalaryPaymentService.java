@@ -118,7 +118,11 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         }
 
         salaryPaymentMapper.partialUpdate(salaryPaymentDTO, existingSalaryPayment);
-        existingSalaryPayment.setProjectArea(resolveProjectArea(salaryPaymentDTO.projectAreaId()));
+        // Only update projectArea on full entity updates (employeeId present signals a full form submission).
+        // This prevents clearing the project area on minimal PATCH operations like document linking/unlinking.
+        if (salaryPaymentDTO.employeeId() != null) {
+            existingSalaryPayment.setProjectArea(resolveProjectArea(salaryPaymentDTO.projectAreaId()));
+        }
         existingSalaryPayment.setTransactionalDocument(resolveDocument(salaryPaymentDTO.transactionalDocumentId()));
         SalaryPayment updatedSalaryPayment = salaryPaymentRepository.save(existingSalaryPayment);
         return salaryPaymentMapper.toResponseDto(updatedSalaryPayment);

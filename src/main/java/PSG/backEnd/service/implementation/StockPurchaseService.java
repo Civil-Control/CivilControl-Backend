@@ -110,6 +110,10 @@ public class StockPurchaseService implements IStockPurchaseService {
 
         stockPurchaseMapper.partialUpdate(dto, existing);
 
+        // Handle transactionalDocumentId explicitly (mapper ignores it to support unlinking via null).
+        // The stock purchase form always includes this field; null means "no document linked".
+        existing.setTransactionalDocumentId(dto.transactionalDocumentId());
+
         // Recompute totalAmount if unitPrice or quantity changed
         if (existing.getUnitPrice() != null && existing.getQuantity() != null) {
             existing.setTotalAmount(existing.getUnitPrice().multiply(existing.getQuantity()));

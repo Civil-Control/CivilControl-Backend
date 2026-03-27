@@ -21,6 +21,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "gasStation", source = "gasStationId", qualifiedByName = "gasStationIdToEntity")
     @Mapping(target = "fuelType", source = "fuelType")
     @Mapping(target = "transactionalDocument", ignore = true)
+    @Mapping(target = "documentSortOrder", defaultExpression = "java(0)")
     FuelLoad toEntity(FuelLoadDTO fuelLoadDTO);
 
     @Mapping(target = "date", source = "date", dateFormat = "yyyy-MM-dd")
@@ -35,7 +36,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
     FuelLoadResponseDTO toResponseDto(FuelLoad fuelLoad);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "pricePerLiter", ignore = true)
     @Mapping(target = "totalAmount", ignore = true)

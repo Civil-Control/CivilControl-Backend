@@ -24,6 +24,7 @@ public interface RepairMapper {
     @Mapping(target = "repairTypes", source = "repairTypes", qualifiedByName = "stringsToRepairTypes")
     @Mapping(target = "repairOrder", ignore = true)
     @Mapping(target = "transactionalDocument", ignore = true)
+    @Mapping(target = "documentSortOrder", defaultExpression = "java(0)")
     Repair toEntity(RepairDTO repairDTO);
 
     @Mapping(target = "vehicleId", source = "vehicle.id")
@@ -36,7 +37,7 @@ public interface RepairMapper {
     @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
     RepairResponseDTO toResponseDto(Repair repair);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "vehicle", source = "vehicleId", qualifiedByName = "vehicleIdToEntity")
     @Mapping(target = "supplier", source = "supplierId", qualifiedByName = "supplierIdToEntity")

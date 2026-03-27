@@ -14,6 +14,7 @@ public interface SalaryPaymentMapper {
     @Mapping(target = "employee.id", source = "employeeId")
     @Mapping(target = "projectArea", ignore = true)
     @Mapping(target = "transactionalDocument", ignore = true)
+    @Mapping(target = "documentSortOrder", defaultExpression = "java(0)")
     SalaryPayment toEntity(SalaryPaymentDTO salaryPaymentDTO);
 
     @Mapping(source = "employee.id", target = "employeeId")
@@ -25,9 +26,9 @@ public interface SalaryPaymentMapper {
     @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
     SalaryPaymentResponseDTO toResponseDto(SalaryPayment salaryPayment);
 
-    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "employee.id", source = "employeeId")
+    @Mapping(target = "employee", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
     @Mapping(target = "transactionalDocument", ignore = true)
     void partialUpdate(SalaryPaymentDTO updateDTO, @MappingTarget SalaryPayment salaryPayment);
