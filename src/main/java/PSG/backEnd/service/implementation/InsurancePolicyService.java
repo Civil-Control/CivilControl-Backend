@@ -102,6 +102,14 @@ public class InsurancePolicyService implements IInsurancePolicyService {
 
         try {
             insurancePolicyMapper.partialUpdate(insurancePolicyDTO, existingPolicy);
+
+            // Al reactivar (cambiar de CANCELADO a otro estado), limpiar la fecha de cancelación
+            if (insurancePolicyDTO.policyStatus() != null
+                    && insurancePolicyDTO.policyStatus() != PSG.backEnd.model.enums.vehicle.PolicyStatus.CANCELADO
+                    && existingPolicy.getCancellationDate() != null) {
+                existingPolicy.setCancellationDate(null);
+            }
+
             InsurancePolicy updatedPolicy = insurancePolicyRepository.save(existingPolicy);
             return insurancePolicyMapper.toResponseDto(updatedPolicy);
         } catch (DataIntegrityViolationException e) {

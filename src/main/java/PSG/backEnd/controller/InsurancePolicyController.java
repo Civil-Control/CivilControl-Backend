@@ -80,7 +80,7 @@ public class InsurancePolicyController {
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Available fields: id, policyNumber, termNumber, endorsementSecuence, policyType, policyStatus, " +
-                    "paymentFrequency, sumInsured, issueDate, effectiveFrom, effectiveTo, cancellationDate, numberOfInstallments. " +
+                    "paymentFrequency, sumInsured, issueDate, effectiveFrom, effectiveTo, cancellationDate, numberOfInstallments, premioTotal, premioMensual. " +
                     "Example: sortBy=effectiveFrom",
                     example = "effectiveFrom")
             @RequestParam(defaultValue = "id") String sortBy,
