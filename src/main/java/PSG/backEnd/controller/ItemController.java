@@ -3,6 +3,7 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.item.ItemDTO;
 import PSG.backEnd.model.dto.item.ItemFilterDTO;
 import PSG.backEnd.model.dto.item.ItemResponseDTO;
+import PSG.backEnd.model.enums.ItemType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.IItemService;
@@ -125,6 +126,7 @@ public class ItemController {
             @Parameter(description = "Filter by item name (partial match, case-insensitive)", example = "Cemento") @RequestParam(required = false) String name,
             @Parameter(description = "Filter by item description (partial match, case-insensitive)", example = "Portland") @RequestParam(required = false) String description,
             @Parameter(description = "Generic search across name and description (partial match)") @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by item type (COMPRA or VENTA)") @RequestParam(required = false) ItemType itemType,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by (e.g., name, description, id)", example = "name") @RequestParam(defaultValue = "id") String sortBy,
@@ -133,7 +135,7 @@ public class ItemController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        ItemFilterDTO filterDTO = new ItemFilterDTO(name, description, search);
+        ItemFilterDTO filterDTO = new ItemFilterDTO(name, description, search, itemType);
 
         return ResponseEntity.ok(itemService.list(filterDTO, pageable));
     }

@@ -1,14 +1,17 @@
 package PSG.backEnd.model.dto.item;
 
+import PSG.backEnd.model.enums.ItemType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
+import java.util.Set;
+
 @Schema(description = "Data Transfer Object for creating or updating items. " +
-        "Represents purchasable goods or services that can be included in transactional documents, " +
-        "such as materials, supplies, equipment, or services offered by suppliers.")
+        "Represents goods or services that can be included in transactional or sales documents.")
 public record ItemDTO(
 
     @Schema(description = "Name of the item. Should be descriptive and identifiable. " +
@@ -26,5 +29,11 @@ public record ItemDTO(
             maxLength = 500,
             nullable = true)
     @Size(max = 500, groups = {OnCreate.class, OnUpdate.class}, message = "{item.description.size}")
-    String description
+    String description,
+
+    @Schema(description = "Usage types of the item. Must contain at least one value: COMPRA, VENTA, or both.",
+            example = "[\"COMPRA\"]",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotEmpty(groups = OnCreate.class, message = "{item.itemTypes.required}")
+    Set<ItemType> itemTypes
 ) {}

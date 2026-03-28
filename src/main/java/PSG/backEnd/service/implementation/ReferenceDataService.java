@@ -126,6 +126,13 @@ public class ReferenceDataService implements IReferenceDataService {
     }
 
     @Override
+    public List<ReferenceItem> getItemReferencesByType(PSG.backEnd.model.enums.ItemType itemType) {
+        return itemRepository.findByItemType(itemType).stream()
+                .map(i -> new ReferenceItem(i.getId(), i.getName()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<ReferenceItem> getServiceSupplierReferences() {
         return serviceSupplierRepository.findByDeletedFalse().stream()
                 .map(ss -> {

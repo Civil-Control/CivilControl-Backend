@@ -136,6 +136,13 @@ public class SalesDocumentService implements ISalesDocumentService {
         for (SalesItemDetailDTO detailDto : dtos) {
             Item item = itemRepository.findById(detailDto.itemId())
                     .orElseThrow(() -> new RuntimeException("Item not found: " + detailDto.itemId()));
+
+            // Validate the item is of type VENTA
+            if (!item.getItemTypes().contains(PSG.backEnd.model.enums.ItemType.VENTA)) {
+                throw new IllegalArgumentException(
+                        "El item \"" + item.getName() + "\" no está habilitado para ventas.");
+            }
+
             SalesItemDetail detail = salesDocumentMapper.toItemDetailEntity(detailDto);
             detail.setItem(item);
             detail.setSalesDocument(document);

@@ -47,6 +47,10 @@ public class ItemService implements IItemService {
         if (dto.description() != null) {
             existingItem.setDescription(dto.description());
         }
+        if (dto.itemTypes() != null && !dto.itemTypes().isEmpty()) {
+            existingItem.getItemTypes().clear();
+            existingItem.getItemTypes().addAll(dto.itemTypes());
+        }
 
         Item updatedItem = itemRepository.save(existingItem);
         return itemMapper.toResponse(updatedItem);
@@ -76,6 +80,7 @@ public class ItemService implements IItemService {
                 filterDTO.name(),
                 filterDTO.description(),
                 filterDTO.search(),
+                filterDTO.itemType(),
                 pageable
         );
 

@@ -4,6 +4,7 @@ import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
 import PSG.backEnd.model.dto.reference.GasStationReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
 import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
+import PSG.backEnd.model.enums.ItemType;
 
 import java.util.List;
 
@@ -31,6 +32,8 @@ public interface IReferenceDataService {
     List<GasStationReferenceItem> getGasStationReferences();
 
     List<ReferenceItem> getItemReferences();
+
+    List<ReferenceItem> getItemReferencesByType(ItemType itemType);
 
     List<ReferenceItem> getServiceSupplierReferences();
 

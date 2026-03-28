@@ -5,6 +5,7 @@ import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
 import PSG.backEnd.model.dto.reference.GasStationReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
 import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
+import PSG.backEnd.model.enums.ItemType;
 import PSG.backEnd.service.port.IReferenceDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -162,18 +163,34 @@ public class ReferenceDataController {
     }
 
     // ── Items ─────────────────────────────────────────────────────
-    // Needed by: TransactionalDocument
+    // Needed by: TransactionalDocument, SalesDocument
     @GetMapping("/items")
     @Operation(summary = "Item references for form dropdowns")
     @ApiResponse(responseCode = "200", description = "List of items (id + label)")
     @PreAuthorize(
         "hasAnyAuthority("
         + "'" + AppPermissions.ITEM_READ + "',"
-        + "'" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "'"
+        + "'" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "',"
+        + "'" + AppPermissions.SALES_DOCUMENT_WRITE + "'"
         + ")"
     )
     public ResponseEntity<List<ReferenceItem>> getItemReferences() {
         return ResponseEntity.ok(referenceDataService.getItemReferences());
+    }
+
+    // Needed by: TransactionalDocument (COMPRA), SalesDocument (VENTA)
+    @GetMapping("/items/type/{itemType}")
+    @Operation(summary = "Item references filtered by type (COMPRA or VENTA)")
+    @ApiResponse(responseCode = "200", description = "List of items of the given type (id + label)")
+    @PreAuthorize(
+        "hasAnyAuthority("
+        + "'" + AppPermissions.ITEM_READ + "',"
+        + "'" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "',"
+        + "'" + AppPermissions.SALES_DOCUMENT_WRITE + "'"
+        + ")"
+    )
+    public ResponseEntity<List<ReferenceItem>> getItemReferencesByType(@PathVariable ItemType itemType) {
+        return ResponseEntity.ok(referenceDataService.getItemReferencesByType(itemType));
     }
 
     // ── Service Suppliers ─────────────────────────────────────────

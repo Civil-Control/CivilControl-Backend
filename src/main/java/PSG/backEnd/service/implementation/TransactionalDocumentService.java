@@ -429,6 +429,12 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             Item item = itemRepository.findById(itemDetailDTO.itemId())
                     .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", itemDetailDTO.itemId())));
 
+            // Validate the item is of type COMPRA
+            if (!item.getItemTypes().contains(PSG.backEnd.model.enums.ItemType.COMPRA)) {
+                throw new IllegalArgumentException(
+                        messageSourceHelper.getMessage("item.type.invalid.purchase", item.getName()));
+            }
+
             // Create ItemDetail manually instead of using mapper to ensure Item reference is complete
             ItemDetail itemDetail = ItemDetail.builder()
                     .item(item)  // Complete Item with all fields loaded
