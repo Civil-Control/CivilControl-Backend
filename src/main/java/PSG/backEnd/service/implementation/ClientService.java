@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Optional;
 
 @Service
@@ -61,11 +62,11 @@ public class ClientService implements IClientService {
 
     @Override
     @Transactional(readOnly = true)
-    public ClientStatsDTO getClientStats(Long id) {
+    public ClientStatsDTO getClientStats(Long id, LocalDate fromDate, LocalDate toDate) {
         clientRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ClientNotFoundException(id));
-        BigDecimal totalInvoiced = salesDocumentRepository.sumTotalByClientId(id);
-        BigDecimal totalCollected = salesDocumentRepository.sumCollectedByClientId(id);
+        BigDecimal totalInvoiced = salesDocumentRepository.sumTotalByClientIdAndDateRange(id, fromDate, toDate);
+        BigDecimal totalCollected = salesDocumentRepository.sumCollectedByClientIdAndDateRange(id, fromDate, toDate);
         BigDecimal totalPending = totalInvoiced.subtract(totalCollected);
         return new ClientStatsDTO(totalInvoiced, totalCollected, totalPending);
     }

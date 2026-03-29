@@ -3,6 +3,7 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.supplier.SupplierDTO;
 import PSG.backEnd.model.dto.supplier.SupplierFilterDTO;
 import PSG.backEnd.model.dto.supplier.SupplierResponseDTO;
+import PSG.backEnd.model.dto.supplier.SupplierStatsDTO;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.ISupplierService;
@@ -16,12 +17,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 import PSG.backEnd.model.constants.AppPermissions;
@@ -96,6 +99,17 @@ public class SupplierController {
     public ResponseEntity<SupplierResponseDTO> getSupplierById(
             @Parameter(description = "Supplier unique identifier", required = true, example = "1") @PathVariable Long id) {
         return ResponseEntity.ok(iSupplierService.getSupplierById(id));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.SUPPLIER_READ + "')")
+    @GetMapping("/{id}/stats")
+    @Operation(summary = "Get invoicing statistics for a supplier")
+    @ApiResponse(responseCode = "200", description = "Supplier statistics")
+    public ResponseEntity<SupplierStatsDTO> getSupplierStats(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(iSupplierService.getSupplierStats(id, fromDate, toDate));
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.SUPPLIER_WRITE + "')")

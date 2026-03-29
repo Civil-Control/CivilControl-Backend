@@ -6,9 +6,11 @@ import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.model.dto.supplier.SupplierDTO;
 import PSG.backEnd.model.dto.supplier.SupplierFilterDTO;
 import PSG.backEnd.model.dto.supplier.SupplierResponseDTO;
+import PSG.backEnd.model.dto.supplier.SupplierStatsDTO;
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.mapper.SupplierMapper;
 import PSG.backEnd.repository.SupplierRepository;
+import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Optional;
 
 @Service
@@ -26,6 +29,7 @@ import java.util.Optional;
 public class SupplierService implements ISupplierService {
 
     private final SupplierRepository supplierRepository;
+    private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SupplierMapper supplierMapper;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -64,6 +68,17 @@ public class SupplierService implements ISupplierService {
         return supplierRepository.findByIdAndDeletedFalse(id)
                 .map(supplierMapper::toResponseDto)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SupplierStatsDTO getSupplierStats(Long id, LocalDate fromDate, LocalDate toDate) {
+        supplierRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new SupplierNotFoundException(id));
+        BigDecimal totalInvoiced = transactionalDocumentRepository.sumTotalBySupplierId(id, fromDate, toDate);
+        BigDecimal totalPaid = transactionalDocumentRepository.sumPaidBySupplierId(id, fromDate, toDate);
+        BigDecimal totalPending = totalInvoiced.subtract(totalPaid);
+        return new SupplierStatsDTO(totalInvoiced, totalPaid, totalPending);
     }
 
     @Override

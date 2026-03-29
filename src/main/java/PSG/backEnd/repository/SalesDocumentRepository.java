@@ -53,4 +53,20 @@ public interface SalesDocumentRepository extends JpaRepository<SalesDocument, Lo
     @Query("SELECT COALESCE(SUM(sd.total), 0) FROM SalesDocument sd " +
            "WHERE sd.client.id = :clientId AND sd.deleted = false AND sd.paid = true")
     BigDecimal sumCollectedByClientId(@Param("clientId") Long clientId);
+
+    @Query("SELECT COALESCE(SUM(sd.total), 0) FROM SalesDocument sd " +
+           "WHERE sd.client.id = :clientId AND sd.deleted = false " +
+           "AND (CAST(:fromDate AS date) IS NULL OR sd.date >= :fromDate) " +
+           "AND (CAST(:toDate AS date) IS NULL OR sd.date <= :toDate)")
+    BigDecimal sumTotalByClientIdAndDateRange(@Param("clientId") Long clientId,
+                                              @Param("fromDate") LocalDate fromDate,
+                                              @Param("toDate") LocalDate toDate);
+
+    @Query("SELECT COALESCE(SUM(sd.total), 0) FROM SalesDocument sd " +
+           "WHERE sd.client.id = :clientId AND sd.deleted = false AND sd.paid = true " +
+           "AND (CAST(:fromDate AS date) IS NULL OR sd.date >= :fromDate) " +
+           "AND (CAST(:toDate AS date) IS NULL OR sd.date <= :toDate)")
+    BigDecimal sumCollectedByClientIdAndDateRange(@Param("clientId") Long clientId,
+                                                  @Param("fromDate") LocalDate fromDate,
+                                                  @Param("toDate") LocalDate toDate);
 }

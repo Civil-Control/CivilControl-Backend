@@ -8,6 +8,8 @@ import PSG.backEnd.model.entity.Client;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
+
 public interface IClientService {
 
     ClientResponseDTO createClient(ClientDTO dto);
@@ -16,7 +18,7 @@ public interface IClientService {
 
     ClientResponseDTO getClientById(Long id);
 
-    ClientStatsDTO getClientStats(Long id);
+    ClientStatsDTO getClientStats(Long id, LocalDate fromDate, LocalDate toDate);
 
     ClientResponseDTO updateClient(Long id, ClientDTO dto);
 

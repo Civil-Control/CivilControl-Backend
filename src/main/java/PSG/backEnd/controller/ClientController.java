@@ -18,11 +18,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/clients")
@@ -81,8 +84,11 @@ public class ClientController {
     @Operation(summary = "Get invoicing statistics for a client")
     @ApiResponse(responseCode = "200", description = "Client statistics")
     @PreAuthorize("hasAuthority('" + AppPermissions.CLIENT_READ + "')")
-    public ResponseEntity<ClientStatsDTO> getClientStats(@PathVariable Long id) {
-        return ResponseEntity.ok(clientService.getClientStats(id));
+    public ResponseEntity<ClientStatsDTO> getClientStats(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(clientService.getClientStats(id, fromDate, toDate));
     }
 
     @PatchMapping("/{id}")

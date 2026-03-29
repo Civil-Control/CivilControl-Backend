@@ -65,4 +65,20 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             @Param("search") String search,
             Pageable pageable
     );
+
+    @Query("SELECT COALESCE(SUM(td.total), 0) FROM TransactionalDocument td " +
+           "WHERE td.supplier.id = :supplierId AND td.deleted = false " +
+           "AND (CAST(:fromDate AS date) IS NULL OR td.date >= :fromDate) " +
+           "AND (CAST(:toDate AS date) IS NULL OR td.date <= :toDate)")
+    BigDecimal sumTotalBySupplierId(@Param("supplierId") Long supplierId,
+                                    @Param("fromDate") LocalDate fromDate,
+                                    @Param("toDate") LocalDate toDate);
+
+    @Query("SELECT COALESCE(SUM(td.total), 0) FROM TransactionalDocument td " +
+           "WHERE td.supplier.id = :supplierId AND td.deleted = false AND td.paid = true " +
+           "AND (CAST(:fromDate AS date) IS NULL OR td.date >= :fromDate) " +
+           "AND (CAST(:toDate AS date) IS NULL OR td.date <= :toDate)")
+    BigDecimal sumPaidBySupplierId(@Param("supplierId") Long supplierId,
+                                   @Param("fromDate") LocalDate fromDate,
+                                   @Param("toDate") LocalDate toDate);
 }
