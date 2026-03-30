@@ -20,6 +20,7 @@ import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFound
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.ISalaryPaymentService;
+import PSG.backEnd.service.implementation.DocumentTotalRecalculator;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -41,6 +42,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     private final SalaryPaymentMapper salaryPaymentMapper;
     private final MessageSourceHelper messageSourceHelper;
     private final TransactionalDocumentRepository transactionalDocumentRepository;
+    private final DocumentTotalRecalculator documentTotalRecalculator;
 
     @Override
     @Transactional
@@ -59,6 +61,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         salaryPayment.setTransactionalDocument(resolveDocument(salaryPaymentDTO.transactionalDocumentId()));
 
         SalaryPayment savedSalaryPayment = salaryPaymentRepository.save(salaryPayment);
+        documentTotalRecalculator.recalculateDocumentTotals(salaryPaymentDTO.transactionalDocumentId());
         return salaryPaymentMapper.toResponseDto(savedSalaryPayment);
     }
 
@@ -104,6 +107,9 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         SalaryPayment existingSalaryPayment = salaryPaymentRepository.findByIdAndEmployeeDeletedFalse(id)
                 .orElseThrow(() -> new SalaryPaymentNotFoundException(id));
 
+        Long oldDocumentId = existingSalaryPayment.getTransactionalDocument() != null
+                ? existingSalaryPayment.getTransactionalDocument().getId() : null;
+
         if (salaryPaymentDTO.employeeId() != null) {
             validateEmployeeExists(salaryPaymentDTO.employeeId());
         }
@@ -125,6 +131,13 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         }
         existingSalaryPayment.setTransactionalDocument(resolveDocument(salaryPaymentDTO.transactionalDocumentId()));
         SalaryPayment updatedSalaryPayment = salaryPaymentRepository.save(existingSalaryPayment);
+
+        // Recalculate old document if the link changed
+        if (oldDocumentId != null && !oldDocumentId.equals(salaryPaymentDTO.transactionalDocumentId())) {
+            documentTotalRecalculator.recalculateDocumentTotals(oldDocumentId);
+        }
+        documentTotalRecalculator.recalculateDocumentTotals(salaryPaymentDTO.transactionalDocumentId());
+
         return salaryPaymentMapper.toResponseDto(updatedSalaryPayment);
     }
 
@@ -134,7 +147,10 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         SalaryPayment salaryPayment = salaryPaymentRepository.findByIdAndEmployeeDeletedFalse(id)
                 .orElseThrow(() -> new SalaryPaymentNotFoundException(id));
 
+        Long docId = salaryPayment.getTransactionalDocument() != null
+                ? salaryPayment.getTransactionalDocument().getId() : null;
         salaryPaymentRepository.delete(salaryPayment);
+        documentTotalRecalculator.recalculateDocumentTotals(docId);
     }
 
     private void validateEmployeeExists(Long employeeId) {

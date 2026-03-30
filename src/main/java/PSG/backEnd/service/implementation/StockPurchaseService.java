@@ -28,6 +28,7 @@ public class StockPurchaseService implements IStockPurchaseService {
     private final StockPurchaseRepository stockPurchaseRepository;
     private final StockPurchaseMapper stockPurchaseMapper;
     private final StockRepository stockRepository;
+    private final DocumentTotalRecalculator documentTotalRecalculator;
 
     @Override
     @Transactional
@@ -48,6 +49,7 @@ public class StockPurchaseService implements IStockPurchaseService {
         stock.setQuantity(stock.getQuantity().add(dto.quantity()));
         stockRepository.save(stock);
 
+        documentTotalRecalculator.recalculateDocumentTotals(dto.transactionalDocumentId());
         return stockPurchaseMapper.toResponseDto(saved, stock);
     }
 
@@ -102,6 +104,7 @@ public class StockPurchaseService implements IStockPurchaseService {
                 .orElseThrow(() -> new StockPurchaseNotFoundException(id));
 
         BigDecimal oldQuantity = existing.getQuantity();
+        Long oldDocumentId = existing.getTransactionalDocumentId();
 
         if (dto.stockId() != null) {
             stockRepository.findByIdAndDeletedFalse(dto.stockId())
@@ -130,6 +133,12 @@ public class StockPurchaseService implements IStockPurchaseService {
             stockRepository.save(stock);
         }
 
+        // Recalculate old document if the link changed
+        if (oldDocumentId != null && !oldDocumentId.equals(dto.transactionalDocumentId())) {
+            documentTotalRecalculator.recalculateDocumentTotals(oldDocumentId);
+        }
+        documentTotalRecalculator.recalculateDocumentTotals(dto.transactionalDocumentId());
+
         Stock stock = stockRepository.findById(updated.getStockId()).orElse(null);
         return stockPurchaseMapper.toResponseDto(updated, stock);
     }
@@ -140,6 +149,8 @@ public class StockPurchaseService implements IStockPurchaseService {
         StockPurchase purchase = stockPurchaseRepository.findById(id)
                 .orElseThrow(() -> new StockPurchaseNotFoundException(id));
 
+        Long docId = purchase.getTransactionalDocumentId();
+
         // Reverse the stock quantity increase
         stockRepository.findByIdAndDeletedFalse(purchase.getStockId()).ifPresent(stock -> {
             BigDecimal newQty = stock.getQuantity().subtract(purchase.getQuantity());
@@ -148,5 +159,6 @@ public class StockPurchaseService implements IStockPurchaseService {
         });
 
         stockPurchaseRepository.delete(purchase);
+        documentTotalRecalculator.recalculateDocumentTotals(docId);
     }
 }

@@ -31,6 +31,7 @@ public class RepairService implements IRepairService {
     private final VehicleRepository vehicleRepository;
     private final SupplierRepository supplierRepository;
     private final TransactionalDocumentRepository transactionalDocumentRepository;
+    private final DocumentTotalRecalculator documentTotalRecalculator;
 
     @Override
     @Transactional
@@ -46,6 +47,7 @@ public class RepairService implements IRepairService {
         Repair repair = repairMapper.toEntity(repairDTO);
         repair.setTransactionalDocument(resolveDocument(repairDTO.transactionalDocumentId()));
         Repair savedRepair = repairRepository.save(repair);
+        documentTotalRecalculator.recalculateDocumentTotals(repairDTO.transactionalDocumentId());
 
         return repairMapper.toResponseDto(savedRepair);
     }
@@ -102,6 +104,9 @@ public class RepairService implements IRepairService {
         Repair existingRepair = repairRepository.findById(id)
                 .orElseThrow(() -> new RepairNotFoundException(id));
 
+        Long oldDocumentId = existingRepair.getTransactionalDocument() != null
+                ? existingRepair.getTransactionalDocument().getId() : null;
+
         // Validate vehicle if it is being updated
         if (repairDTO.vehicleId() != null) {
             validateVehicleExists(repairDTO.vehicleId());
@@ -116,6 +121,12 @@ public class RepairService implements IRepairService {
         existingRepair.setTransactionalDocument(resolveDocument(repairDTO.transactionalDocumentId()));
         Repair updatedRepair = repairRepository.save(existingRepair);
 
+        // Recalculate old document if the link changed
+        if (oldDocumentId != null && !oldDocumentId.equals(repairDTO.transactionalDocumentId())) {
+            documentTotalRecalculator.recalculateDocumentTotals(oldDocumentId);
+        }
+        documentTotalRecalculator.recalculateDocumentTotals(repairDTO.transactionalDocumentId());
+
         return repairMapper.toResponseDto(updatedRepair);
     }
 
@@ -125,7 +136,10 @@ public class RepairService implements IRepairService {
         Repair repair = repairRepository.findById(id)
                 .orElseThrow(() -> new RepairNotFoundException(id));
 
+        Long docId = repair.getTransactionalDocument() != null
+                ? repair.getTransactionalDocument().getId() : null;
         repairRepository.delete(repair);
+        documentTotalRecalculator.recalculateDocumentTotals(docId);
     }
 
     private void validateVehicleExists(Long vehicleId) {

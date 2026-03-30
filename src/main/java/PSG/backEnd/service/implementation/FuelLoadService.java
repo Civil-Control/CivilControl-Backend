@@ -33,6 +33,7 @@ public class FuelLoadService implements IFuelLoadService {
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final FuelLoadFactory fuelLoadFactory;
     private final FuelLoadBatchProcessor batchProcessor;
+    private final DocumentTotalRecalculator documentTotalRecalculator;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -43,6 +44,7 @@ public class FuelLoadService implements IFuelLoadService {
         fuelLoad.setTransactionalDocument(resolveDocument(fuelLoadDTO.transactionalDocumentId()));
         FuelLoad savedFuelLoad = fuelLoadRepository.save(fuelLoad);
         entityManager.refresh(savedFuelLoad);
+        documentTotalRecalculator.recalculateDocumentTotals(fuelLoadDTO.transactionalDocumentId());
         return fuelLoadMapper.toResponseDto(savedFuelLoad);
     }
 
@@ -86,17 +88,27 @@ public class FuelLoadService implements IFuelLoadService {
     @Override
     public FuelLoadResponseDTO updateFuelLoad(Long id, FuelLoadDTO fuelLoadDTO) {
         FuelLoad existingFuelLoad = findFuelLoadById(id);
+        Long oldDocumentId = existingFuelLoad.getTransactionalDocument() != null
+                ? existingFuelLoad.getTransactionalDocument().getId() : null;
         fuelLoadFactory.updateFuelLoad(existingFuelLoad, fuelLoadDTO);
         existingFuelLoad.setTransactionalDocument(resolveDocument(fuelLoadDTO.transactionalDocumentId()));
         FuelLoad updatedFuelLoad = fuelLoadRepository.save(existingFuelLoad);
         entityManager.refresh(updatedFuelLoad);
+        // Recalculate old document if the link changed
+        if (oldDocumentId != null && !oldDocumentId.equals(fuelLoadDTO.transactionalDocumentId())) {
+            documentTotalRecalculator.recalculateDocumentTotals(oldDocumentId);
+        }
+        documentTotalRecalculator.recalculateDocumentTotals(fuelLoadDTO.transactionalDocumentId());
         return fuelLoadMapper.toResponseDto(updatedFuelLoad);
     }
 
     @Override
     public void deleteFuelLoad(Long id) {
         FuelLoad fuelLoad = findFuelLoadById(id);
+        Long docId = fuelLoad.getTransactionalDocument() != null
+                ? fuelLoad.getTransactionalDocument().getId() : null;
         fuelLoadRepository.delete(fuelLoad);
+        documentTotalRecalculator.recalculateDocumentTotals(docId);
     }
 
     /**
