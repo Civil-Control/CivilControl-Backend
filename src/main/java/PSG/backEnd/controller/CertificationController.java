@@ -103,4 +103,15 @@ public class CertificationController {
         certificationService.deleteCertification(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/cobrado")
+    @Operation(summary = "Mark a certification as cobrado (collected)")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Certification marked as cobrado"),
+        @ApiResponse(responseCode = "404", description = "Certification not found")
+    })
+    @PreAuthorize("hasAuthority('" + AppPermissions.CERTIFICATION_WRITE + "')")
+    public ResponseEntity<CertificationResponseDTO> markAsCobrado(@PathVariable Long id) {
+        return ResponseEntity.ok(certificationService.markAsCobrado(id));
+    }
 }

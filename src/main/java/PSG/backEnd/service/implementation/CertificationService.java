@@ -52,6 +52,9 @@ public class CertificationService implements ICertificationService {
             salesDocument = salesDocumentRepository.findByIdAndDeletedFalse(dto.salesDocumentId())
                     .orElseThrow(() -> new RuntimeException("SalesDocument not found: " + dto.salesDocumentId()));
             entity.setSalesDocument(salesDocument);
+            entity.setStatus(Boolean.TRUE.equals(salesDocument.getPaid())
+                    ? CertificationStatus.COBRADO
+                    : CertificationStatus.FACTURADO);
         } else {
             entity.setSalesDocument(null);
         }
@@ -119,8 +122,16 @@ public class CertificationService implements ICertificationService {
             salesDocument = salesDocumentRepository.findByIdAndDeletedFalse(dto.salesDocumentId())
                     .orElseThrow(() -> new RuntimeException("SalesDocument not found: " + dto.salesDocumentId()));
             existing.setSalesDocument(salesDocument);
+            existing.setStatus(Boolean.TRUE.equals(salesDocument.getPaid())
+                    ? CertificationStatus.COBRADO
+                    : CertificationStatus.FACTURADO);
         } else {
             existing.setSalesDocument(null);
+            // If invoice removed and status was auto-set, revert to APROBADO
+            if (existing.getStatus() == CertificationStatus.FACTURADO
+                    || existing.getStatus() == CertificationStatus.COBRADO) {
+                existing.setStatus(CertificationStatus.APROBADO);
+            }
         }
 
         Certification saved = certificationRepository.save(existing);
@@ -138,6 +149,20 @@ public class CertificationService implements ICertificationService {
                 .orElseThrow(() -> new CertificationNotFoundException(id));
         existing.setDeleted(true);
         certificationRepository.save(existing);
+    }
+
+    @Override
+    @Transactional
+    public CertificationResponseDTO markAsCobrado(Long id) {
+        Certification existing = certificationRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new CertificationNotFoundException(id));
+        existing.setStatus(CertificationStatus.COBRADO);
+        Certification saved = certificationRepository.save(existing);
+        CertificationResponseDTO response = certificationMapper.toResponseDto(saved);
+        if (saved.getSalesDocument() != null) {
+            return buildWithLabel(response, saved.getSalesDocument());
+        }
+        return response;
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
