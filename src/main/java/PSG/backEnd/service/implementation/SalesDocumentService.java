@@ -9,9 +9,12 @@ import PSG.backEnd.model.dto.sales.SalesItemDetailDTO;
 import PSG.backEnd.model.entity.Client;
 import PSG.backEnd.model.entity.Item;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.contracts.Certification;
 import PSG.backEnd.model.entity.sales.SalesDocument;
 import PSG.backEnd.model.entity.sales.SalesItemDetail;
+import PSG.backEnd.model.enums.contracts.CertificationStatus;
 import PSG.backEnd.model.mapper.SalesDocumentMapper;
+import PSG.backEnd.repository.CertificationRepository;
 import PSG.backEnd.repository.ClientRepository;
 import PSG.backEnd.repository.ItemRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
@@ -31,6 +34,7 @@ import java.util.List;
 public class SalesDocumentService implements ISalesDocumentService {
 
     private final SalesDocumentRepository salesDocumentRepository;
+    private final CertificationRepository certificationRepository;
     private final ClientRepository clientRepository;
     private final ItemRepository itemRepository;
     private final ProjectAreaRepository projectAreaRepository;
@@ -116,6 +120,18 @@ public class SalesDocumentService implements ISalesDocumentService {
         SalesDocument document = salesDocumentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new SalesDocumentNotFoundException(id));
         document.setPaid(paid);
+
+        // Propagate paid status to linked certifications
+        List<Certification> linkedCertifications = certificationRepository.findBySalesDocumentIdAndDeletedFalse(id);
+        for (Certification cert : linkedCertifications) {
+            if (paid) {
+                cert.setStatus(CertificationStatus.COBRADO);
+            } else if (cert.getStatus() == CertificationStatus.COBRADO) {
+                cert.setStatus(CertificationStatus.FACTURADO);
+            }
+        }
+        certificationRepository.saveAll(linkedCertifications);
+
         return salesDocumentMapper.toResponseDto(salesDocumentRepository.save(document));
     }
 

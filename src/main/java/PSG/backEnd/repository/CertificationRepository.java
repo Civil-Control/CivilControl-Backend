@@ -11,10 +11,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface CertificationRepository extends JpaRepository<Certification, Long> {
+
+    List<Certification> findBySalesDocumentIdAndDeletedFalse(Long salesDocumentId);
 
     Optional<Certification> findByIdAndDeletedFalse(Long id);
 
