@@ -16,5 +16,7 @@ public interface ICertificationService {
 
     CertificationResponseDTO updateCertification(Long id, CertificationDTO dto);
 
+    CertificationResponseDTO markAsCobrado(Long id);
+
     void deleteCertification(Long id);
 }
