@@ -3,11 +3,14 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.supplier.SupplierAlreadyExistsException;
 import PSG.backEnd.exception.supplier.SupplierDataConflictException;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
+import PSG.backEnd.model.dto.contactInfo.ContactInfoDTO;
 import PSG.backEnd.model.dto.supplier.SupplierDTO;
 import PSG.backEnd.model.dto.supplier.SupplierFilterDTO;
 import PSG.backEnd.model.dto.supplier.SupplierResponseDTO;
 import PSG.backEnd.model.dto.supplier.SupplierStatsDTO;
+import PSG.backEnd.model.entity.ContactInfo;
 import PSG.backEnd.model.entity.Supplier;
+import PSG.backEnd.model.mapper.ContactInfoMapper;
 import PSG.backEnd.model.mapper.SupplierMapper;
 import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
@@ -31,6 +34,7 @@ public class SupplierService implements ISupplierService {
     private final SupplierRepository supplierRepository;
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SupplierMapper supplierMapper;
+    private final ContactInfoMapper contactInfoMapper;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
@@ -91,6 +95,7 @@ public class SupplierService implements ISupplierService {
 
         try {
             supplierMapper.partialUpdate(supplierDTO, existingSupplier);
+            syncContacts(existingSupplier, supplierDTO);
             Supplier updatedSupplier = supplierRepository.save(existingSupplier);
             return supplierMapper.toResponseDto(updatedSupplier);
         } catch (DataIntegrityViolationException e) {
@@ -143,6 +148,7 @@ public class SupplierService implements ISupplierService {
 
     private SupplierResponseDTO reactivateSupplier(Supplier supplier, SupplierDTO supplierDTO) {
         supplierMapper.partialUpdate(supplierDTO, supplier);
+        syncContacts(supplier, supplierDTO);
         supplier.setDeleted(false);
         supplier.setActive(true);
         return supplierMapper.toResponseDto(supplierRepository.save(supplier));
@@ -153,7 +159,19 @@ public class SupplierService implements ISupplierService {
         supplier.setDeleted(false);
         supplier.setActive(true);
         supplier.setPendingBalance(BigDecimal.ZERO);
+        syncContacts(supplier, supplierDTO);
         return supplierMapper.toResponseDto(supplierRepository.save(supplier));
+    }
+
+    private void syncContacts(Supplier supplier, SupplierDTO dto) {
+        if (dto.contacts() == null) return;
+        supplier.getContacts().clear();
+        for (ContactInfoDTO ciDto : dto.contacts()) {
+            ContactInfo ci = contactInfoMapper.toEntity(ciDto);
+            contactInfoMapper.handleCollections(ci, ciDto);
+            ci.setSupplier(supplier);
+            supplier.getContacts().add(ci);
+        }
     }
 
     @Override

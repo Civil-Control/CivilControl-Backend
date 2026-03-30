@@ -13,7 +13,7 @@ public record SupplierResponseDTO(
     String tradeName,
     List<PaymentMethod> allowedPaymentMethods,
     AddressResponseDTO address,
-    ContactInfoResponseDTO contactInfo,
+    List<ContactInfoResponseDTO> contacts,
     BigDecimal pendingBalance,
     BigDecimal defaultDiscountPercentage,
     String comment,

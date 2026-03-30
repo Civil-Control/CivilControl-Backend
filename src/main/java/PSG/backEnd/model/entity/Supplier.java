@@ -45,8 +45,9 @@ public class Supplier extends TenantEntity {
     @Embedded
     private Address address;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    private ContactInfo contactInfo;
+    @Builder.Default
+    @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ContactInfo> contacts = new ArrayList<>();
 
     @Column(name = "pending_balance")
     private BigDecimal pendingBalance;

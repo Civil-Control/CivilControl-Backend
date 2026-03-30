@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
+import java.util.List;
+
 @Schema(description = "Data Transfer Object for creating or updating a client.")
 public record ClientDTO(
 
@@ -33,9 +35,8 @@ public record ClientDTO(
     @Valid
     AddressDTO address,
 
-    @Schema(description = "Contact information for the client.")
-    @Valid
-    ContactInfoDTO contactInfo,
+    @Schema(description = "List of contacts for the client.")
+    List<@Valid ContactInfoDTO> contacts,
 
     @Schema(description = "Whether the client is active.", example = "true")
     Boolean active

@@ -6,8 +6,11 @@ import PSG.backEnd.model.dto.client.ClientDTO;
 import PSG.backEnd.model.dto.client.ClientFilterDTO;
 import PSG.backEnd.model.dto.client.ClientResponseDTO;
 import PSG.backEnd.model.dto.client.ClientStatsDTO;
+import PSG.backEnd.model.dto.contactInfo.ContactInfoDTO;
 import PSG.backEnd.model.entity.Client;
+import PSG.backEnd.model.entity.ContactInfo;
 import PSG.backEnd.model.mapper.ClientMapper;
+import PSG.backEnd.model.mapper.ContactInfoMapper;
 import PSG.backEnd.repository.ClientRepository;
 import PSG.backEnd.repository.SalesDocumentRepository;
 import PSG.backEnd.service.port.IClientService;
@@ -29,6 +32,7 @@ public class ClientService implements IClientService {
     private final ClientRepository clientRepository;
     private final SalesDocumentRepository salesDocumentRepository;
     private final ClientMapper clientMapper;
+    private final ContactInfoMapper contactInfoMapper;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
@@ -78,6 +82,7 @@ public class ClientService implements IClientService {
                 .orElseThrow(() -> new ClientNotFoundException(id));
         validateUniqueFieldsForUpdate(dto, existing);
         clientMapper.partialUpdate(dto, existing);
+        syncContacts(existing, dto);
         return clientMapper.toResponseDto(clientRepository.save(existing));
     }
 
@@ -115,6 +120,7 @@ public class ClientService implements IClientService {
 
     private ClientResponseDTO reactivateClient(Client client, ClientDTO dto) {
         clientMapper.partialUpdate(dto, client);
+        syncContacts(client, dto);
         client.setDeleted(false);
         client.setActive(true);
         return clientMapper.toResponseDto(clientRepository.save(client));
@@ -124,6 +130,7 @@ public class ClientService implements IClientService {
         Client client = clientMapper.toEntity(dto);
         if (client.getActive() == null) client.setActive(true);
         client.setDeleted(false);
+        syncContacts(client, dto);
         return clientMapper.toResponseDto(clientRepository.save(client));
     }
 
@@ -133,6 +140,17 @@ public class ClientService implements IClientService {
                 && clientRepository.existsByCuitAndDeletedFalse(dto.cuit())) {
             throw new ClientAlreadyExistsException(
                     messageSourceHelper.getMessage("client.update.conflict.cuit", dto.cuit()));
+        }
+    }
+
+    private void syncContacts(Client client, ClientDTO dto) {
+        if (dto.contacts() == null) return;
+        client.getContacts().clear();
+        for (ContactInfoDTO ciDto : dto.contacts()) {
+            ContactInfo ci = contactInfoMapper.toEntity(ciDto);
+            contactInfoMapper.handleCollections(ci, ciDto);
+            ci.setClient(client);
+            client.getContacts().add(ci);
         }
     }
 }

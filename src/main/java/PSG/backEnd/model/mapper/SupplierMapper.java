@@ -11,6 +11,7 @@ public interface SupplierMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "pendingBalance", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "contacts", ignore = true)
     Supplier toEntity(SupplierDTO supplierDTO);
 
     SupplierResponseDTO toResponseDto(Supplier supplier);
@@ -19,6 +20,7 @@ public interface SupplierMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "pendingBalance", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "contacts", ignore = true)
     void partialUpdate(SupplierDTO updateDTO, @MappingTarget Supplier supplier);
 
     @AfterMapping

@@ -4,6 +4,9 @@ import PSG.backEnd.model.enums.IvaCondition;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(
     name = "clients",
@@ -38,9 +41,9 @@ public class Client extends TenantEntity {
     @Embedded
     private Address address;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "contact_info_id")
-    private ContactInfo contactInfo;
+    @Builder.Default
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ContactInfo> contacts = new ArrayList<>();
 
     @Column(nullable = false)
     @Builder.Default

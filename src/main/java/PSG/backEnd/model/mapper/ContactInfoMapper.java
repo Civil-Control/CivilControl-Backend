@@ -14,14 +14,20 @@ public interface ContactInfoMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "email", ignore = true)
     @Mapping(target = "phoneNumber", ignore = true)
+    @Mapping(target = "client", ignore = true)
+    @Mapping(target = "supplier", ignore = true)
     ContactInfo toEntity(ContactInfoDTO contactInfoDTO);
 
     ContactInfoResponseDTO toResponseDto(ContactInfo contactInfo);
+
+    List<ContactInfoResponseDTO> toResponseDtoList(List<ContactInfo> contacts);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "email", ignore = true)
     @Mapping(target = "phoneNumber", ignore = true)
+    @Mapping(target = "client", ignore = true)
+    @Mapping(target = "supplier", ignore = true)
     void partialUpdate(ContactInfoDTO updateDTO, @MappingTarget ContactInfo contactInfo);
 
     // Filters out blank/empty strings so the frontend can send [] or [""] without errors

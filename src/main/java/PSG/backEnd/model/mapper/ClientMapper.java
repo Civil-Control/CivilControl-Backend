@@ -11,6 +11,7 @@ public interface ClientMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "contacts", ignore = true)
     Client toEntity(ClientDTO dto);
 
     ClientResponseDTO toResponseDto(Client client);
@@ -20,5 +21,6 @@ public interface ClientMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "contacts", ignore = true)
     void partialUpdate(ClientDTO dto, @MappingTarget Client client);
 }

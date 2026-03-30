@@ -7,9 +7,15 @@ import jakarta.validation.constraints.*;
 import java.util.List;
 
 @Schema(description = "Data Transfer Object for contact information. " +
-        "Contains email addresses and phone numbers for communication purposes. " +
-        "Both email and phone number are optional.")
+        "Contains a reference name, email addresses and phone numbers for communication purposes.")
 public record ContactInfoDTO(
+
+    @Schema(description = "Reference name to identify this contact (e.g. 'Oficina Central', 'Juan Pérez').",
+            example = "Oficina Central",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "{contactInfo.referenceName.required}", groups = OnCreate.class)
+    @Size(min = 1, max = 100, message = "{contactInfo.referenceName.size}", groups = {OnCreate.class, OnUpdate.class})
+    String referenceName,
 
     @Schema(description = "List of email addresses. Optional field. " +
             "Each email must be in valid format and not exceed 100 characters. Empty strings are ignored.",

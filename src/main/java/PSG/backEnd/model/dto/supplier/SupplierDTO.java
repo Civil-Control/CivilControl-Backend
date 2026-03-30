@@ -61,11 +61,9 @@ public record SupplierDTO(
     @Valid
     AddressDTO address,
 
-    @Schema(description = "Contact information for the supplier including phone numbers and email addresses. " +
-            "Optional but recommended for communication purposes.",
+    @Schema(description = "List of contacts for the supplier including phone numbers and email addresses.",
             nullable = true)
-    @Valid
-    ContactInfoDTO contactInfo,
+    List<@Valid ContactInfoDTO> contacts,
 
     @Schema(description = "Default discount percentage that this supplier typically offers. " +
             "Must be between 0 and 100. Used as a reference for purchase orders and negotiations.",
