@@ -93,8 +93,9 @@ public class InsurancePolicyService implements IInsurancePolicyService {
     public InsurancePolicyResponseDTO updateInsurancePolicy(Long id, InsurancePolicyDTO insurancePolicyDTO) {
         InsurancePolicy existingPolicy = getEntityById(id);
 
-        // Validate policy number if it changed
-        if (!existingPolicy.getPolicyNumber().equals(insurancePolicyDTO.policyNumber())) {
+        // Validate policy number if it changed (skip if not provided in partial update)
+        if (insurancePolicyDTO.policyNumber() != null
+                && !existingPolicy.getPolicyNumber().equals(insurancePolicyDTO.policyNumber())) {
             validatePolicyNumber(insurancePolicyDTO.policyNumber(), id);
         }
 
