@@ -33,7 +33,7 @@ public enum MoneyOutflowCategory {
     /**
      * Insurance policy payments
      */
-    INSURANCE("Pago de Seguro"),
+    INSURANCE("Pago de Póliza"),
 
     /**
      * Vehicle repair costs

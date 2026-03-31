@@ -71,6 +71,9 @@ public class InsurancePolicy extends TenantEntity {
     @Column(name = "premio_mensual", precision = 15, scale = 2)
     private BigDecimal premioMensual;
 
+    @Column(name = "periodic_due_day")
+    private Integer periodicDueDay;
+
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     private Boolean deleted = false;

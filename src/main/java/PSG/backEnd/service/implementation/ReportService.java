@@ -9,15 +9,12 @@ import PSG.backEnd.model.dto.report.ReportItemDTO;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.employee.SalaryPayment;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
-import PSG.backEnd.model.entity.insurance.InsurancePolicy;
-import PSG.backEnd.model.entity.insurance.PolicyVehicle;
+import PSG.backEnd.model.entity.insurance.PolicyPayment;
 import PSG.backEnd.model.entity.serviceSupplier.ServicePayment;
 import PSG.backEnd.model.entity.vehicle.LicencePlatePayment;
 import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
-import PSG.backEnd.model.enums.vehicle.PolicyStatus;
-import PSG.backEnd.model.enums.vehicle.PolicyType;
 import PSG.backEnd.model.enums.vehicle.RepairType;
 import PSG.backEnd.repository.*;
 import PSG.backEnd.service.export.IReportExporter;
@@ -60,8 +57,7 @@ public class ReportService implements IReportService {
     private final ServicePaymentRepository servicePaymentRepository;
     private final LicencePlatePaymentRepository licencePlatePaymentRepository;
     private final FuelLoadRepository fuelLoadRepository;
-    private final InsurancePolicyRepository insurancePolicyRepository;
-    private final PolicyVehicleRepository policyVehicleRepository;
+    private final PolicyPaymentRepository policyPaymentRepository;
     private final RepairRepository repairRepository;
     private final ProjectAreaRepository projectAreaRepository;
     private final MessageSourceHelper messageSourceHelper;
@@ -77,8 +73,7 @@ public class ReportService implements IReportService {
             ServicePaymentRepository servicePaymentRepository,
             LicencePlatePaymentRepository licencePlatePaymentRepository,
             FuelLoadRepository fuelLoadRepository,
-            InsurancePolicyRepository insurancePolicyRepository,
-            PolicyVehicleRepository policyVehicleRepository,
+            PolicyPaymentRepository policyPaymentRepository,
             RepairRepository repairRepository,
             ProjectAreaRepository projectAreaRepository,
             MessageSourceHelper messageSourceHelper) {
@@ -94,8 +89,7 @@ public class ReportService implements IReportService {
         this.servicePaymentRepository = servicePaymentRepository;
         this.licencePlatePaymentRepository = licencePlatePaymentRepository;
         this.fuelLoadRepository = fuelLoadRepository;
-        this.insurancePolicyRepository = insurancePolicyRepository;
-        this.policyVehicleRepository = policyVehicleRepository;
+        this.policyPaymentRepository = policyPaymentRepository;
         this.repairRepository = repairRepository;
         this.projectAreaRepository = projectAreaRepository;
         this.messageSourceHelper = messageSourceHelper;
@@ -694,126 +688,47 @@ public class ReportService implements IReportService {
     }
 
     /**
-     * Collects money outflow items from InsurancePolicy entities.
-     * For AUTOMOTOR policies: generates one report item per active insured vehicle
-     * whose date range overlaps the report period, using each vehicle's premioMensual.
-     * For other policy types: uses the policy-level premioMensual (or premioTotal / installments).
+     * Collects money outflow items from PolicyPayment records.
+     * Uses actual registered payments instead of estimated amounts from policies.
      */
     private List<ReportItemDTO> collectFromInsurances(ReportFilterDTO filters) {
-        log.debug("Collecting from insurance policies");
+        log.debug("Collecting from policy payments");
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        // Only retrieve active policies
-        var insurancePolicies = insurancePolicyRepository.findAllWithFilters(
+        var policyPayments = policyPaymentRepository.findAllWithFilters(
+                null, // insurancePolicyId
+                filters.startDate(),
+                filters.endDate(),
+                filters.minAmount(),
+                filters.maxAmount(),
                 null, // policyNumber
-                null, // termNumber
-                null, // policyType
-                PolicyStatus.ACTIVO.name(), // only active policies
-                null, // paymentFrequency
-                null, // issueDateFrom
-                null, // issueDateTo
-                null, // effectiveFromStart
-                null, // effectiveFromEnd
-                null, // effectiveToStart
-                null, // effectiveToEnd
-                null, // isCancelled
                 pageable
         ).getContent();
 
         List<ReportItemDTO> items = new ArrayList<>();
 
-        // Determine report period boundaries
-        LocalDate reportStart = filters.startDate();
-        LocalDate reportEnd = filters.endDate();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        for (InsurancePolicy ip : insurancePolicies) {
-            if (ip.getPolicyType() == PolicyType.AUTOMOTOR) {
-                // For AUTOMOTOR: collect from each active insured vehicle
-                items.addAll(collectFromAutomotorPolicy(ip, reportStart, reportEnd, filters));
-            } else {
-                // For other types: use policy-level premio
-                BigDecimal paymentAmount = ip.getPremioMensual();
-                if (paymentAmount == null && ip.getPremioTotal() != null
-                        && ip.getNumberOfInstallments() != null && ip.getNumberOfInstallments() > 0) {
-                    paymentAmount = ip.getPremioTotal()
-                            .divide(BigDecimal.valueOf(ip.getNumberOfInstallments()), 2, java.math.RoundingMode.HALF_UP);
-                }
-                if (paymentAmount == null || paymentAmount.compareTo(BigDecimal.ZERO) <= 0) continue;
-
-                if (filters.minAmount() != null && paymentAmount.compareTo(filters.minAmount()) < 0) continue;
-                if (filters.maxAmount() != null && paymentAmount.compareTo(filters.maxAmount()) > 0) continue;
-
-                items.add(ReportItemDTO.builder()
-                        .id(ip.getId())
-                        .date(ip.getIssueDate())
-                        .category(MoneyOutflowCategory.INSURANCE)
-                        .description("Pago de seguro: " + ip.getPolicyType().getDisplayName() +
-                                   " - Póliza N° " + ip.getPolicyNumber())
-                        .amount(paymentAmount)
-                        .paymentMethod(null)
-                        .beneficiary("Aseguradora")
-                        .reference(ip.getPolicyNumber())
-                        .comment("Premio mensual")
-                        .projectAreaName(null)
-                        .build());
-            }
-        }
-
-        log.debug("Collected {} insurance policy items", items.size());
-        return items;
-    }
-
-    /**
-     * Collects report items from an AUTOMOTOR policy's insured vehicles.
-     * Only includes vehicles whose coverage period overlaps the report period
-     * and whose installment months cover that period.
-     */
-    private List<ReportItemDTO> collectFromAutomotorPolicy(
-            InsurancePolicy ip, LocalDate reportStart, LocalDate reportEnd, ReportFilterDTO filters) {
-
-        List<ReportItemDTO> items = new ArrayList<>();
-
-        if (ip.getAutoPolicy() == null) return items;
-
-        List<PolicyVehicle> vehicles = policyVehicleRepository.findByAutoPolicyId(ip.getAutoPolicy().getId());
-
-        for (PolicyVehicle pv : vehicles) {
-            if (pv.getDeleted() || pv.getCancellationDate() != null) continue;
-            if (pv.getPremioMensual() == null || pv.getPremioMensual().compareTo(BigDecimal.ZERO) <= 0) continue;
-
-            // Check date range overlap with report period
-            if (reportEnd != null && pv.getEffectiveFrom() != null && pv.getEffectiveFrom().isAfter(reportEnd)) continue;
-            if (reportStart != null && pv.getEffectiveTo() != null && pv.getEffectiveTo().isBefore(reportStart)) continue;
-
-            // Check installments cover the report period
-            if (pv.getNumberOfInstallments() != null && pv.getNumberOfInstallments() > 0 && pv.getEffectiveFrom() != null) {
-                LocalDate lastInstallmentMonth = pv.getEffectiveFrom().plusMonths(pv.getNumberOfInstallments() - 1);
-                if (reportStart != null && lastInstallmentMonth.isBefore(reportStart)) continue;
-            }
-
-            BigDecimal amount = pv.getPremioMensual();
-
-            if (filters.minAmount() != null && amount.compareTo(filters.minAmount()) < 0) continue;
-            if (filters.maxAmount() != null && amount.compareTo(filters.maxAmount()) > 0) continue;
-
-            String vehicleInfo = pv.getVehicle() != null ? pv.getVehicle().getLicensePlate() : "Vehículo ID: " + pv.getId();
+        for (PolicyPayment pp : policyPayments) {
+            String policyNumber = pp.getInsurancePolicy().getPolicyNumber();
+            String periodDesc = pp.getPeriodFrom().format(formatter) + " - " + pp.getPeriodTo().format(formatter);
 
             items.add(ReportItemDTO.builder()
-                    .id(pv.getId())
-                    .date(ip.getIssueDate())
+                    .id(pp.getId())
+                    .date(pp.getPaymentDate())
                     .category(MoneyOutflowCategory.INSURANCE)
-                    .description("Seguro automotor - Póliza N° " + ip.getPolicyNumber() + " - " + vehicleInfo)
-                    .amount(amount)
+                    .description("Pago de póliza N° " + policyNumber + " - Período " + periodDesc)
+                    .amount(pp.getAmount())
                     .paymentMethod(null)
                     .beneficiary("Aseguradora")
-                    .reference(ip.getPolicyNumber())
-                    .comment("Premio mensual vehículo " + vehicleInfo)
-                    .projectAreaName(pv.getVehicle() != null && pv.getVehicle().getProjectArea() != null
-                            ? pv.getVehicle().getProjectArea().getName() : null)
+                    .reference(policyNumber)
+                    .comment(pp.getNotes())
+                    .projectAreaName(null)
                     .build());
         }
 
+        log.debug("Collected {} policy payment items", items.size());
         return items;
     }
 

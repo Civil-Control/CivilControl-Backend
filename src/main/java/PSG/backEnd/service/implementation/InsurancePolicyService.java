@@ -7,6 +7,7 @@ import PSG.backEnd.model.dto.insurance.InsurancePolicyDTO;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyFilterDTO;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyResponseDTO;
 import PSG.backEnd.model.entity.insurance.InsurancePolicy;
+import PSG.backEnd.model.enums.vehicle.PaymentFrequency;
 import PSG.backEnd.model.mapper.InsurancePolicyMapper;
 import PSG.backEnd.repository.InsurancePolicyRepository;
 import PSG.backEnd.service.port.IInsurancePolicyService;
@@ -193,6 +194,12 @@ public class InsurancePolicyService implements IInsurancePolicyService {
             if (dto.cancellationDate().isBefore(dto.effectiveFrom())) {
                 throw new IllegalArgumentException(messageSourceHelper.getMessage("insurancePolicy.cancellationDate.beforeEffectiveFrom"));
             }
+        }
+
+        // Validate that periodicDueDay is required for non-PAGO_UNICO frequencies
+        if (dto.paymentFrequency() != null && dto.paymentFrequency() != PaymentFrequency.PAGO_UNICO
+                && dto.periodicDueDay() == null) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("insurancePolicy.periodicDueDay.required"));
         }
     }
 

@@ -70,5 +70,9 @@ public record InsurancePolicyResponseDTO(
 
         @Schema(description = "Monthly premium amount.",
                 example = "4166.67")
-        BigDecimal premioMensual
+        BigDecimal premioMensual,
+
+        @Schema(description = "Day of the month for periodic payment due date (1-28). Null for PAGO_UNICO.",
+                example = "20")
+        Integer periodicDueDay
 ) {}

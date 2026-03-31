@@ -110,5 +110,14 @@ public record InsurancePolicyDTO(
                 nullable = true)
         @DecimalMin(value = "0.0", inclusive = true, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
         @Digits(integer = 13, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
-        BigDecimal premioMensual
+        BigDecimal premioMensual,
+
+        @Schema(description = "Day of the month for periodic payment due date (1-28). Not required for PAGO_UNICO frequency.",
+                example = "20",
+                minimum = "1",
+                maximum = "28",
+                nullable = true)
+        @Min(value = 1, message = "{insurancePolicy.periodicDueDay.range}", groups = {OnCreate.class, OnUpdate.class})
+        @Max(value = 28, message = "{insurancePolicy.periodicDueDay.range}", groups = {OnCreate.class, OnUpdate.class})
+        Integer periodicDueDay
 ) {}

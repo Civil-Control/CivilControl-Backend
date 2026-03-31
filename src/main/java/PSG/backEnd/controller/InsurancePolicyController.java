@@ -3,6 +3,8 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyDTO;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyFilterDTO;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyResponseDTO;
+import PSG.backEnd.model.dto.insurance.PolicyPaymentDTO;
+import PSG.backEnd.model.dto.insurance.PolicyPaymentResponseDTO;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleDTO;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleResponseDTO;
 import PSG.backEnd.model.enums.vehicle.PaymentFrequency;
@@ -11,6 +13,7 @@ import PSG.backEnd.model.enums.vehicle.PolicyType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.IInsurancePolicyService;
+import PSG.backEnd.service.port.IPolicyPaymentService;
 import PSG.backEnd.service.port.IPolicyVehicleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,6 +45,7 @@ public class InsurancePolicyController {
 
     private final IInsurancePolicyService insurancePolicyService;
     private final IPolicyVehicleService policyVehicleService;
+    private final IPolicyPaymentService policyPaymentService;
 
     // ========== INSURANCE POLICY ENDPOINTS ==========
 
@@ -271,6 +275,88 @@ public class InsurancePolicyController {
     public ResponseEntity<Void> deletePolicyVehicle(
             @Parameter(description = "Policy vehicle unique identifier", required = true) @PathVariable Long policyVehicleId) {
         policyVehicleService.deletePolicyVehicle(policyVehicleId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ========== POLICY PAYMENT ENDPOINTS ==========
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_WRITE + "')")
+    @PostMapping("/{insurancePolicyId}/payments")
+    @Operation(summary = "Register a payment for an insurance policy",
+            description = "Creates a new payment record for an insurance policy. The amount is pre-filled with the policy's monthly premium but can be modified.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Payment successfully registered"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "404", description = "Insurance policy not found")
+    })
+    public ResponseEntity<PolicyPaymentResponseDTO> createPayment(
+            @Parameter(description = "Insurance policy unique identifier", required = true) @PathVariable Long insurancePolicyId,
+            @Validated(OnCreate.class) @RequestBody PolicyPaymentDTO policyPaymentDTO) {
+        // Override insurancePolicyId from path
+        PolicyPaymentDTO dto = new PolicyPaymentDTO(
+                insurancePolicyId,
+                policyPaymentDTO.paymentDate(),
+                policyPaymentDTO.amount(),
+                policyPaymentDTO.periodFrom(),
+                policyPaymentDTO.periodTo(),
+                policyPaymentDTO.notes()
+        );
+        PolicyPaymentResponseDTO created = policyPaymentService.createPayment(dto);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_READ + "')")
+    @GetMapping("/{insurancePolicyId}/payments")
+    @Operation(summary = "Get all payments for an insurance policy",
+            description = "Retrieves all payment records associated with a specific insurance policy, ordered by period descending.")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved payment list")
+    public ResponseEntity<List<PolicyPaymentResponseDTO>> getPaymentsByPolicyId(
+            @Parameter(description = "Insurance policy unique identifier", required = true) @PathVariable Long insurancePolicyId) {
+        List<PolicyPaymentResponseDTO> payments = policyPaymentService.getPaymentsByPolicyId(insurancePolicyId);
+        return ResponseEntity.ok(payments);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_READ + "')")
+    @GetMapping("/payments/{paymentId}")
+    @Operation(summary = "Get payment by ID",
+            description = "Retrieves a specific payment record by its unique identifier.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment found"),
+            @ApiResponse(responseCode = "404", description = "Payment not found")
+    })
+    public ResponseEntity<PolicyPaymentResponseDTO> getPaymentById(
+            @Parameter(description = "Payment unique identifier", required = true) @PathVariable Long paymentId) {
+        PolicyPaymentResponseDTO payment = policyPaymentService.getPaymentById(paymentId);
+        return ResponseEntity.ok(payment);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_WRITE + "')")
+    @PatchMapping("/payments/{paymentId}")
+    @Operation(summary = "Update a policy payment",
+            description = "Updates an existing payment record. Only provided fields will be updated.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Payment successfully updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
+            @ApiResponse(responseCode = "404", description = "Payment not found")
+    })
+    public ResponseEntity<PolicyPaymentResponseDTO> updatePayment(
+            @Parameter(description = "Payment unique identifier", required = true) @PathVariable Long paymentId,
+            @Validated(OnUpdate.class) @RequestBody PolicyPaymentDTO policyPaymentDTO) {
+        PolicyPaymentResponseDTO updated = policyPaymentService.updatePayment(paymentId, policyPaymentDTO);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_DELETE + "')")
+    @DeleteMapping("/payments/{paymentId}")
+    @Operation(summary = "Delete a policy payment",
+            description = "Soft-deletes a payment record.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Payment successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "Payment not found")
+    })
+    public ResponseEntity<Void> deletePayment(
+            @Parameter(description = "Payment unique identifier", required = true) @PathVariable Long paymentId) {
+        policyPaymentService.deletePayment(paymentId);
         return ResponseEntity.noContent().build();
     }
 }
