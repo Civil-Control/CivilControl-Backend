@@ -25,7 +25,7 @@ public interface WorkContractMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
-    @Mapping(source = "clientId", target = "client.id")
-    @Mapping(source = "projectAreaId", target = "projectArea.id")
+    @Mapping(target = "client", ignore = true)
+    @Mapping(target = "projectArea", ignore = true)
     void partialUpdate(WorkContractDTO dto, @MappingTarget WorkContract entity);
 }

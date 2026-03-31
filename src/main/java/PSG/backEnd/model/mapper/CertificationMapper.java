@@ -24,7 +24,6 @@ public interface CertificationMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
-    @Mapping(target = "certificationNumber", ignore = true)
     @Mapping(target = "contract", ignore = true)
     @Mapping(target = "salesDocument", ignore = true)
     void partialUpdate(CertificationDTO dto, @MappingTarget Certification entity);

@@ -17,6 +17,10 @@ public record CertificationDTO(
     @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
     Long workContractId,
 
+    @Schema(description = "User-defined certification number. Auto-generated on create if not provided.")
+    @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+    Integer certificationNumber,
+
     @Schema(description = "Date the certification was issued.", example = "2025-04-15")
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     LocalDate certificationDate,

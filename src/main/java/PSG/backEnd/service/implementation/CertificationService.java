@@ -41,7 +41,9 @@ public class CertificationService implements ICertificationService {
         WorkContract contract = workContractRepository.findByIdAndDeletedFalse(dto.workContractId())
                 .orElseThrow(() -> new WorkContractNotFoundException(dto.workContractId()));
 
-        int nextNumber = certificationRepository.findMaxCertificationNumber(dto.workContractId(), tenantId) + 1;
+        int nextNumber = dto.certificationNumber() != null
+                ? dto.certificationNumber()
+                : certificationRepository.findMaxCertificationNumber(dto.workContractId(), tenantId) + 1;
 
         Certification entity = certificationMapper.toEntity(dto);
         entity.setContract(contract);
@@ -187,7 +189,7 @@ public class CertificationService implements ICertificationService {
 
     private String buildSalesDocumentLabel(SalesDocument sd) {
         if (sd == null) return null;
-        String type  = sd.getDocumentType() != null ? sd.getDocumentType().name() : "";
+        String type  = sd.getDocumentType() != null ? formatDocumentType(sd.getDocumentType().name()) : "";
         String branch = sd.getBranchCode()    != null ? sd.getBranchCode()         : "00000";
         String number = sd.getDocumentNumber() != null ? sd.getDocumentNumber()    : "00000000";
         String amount = sd.getTotal() != null
@@ -195,5 +197,22 @@ public class CertificationService implements ICertificationService {
                               .format(sd.getTotal())
                 : "0";
         return type + " " + branch + "-" + number + " — $" + amount;
+    }
+
+    private String formatDocumentType(String enumName) {
+        if (enumName == null || enumName.isEmpty()) return "";
+        String[] parts = enumName.split("_");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i];
+            if (part.length() == 1) {
+                sb.append(part.toUpperCase());
+            } else {
+                sb.append(part.substring(0, 1).toUpperCase())
+                  .append(part.substring(1).toLowerCase());
+            }
+            if (i < parts.length - 1) sb.append(' ');
+        }
+        return sb.toString();
     }
 }
