@@ -91,6 +91,7 @@ public interface RepairMapper {
                 order.getVehicle() != null ? order.getVehicle().getId() : null,
                 order.getVehicle() != null ? order.getVehicle().getLicensePlate() : null,
                 order.getDescription(),
+                order.getItems(),
                 order.getReportedBy(),
                 order.getStatus(),
                 order.getCreatedByUser() != null

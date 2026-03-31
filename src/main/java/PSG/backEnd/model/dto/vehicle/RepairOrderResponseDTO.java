@@ -4,6 +4,7 @@ import PSG.backEnd.model.enums.vehicle.RepairOrderStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Schema(description = "Response DTO containing complete information about a repair order.")
 public record RepairOrderResponseDTO(
@@ -22,6 +23,9 @@ public record RepairOrderResponseDTO(
 
         @Schema(description = "Description of the failure reported by the operator.")
         String description,
+
+        @Schema(description = "List of items/tasks to be addressed.")
+        List<String> items,
 
         @Schema(description = "Name of the field operator who reported the failure.", nullable = true)
         String reportedBy,

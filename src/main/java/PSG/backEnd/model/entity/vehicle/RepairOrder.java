@@ -8,6 +8,8 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "repair_orders")
@@ -29,8 +31,14 @@ public class RepairOrder extends TenantEntity {
     @Column(nullable = false)
     private LocalDate date;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String description;
+
+    @ElementCollection
+    @CollectionTable(name = "repair_order_items", joinColumns = @JoinColumn(name = "repair_order_id"))
+    @Column(name = "item", nullable = false)
+    @Builder.Default
+    private List<String> items = new ArrayList<>();
 
     @Column(name = "reported_by", length = 100)
     private String reportedBy;
