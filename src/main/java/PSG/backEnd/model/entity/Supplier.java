@@ -34,6 +34,9 @@ public class Supplier extends TenantEntity {
     @Column(name = "trade_name")
     private String tradeName;
 
+    @Column(name = "alias", length = 50)
+    private String alias;
+
     @Builder.Default
     @ElementCollection(targetClass = PaymentMethod.class, fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)

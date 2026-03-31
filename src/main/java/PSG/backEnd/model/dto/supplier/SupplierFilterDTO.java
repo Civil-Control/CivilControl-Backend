@@ -6,6 +6,7 @@ public record SupplierFilterDTO(
     String cuit,
     String legalName,
     String tradeName,
+    String alias,
     String city,
     BigDecimal minDiscountPercentage,
     BigDecimal maxDiscountPercentage,

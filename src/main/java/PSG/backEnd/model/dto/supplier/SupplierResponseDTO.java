@@ -11,6 +11,7 @@ public record SupplierResponseDTO(
     String cuit,
     String legalName,
     String tradeName,
+    String alias,
     List<PaymentMethod> allowedPaymentMethods,
     AddressResponseDTO address,
     List<ContactInfoResponseDTO> contacts,

@@ -57,6 +57,7 @@ public class SupplierService implements ISupplierService {
                 filterDTO.cuit(),
                 filterDTO.legalName(),
                 filterDTO.tradeName(),
+                filterDTO.alias(),
                 filterDTO.city(),
                 filterDTO.minDiscountPercentage(),
                 filterDTO.maxDiscountPercentage(),

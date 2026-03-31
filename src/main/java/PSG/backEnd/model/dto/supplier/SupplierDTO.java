@@ -47,6 +47,14 @@ public record SupplierDTO(
     @Pattern(regexp = "^\\s*\\S.*$", message = "{validation.notBlank}", groups = {OnCreate.class, OnUpdate.class})
     String tradeName,
 
+    @Schema(description = "Alias or nickname for the supplier, useful for categorization or quick identification. " +
+            "For example, 'Ferretería' for a hardware store. Maximum 50 characters. Optional field.",
+            example = "Ferretería",
+            maxLength = 50,
+            nullable = true)
+    @Size(max = 50, message = "{supplier.alias.size}", groups = {OnCreate.class, OnUpdate.class})
+    String alias,
+
     @Schema(description = "List of payment methods accepted by this supplier. At least one method must be specified. " +
             "Valid values: EFECTIVO (Cash), TRANSFERENCIA (Bank transfer), CHEQUE (Check). " +
             "This defines how payments to this supplier can be made.",

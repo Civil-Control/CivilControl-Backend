@@ -67,6 +67,7 @@ public class SupplierController {
             @Parameter(description = "Filter by CUIT (tax ID) - partial match", example = "30-12345678-9") @RequestParam(required = false) String cuit,
             @Parameter(description = "Filter by legal name - partial match", example = "García") @RequestParam(required = false) String legalName,
             @Parameter(description = "Filter by trade name - partial match", example = "Construcciones") @RequestParam(required = false) String tradeName,
+            @Parameter(description = "Filter by alias/nickname - partial match", example = "Ferretería") @RequestParam(required = false) String alias,
             @Parameter(description = "Filter by city - partial match", example = "Córdoba") @RequestParam(required = false) String city,
             @Parameter(description = "Filter by minimum discount percentage", example = "5.00") @RequestParam(required = false) BigDecimal minDiscountPercentage,
             @Parameter(description = "Filter by maximum discount percentage", example = "15.00") @RequestParam(required = false) BigDecimal maxDiscountPercentage,
@@ -81,7 +82,7 @@ public class SupplierController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         SupplierFilterDTO filterDTO = new SupplierFilterDTO(
-                cuit, legalName, tradeName, city,
+                cuit, legalName, tradeName, alias, city,
                 minDiscountPercentage, maxDiscountPercentage, active, search
         );
 
