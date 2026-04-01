@@ -421,6 +421,7 @@ public class ReportService implements IReportService {
 
         var documents = transactionalDocumentRepository.findAllWithFilters(
                 null, // documentNumber
+                null, // documentType
                 null, // supplierCuit
                 null, // supplierName
                 getEffectiveAreaId(filters), // projectAreaId - from filter

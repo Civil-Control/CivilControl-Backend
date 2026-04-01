@@ -1,5 +1,6 @@
 package PSG.backEnd.repository;
 
+import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             JOIN td.supplier s
             LEFT JOIN td.projectArea pa
             WHERE (:documentNumber IS NULL OR td.documentNumber LIKE %:documentNumber%)
+            AND (:documentType IS NULL OR td.documentType = :documentType)
             AND (:supplierCuit IS NULL OR s.cuit LIKE %:supplierCuit%)
             AND (:supplierName IS NULL OR 
                  LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR
@@ -52,6 +54,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
            """)
     Page<TransactionalDocument> findAllWithFilters(
             @Param("documentNumber") String documentNumber,
+            @Param("documentType") DocumentType documentType,
             @Param("supplierCuit") String supplierCuit,
             @Param("supplierName") String supplierName,
             @Param("projectAreaId") Long projectAreaId,

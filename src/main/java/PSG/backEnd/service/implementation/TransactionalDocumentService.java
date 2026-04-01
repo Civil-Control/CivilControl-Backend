@@ -98,8 +98,13 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     @Override
     @Transactional(readOnly = true)
     public Page<TransactionalDocumentResponseDTO> getAllTransactionalDocuments(TransactionalDocumentFilterDTO filterDTO, Pageable pageable) {
+        DocumentType docType = null;
+        if (filterDTO.documentType() != null && !filterDTO.documentType().isBlank()) {
+            docType = DocumentType.valueOf(filterDTO.documentType());
+        }
         return transactionalDocumentRepository.findAllWithFilters(
                 filterDTO.documentNumber(),
+                docType,
                 filterDTO.supplierCuit(),
                 filterDTO.supplierName(),
                 filterDTO.projectAreaId(),

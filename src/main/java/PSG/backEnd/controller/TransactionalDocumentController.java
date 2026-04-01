@@ -71,6 +71,9 @@ public class TransactionalDocumentController {
             @Parameter(description = "Filter by document number (partial match). Example: 00012345", example = "12345")
             @RequestParam(required = false) String documentNumber,
 
+            @Parameter(description = "Filter by document type (enum key). Values: BILL_A, BILL_B, BILL_C, DEBIT_NOTE_A, DEBIT_NOTE_B, DEBIT_NOTE_C, CREDIT_NOTE_A, CREDIT_NOTE_B, CREDIT_NOTE_C, OTHER_DOCUMENT", example = "BILL_A")
+            @RequestParam(required = false) String documentType,
+
             @Parameter(description = "Filter by supplier CUIT (tax ID, partial match). Format: XX-XXXXXXXX-X", example = "30-12345678")
             @RequestParam(required = false) String supplierCuit,
 
@@ -127,7 +130,7 @@ public class TransactionalDocumentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         TransactionalDocumentFilterDTO filter = new TransactionalDocumentFilterDTO(
-                documentNumber, supplierCuit, supplierName, projectAreaId, projectAreaName, minTotalAmount,
+                documentNumber, documentType, supplierCuit, supplierName, projectAreaId, projectAreaName, minTotalAmount,
                 maxTotalAmount, totalAmount, fromDate, toDate, paid, search
         );
         return ResponseEntity.ok(iTransactionalDocumentService.getAllTransactionalDocuments(filter, pageable));
@@ -139,7 +142,7 @@ public class TransactionalDocumentController {
      */
     private String mapSortField(String sortBy) {
         return switch (sortBy) {
-            case "supplierLegalName" -> "supplier.legalName";
+            case "supplierName", "supplierLegalName" -> "supplier.legalName";
             case "supplierTradeName" -> "supplier.tradeName";
             case "supplierCuit" -> "supplier.cuit";
             case "supplierId" -> "supplier.id";
