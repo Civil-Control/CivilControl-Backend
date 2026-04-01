@@ -55,6 +55,8 @@ public class SalesDocumentService implements ISalesDocumentService {
             ProjectArea pa = projectAreaRepository.findById(dto.projectAreaId())
                     .orElseThrow(() -> new RuntimeException("ProjectArea not found: " + dto.projectAreaId()));
             document.setProjectArea(pa);
+        } else {
+            document.setProjectArea(null);
         }
 
         List<SalesItemDetail> items = buildItemDetails(dto.items(), document);
@@ -103,6 +105,8 @@ public class SalesDocumentService implements ISalesDocumentService {
             ProjectArea pa = projectAreaRepository.findById(dto.projectAreaId())
                     .orElseThrow(() -> new RuntimeException("ProjectArea not found: " + dto.projectAreaId()));
             existing.setProjectArea(pa);
+        } else {
+            existing.setProjectArea(null);
         }
 
         if (dto.items() != null) {

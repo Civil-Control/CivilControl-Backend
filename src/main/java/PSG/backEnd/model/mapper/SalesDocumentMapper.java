@@ -16,7 +16,7 @@ public interface SalesDocumentMapper {
     @Mapping(target = "paid", ignore = true)
     @Mapping(target = "items", ignore = true)
     @Mapping(source = "clientId", target = "client.id")
-    @Mapping(source = "projectAreaId", target = "projectArea.id")
+    @Mapping(target = "projectArea", ignore = true)
     SalesDocument toEntity(SalesDocumentDTO dto);
 
     @Mapping(source = "client", target = "client")
@@ -30,7 +30,7 @@ public interface SalesDocumentMapper {
     @Mapping(target = "paid", ignore = true)
     @Mapping(target = "items", ignore = true)
     @Mapping(source = "clientId", target = "client.id")
-    @Mapping(source = "projectAreaId", target = "projectArea.id")
+    @Mapping(target = "projectArea", ignore = true)
     void partialUpdate(SalesDocumentDTO dto, @MappingTarget SalesDocument salesDocument);
 
     @Mapping(target = "id", ignore = true)
