@@ -5,7 +5,9 @@ public enum FuelType {
     SUPER("super"),
     INFINIA_DIESEL("infinia diesel"),
     DIESEL_500("diesel 500"),
-    GNC("gnc");
+    GNC("gnc"),
+    DISTILLED_WATER("agua destilada"),
+    OIL("aceite");
 
     private final String displayName;
 

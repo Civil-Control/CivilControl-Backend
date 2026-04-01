@@ -27,7 +27,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "date", source = "date", dateFormat = "yyyy-MM-dd")
     @Mapping(target = "fuelType", source = "fuelType")
     @Mapping(target = "vehicleId", source = "vehicle.id")
-    @Mapping(target = "vehicleLicensePlate", source = "vehicle.licensePlate")
+    @Mapping(target = "vehicleLicensePlate", expression = "java(fuelLoad.getVehicle() != null ? fuelLoad.getVehicle().getLicensePlate() : \"Bidón\")")
     @Mapping(target = "projectAreaId", source = "projectArea.id")
     @Mapping(target = "projectAreaName", source = "projectArea.name")
     @Mapping(target = "projectAreaColor", source = "projectArea.color")

@@ -46,8 +46,8 @@ public class FuelLoad extends TenantEntity {
     @Column(nullable = false)
     private BigDecimal totalAmount;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_id", nullable = false)
+    @ManyToOne(optional = true, fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_id", nullable = true)
     private Vehicle vehicle;
 
     @ManyToOne(fetch = FetchType.LAZY)

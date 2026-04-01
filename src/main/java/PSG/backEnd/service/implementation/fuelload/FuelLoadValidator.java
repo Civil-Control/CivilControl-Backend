@@ -30,7 +30,7 @@ public class FuelLoadValidator {
      */
     public void validateForCreation(FuelLoadDTO fuelLoadDTO) {
         validateTicketUniqueness(fuelLoadDTO.ticketNumber(), fuelLoadDTO.branchCode());
-        validateVehicleExists(fuelLoadDTO.vehicleId());
+        validateVehicleExistsIfPresent(fuelLoadDTO.vehicleId());
         validateGasStationExists(fuelLoadDTO.gasStationId());
         validateProjectAreaExistsIfPresent(fuelLoadDTO.projectAreaId());
     }

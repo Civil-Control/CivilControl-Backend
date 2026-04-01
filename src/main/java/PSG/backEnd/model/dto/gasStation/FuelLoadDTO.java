@@ -53,10 +53,9 @@ public record FuelLoadDTO(
         @DecimalMax(value = "5000", message = "{validation.max}", groups = {OnCreate.class, OnUpdate.class})
         Double liters,
 
-        @Schema(description = "ID of the vehicle that received the fuel load.",
+        @Schema(description = "ID of the vehicle that received the fuel load. Null when the load target is a drum (bidón).",
                 example = "25",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "{fuelLoad.vehicleId.required}", groups = OnCreate.class)
+                nullable = true)
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long vehicleId,
 
