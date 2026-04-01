@@ -28,9 +28,13 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             "AND (:tradeName IS NULL OR LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:tradeName AS string), '%'))) " +
             "AND (:alias IS NULL OR LOWER(CAST(s.alias AS string)) LIKE LOWER(CONCAT('%', CAST(:alias AS string), '%'))) " +
             "AND (:city IS NULL OR LOWER(CAST(s.address.city AS string)) LIKE LOWER(CONCAT('%', CAST(:city AS string), '%'))) " +
+            "AND (:street IS NULL OR LOWER(CAST(s.address.street AS string)) LIKE LOWER(CONCAT('%', CAST(:street AS string), '%'))) " +
             "AND (CAST(:minDiscountPercentage AS BigDecimal) IS NULL OR s.defaultDiscountPercentage >= :minDiscountPercentage) " +
             "AND (CAST(:maxDiscountPercentage AS BigDecimal) IS NULL OR s.defaultDiscountPercentage <= :maxDiscountPercentage) " +
             "AND (:active IS NULL OR s.active = :active) " +
+            "AND (:hasPendingBalance IS NULL OR :hasPendingBalance = false OR " +
+            "     (SELECT COALESCE(SUM(td.total), 0) - COALESCE(SUM(CASE WHEN td.paid = true THEN td.total ELSE 0 END), 0) " +
+            "      FROM TransactionalDocument td WHERE td.supplier.id = s.id AND td.deleted = false) > 0) " +
             "AND s.deleted = false " +
             "AND (:search IS NULL OR (s.cuit LIKE CONCAT('%', CAST(:search AS string), '%') " +
             "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
@@ -42,9 +46,11 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             @Param("tradeName") String tradeName,
             @Param("alias") String alias,
             @Param("city") String city,
+            @Param("street") String street,
             @Param("minDiscountPercentage") BigDecimal minDiscountPercentage,
             @Param("maxDiscountPercentage") BigDecimal maxDiscountPercentage,
             @Param("active") Boolean active,
+            @Param("hasPendingBalance") Boolean hasPendingBalance,
             @Param("search") String search,
             Pageable pageable
     );

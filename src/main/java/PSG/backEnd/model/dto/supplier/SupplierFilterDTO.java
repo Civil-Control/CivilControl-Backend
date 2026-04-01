@@ -8,8 +8,10 @@ public record SupplierFilterDTO(
     String tradeName,
     String alias,
     String city,
+    String street,
     BigDecimal minDiscountPercentage,
     BigDecimal maxDiscountPercentage,
     Boolean active,
+    Boolean hasPendingBalance,
     String search
 ) {}

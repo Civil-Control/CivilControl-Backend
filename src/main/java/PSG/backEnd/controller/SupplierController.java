@@ -69,9 +69,11 @@ public class SupplierController {
             @Parameter(description = "Filter by trade name - partial match", example = "Construcciones") @RequestParam(required = false) String tradeName,
             @Parameter(description = "Filter by alias/nickname - partial match", example = "Ferretería") @RequestParam(required = false) String alias,
             @Parameter(description = "Filter by city - partial match", example = "Córdoba") @RequestParam(required = false) String city,
+            @Parameter(description = "Filter by street - partial match", example = "San Martín") @RequestParam(required = false) String street,
             @Parameter(description = "Filter by minimum discount percentage", example = "5.00") @RequestParam(required = false) BigDecimal minDiscountPercentage,
             @Parameter(description = "Filter by maximum discount percentage", example = "15.00") @RequestParam(required = false) BigDecimal maxDiscountPercentage,
             @Parameter(description = "Filter by active status - true for active suppliers only", example = "true") @RequestParam(required = false) Boolean active,
+            @Parameter(description = "Filter suppliers that have pending balance (unpaid invoices)") @RequestParam(required = false) Boolean hasPendingBalance,
             @Parameter(description = "Generic search across CUIT, legalName and tradeName (partial match)") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
@@ -82,8 +84,8 @@ public class SupplierController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         SupplierFilterDTO filterDTO = new SupplierFilterDTO(
-                cuit, legalName, tradeName, alias, city,
-                minDiscountPercentage, maxDiscountPercentage, active, search
+                cuit, legalName, tradeName, alias, city, street,
+                minDiscountPercentage, maxDiscountPercentage, active, hasPendingBalance, search
         );
 
         return ResponseEntity.ok(iSupplierService.getAllSuppliers(filterDTO, pageable));

@@ -59,9 +59,11 @@ public class SupplierService implements ISupplierService {
                 filterDTO.tradeName(),
                 filterDTO.alias(),
                 filterDTO.city(),
+                filterDTO.street(),
                 filterDTO.minDiscountPercentage(),
                 filterDTO.maxDiscountPercentage(),
                 filterDTO.active(),
+                filterDTO.hasPendingBalance(),
                 filterDTO.search(),
                 pageable
         ).map(supplierMapper::toResponseDto);
