@@ -90,6 +90,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("CERTIFICATION_", "Certifications");
         MODULE_MAP.put("CLIENT_", "Clients");
         MODULE_MAP.put("SALES_DOCUMENT_", "Sales Documents");
+        MODULE_MAP.put("ATTENDANCE_RECORD_", "Attendance Records");
         MODULE_MAP.put("REPORT_", "Reports");
         MODULE_MAP.put("DATA_", "System");
         MODULE_MAP.put("USER_", "Users");
@@ -126,6 +127,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("CERTIFICATION_", "Certificaciones");
         MODULE_SPANISH_MAP.put("CLIENT_", "Clientes");
         MODULE_SPANISH_MAP.put("SALES_DOCUMENT_", "Comprobantes de Venta");
+        MODULE_SPANISH_MAP.put("ATTENDANCE_RECORD_", "Registros de Asistencia");
         MODULE_SPANISH_MAP.put("REPORT_", "Reportes");
         MODULE_SPANISH_MAP.put("DATA_", "Sistema");
         MODULE_SPANISH_MAP.put("USER_", "Usuarios");
@@ -172,6 +174,7 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_MAP.put("DISCIPLINARY_ACTION_", "personal");
         WORK_MODULE_MAP.put("SALARY_PAYMENT_", "personal");
         WORK_MODULE_MAP.put("EPP_DELIVERY_", "personal");
+        WORK_MODULE_MAP.put("ATTENDANCE_RECORD_", "personal");
 
         // mechanic: repair, repairOrder, stock, stockPurchase
         WORK_MODULE_MAP.put("REPAIR_ORDER_", "mechanic");
