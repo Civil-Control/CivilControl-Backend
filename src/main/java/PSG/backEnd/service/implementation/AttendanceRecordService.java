@@ -14,12 +14,14 @@ import PSG.backEnd.repository.AttendanceRecordRepository;
 import PSG.backEnd.repository.BuildingRepository;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.service.port.IAttendanceRecordService;
+import PSG.backEnd.service.importer.AttendanceExcelImporter;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -33,6 +35,7 @@ public class AttendanceRecordService implements IAttendanceRecordService {
     private final EmployeeRepository employeeRepository;
     private final BuildingRepository buildingRepository;
     private final AttendanceRecordMapper attendanceRecordMapper;
+    private final AttendanceExcelImporter attendanceExcelImporter;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
@@ -167,9 +170,14 @@ public class AttendanceRecordService implements IAttendanceRecordService {
     }
 
     @Override
+    @Transactional
+    public AttendanceImportResultDTO importFromExcel(MultipartFile file, boolean dryRun) {
+        return attendanceExcelImporter.processFile(file, dryRun);
+    }
+
+    @Override
     public byte[] generateTemplate() {
-        // Will be implemented in Phase 3 (Import Excel)
-        throw new UnsupportedOperationException("Not yet implemented");
+        return attendanceExcelImporter.generateTemplate();
     }
 
     @Override

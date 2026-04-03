@@ -1,11 +1,9 @@
 package PSG.backEnd.service.port;
 
-import PSG.backEnd.model.dto.employee.AttendanceRecordBatchDTO;
-import PSG.backEnd.model.dto.employee.AttendanceRecordDTO;
-import PSG.backEnd.model.dto.employee.AttendanceRecordFilterDTO;
-import PSG.backEnd.model.dto.employee.AttendanceRecordResponseDTO;
+import PSG.backEnd.model.dto.employee.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,6 +16,7 @@ public interface IAttendanceRecordService {
     Page<AttendanceRecordResponseDTO> getAllAttendanceRecords(AttendanceRecordFilterDTO filterDTO, Pageable pageable);
     long countWithFilters(AttendanceRecordFilterDTO filterDTO);
     List<AttendanceRecordResponseDTO> getAllAttendanceRecordsNoPage(AttendanceRecordFilterDTO filterDTO);
+    AttendanceImportResultDTO importFromExcel(MultipartFile file, boolean dryRun);
     byte[] generateTemplate();
     byte[] exportToExcel(AttendanceRecordFilterDTO filterDTO);
 }

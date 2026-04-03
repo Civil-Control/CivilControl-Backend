@@ -16,11 +16,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -166,5 +169,32 @@ public class AttendanceRecordController {
             @Parameter(description = "Attendance record unique identifier", required = true) @PathVariable Long id) {
         iAttendanceRecordService.deleteAttendanceRecord(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.ATTENDANCE_RECORD_WRITE + "')")
+    @PostMapping("/import")
+    @Operation(summary = "Import attendance records from Excel file",
+            description = "Uploads an .xlsx file with attendance records. Use dryRun=true to validate without persisting.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Import processed successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid file or validation errors")
+    })
+    public ResponseEntity<AttendanceImportResultDTO> importFromExcel(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(defaultValue = "true") boolean dryRun) {
+        AttendanceImportResultDTO result = iAttendanceRecordService.importFromExcel(file, dryRun);
+        return ResponseEntity.ok(result);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.ATTENDANCE_RECORD_READ + "')")
+    @GetMapping("/import/template")
+    @Operation(summary = "Download empty Excel template for attendance import")
+    @ApiResponse(responseCode = "200", description = "Template file generated successfully")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        byte[] template = iAttendanceRecordService.generateTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "plantilla_asistencia.xlsx");
+        return new ResponseEntity<>(template, headers, HttpStatus.OK);
     }
 }
