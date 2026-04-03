@@ -121,6 +121,36 @@ public class AttendanceRecordController {
         return ResponseEntity.ok(iAttendanceRecordService.countWithFilters(filterDTO));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.ATTENDANCE_RECORD_READ + "')")
+    @GetMapping("/export")
+    @Operation(summary = "Export attendance records to Excel",
+            description = "Generates an Excel file with attendance records matching the given filters.")
+    @ApiResponse(responseCode = "200", description = "Excel file generated successfully")
+    public ResponseEntity<byte[]> exportToExcel(
+            @RequestParam(required = false) Long employeeId,
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String dni,
+            @RequestParam(required = false) MovementType movementType,
+            @RequestParam(required = false) Long buildingId,
+            @RequestParam(required = false) Long projectAreaId,
+            @RequestParam(required = false) LocalDate dateFrom,
+            @RequestParam(required = false) LocalDate dateTo,
+            @RequestParam(required = false) LocalTime timeFrom,
+            @RequestParam(required = false) LocalTime timeTo,
+            @RequestParam(required = false) String search
+    ) {
+        AttendanceRecordFilterDTO filterDTO = new AttendanceRecordFilterDTO(
+                employeeId, firstName, lastName, dni, movementType, buildingId,
+                projectAreaId, dateFrom, dateTo, timeFrom, timeTo, search
+        );
+        byte[] excelBytes = iAttendanceRecordService.exportToExcel(filterDTO);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "asistencia.xlsx");
+        return new ResponseEntity<>(excelBytes, headers, HttpStatus.OK);
+    }
+
     private String mapSortField(String sortBy) {
         return switch (sortBy) {
             case "employeeName" -> "employee.name";

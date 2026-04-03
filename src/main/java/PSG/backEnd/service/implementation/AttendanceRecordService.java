@@ -5,6 +5,7 @@ import PSG.backEnd.exception.attendanceRecord.AttendanceRecordNotValidException;
 import PSG.backEnd.exception.attendanceRecord.DuplicateAttendanceRecordException;
 import PSG.backEnd.exception.building.BuildingNotFoundException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
+import PSG.backEnd.exception.report.ReportGenerationException;
 import PSG.backEnd.model.dto.employee.*;
 import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.employee.AttendanceRecord;
@@ -17,18 +18,24 @@ import PSG.backEnd.service.port.IAttendanceRecordService;
 import PSG.backEnd.service.importer.AttendanceExcelImporter;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AttendanceRecordService implements IAttendanceRecordService {
 
     private final AttendanceRecordRepository attendanceRecordRepository;
@@ -181,9 +188,101 @@ public class AttendanceRecordService implements IAttendanceRecordService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public byte[] exportToExcel(AttendanceRecordFilterDTO filterDTO) {
-        // Will be implemented in Phase 5 (Export Excel)
-        throw new UnsupportedOperationException("Not yet implemented");
+        List<AttendanceRecordResponseDTO> records = getAllAttendanceRecordsNoPage(filterDTO);
+        log.info("Exporting {} attendance records to Excel", records.size());
+
+        if (records.size() > 10_000) {
+            throw new ReportGenerationException(
+                    messageSourceHelper.getMessage("attendanceRecord.export.tooManyRecords", 10_000));
+        }
+
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Registros de Asistencia");
+
+            // Styles
+            CellStyle headerStyle = createExportHeaderStyle(workbook);
+            CellStyle dateStyle = workbook.createCellStyle();
+            dateStyle.setAlignment(HorizontalAlignment.CENTER);
+            CellStyle centerStyle = workbook.createCellStyle();
+            centerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            // Header row
+            String[] headers = {"Empleado", "DNI", "Fecha", "Hora", "Tipo de Movimiento", "Edificio", "Área/Sector", "Observación"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // Data rows
+            DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+            int rowNum = 1;
+            for (AttendanceRecordResponseDTO r : records) {
+                Row row = sheet.createRow(rowNum++);
+
+                row.createCell(0).setCellValue(
+                        (r.employeeLastName() != null ? r.employeeLastName() : "") + " " +
+                        (r.employeeName() != null ? r.employeeName() : ""));
+
+                Cell dniCell = row.createCell(1);
+                dniCell.setCellValue(r.employeeDni() != null ? r.employeeDni() : "");
+                dniCell.setCellStyle(centerStyle);
+
+                Cell dateCell = row.createCell(2);
+                dateCell.setCellValue(r.date() != null ? r.date().format(dateFmt) : "");
+                dateCell.setCellStyle(centerStyle);
+
+                Cell timeCell = row.createCell(3);
+                timeCell.setCellValue(r.time() != null ? r.time().format(timeFmt) : "");
+                timeCell.setCellStyle(centerStyle);
+
+                Cell typeCell = row.createCell(4);
+                typeCell.setCellValue(r.movementType() != null ? r.movementType().name() : "");
+                typeCell.setCellStyle(centerStyle);
+
+                row.createCell(5).setCellValue(r.buildingName() != null ? r.buildingName() : "");
+                row.createCell(6).setCellValue(r.projectAreaName() != null ? r.projectAreaName() : "");
+                row.createCell(7).setCellValue(r.observation() != null ? r.observation() : "");
+            }
+
+            // Auto-size columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(baos);
+            log.info("Attendance Excel export generated successfully ({} rows)", records.size());
+            return baos.toByteArray();
+
+        } catch (ReportGenerationException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error generating attendance Excel export", e);
+            throw new ReportGenerationException(
+                    messageSourceHelper.getMessage("report.generation.excel.error"), e);
+        }
+    }
+
+    private CellStyle createExportHeaderStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setColor(IndexedColors.WHITE.getIndex());
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        return style;
     }
 
     private void validateEmployeeExists(Long employeeId) {
