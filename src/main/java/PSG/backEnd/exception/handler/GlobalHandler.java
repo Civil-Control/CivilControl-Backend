@@ -1,5 +1,9 @@
 package PSG.backEnd.exception.handler;
 
+import PSG.backEnd.exception.attendanceRecord.AttendanceImportException;
+import PSG.backEnd.exception.attendanceRecord.AttendanceRecordNotFoundException;
+import PSG.backEnd.exception.attendanceRecord.AttendanceRecordNotValidException;
+import PSG.backEnd.exception.attendanceRecord.DuplicateAttendanceRecordException;
 import PSG.backEnd.exception.auth.InvalidCredentialsException;
 import PSG.backEnd.exception.auth.InvalidTokenException;
 import PSG.backEnd.exception.building.BuildingAlreadyExistsException;
@@ -316,6 +320,28 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DisciplinaryActionNotValidException.class)
     public ResponseEntity<ResponseMessage> handleDisciplinaryActionNotValidException(DisciplinaryActionNotValidException ex) {
+        return buildResponse(ex, HttpStatus.BAD_REQUEST);
+    }
+
+    // ==================== AttendanceRecord Exceptions ====================
+
+    @ExceptionHandler(AttendanceRecordNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleAttendanceRecordNotFoundException(AttendanceRecordNotFoundException ex) {
+        return buildResponse(ex, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(AttendanceRecordNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleAttendanceRecordNotValidException(AttendanceRecordNotValidException ex) {
+        return buildResponse(ex, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DuplicateAttendanceRecordException.class)
+    public ResponseEntity<ResponseMessage> handleDuplicateAttendanceRecordException(DuplicateAttendanceRecordException ex) {
+        return buildResponse(ex, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(AttendanceImportException.class)
+    public ResponseEntity<ResponseMessage> handleAttendanceImportException(AttendanceImportException ex) {
         return buildResponse(ex, HttpStatus.BAD_REQUEST);
     }
 
