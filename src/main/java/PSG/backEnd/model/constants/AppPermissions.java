@@ -417,6 +417,26 @@ public final class AppPermissions {
      */
     public static final String TRANSACTIONAL_DOCUMENT_DELETE = "TRANSACTIONAL_DOCUMENT_DELETE";
 
+    // ==================== MODULE: ATTENDANCE RECORDS ====================
+
+    /**
+     * Module: Attendance Records
+     * Allows viewing attendance records (clock-in/clock-out).
+     */
+    public static final String ATTENDANCE_RECORD_READ = "ATTENDANCE_RECORD_READ";
+
+    /**
+     * Module: Attendance Records
+     * Allows creating and editing attendance records.
+     */
+    public static final String ATTENDANCE_RECORD_WRITE = "ATTENDANCE_RECORD_WRITE";
+
+    /**
+     * Module: Attendance Records
+     * Allows deleting attendance records.
+     */
+    public static final String ATTENDANCE_RECORD_DELETE = "ATTENDANCE_RECORD_DELETE";
+
     // ==================== MODULE: BUILDINGS ====================
     
     /**
