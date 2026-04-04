@@ -537,6 +537,11 @@ public final class AppPermissions {
     public static final String CERTIFICATION_WRITE = "CERTIFICATION_WRITE";
     public static final String CERTIFICATION_DELETE = "CERTIFICATION_DELETE";
 
+    // ==================== MODULE: CREW ASSIGNMENTS ====================
+    public static final String CREW_ASSIGNMENT_READ = "CREW_ASSIGNMENT_READ";
+    public static final String CREW_ASSIGNMENT_WRITE = "CREW_ASSIGNMENT_WRITE";
+    public static final String CREW_ASSIGNMENT_DELETE = "CREW_ASSIGNMENT_DELETE";
+
     // ==================== MODULE: SYSTEM ====================
     
     /**
