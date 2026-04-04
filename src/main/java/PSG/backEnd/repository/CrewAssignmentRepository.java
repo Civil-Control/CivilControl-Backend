@@ -20,7 +20,7 @@ public interface CrewAssignmentRepository extends JpaRepository<CrewAssignment, 
 
     boolean existsByEmployeeIdAndDateAndDeletedFalse(Long employeeId, LocalDate date);
 
-    @Query("SELECT ca FROM CrewAssignment ca WHERE ca.vehicle.id = :vehicleId AND ca.date = :date AND ca.isDriver = true AND ca.deleted = false")
+    @Query("SELECT ca FROM CrewAssignment ca WHERE ca.vehicle.id = :vehicleId AND ca.date = :date AND ca.driver = true AND ca.deleted = false")
     Optional<CrewAssignment> findDriverByVehicleAndDate(
             @Param("vehicleId") Long vehicleId,
             @Param("date") LocalDate date);
@@ -54,7 +54,7 @@ public interface CrewAssignmentRepository extends JpaRepository<CrewAssignment, 
            "AND (CAST(:dateFrom AS date) IS NULL OR ca.date >= :dateFrom) " +
            "AND (CAST(:dateTo AS date) IS NULL OR ca.date <= :dateTo) " +
            "AND (CAST(:dateExact AS date) IS NULL OR ca.date = :dateExact) " +
-           "AND (CAST(:isDriver AS boolean) IS NULL OR ca.isDriver = :isDriver) " +
+           "AND (CAST(:isDriver AS boolean) IS NULL OR ca.driver = :isDriver) " +
            "AND (:search IS NULL OR (" +
            "   LOWER(CAST(ca.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
            "   OR LOWER(CAST(ca.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
