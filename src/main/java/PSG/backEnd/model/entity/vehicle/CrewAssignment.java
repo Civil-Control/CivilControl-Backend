@@ -39,7 +39,7 @@ public class CrewAssignment extends TenantEntity {
     private LocalDate date;
 
     @Column(name = "is_driver", nullable = false)
-    private boolean isDriver;
+    private boolean driver;
 
     @Column(name = "observation", length = 500)
     private String observation;

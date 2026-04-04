@@ -13,7 +13,7 @@ public interface CrewAssignmentMapper {
     @Mapping(target = "employee", ignore = true)
     @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
-    @Mapping(target = "driver", source = "isDriver", defaultExpression = "java(false)")
+    @Mapping(target = "driver", source = "isDriver", defaultValue = "false")
     CrewAssignment toEntity(CrewAssignmentDTO dto);
 
     @Mapping(source = "employee.id", target = "employeeId")
