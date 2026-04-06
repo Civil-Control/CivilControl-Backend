@@ -12,6 +12,7 @@ import PSG.backEnd.model.entity.contracts.WorkContract;
 import PSG.backEnd.repository.WorkContractRepository;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.entity.gasStation.GasStation;
+import PSG.backEnd.model.entity.serviceSupplier.ServiceAssignment;
 import PSG.backEnd.model.entity.serviceSupplier.ServiceSupplier;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.repository.*;
@@ -43,6 +44,7 @@ public class ReferenceDataService implements IReferenceDataService {
     private final GasStationRepository gasStationRepository;
     private final ItemRepository itemRepository;
     private final ServiceSupplierRepository serviceSupplierRepository;
+    private final ServiceAssignmentRepository serviceAssignmentRepository;
     private final ClientRepository clientRepository;
     private final WorkContractRepository workContractRepository;
     private final SalesDocumentRepository salesDocumentRepository;
@@ -178,6 +180,25 @@ public class ReferenceDataService implements IReferenceDataService {
                         label += " — $" + String.format("%,.0f", sd.getTotal());
                     }
                     return new ReferenceItem(sd.getId(), label);
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ReferenceItem> getServiceAssignmentReferences() {
+        return serviceAssignmentRepository.findByDeletedFalse().stream()
+                .map(sa -> {
+                    Supplier sup = sa.getServiceSupplier() != null ? sa.getServiceSupplier().getSupplier() : null;
+                    String supplierName = sup != null
+                            ? (sup.getTradeName() != null ? sup.getTradeName() : sup.getLegalName())
+                            : "Proveedor #" + (sa.getServiceSupplier() != null ? sa.getServiceSupplier().getId() : "?");
+                    String buildingName = sa.getBuilding() != null ? sa.getBuilding().getName() : "";
+                    String serviceType = sa.getServiceType() != null ? sa.getServiceType().getDisplayName() : "";
+                    String label = supplierName + " · " + serviceType + " · " + buildingName;
+                    if (sa.getAccountNumber() != null && !sa.getAccountNumber().isEmpty()) {
+                        label += " (Cta: " + sa.getAccountNumber() + ")";
+                    }
+                    return new ReferenceItem(sa.getId(), label);
                 })
                 .collect(Collectors.toList());
     }

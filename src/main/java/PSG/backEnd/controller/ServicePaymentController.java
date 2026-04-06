@@ -59,11 +59,12 @@ public class ServicePaymentController {
     @PreAuthorize("hasAuthority('" + AppPermissions.SERVICE_PAYMENT_READ + "')")
     @GetMapping
     @Operation(summary = "Get all service payments with filters",
-            description = "Retrieves a paginated list of service payments with optional filtering by service supplier, " +
-                    "building, service type, date range, amount range, and reference number. " +
-                    "Supports sorting and pagination. Useful for generating payment reports, tracking expenses, and auditing.")
+            description = "Retrieves a paginated list of service payments with optional filtering.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved service payments list")
     public ResponseEntity<Page<ServicePaymentResponseDTO>> getServicePayments(
+            @Parameter(description = "Filter by service assignment ID")
+            @RequestParam(required = false) Long serviceAssignmentId,
+
             @Parameter(description = "Filter by service supplier ID")
             @RequestParam(required = false) Long serviceSupplierId,
 
@@ -73,7 +74,7 @@ public class ServicePaymentController {
             @Parameter(description = "Filter by project area ID")
             @RequestParam(required = false) Long projectAreaId,
 
-            @Parameter(description = "Filter by service type (LUZ, AGUA, GAS, INTERNET, TELEFONIA, etc.)")
+            @Parameter(description = "Filter by service type")
             @RequestParam(required = false) ServiceType serviceType,
 
             @Parameter(description = "Filter by minimum payment date (inclusive)")
@@ -91,10 +92,10 @@ public class ServicePaymentController {
             @Parameter(description = "Filter by reference number (partial match)")
             @RequestParam(required = false) String referenceNumber,
 
-            @Parameter(description = "Filter by supplier name (case-insensitive search)")
+            @Parameter(description = "Filter by supplier name")
             @RequestParam(required = false) String supplierName,
 
-            @Parameter(description = "Generic search across supplier legalName, tradeName and CUIT (partial match)")
+            @Parameter(description = "Generic search")
             @RequestParam(required = false) String search,
 
             @Parameter(description = "Page number (0-indexed)")
@@ -103,43 +104,34 @@ public class ServicePaymentController {
             @Parameter(description = "Number of items per page")
             @RequestParam(defaultValue = "10") int size,
 
-            @Parameter(description = "Field to sort by. Direct fields: id, paymentDate, amount, serviceType, referenceNumber. " +
-                    "For service supplier use: serviceSupplierId. " +
-                    "For building use: buildingName, buildingCode, buildingId. " +
-                    "Example: sortBy=buildingName",
-                    example = "paymentDate")
+            @Parameter(description = "Field to sort by")
             @RequestParam(defaultValue = "paymentDate") String sortBy,
 
             @Parameter(description = "Sort direction (asc or desc)")
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
-        // Map simple field names to entity paths
         String mappedSortBy = mapSortField(sortBy);
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         ServicePaymentFilterDTO filterDTO = new ServicePaymentFilterDTO(
-                serviceSupplierId, buildingId, projectAreaId, serviceType,
+                serviceAssignmentId, serviceSupplierId, buildingId, projectAreaId, serviceType,
                 startDate, endDate, minAmount, maxAmount, referenceNumber, supplierName, search
         );
 
         return ResponseEntity.ok(servicePaymentService.getAllServicePayments(filterDTO, pageable));
     }
 
-    /**
-     * Maps simple field names to their corresponding entity paths.
-     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
-     */
     private String mapSortField(String sortBy) {
         return switch (sortBy) {
-            case "supplierName" -> "serviceSupplier.supplier.legalName";
-            case "supplierTradeName" -> "serviceSupplier.supplier.tradeName";
-            case "supplierCuit" -> "serviceSupplier.supplier.cuit";
-            case "serviceSupplierId" -> "serviceSupplier.id";
-            case "buildingName" -> "building.name";
-            case "buildingCode" -> "building.code";
-            case "buildingId" -> "building.id";
+            case "supplierName" -> "serviceAssignment.serviceSupplier.supplier.legalName";
+            case "supplierTradeName" -> "serviceAssignment.serviceSupplier.supplier.tradeName";
+            case "supplierCuit" -> "serviceAssignment.serviceSupplier.supplier.cuit";
+            case "buildingName" -> "serviceAssignment.building.name";
+            case "buildingCode" -> "serviceAssignment.building.code";
+            case "serviceType" -> "serviceAssignment.serviceType";
+            case "projectAreaName" -> "projectArea.name";
             default -> sortBy;
         };
     }

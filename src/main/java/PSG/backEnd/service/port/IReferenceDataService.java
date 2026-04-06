@@ -42,4 +42,6 @@ public interface IReferenceDataService {
     List<ReferenceItem> getWorkContractReferences();
 
     List<ReferenceItem> getSalesDocumentReferences();
+
+    List<ReferenceItem> getServiceAssignmentReferences();
 }

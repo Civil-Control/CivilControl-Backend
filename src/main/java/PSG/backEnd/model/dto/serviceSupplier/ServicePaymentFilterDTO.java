@@ -9,44 +9,37 @@ import java.time.LocalDate;
 @Schema(description = "Filter Data Transfer Object for searching service payments by various criteria.")
 public record ServicePaymentFilterDTO(
 
-        @Schema(description = "Filter by service supplier ID.",
-                example = "5")
+        @Schema(description = "Filter by service assignment ID.")
+        Long serviceAssignmentId,
+
+        @Schema(description = "Filter by service supplier ID.")
         Long serviceSupplierId,
 
-        @Schema(description = "Filter by building ID.",
-                example = "12")
+        @Schema(description = "Filter by building ID.")
         Long buildingId,
 
-        @Schema(description = "Filter by project area ID.",
-                example = "5")
+        @Schema(description = "Filter by project area ID.")
         Long projectAreaId,
 
-        @Schema(description = "Filter by service type.",
-                example = "LUZ")
+        @Schema(description = "Filter by service type.")
         ServiceType serviceType,
 
-        @Schema(description = "Filter by minimum payment date (inclusive).",
-                example = "2025-01-01")
+        @Schema(description = "Filter by minimum payment date (inclusive).")
         LocalDate startDate,
 
-        @Schema(description = "Filter by maximum payment date (inclusive).",
-                example = "2025-12-31")
+        @Schema(description = "Filter by maximum payment date (inclusive).")
         LocalDate endDate,
 
-        @Schema(description = "Filter by minimum amount (inclusive).",
-                example = "1000.00")
+        @Schema(description = "Filter by minimum amount (inclusive).")
         BigDecimal minAmount,
 
-        @Schema(description = "Filter by maximum amount (inclusive).",
-                example = "50000.00")
+        @Schema(description = "Filter by maximum amount (inclusive).")
         BigDecimal maxAmount,
 
-        @Schema(description = "Filter by reference number (partial match).",
-                example = "INV-2025")
+        @Schema(description = "Filter by reference number (partial match).")
         String referenceNumber,
 
-        @Schema(description = "Filter by service supplier name (legal name or trade name). Partial match search.",
-                example = "Edesur")
+        @Schema(description = "Filter by service supplier name.")
         String supplierName,
 
         @Schema(description = "Generic search across supplier legal name, trade name and CUIT (case-insensitive partial match).",

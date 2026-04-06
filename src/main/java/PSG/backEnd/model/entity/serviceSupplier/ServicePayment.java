@@ -1,8 +1,7 @@
 package PSG.backEnd.model.entity.serviceSupplier;
 
-import PSG.backEnd.model.entity.Building;
+import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.TenantEntity;
-import PSG.backEnd.model.enums.ServiceType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,16 +25,12 @@ public class ServicePayment extends TenantEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_supplier_id", nullable = false)
-    private ServiceSupplier serviceSupplier;
+    @JoinColumn(name = "service_assignment_id", nullable = false)
+    private ServiceAssignment serviceAssignment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "building_id", nullable = false)
-    private Building building;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "service_type", nullable = false)
-    private ServiceType serviceType;
+    @JoinColumn(name = "project_area_id")
+    private ProjectArea projectArea;
 
     @Column(name = "payment_date", nullable = false)
     private LocalDate paymentDate;

@@ -20,8 +20,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
     List<ServicePayment> findByDeletedFalse();
     Optional<ServicePayment> findByIdAndDeletedFalse(Long id);
     boolean existsByIdAndDeletedFalse(Long id);
-    List<ServicePayment> findByServiceSupplierIdAndDeletedFalse(Long serviceSupplierId);
-    List<ServicePayment> findByBuildingIdAndDeletedFalse(Long buildingId);
+    List<ServicePayment> findByServiceAssignmentIdAndDeletedFalse(Long serviceAssignmentId);
     boolean existsByReferenceNumberAndDeletedFalse(String referenceNumber);
 
     @Query("SELECT COUNT(sp) > 0 FROM ServicePayment sp " +
@@ -35,21 +34,25 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
 
     @Query("SELECT sp FROM ServicePayment sp " +
             "WHERE sp.deleted = false " +
-            "AND (CAST(:serviceSupplierId AS long) IS NULL OR sp.serviceSupplier.id = :serviceSupplierId) " +
-            "AND (CAST(:buildingId AS long) IS NULL OR sp.building.id = :buildingId) " +
-            "AND (CAST(:projectAreaId AS long) IS NULL OR sp.building.projectArea.id = :projectAreaId) " +
-            "AND (:serviceType IS NULL OR sp.serviceType = :serviceType) " +
+            "AND (CAST(:serviceAssignmentId AS long) IS NULL OR sp.serviceAssignment.id = :serviceAssignmentId) " +
+            "AND (CAST(:serviceSupplierId AS long) IS NULL OR sp.serviceAssignment.serviceSupplier.id = :serviceSupplierId) " +
+            "AND (CAST(:buildingId AS long) IS NULL OR sp.serviceAssignment.building.id = :buildingId) " +
+            "AND (CAST(:projectAreaId AS long) IS NULL OR sp.projectArea.id = :projectAreaId) " +
+            "AND (:serviceType IS NULL OR sp.serviceAssignment.serviceType = :serviceType) " +
             "AND (CAST(:startDate AS date) IS NULL OR sp.paymentDate >= :startDate) " +
             "AND (CAST(:endDate AS date) IS NULL OR sp.paymentDate <= :endDate) " +
             "AND (CAST(:minAmount AS BigDecimal) IS NULL OR sp.amount >= :minAmount) " +
             "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.amount <= :maxAmount) " +
             "AND (:referenceNumber IS NULL OR LOWER(CAST(sp.referenceNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:referenceNumber AS string), '%'))) " +
-            "AND (:supplierName IS NULL OR LOWER(CAST(sp.serviceSupplier.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) " +
-            "     OR :supplierName IS NULL OR LOWER(CAST(sp.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
-            "AND (:search IS NULL OR (LOWER(CAST(sp.serviceSupplier.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(sp.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR sp.serviceSupplier.supplier.cuit LIKE CONCAT('%', CAST(:search AS string), '%')))")
+            "AND (:supplierName IS NULL OR LOWER(CAST(sp.serviceAssignment.serviceSupplier.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) " +
+            "     OR :supplierName IS NULL OR LOWER(CAST(sp.serviceAssignment.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
+            "AND (:search IS NULL OR (LOWER(CAST(sp.serviceAssignment.serviceSupplier.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(sp.serviceAssignment.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR sp.serviceAssignment.serviceSupplier.supplier.cuit LIKE CONCAT('%', CAST(:search AS string), '%')" +
+            "     OR LOWER(CAST(sp.serviceAssignment.building.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))" +
+            "))")
     Page<ServicePayment> findAllWithFilters(
+            @Param("serviceAssignmentId") Long serviceAssignmentId,
             @Param("serviceSupplierId") Long serviceSupplierId,
             @Param("buildingId") Long buildingId,
             @Param("projectAreaId") Long projectAreaId,
@@ -62,23 +65,6 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             @Param("supplierName") String supplierName,
             @Param("search") String search,
             Pageable pageable
-    );
-
-    @Query("SELECT COUNT(sp) > 0 FROM ServicePayment sp " +
-            "WHERE sp.serviceSupplier.id = :serviceSupplierId " +
-            "AND sp.building.id = :buildingId " +
-            "AND sp.serviceType = :serviceType " +
-            "AND YEAR(sp.paymentDate) = :year " +
-            "AND MONTH(sp.paymentDate) = :month " +
-            "AND sp.deleted = false " +
-            "AND (CAST(:excludePaymentId AS long) IS NULL OR sp.id != :excludePaymentId)")
-    boolean existsPaymentForServiceInMonth(
-            @Param("serviceSupplierId") Long serviceSupplierId,
-            @Param("buildingId") Long buildingId,
-            @Param("serviceType") ServiceType serviceType,
-            @Param("year") int year,
-            @Param("month") int month,
-            @Param("excludePaymentId") Long excludePaymentId
     );
 }
 

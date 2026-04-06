@@ -80,6 +80,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("STOCK_PURCHASE_", "Stock Purchases");
         MODULE_MAP.put("SUPPLIER_", "Suppliers");
         MODULE_MAP.put("SERVICE_SUPPLIER_", "Service Suppliers");
+        MODULE_MAP.put("SERVICE_ASSIGNMENT_", "Service Assignments");
         MODULE_MAP.put("SERVICE_PAYMENT_", "Service Payments");
         MODULE_MAP.put("PAYMENT_", "Payments");
         MODULE_MAP.put("TRANSACTIONAL_DOCUMENT_", "Transactional Documents");
@@ -117,6 +118,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("STOCK_PURCHASE_", "Compras de Stock");
         MODULE_SPANISH_MAP.put("SUPPLIER_", "Proveedores");
         MODULE_SPANISH_MAP.put("SERVICE_SUPPLIER_", "Proveedores de Servicios");
+        MODULE_SPANISH_MAP.put("SERVICE_ASSIGNMENT_", "Afectaciones de Servicios");
         MODULE_SPANISH_MAP.put("SERVICE_PAYMENT_", "Pagos de Servicios");
         MODULE_SPANISH_MAP.put("PAYMENT_", "Pagos");
         MODULE_SPANISH_MAP.put("TRANSACTIONAL_DOCUMENT_", "Documentos Transaccionales");
@@ -155,6 +157,7 @@ public class PermissionSeeder implements CommandLineRunner {
         // Work module mappings (high-level groupings)
         // services: serviceSupplier, servicePayment
         WORK_MODULE_MAP.put("SERVICE_SUPPLIER_", "services");
+        WORK_MODULE_MAP.put("SERVICE_ASSIGNMENT_", "services");
         WORK_MODULE_MAP.put("SERVICE_PAYMENT_", "services");
 
         // documents: transactionalDocument, payment

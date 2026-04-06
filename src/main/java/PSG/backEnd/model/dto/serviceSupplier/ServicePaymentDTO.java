@@ -1,6 +1,5 @@
 package PSG.backEnd.model.dto.serviceSupplier;
 
-import PSG.backEnd.model.enums.ServiceType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,34 +9,21 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Schema(description = "Data Transfer Object for creating or updating a service payment. " +
-        "Represents a payment made for utility services (electricity, water, gas, etc.) for a specific building.")
+        "Represents a payment made for a service assignment (service bound to a building).")
 public record ServicePaymentDTO(
 
-        @Schema(description = "Unique identifier of the service supplier that provided the service. " +
-                "Must reference an existing active service supplier in the system.",
+        @Schema(description = "ID of the service assignment this payment is for.",
                 example = "5",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "{servicePayment.serviceSupplierId.required}", groups = OnCreate.class)
+        @NotNull(message = "{servicePayment.serviceAssignmentId.required}", groups = OnCreate.class)
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Long serviceSupplierId,
+        Long serviceAssignmentId,
 
-        @Schema(description = "Unique identifier of the building where the service was provided. " +
-                "Must reference an existing active building in the system.",
-                example = "12",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "{servicePayment.buildingId.required}", groups = OnCreate.class)
+        @Schema(description = "ID of the project area for cost attribution. " +
+                "Defaults from the service assignment's project area if not specified.",
+                example = "2")
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Long buildingId,
-
-        @Schema(description = "Type of service paid. Valid values: " +
-                "LUZ (electricity), AGUA (water), GAS (gas), INTERNET (internet), " +
-                "TELEFONIA (phone), MUNICIPALES (municipal services), PROVINCIALES (provincial services), " +
-                "NACIONALES (national services), OTRO (other services).",
-                example = "LUZ",
-                allowableValues = {"LUZ", "AGUA", "GAS", "INTERNET", "TELEFONIA", "MUNICIPALES", "PROVINCIALES", "NACIONALES", "OTRO"},
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "{servicePayment.serviceType.required}", groups = OnCreate.class)
-        ServiceType serviceType,
+        Long projectAreaId,
 
         @Schema(description = "Date when the service payment was made. " +
                 "Cannot be in the future. Must be today or a past date.",
@@ -59,14 +45,12 @@ public record ServicePaymentDTO(
         @Digits(integer = 8, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
         BigDecimal amount,
 
-        @Schema(description = "Reference number or invoice number of the service payment. " +
-                "Optional field for tracking purposes.",
+        @Schema(description = "Reference number or invoice number of the service payment.",
                 example = "INV-2025-001234")
         @Size(max = 100, message = "{servicePayment.referenceNumber.size}", groups = {OnCreate.class, OnUpdate.class})
         String referenceNumber,
 
-        @Schema(description = "Additional comments or notes about the service payment. " +
-                "Optional field with maximum 500 characters.",
+        @Schema(description = "Additional comments or notes about the service payment.",
                 example = "Payment for November 2025 electricity bill")
         @Size(max = 500, message = "{servicePayment.comment.size}", groups = {OnCreate.class, OnUpdate.class})
         String comment

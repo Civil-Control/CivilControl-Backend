@@ -1,20 +1,19 @@
 package PSG.backEnd.service.implementation;
 
-import PSG.backEnd.exception.building.BuildingNotFoundException;
 import PSG.backEnd.exception.serviceSupplier.DuplicateReferenceNumberException;
+import PSG.backEnd.exception.serviceSupplier.ServiceAssignmentNotFoundException;
 import PSG.backEnd.exception.serviceSupplier.ServicePaymentNotFoundException;
 import PSG.backEnd.exception.serviceSupplier.ServicePaymentNotValidException;
-import PSG.backEnd.exception.serviceSupplier.ServiceSupplierNotFoundException;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentFilterDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentResponseDTO;
-import PSG.backEnd.model.entity.Building;
+import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.serviceSupplier.ServiceAssignment;
 import PSG.backEnd.model.entity.serviceSupplier.ServicePayment;
-import PSG.backEnd.model.entity.serviceSupplier.ServiceSupplier;
 import PSG.backEnd.model.mapper.ServicePaymentMapper;
-import PSG.backEnd.repository.BuildingRepository;
+import PSG.backEnd.repository.ProjectAreaRepository;
+import PSG.backEnd.repository.ServiceAssignmentRepository;
 import PSG.backEnd.repository.ServicePaymentRepository;
-import PSG.backEnd.repository.ServiceSupplierRepository;
 import PSG.backEnd.service.port.IServicePaymentService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -32,30 +31,27 @@ import java.time.LocalDate;
 public class ServicePaymentService implements IServicePaymentService {
 
     private final ServicePaymentRepository servicePaymentRepository;
-    private final ServiceSupplierRepository serviceSupplierRepository;
-    private final BuildingRepository buildingRepository;
+    private final ServiceAssignmentRepository serviceAssignmentRepository;
+    private final ProjectAreaRepository projectAreaRepository;
     private final ServicePaymentMapper servicePaymentMapper;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
     public ServicePaymentResponseDTO createServicePayment(ServicePaymentDTO servicePaymentDTO) {
-        validateServiceSupplierExists(servicePaymentDTO.serviceSupplierId());
-        validateBuildingExists(servicePaymentDTO.buildingId());
-        validateServiceTypeProvidedBySupplier(servicePaymentDTO.serviceSupplierId(), servicePaymentDTO.serviceType());
+        validateServiceAssignmentExists(servicePaymentDTO.serviceAssignmentId());
         validateBusinessRules(servicePaymentDTO);
         validateUniqueReferenceNumber(servicePaymentDTO.referenceNumber(), null);
 
-        ServiceSupplier serviceSupplier = serviceSupplierRepository.findByIdAndDeletedFalse(servicePaymentDTO.serviceSupplierId())
-                .orElseThrow(() -> new ServiceSupplierNotFoundException(servicePaymentDTO.serviceSupplierId()));
-
-        Building building = buildingRepository.findByIdAndDeletedFalse(servicePaymentDTO.buildingId())
-                .orElseThrow(() -> new BuildingNotFoundException(servicePaymentDTO.buildingId()));
+        ServiceAssignment assignment = serviceAssignmentRepository.findByIdAndDeletedFalse(servicePaymentDTO.serviceAssignmentId())
+                .orElseThrow(() -> new ServiceAssignmentNotFoundException(servicePaymentDTO.serviceAssignmentId()));
 
         ServicePayment servicePayment = servicePaymentMapper.toEntity(servicePaymentDTO);
-        servicePayment.setServiceSupplier(serviceSupplier);
-        servicePayment.setBuilding(building);
-        servicePayment.setDeleted(false);
+        servicePayment.setServiceAssignment(assignment);
 
+        // Set project area: use provided value or default from assignment
+        resolveProjectArea(servicePayment, servicePaymentDTO.projectAreaId(), assignment);
+
+        servicePayment.setDeleted(false);
         return servicePaymentMapper.toResponseDto(servicePaymentRepository.save(servicePayment));
     }
 
@@ -73,6 +69,7 @@ public class ServicePaymentService implements IServicePaymentService {
     public Page<ServicePaymentResponseDTO> getAllServicePayments(
             ServicePaymentFilterDTO filterDTO, Pageable pageable) {
         Page<ServicePayment> servicePayments = servicePaymentRepository.findAllWithFilters(
+                filterDTO.serviceAssignmentId(),
                 filterDTO.serviceSupplierId(),
                 filterDTO.buildingId(),
                 filterDTO.projectAreaId(),
@@ -95,33 +92,19 @@ public class ServicePaymentService implements IServicePaymentService {
         ServicePayment existingServicePayment = servicePaymentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ServicePaymentNotFoundException(id));
 
-        if (servicePaymentDTO.serviceSupplierId() != null) {
-            validateServiceSupplierExists(servicePaymentDTO.serviceSupplierId());
-
-            if (!existingServicePayment.getServiceSupplier().getId().equals(servicePaymentDTO.serviceSupplierId())) {
-                if (servicePaymentDTO.serviceType() != null) {
-                    validateServiceTypeProvidedBySupplier(servicePaymentDTO.serviceSupplierId(), servicePaymentDTO.serviceType());
-                } else {
-                    validateServiceTypeProvidedBySupplier(servicePaymentDTO.serviceSupplierId(), existingServicePayment.getServiceType());
-                }
-                updateServiceSupplierRelation(existingServicePayment, servicePaymentDTO.serviceSupplierId());
+        if (servicePaymentDTO.serviceAssignmentId() != null) {
+            validateServiceAssignmentExists(servicePaymentDTO.serviceAssignmentId());
+            if (!existingServicePayment.getServiceAssignment().getId().equals(servicePaymentDTO.serviceAssignmentId())) {
+                ServiceAssignment newAssignment = serviceAssignmentRepository.findByIdAndDeletedFalse(servicePaymentDTO.serviceAssignmentId())
+                        .orElseThrow(() -> new ServiceAssignmentNotFoundException(servicePaymentDTO.serviceAssignmentId()));
+                existingServicePayment.setServiceAssignment(newAssignment);
             }
         }
 
-        if (servicePaymentDTO.buildingId() != null) {
-            validateBuildingExists(servicePaymentDTO.buildingId());
-
-            if (!existingServicePayment.getBuilding().getId().equals(servicePaymentDTO.buildingId())) {
-                updateBuildingRelation(existingServicePayment, servicePaymentDTO.buildingId());
-            }
-        }
-
-        if (servicePaymentDTO.serviceType() != null &&
-            !existingServicePayment.getServiceType().equals(servicePaymentDTO.serviceType())) {
-            validateServiceTypeProvidedBySupplier(
-                    existingServicePayment.getServiceSupplier().getId(),
-                    servicePaymentDTO.serviceType()
-            );
+        if (servicePaymentDTO.projectAreaId() != null) {
+            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(servicePaymentDTO.projectAreaId())
+                    .orElseThrow(() -> new RuntimeException(messageSourceHelper.getMessage("projectArea.notFound", servicePaymentDTO.projectAreaId())));
+            existingServicePayment.setProjectArea(projectArea);
         }
 
         if (servicePaymentDTO.referenceNumber() != null &&
@@ -146,26 +129,9 @@ public class ServicePaymentService implements IServicePaymentService {
 
     // ============= Private validation methods =============
 
-    private void validateServiceSupplierExists(Long serviceSupplierId) {
-        if (!serviceSupplierRepository.existsByIdAndDeletedFalse(serviceSupplierId)) {
-            throw new ServiceSupplierNotFoundException(serviceSupplierId);
-        }
-    }
-
-    private void validateBuildingExists(Long buildingId) {
-        if (!buildingRepository.existsByIdAndDeletedFalse(buildingId)) {
-            throw new BuildingNotFoundException(buildingId);
-        }
-    }
-
-    private void validateServiceTypeProvidedBySupplier(Long serviceSupplierId, PSG.backEnd.model.enums.ServiceType serviceType) {
-        ServiceSupplier serviceSupplier = serviceSupplierRepository.findByIdAndDeletedFalse(serviceSupplierId)
-                .orElseThrow(() -> new ServiceSupplierNotFoundException(serviceSupplierId));
-
-        if (!serviceSupplier.getProvidedServices().contains(serviceType)) {
-            throw new ServicePaymentNotValidException(
-                    String.format("Service supplier with id %d does not provide service type %s",
-                            serviceSupplierId, serviceType));
+    private void validateServiceAssignmentExists(Long serviceAssignmentId) {
+        if (!serviceAssignmentRepository.existsByIdAndDeletedFalse(serviceAssignmentId)) {
+            throw new ServiceAssignmentNotFoundException(serviceAssignmentId);
         }
     }
 
@@ -215,16 +181,14 @@ public class ServicePaymentService implements IServicePaymentService {
         }
     }
 
-    private void updateServiceSupplierRelation(ServicePayment servicePayment, Long newServiceSupplierId) {
-        ServiceSupplier newServiceSupplier = serviceSupplierRepository.findByIdAndDeletedFalse(newServiceSupplierId)
-                .orElseThrow(() -> new ServiceSupplierNotFoundException(newServiceSupplierId));
-        servicePayment.setServiceSupplier(newServiceSupplier);
-    }
-
-    private void updateBuildingRelation(ServicePayment servicePayment, Long newBuildingId) {
-        Building newBuilding = buildingRepository.findByIdAndDeletedFalse(newBuildingId)
-                .orElseThrow(() -> new BuildingNotFoundException(newBuildingId));
-        servicePayment.setBuilding(newBuilding);
+    private void resolveProjectArea(ServicePayment payment, Long projectAreaId, ServiceAssignment assignment) {
+        if (projectAreaId != null) {
+            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(projectAreaId)
+                    .orElseThrow(() -> new RuntimeException(messageSourceHelper.getMessage("projectArea.notFound", projectAreaId)));
+            payment.setProjectArea(projectArea);
+        } else if (assignment.getProjectArea() != null) {
+            payment.setProjectArea(assignment.getProjectArea());
+        }
     }
 }
 

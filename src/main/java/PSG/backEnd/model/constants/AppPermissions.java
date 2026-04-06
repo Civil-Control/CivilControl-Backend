@@ -357,6 +357,26 @@ public final class AppPermissions {
      */
     public static final String SERVICE_SUPPLIER_DELETE = "SERVICE_SUPPLIER_DELETE";
 
+    // ==================== MODULE: SERVICE ASSIGNMENTS ====================
+    
+    /**
+     * Module: Service Assignments
+     * Allows viewing service assignments.
+     */
+    public static final String SERVICE_ASSIGNMENT_READ = "SERVICE_ASSIGNMENT_READ";
+    
+    /**
+     * Module: Service Assignments
+     * Allows creating and editing service assignments.
+     */
+    public static final String SERVICE_ASSIGNMENT_WRITE = "SERVICE_ASSIGNMENT_WRITE";
+    
+    /**
+     * Module: Service Assignments
+     * Allows deleting service assignments.
+     */
+    public static final String SERVICE_ASSIGNMENT_DELETE = "SERVICE_ASSIGNMENT_DELETE";
+
     // ==================== MODULE: SERVICE PAYMENTS ====================
     
     /**

@@ -541,6 +541,7 @@ public class ReportService implements IReportService {
         Pageable pageable = PageRequest.of(0, 10000);
 
         var servicePayments = servicePaymentRepository.findAllWithFilters(
+                null, // serviceAssignmentId
                 null, // serviceSupplierId
                 null, // buildingId
                 getEffectiveAreaId(filters), // projectAreaId - from filter
@@ -558,8 +559,21 @@ public class ReportService implements IReportService {
         List<ReportItemDTO> items = new ArrayList<>();
 
         for (ServicePayment sp : servicePayments) {
-            String description = "Pago de servicio: " + sp.getServiceType().getDisplayName() +
-                               " - " + sp.getBuilding().getName();
+            var assignment = sp.getServiceAssignment();
+            String serviceTypeName = assignment != null && assignment.getServiceType() != null
+                    ? assignment.getServiceType().getDisplayName() : "Servicio";
+            String buildingName = assignment != null && assignment.getBuilding() != null
+                    ? assignment.getBuilding().getName() : "";
+            String description = "Pago de servicio: " + serviceTypeName + " - " + buildingName;
+
+            String beneficiary = assignment != null && assignment.getServiceSupplier() != null
+                    && assignment.getServiceSupplier().getSupplier() != null
+                    ? assignment.getServiceSupplier().getSupplier().getLegalName() : "";
+
+            String projectAreaName = sp.getProjectArea() != null
+                    ? sp.getProjectArea().getName()
+                    : (assignment != null && assignment.getProjectArea() != null
+                            ? assignment.getProjectArea().getName() : null);
 
             items.add(ReportItemDTO.builder()
                     .id(sp.getId())
@@ -568,10 +582,10 @@ public class ReportService implements IReportService {
                     .description(description)
                     .amount(sp.getAmount())
                     .paymentMethod(null)
-                    .beneficiary(sp.getServiceSupplier().getSupplier().getLegalName())
+                    .beneficiary(beneficiary)
                     .reference(sp.getReferenceNumber())
                     .comment(sp.getComment())
-                    .projectAreaName(sp.getBuilding() != null && sp.getBuilding().getProjectArea() != null ? sp.getBuilding().getProjectArea().getName() : null)
+                    .projectAreaName(projectAreaName)
                     .build());
         }
 

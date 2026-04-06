@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.serviceSupplier;
 
+import PSG.backEnd.model.enums.ServiceCategory;
 import PSG.backEnd.model.enums.ServiceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -7,55 +8,64 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Schema(description = "Response Data Transfer Object for service payment. " +
-        "Contains complete information about a service payment including supplier, building, and payment details.")
+        "Contains complete information about a service payment including assignment, supplier, building, and payment details.")
 public record ServicePaymentResponseDTO(
 
-        @Schema(description = "Unique identifier of the service payment record.",
-                example = "42")
+        @Schema(description = "Unique identifier of the service payment record.")
         Long id,
 
-        @Schema(description = "Unique identifier of the service supplier.",
-                example = "5")
+        @Schema(description = "ID of the service assignment.")
+        Long serviceAssignmentId,
+
+        @Schema(description = "ID of the service supplier.")
         Long serviceSupplierId,
 
-        @Schema(description = "Name of the service supplier.",
-                example = "Empresa Provincial de Energía")
+        @Schema(description = "Legal name of the supplier.")
         String supplierName,
 
-        @Schema(description = "Unique identifier of the building.",
-                example = "12")
-        Long buildingId,
-
-        @Schema(description = "Name of the building where the service was provided.",
-                example = "Edificio Central")
-        String buildingName,
-
-        @Schema(description = "Type of service paid. Values: LUZ, AGUA, GAS, INTERNET, TELEFONIA, MUNICIPALES, PROVINCIALES, NACIONALES, OTRO.",
-                example = "LUZ")
-        ServiceType serviceType,
-
-        @Schema(description = "Date when the service payment was made.",
-                example = "2025-11-01")
-        LocalDate paymentDate,
-
-        @Schema(description = "Amount paid for the service.",
-                example = "15750.50")
-        BigDecimal amount,
-
-        @Schema(description = "Reference number or invoice number of the payment.",
-                example = "INV-2025-001234")
-        String referenceNumber,
-
-        @Schema(description = "Additional comments or notes about the payment.",
-                example = "Payment for November 2025 electricity bill")
-        String comment,
-
-        @Schema(description = "Trade name of the service supplier.",
-                example = "Municipal Services Co.")
+        @Schema(description = "Trade name of the supplier.")
         String supplierTradeName,
 
-        @Schema(description = "CUIT (tax ID) of the service supplier.",
-                example = "30-12345678-9")
-        String supplierCuit
+        @Schema(description = "CUIT of the supplier.")
+        String supplierCuit,
+
+        @Schema(description = "ID of the building that receives the service.")
+        Long buildingId,
+
+        @Schema(description = "Name of the building that receives the service.")
+        String buildingName,
+
+        @Schema(description = "Type of service.")
+        ServiceType serviceType,
+
+        @Schema(description = "Category of the service.")
+        ServiceCategory serviceCategory,
+
+        @Schema(description = "Account number for the service.")
+        String accountNumber,
+
+        @Schema(description = "Account holder name.")
+        String accountHolder,
+
+        @Schema(description = "Date when the service payment was made.")
+        LocalDate paymentDate,
+
+        @Schema(description = "Amount paid for the service.")
+        BigDecimal amount,
+
+        @Schema(description = "Reference number or invoice number of the payment.")
+        String referenceNumber,
+
+        @Schema(description = "Additional comments or notes about the payment.")
+        String comment,
+
+        @Schema(description = "ID of the project area for cost attribution.")
+        Long projectAreaId,
+
+        @Schema(description = "Name of the project area.")
+        String projectAreaName,
+
+        @Schema(description = "Color of the project area.")
+        String projectAreaColor
 ) {}
 

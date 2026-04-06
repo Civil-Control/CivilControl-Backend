@@ -109,7 +109,7 @@ public class ReferenceDataController {
     }
 
     // ── Buildings ─────────────────────────────────────────────────
-    // Needed by: Stock, ServicePayment, Vehicle
+    // Needed by: Stock, ServicePayment, ServiceAssignment, Vehicle
     @GetMapping("/buildings")
     @Operation(summary = "Building references for form dropdowns")
     @ApiResponse(responseCode = "200", description = "List of buildings (id + label)")
@@ -118,6 +118,7 @@ public class ReferenceDataController {
         + "'" + AppPermissions.BUILDING_READ + "',"
         + "'" + AppPermissions.STOCK_WRITE + "',"
         + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "',"
+        + "'" + AppPermissions.SERVICE_ASSIGNMENT_WRITE + "',"
         + "'" + AppPermissions.VEHICLE_WRITE + "'"
         + ")"
     )
@@ -127,7 +128,7 @@ public class ReferenceDataController {
 
     // ── Project Areas ─────────────────────────────────────────────
     // Needed by: Vehicle, FuelLoad, Employee, Building, TransactionalDocument,
-    //            LicencePlatePayment, SalaryPayment
+    //            LicencePlatePayment, SalaryPayment, ServiceAssignment, ServicePayment
     @GetMapping("/project-areas")
     @Operation(summary = "Project area references for form dropdowns")
     @ApiResponse(responseCode = "200", description = "List of project areas (id + label)")
@@ -140,7 +141,9 @@ public class ReferenceDataController {
         + "'" + AppPermissions.BUILDING_WRITE + "',"
         + "'" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "',"
         + "'" + AppPermissions.LICENCE_PLATE_PAYMENT_WRITE + "',"
-        + "'" + AppPermissions.SALARY_PAYMENT_WRITE + "'"
+        + "'" + AppPermissions.SALARY_PAYMENT_WRITE + "',"
+        + "'" + AppPermissions.SERVICE_ASSIGNMENT_WRITE + "',"
+        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "'"
         + ")"
     )
     public ResponseEntity<List<ReferenceItem>> getProjectAreaReferences() {
@@ -194,14 +197,15 @@ public class ReferenceDataController {
     }
 
     // ── Service Suppliers ─────────────────────────────────────────
-    // Needed by: ServicePayment
+    // Needed by: ServicePayment, ServiceAssignment
     @GetMapping("/service-suppliers")
     @Operation(summary = "Service supplier references for form dropdowns")
     @ApiResponse(responseCode = "200", description = "List of service suppliers (id + label)")
     @PreAuthorize(
         "hasAnyAuthority("
         + "'" + AppPermissions.SERVICE_SUPPLIER_READ + "',"
-        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "'"
+        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "',"
+        + "'" + AppPermissions.SERVICE_ASSIGNMENT_WRITE + "'"
         + ")"
     )
     public ResponseEntity<List<ReferenceItem>> getServiceSupplierReferences() {
@@ -252,5 +256,20 @@ public class ReferenceDataController {
     )
     public ResponseEntity<List<ReferenceItem>> getSalesDocumentReferences() {
         return ResponseEntity.ok(referenceDataService.getSalesDocumentReferences());
+    }
+
+    // ── Service Assignments ───────────────────────────────────────
+    // Needed by: ServicePayment
+    @GetMapping("/service-assignments")
+    @Operation(summary = "Service assignment references for form dropdowns")
+    @ApiResponse(responseCode = "200", description = "List of service assignments (id + label)")
+    @PreAuthorize(
+        "hasAnyAuthority("
+        + "'" + AppPermissions.SERVICE_ASSIGNMENT_READ + "',"
+        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "'"
+        + ")"
+    )
+    public ResponseEntity<List<ReferenceItem>> getServiceAssignmentReferences() {
+        return ResponseEntity.ok(referenceDataService.getServiceAssignmentReferences());
     }
 }
