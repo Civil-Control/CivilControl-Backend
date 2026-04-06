@@ -70,5 +70,21 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             "AND NOT EXISTS (SELECT 1 FROM CheckPayment chp   WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
             "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true)")
     Optional<Long> findPaymentIdByDocumentId(@Param("documentId") Long documentId);
+
+    /**
+     * Returns the payment method display name for the payment linked to the given document.
+     */
+    @Query("SELECT CASE " +
+            "WHEN EXISTS (SELECT 1 FROM CashPayment cp WHERE cp.paymentDetails.id = pd.id AND (cp.deleted = false OR cp.deleted IS NULL)) THEN 'efectivo' " +
+            "WHEN EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND (tp.deleted = false OR tp.deleted IS NULL)) THEN 'transferencia' " +
+            "WHEN EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND (chp.deleted = false OR chp.deleted IS NULL)) THEN 'cheque' " +
+            "ELSE NULL END " +
+            "FROM PaymentDetails pd " +
+            "JOIN pd.paidDocuments doc " +
+            "WHERE doc.id = :documentId " +
+            "AND NOT EXISTS (SELECT 1 FROM CashPayment cp WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true)")
+    Optional<String> findPaymentMethodByDocumentId(@Param("documentId") Long documentId);
 }
 

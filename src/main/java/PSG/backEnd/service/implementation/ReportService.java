@@ -19,6 +19,7 @@ import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.vehicle.RepairType;
 import PSG.backEnd.repository.*;
+import PSG.backEnd.repository.PaymentRepository.PaymentRepository;
 import PSG.backEnd.service.export.IReportExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
@@ -64,6 +65,7 @@ public class ReportService implements IReportService {
     private final StockPurchaseRepository stockPurchaseRepository;
     private final StockRepository stockRepository;
     private final ProjectAreaRepository projectAreaRepository;
+    private final PaymentRepository paymentRepository;
     private final MessageSourceHelper messageSourceHelper;
 
     /**
@@ -82,6 +84,7 @@ public class ReportService implements IReportService {
             StockPurchaseRepository stockPurchaseRepository,
             StockRepository stockRepository,
             ProjectAreaRepository projectAreaRepository,
+            PaymentRepository paymentRepository,
             MessageSourceHelper messageSourceHelper) {
 
         this.exporters = exporterList.stream()
@@ -100,6 +103,7 @@ public class ReportService implements IReportService {
         this.stockPurchaseRepository = stockPurchaseRepository;
         this.stockRepository = stockRepository;
         this.projectAreaRepository = projectAreaRepository;
+        this.paymentRepository = paymentRepository;
         this.messageSourceHelper = messageSourceHelper;
 
         log.info("ReportService initialized with {} exporters: {}",
@@ -468,7 +472,9 @@ public class ReportService implements IReportService {
                     .category(MoneyOutflowCategory.INVOICE)
                     .description(description)
                     .amount(doc.getTotal())
-                    .paymentMethod(doc.getPaid() ? "PAGADO" : "PENDIENTE")
+                    .paymentMethod(doc.getPaid()
+                            ? paymentRepository.findPaymentMethodByDocumentId(doc.getId()).orElse(null)
+                            : "(Pendiente)")
                     .beneficiary(doc.getSupplier().getLegalName())
                     .reference(reference)
                     .comment(doc.getComment())
