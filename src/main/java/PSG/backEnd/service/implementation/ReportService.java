@@ -7,6 +7,8 @@ import PSG.backEnd.model.dto.report.MoneyOutflowReportPreviewDTO;
 import PSG.backEnd.model.dto.report.ReportFilterDTO;
 import PSG.backEnd.model.dto.report.ReportItemDTO;
 import PSG.backEnd.model.entity.TransactionalDocument;
+import PSG.backEnd.model.entity.Stock;
+import PSG.backEnd.model.entity.StockPurchase;
 import PSG.backEnd.model.entity.employee.SalaryPayment;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.entity.insurance.PolicyPayment;
@@ -59,6 +61,8 @@ public class ReportService implements IReportService {
     private final FuelLoadRepository fuelLoadRepository;
     private final PolicyPaymentRepository policyPaymentRepository;
     private final RepairRepository repairRepository;
+    private final StockPurchaseRepository stockPurchaseRepository;
+    private final StockRepository stockRepository;
     private final ProjectAreaRepository projectAreaRepository;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -75,6 +79,8 @@ public class ReportService implements IReportService {
             FuelLoadRepository fuelLoadRepository,
             PolicyPaymentRepository policyPaymentRepository,
             RepairRepository repairRepository,
+            StockPurchaseRepository stockPurchaseRepository,
+            StockRepository stockRepository,
             ProjectAreaRepository projectAreaRepository,
             MessageSourceHelper messageSourceHelper) {
 
@@ -91,6 +97,8 @@ public class ReportService implements IReportService {
         this.fuelLoadRepository = fuelLoadRepository;
         this.policyPaymentRepository = policyPaymentRepository;
         this.repairRepository = repairRepository;
+        this.stockPurchaseRepository = stockPurchaseRepository;
+        this.stockRepository = stockRepository;
         this.projectAreaRepository = projectAreaRepository;
         this.messageSourceHelper = messageSourceHelper;
 
@@ -117,6 +125,9 @@ public class ReportService implements IReportService {
         BigDecimal totalAmount = calculateTotalAmount(items);
         Map<MoneyOutflowCategory, BigDecimal> summaryByCategory = calculateSummaryByCategory(items);
 
+        // Calculate duplicated amount (items linked to an invoice whose amount is already in the invoice total)
+        BigDecimal duplicatedAmount = calculateDuplicatedAmount(items);
+
         // Get project area name if filtered
         String projectAreaName = getProjectAreaName(filters.projectAreaIds());
 
@@ -131,6 +142,7 @@ public class ReportService implements IReportService {
                 .reportName("Reporte de Salidas de Dinero")
                 .periodDescription(buildPeriodDescription(filters))
                 .projectAreaName(projectAreaName)
+                .duplicatedAmount(duplicatedAmount)
                 .build();
 
         log.info("Report generated successfully with {} items, total amount: ${}",
@@ -191,6 +203,9 @@ public class ReportService implements IReportService {
         Map<MoneyOutflowCategory, BigDecimal> summaryByCategory = calculateSummaryByCategory(items);
         Map<MoneyOutflowCategory, Integer> countByCategory = calculateCountByCategory(items);
 
+        // Calculate duplicated amount
+        BigDecimal duplicatedAmount = calculateDuplicatedAmount(items);
+
         // Get project area name if filtered
         String projectAreaName = getProjectAreaName(filters.projectAreaIds());
 
@@ -205,6 +220,7 @@ public class ReportService implements IReportService {
                 .countByCategory(countByCategory)
                 .periodDescription(buildPeriodDescription(filters))
                 .projectAreaName(projectAreaName)
+                .duplicatedAmount(duplicatedAmount)
                 .build();
 
         log.info("Preview generated successfully: {} items, total amount: ${}, average: ${}",
@@ -275,6 +291,10 @@ public class ReportService implements IReportService {
 
         if (includeAll || filters.categories().contains(MoneyOutflowCategory.REPAIR)) {
             allItems.addAll(collectFromRepairs(filters));
+        }
+
+        if (includeAll || filters.categories().contains(MoneyOutflowCategory.STOCK_PURCHASE)) {
+            allItems.addAll(collectFromStockPurchases(filters));
         }
 
         log.debug("Collected {} money outflow items", allItems.size());
@@ -453,6 +473,7 @@ public class ReportService implements IReportService {
                     .reference(reference)
                     .comment(doc.getComment())
                     .projectAreaName(doc.getProjectArea() != null ? doc.getProjectArea().getName() : null)
+                    .linkedDocumentId(null)
                     .build());
         }
 
@@ -514,6 +535,8 @@ public class ReportService implements IReportService {
         for (SalaryPayment sp : salaryPayments) {
             String employeeName = sp.getEmployee().getLastName() + " " + sp.getEmployee().getName();
 
+            Long linkedDocId = sp.getTransactionalDocument() != null ? sp.getTransactionalDocument().getId() : null;
+
             items.add(ReportItemDTO.builder()
                     .id(sp.getId())
                     .date(sp.getPaymentDate())
@@ -525,6 +548,7 @@ public class ReportService implements IReportService {
                     .reference("Salario " + sp.getPaymentDate().getMonthValue() + "/" + sp.getPaymentDate().getYear())
                     .comment(null)
                     .projectAreaName(sp.getEmployee().getProjectArea() != null ? sp.getEmployee().getProjectArea().getName() : null)
+                    .linkedDocumentId(linkedDocId)
                     .build());
         }
 
@@ -581,11 +605,12 @@ public class ReportService implements IReportService {
                     .category(MoneyOutflowCategory.SERVICE)
                     .description(description)
                     .amount(sp.getAmount())
-                    .paymentMethod(null)
+                    .paymentMethod(sp.getPaymentMethod() != null ? sp.getPaymentMethod().getDisplayName() : null)
                     .beneficiary(beneficiary)
                     .reference(sp.getReferenceNumber())
                     .comment(sp.getComment())
                     .projectAreaName(projectAreaName)
+                    .linkedDocumentId(null)
                     .build());
         }
 
@@ -634,6 +659,7 @@ public class ReportService implements IReportService {
                             ? projectAreaRepository.findById(lpp.getProjectAreaId())
                                     .map(a -> a.getName()).orElse(null)
                             : null)
+                    .linkedDocumentId(null)
                     .build());
         }
 
@@ -684,6 +710,8 @@ public class ReportService implements IReportService {
             String beneficiary = fl.getGasStation() != null ?
                                "Estación de servicio (ID: " + fl.getGasStation().getId() + ")" : "Estación de servicio";
 
+            Long flLinkedDocId = fl.getTransactionalDocument() != null ? fl.getTransactionalDocument().getId() : null;
+
             items.add(ReportItemDTO.builder()
                     .id(fl.getId())
                     .date(fl.getDate())
@@ -695,6 +723,7 @@ public class ReportService implements IReportService {
                     .reference("Ticket: " + fl.getTicketNumber())
                     .comment("Vehículo: " + fl.getVehicle().getLicensePlate())
                     .projectAreaName(fl.getProjectArea() != null ? fl.getProjectArea().getName() : null)
+                    .linkedDocumentId(flLinkedDocId)
                     .build());
         }
 
@@ -740,6 +769,7 @@ public class ReportService implements IReportService {
                     .reference(policyNumber)
                     .comment(pp.getNotes())
                     .projectAreaName(null)
+                    .linkedDocumentId(null)
                     .build());
         }
 
@@ -794,6 +824,8 @@ public class ReportService implements IReportService {
                 beneficiary = "No especificado";
             }
 
+            Long rLinkedDocId = r.getTransactionalDocument() != null ? r.getTransactionalDocument().getId() : null;
+
             items.add(ReportItemDTO.builder()
                     .id(r.getId())
                     .date(r.getDate())
@@ -805,11 +837,92 @@ public class ReportService implements IReportService {
                     .reference(null)
                     .comment(r.getDescription())
                     .projectAreaName(r.getVehicle().getProjectArea() != null ? r.getVehicle().getProjectArea().getName() : null)
+                    .linkedDocumentId(rLinkedDocId)
                     .build());
         }
 
         log.debug("Collected {} repair items", items.size());
         return items;
+    }
+
+    /**
+     * Collects money outflow items from StockPurchase entities.
+     * StockPurchase does not have projectArea, so when projectAreaIds filter is present, no items are returned.
+     */
+    private List<ReportItemDTO> collectFromStockPurchases(ReportFilterDTO filters) {
+        log.debug("Collecting from stock purchases");
+
+        // StockPurchase has no projectArea - exclude when filtering by area (same as insurance)
+        if (filters.projectAreaIds() != null && !filters.projectAreaIds().isEmpty()) {
+            log.debug("Stock purchases excluded: projectAreaIds filter active");
+            return new ArrayList<>();
+        }
+
+        Pageable pageable = PageRequest.of(0, 10000);
+
+        var stockPurchases = stockPurchaseRepository.findAllWithFilters(
+                filters.startDate(),
+                filters.endDate(),
+                null, // stockId
+                null, // stockName
+                null, // stockCategory
+                null, // minQuantity
+                null, // maxQuantity
+                filters.minAmount(),
+                filters.maxAmount(),
+                null, // transactionalDocumentId
+                null, // search
+                pageable
+        ).getContent();
+
+        List<ReportItemDTO> items = new ArrayList<>();
+
+        for (StockPurchase sp : stockPurchases) {
+            String stockName = stockRepository.findById(sp.getStockId())
+                    .map(Stock::getName)
+                    .orElse("Stock ID: " + sp.getStockId());
+
+            String description = "Compra de stock: " + stockName + " - " + sp.getQuantity() + " unidades";
+
+            items.add(ReportItemDTO.builder()
+                    .id(sp.getId())
+                    .date(sp.getDate())
+                    .category(MoneyOutflowCategory.STOCK_PURCHASE)
+                    .description(description)
+                    .amount(sp.getTotalAmount())
+                    .paymentMethod(null)
+                    .beneficiary(null)
+                    .reference(sp.getNotes())
+                    .comment(null)
+                    .projectAreaName(null)
+                    .linkedDocumentId(sp.getTransactionalDocumentId())
+                    .build());
+        }
+
+        log.debug("Collected {} stock purchase items", items.size());
+        return items;
+    }
+
+    /**
+     * Calculates the duplicated amount in the report caused by entities linked to TransactionalDocuments.
+     * When a salary, fuel load, repair or stock purchase is linked to an invoice, its amount is already
+     * included in the invoice total (via DocumentTotalRecalculator). If both the invoice and the linked
+     * entity appear in the report, the linked entity's amount is counted twice.
+     * This method returns the sum of amounts from linked items whose parent invoice also appears in the report.
+     */
+    private BigDecimal calculateDuplicatedAmount(List<ReportItemDTO> items) {
+        // Collect all invoice IDs present in the report
+        Set<Long> invoiceIds = items.stream()
+                .filter(item -> item.category() == MoneyOutflowCategory.INVOICE)
+                .map(ReportItemDTO::id)
+                .collect(Collectors.toSet());
+
+        // Sum amounts of items that are linked to an invoice present in the report
+        return items.stream()
+                .filter(item -> item.linkedDocumentId() != null)
+                .filter(item -> invoiceIds.contains(item.linkedDocumentId()))
+                .map(ReportItemDTO::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**

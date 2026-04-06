@@ -118,7 +118,7 @@ public class ExcelReportExporter implements IReportExporter {
         }
 
         // Total row
-        Row totalRow = sheet.createRow(rowNum);
+        Row totalRow = sheet.createRow(rowNum++);
         Cell totalLabelCell = totalRow.createCell(5);
         totalLabelCell.setCellValue("TOTAL:");
         totalLabelCell.setCellStyle(totalStyle);
@@ -126,6 +126,25 @@ public class ExcelReportExporter implements IReportExporter {
         Cell totalValueCell = totalRow.createCell(6);
         totalValueCell.setCellValue(report.totalAmount().doubleValue());
         totalValueCell.setCellStyle(totalStyle);
+
+        // Adjusted total row when there are duplicated amounts
+        if (report.duplicatedAmount() != null && report.duplicatedAmount().compareTo(BigDecimal.ZERO) > 0) {
+            Row dupRow = sheet.createRow(rowNum++);
+            Cell dupLabelCell = dupRow.createCell(5);
+            dupLabelCell.setCellValue("DUPLICADO:");
+            Cell dupValueCell = dupRow.createCell(6);
+            dupValueCell.setCellValue(report.duplicatedAmount().negate().doubleValue());
+            dupValueCell.setCellStyle(currencyStyle);
+
+            BigDecimal adjustedTotal = report.totalAmount().subtract(report.duplicatedAmount());
+            Row adjRow = sheet.createRow(rowNum++);
+            Cell adjLabelCell = adjRow.createCell(5);
+            adjLabelCell.setCellValue("TOTAL AJUSTADO:");
+            adjLabelCell.setCellStyle(totalStyle);
+            Cell adjValueCell = adjRow.createCell(6);
+            adjValueCell.setCellValue(adjustedTotal.doubleValue());
+            adjValueCell.setCellStyle(totalStyle);
+        }
 
         // Auto-size columns
         for (int i = 0; i < headers.length; i++) {
@@ -230,7 +249,7 @@ public class ExcelReportExporter implements IReportExporter {
         rowNum++;
 
         // Grand total
-        Row totalRow = sheet.createRow(rowNum);
+        Row totalRow = sheet.createRow(rowNum++);
         Cell totalLabelCell = totalRow.createCell(0);
         totalLabelCell.setCellValue("TOTAL GENERAL:");
         totalLabelCell.setCellStyle(totalStyle);
@@ -252,6 +271,25 @@ public class ExcelReportExporter implements IReportExporter {
         boldFont.setBold(true);
         percentStyle.setFont(boldFont);
         totalPercentCell.setCellStyle(percentStyle);
+
+        // Adjusted total row when there are duplicated amounts
+        if (report.duplicatedAmount() != null && report.duplicatedAmount().compareTo(BigDecimal.ZERO) > 0) {
+            rowNum++;
+            Row dupRow = sheet.createRow(rowNum++);
+            dupRow.createCell(0).setCellValue("MONTO DUPLICADO (incluido en facturas):");
+            Cell dupValueCell = dupRow.createCell(2);
+            dupValueCell.setCellValue(report.duplicatedAmount().negate().doubleValue());
+            dupValueCell.setCellStyle(currencyStyle);
+
+            BigDecimal adjustedTotal = report.totalAmount().subtract(report.duplicatedAmount());
+            Row adjRow = sheet.createRow(rowNum++);
+            Cell adjLabelCell = adjRow.createCell(0);
+            adjLabelCell.setCellValue("TOTAL AJUSTADO:");
+            adjLabelCell.setCellStyle(totalStyle);
+            Cell adjValueCell = adjRow.createCell(2);
+            adjValueCell.setCellValue(adjustedTotal.doubleValue());
+            adjValueCell.setCellStyle(totalStyle);
+        }
 
         // Auto-size columns
         for (int i = 0; i < 4; i++) {

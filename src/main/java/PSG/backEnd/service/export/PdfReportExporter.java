@@ -209,6 +209,8 @@ public class PdfReportExporter implements IReportExporter {
     private void addFooter(Document document, MoneyOutflowReportDTO report) {
         document.add(new Paragraph("\n"));
 
+        DeviceRgb adjustedColor = new DeviceRgb(39, 174, 96); // Green
+
         Table footerTable = new Table(new float[]{3, 2});
         footerTable.setWidth(UnitValue.createPercentValue(100));
 
@@ -226,6 +228,32 @@ public class PdfReportExporter implements IReportExporter {
 
         footerTable.addCell(labelCell);
         footerTable.addCell(valueCell);
+
+        // Show adjusted total when there are duplicated amounts
+        if (report.duplicatedAmount() != null && report.duplicatedAmount().compareTo(BigDecimal.ZERO) > 0) {
+            Cell dupLabelCell = new Cell().add(new Paragraph("MONTO DUPLICADO (incluido en facturas)").setFontSize(10))
+                    .setTextAlignment(TextAlignment.RIGHT)
+                    .setPadding(5);
+            Cell dupValueCell = new Cell().add(new Paragraph("- " + formatAmount(report.duplicatedAmount())).setFontSize(10))
+                    .setTextAlignment(TextAlignment.RIGHT)
+                    .setPadding(5);
+            footerTable.addCell(dupLabelCell);
+            footerTable.addCell(dupValueCell);
+
+            BigDecimal adjustedTotal = report.totalAmount().subtract(report.duplicatedAmount());
+            Cell adjLabelCell = new Cell().add(new Paragraph("TOTAL AJUSTADO").setBold().setFontSize(12))
+                    .setBackgroundColor(adjustedColor)
+                    .setFontColor(ColorConstants.WHITE)
+                    .setTextAlignment(TextAlignment.RIGHT)
+                    .setPadding(10);
+            Cell adjValueCell = new Cell().add(new Paragraph(formatAmount(adjustedTotal)).setBold().setFontSize(12))
+                    .setBackgroundColor(adjustedColor)
+                    .setFontColor(ColorConstants.WHITE)
+                    .setTextAlignment(TextAlignment.RIGHT)
+                    .setPadding(10);
+            footerTable.addCell(adjLabelCell);
+            footerTable.addCell(adjValueCell);
+        }
 
         document.add(footerTable);
 
