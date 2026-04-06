@@ -2,6 +2,7 @@ package PSG.backEnd.model.entity.serviceSupplier;
 
 import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.TenantEntity;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -43,6 +44,10 @@ public class ServicePayment extends TenantEntity {
 
     @Column(length = 500, columnDefinition = "VARCHAR(500)")
     private String comment;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
+    private PaymentMethod paymentMethod;
 
     @Column(nullable = false)
     private boolean deleted;

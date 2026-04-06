@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.serviceSupplier;
 
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -53,6 +54,10 @@ public record ServicePaymentDTO(
         @Schema(description = "Additional comments or notes about the service payment.",
                 example = "Payment for November 2025 electricity bill")
         @Size(max = 500, message = "{servicePayment.comment.size}", groups = {OnCreate.class, OnUpdate.class})
-        String comment
+        String comment,
+
+        @Schema(description = "Payment method used for this service payment.",
+                nullable = true)
+        PaymentMethod paymentMethod
 ) {}
 

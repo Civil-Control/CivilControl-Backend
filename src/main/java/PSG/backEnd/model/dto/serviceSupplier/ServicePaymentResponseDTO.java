@@ -2,6 +2,7 @@ package PSG.backEnd.model.dto.serviceSupplier;
 
 import PSG.backEnd.model.enums.ServiceCategory;
 import PSG.backEnd.model.enums.ServiceType;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -66,6 +67,9 @@ public record ServicePaymentResponseDTO(
         String projectAreaName,
 
         @Schema(description = "Color of the project area.")
-        String projectAreaColor
+        String projectAreaColor,
+
+        @Schema(description = "Payment method used for this service payment.")
+        PaymentMethod paymentMethod
 ) {}
 
