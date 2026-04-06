@@ -30,6 +30,34 @@ CREATE TABLE IF NOT EXISTS service_assignments (
 );
 
 -- Modify service_payments: remove old direct references, add service_assignment_id
+
+-- Step 1: Add service_assignment_id as NULLABLE first
+ALTER TABLE service_payments ADD COLUMN service_assignment_id BIGINT;
+ALTER TABLE service_payments ADD COLUMN project_area_id BIGINT;
+
+-- Step 2: For each existing service_payment, create a service_assignment (if not already exists)
+-- and link the payment to it
+INSERT INTO service_assignments (tenant_id, service_supplier_id, building_id, service_type, deleted)
+SELECT DISTINCT sp.tenant_id, sp.service_supplier_id, sp.building_id, sp.service_type, FALSE
+FROM service_payments sp
+WHERE sp.service_supplier_id IS NOT NULL
+  AND sp.building_id IS NOT NULL
+  AND sp.service_type IS NOT NULL
+ON CONFLICT (tenant_id, service_supplier_id, building_id, service_type) DO NOTHING;
+
+-- Step 3: Update existing service_payments to point to the created service_assignments
+UPDATE service_payments sp
+SET service_assignment_id = sa.id
+FROM service_assignments sa
+WHERE sa.tenant_id = sp.tenant_id
+  AND sa.service_supplier_id = sp.service_supplier_id
+  AND sa.building_id = sp.building_id
+  AND sa.service_type = sp.service_type;
+
+-- Step 4: Now enforce NOT NULL on service_assignment_id
+ALTER TABLE service_payments ALTER COLUMN service_assignment_id SET NOT NULL;
+
+-- Step 5: Drop old columns and constraints
 ALTER TABLE service_payments DROP CONSTRAINT IF EXISTS fk_service_payments_service_supplier;
 ALTER TABLE service_payments DROP CONSTRAINT IF EXISTS fk_service_payments_building;
 
@@ -37,9 +65,7 @@ ALTER TABLE service_payments DROP COLUMN IF EXISTS service_supplier_id;
 ALTER TABLE service_payments DROP COLUMN IF EXISTS building_id;
 ALTER TABLE service_payments DROP COLUMN IF EXISTS service_type;
 
-ALTER TABLE service_payments ADD COLUMN service_assignment_id BIGINT NOT NULL;
-ALTER TABLE service_payments ADD COLUMN project_area_id BIGINT;
-
+-- Step 6: Add foreign key constraints
 ALTER TABLE service_payments ADD CONSTRAINT fk_service_payments_service_assignment
     FOREIGN KEY (service_assignment_id) REFERENCES service_assignments (id);
 ALTER TABLE service_payments ADD CONSTRAINT fk_service_payments_project_area
