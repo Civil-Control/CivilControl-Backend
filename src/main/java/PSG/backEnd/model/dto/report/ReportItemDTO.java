@@ -59,7 +59,13 @@ public record ReportItemDTO(
     @Schema(description = "Name of the project area/sector related to this outflow item, if applicable",
             example = "Obras Norte",
             nullable = true)
-    String projectAreaName
+    String projectAreaName,
+
+    @Schema(description = "ID of the linked TransactionalDocument if this item's amount is already included in an invoice total. " +
+            "Used to detect and handle duplicate counting between invoices and their linked sub-items.",
+            example = "42",
+            nullable = true)
+    Long linkedDocumentId
 ) {
 
     /**

@@ -38,7 +38,12 @@ public enum MoneyOutflowCategory {
     /**
      * Vehicle repair costs
      */
-    REPAIR("Reparación de Vehículo");
+    REPAIR("Reparación de Vehículo"),
+
+    /**
+     * Stock/material purchases
+     */
+    STOCK_PURCHASE("Compra de Stock");
 
     private final String displayName;
 

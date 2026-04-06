@@ -48,7 +48,12 @@ public record MoneyOutflowReportDTO(
 
     @Schema(description = "Name of the filtered project area (sector) if projectAreaId filter was applied",
             example = "Obras Norte")
-    String projectAreaName
+    String projectAreaName,
+
+    @Schema(description = "Total amount of items whose amounts are already included in an invoice (linked items). " +
+            "The effective total without duplication = totalAmount - duplicatedAmount.",
+            example = "350000.00")
+    BigDecimal duplicatedAmount
 ) {
 
     /**
