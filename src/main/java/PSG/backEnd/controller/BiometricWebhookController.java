@@ -27,18 +27,18 @@ public class BiometricWebhookController {
 
     private final IBiometricWebhookService webhookService;
 
-    @PostMapping(value = "/{tenantId}/{brand}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/{webhookToken}/{brand}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Receive a biometric clock event",
                description = "Blind endpoint — accepts raw JSON, always returns 200 OK to the device. " +
-                       "The tenantId identifies which company owns the clock.")
+                       "The webhookToken identifies which company owns the clock.")
     public ResponseEntity<Void> receive(
-            @PathVariable Long tenantId,
+            @PathVariable String webhookToken,
             @PathVariable String brand,
             @RequestBody String rawPayload) {
 
-        log.info("Biometric webhook received: tenantId={}, brand={}, payloadLength={}",
-                tenantId, brand, rawPayload.length());
-        webhookService.process(tenantId, brand, rawPayload);
+        log.info("Biometric webhook received: token={}, brand={}, payloadLength={}",
+                webhookToken, brand, rawPayload.length());
+        webhookService.process(webhookToken, brand, rawPayload);
         return ResponseEntity.ok().build();
     }
 }

@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
     Optional<Tenant> findByIdAndDeletedFalse(Long id);
+    Optional<Tenant> findByWebhookTokenAndDeletedFalse(String webhookToken);
     Optional<Tenant> findByCuit(String cuit);
     Optional<Tenant> findByCuitAndDeletedFalse(String cuit);
     Optional<Tenant> findByCuitAndDeletedTrue(String cuit);

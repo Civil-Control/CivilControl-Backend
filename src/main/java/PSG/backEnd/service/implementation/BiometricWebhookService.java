@@ -1,12 +1,14 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.model.entity.OrphanBiometricLog;
+import PSG.backEnd.model.entity.Tenant;
 import PSG.backEnd.model.entity.employee.AttendanceRecord;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.enums.employee.MovementType;
 import PSG.backEnd.repository.AttendanceRecordRepository;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.OrphanBiometricLogRepository;
+import PSG.backEnd.repository.TenantRepository;
 import PSG.backEnd.service.port.IBiometricWebhookService;
 import PSG.backEnd.service.util.TenantContext;
 import PSG.backEnd.service.webhook.BiometricParseException;
@@ -46,12 +48,22 @@ public class BiometricWebhookService implements IBiometricWebhookService {
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final EmployeeRepository employeeRepository;
     private final OrphanBiometricLogRepository orphanBiometricLogRepository;
+    private final TenantRepository tenantRepository;
     private final EntityManager entityManager;
 
     @Override
     @Transactional
-    public void process(Long tenantId, String brand, String rawPayload) {
+    public void process(String webhookToken, String brand, String rawPayload) {
         String normalizedBrand = brand.toLowerCase().trim();
+
+        // 0. Resolve tenant by webhook token
+        Optional<Tenant> tenantOpt = tenantRepository.findByWebhookTokenAndDeletedFalse(webhookToken);
+        if (tenantOpt.isEmpty()) {
+            log.warn("Invalid webhook token: {}", webhookToken);
+            saveOrphan(normalizedBrand, rawPayload, "Invalid webhook token: " + webhookToken);
+            return;
+        }
+        Long tenantId = tenantOpt.get().getId();
 
         // 1. Resolve parser
         BiometricPayloadParser parser = parsers.stream()

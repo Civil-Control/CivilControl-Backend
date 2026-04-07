@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Entity
 @Table(name = "tenants", uniqueConstraints = {
@@ -51,4 +52,14 @@ public class Tenant {
     @Column(nullable = false)
     @Builder.Default
     private Boolean deleted = false;
+
+    @Column(name = "webhook_token", unique = true, nullable = false, length = 36)
+    private String webhookToken;
+
+    @PrePersist
+    private void generateWebhookToken() {
+        if (this.webhookToken == null) {
+            this.webhookToken = UUID.randomUUID().toString();
+        }
+    }
 }

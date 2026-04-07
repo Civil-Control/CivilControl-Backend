@@ -17,5 +17,6 @@ public record TenantResponseDTO(
     String logoUrl,
     LocalDate foundedDate,
     Boolean active,
-    Boolean deleted
+    Boolean deleted,
+    String webhookToken
 ) {}
