@@ -1,22 +1,30 @@
 package PSG.backEnd.service.implementation;
 
-import PSG.backEnd.model.entity.BiometricLog;
 import PSG.backEnd.model.entity.OrphanBiometricLog;
-import PSG.backEnd.repository.BiometricLogRepository;
+import PSG.backEnd.model.entity.employee.AttendanceRecord;
+import PSG.backEnd.model.entity.employee.Employee;
+import PSG.backEnd.model.enums.employee.MovementType;
+import PSG.backEnd.repository.AttendanceRecordRepository;
+import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.OrphanBiometricLogRepository;
 import PSG.backEnd.service.port.IBiometricWebhookService;
+import PSG.backEnd.service.util.TenantContext;
 import PSG.backEnd.service.webhook.BiometricParseException;
 import PSG.backEnd.service.webhook.BiometricParsedEvent;
 import PSG.backEnd.service.webhook.BiometricPayloadParser;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Orchestrates the processing of raw biometric webhook payloads.
@@ -25,8 +33,8 @@ import java.util.List;
  * <ol>
  *   <li>Resolve the brand-specific {@link BiometricPayloadParser}</li>
  *   <li>Parse the raw JSON → extract employee DNI and timestamp</li>
- *   <li>Resolve the tenant by looking up the employee across all tenants (native query)</li>
- *   <li>Persist the {@link BiometricLog} (idempotent — duplicates silently ignored)</li>
+ *   <li>Resolve the employee and tenant via cross-tenant native query</li>
+ *   <li>Set TenantContext → determine movement type → persist {@link AttendanceRecord}</li>
  *   <li>On parse failure or missing employee → route to {@link OrphanBiometricLog} dead-letter queue</li>
  * </ol>
  */
@@ -36,7 +44,8 @@ import java.util.List;
 public class BiometricWebhookService implements IBiometricWebhookService {
 
     private final List<BiometricPayloadParser> parsers;
-    private final BiometricLogRepository biometricLogRepository;
+    private final AttendanceRecordRepository attendanceRecordRepository;
+    private final EmployeeRepository employeeRepository;
     private final OrphanBiometricLogRepository orphanBiometricLogRepository;
     private final EntityManager entityManager;
 
@@ -76,49 +85,97 @@ public class BiometricWebhookService implements IBiometricWebhookService {
             return;
         }
 
-        // 4. Resolve tenant via cross-tenant employee lookup (bypasses Hibernate tenant filter)
-        Long tenantId = resolveEmployeeTenant(event.employeeDni());
-        if (tenantId == null) {
+        // 4. Resolve employee (id + tenant_id) via cross-tenant native query
+        EmployeeRef employeeRef = resolveEmployee(event.employeeDni());
+        if (employeeRef == null) {
             log.warn("No active employee found with DNI {} — routing to orphan queue", event.employeeDni());
             saveOrphan(normalizedBrand, rawPayload,
                     "No active employee found with DNI: " + event.employeeDni());
             return;
         }
 
-        // 5. Persist biometric log (idempotent)
-        BiometricLog biometricLog = BiometricLog.builder()
-                .employeeDni(event.employeeDni())
-                .timestamp(event.timestamp())
-                .clockBrand(normalizedBrand)
-                .rawPayload(rawPayload)
-                .receivedAt(LocalDateTime.now())
-                .build();
-        biometricLog.setTenantId(tenantId);
-
+        // 5. Set tenant context so repositories work correctly
+        Long previousTenant = TenantContext.getCurrentTenant();
         try {
-            biometricLogRepository.save(biometricLog);
-            log.info("Biometric log saved: DNI={}, timestamp={}, brand={}",
-                    event.employeeDni(), event.timestamp(), normalizedBrand);
-        } catch (DataIntegrityViolationException e) {
-            // Duplicate record (same tenant + DNI + timestamp) — silently ignore
-            log.debug("Duplicate biometric event ignored: DNI={}, timestamp={}",
-                    event.employeeDni(), event.timestamp());
+            TenantContext.setCurrentTenant(employeeRef.tenantId());
+
+            // Load the Employee entity (tenant filter now active for the correct tenant)
+            Optional<Employee> employeeOpt = employeeRepository.findByIdAndDeletedFalse(employeeRef.employeeId());
+            if (employeeOpt.isEmpty()) {
+                saveOrphan(normalizedBrand, rawPayload,
+                        "Employee not found after tenant resolution: DNI=" + event.employeeDni());
+                return;
+            }
+
+            LocalDate date = event.timestamp().toLocalDate();
+            LocalTime time = event.timestamp().toLocalTime();
+
+            // 6. Determine movement type (toggle: first of day = ENTRADA, then alternate)
+            MovementType movementType = resolveMovementType(employeeRef.employeeId(), date);
+
+            // 7. Build and persist AttendanceRecord (idempotent via UNIQUE constraint)
+            AttendanceRecord record = AttendanceRecord.builder()
+                    .employee(employeeOpt.get())
+                    .date(date)
+                    .time(time)
+                    .movementType(movementType)
+                    .observation("Registro automático — reloj " + normalizedBrand)
+                    .build();
+            record.setTenantId(employeeRef.tenantId());
+
+            try {
+                attendanceRecordRepository.save(record);
+                log.info("AttendanceRecord created: employeeId={}, date={}, time={}, type={}, brand={}",
+                        employeeRef.employeeId(), date, time, movementType, normalizedBrand);
+            } catch (DataIntegrityViolationException e) {
+                // Duplicate record (same tenant + employee + date + time + movementType) — silently ignore
+                log.debug("Duplicate attendance event ignored: employeeId={}, date={}, time={}",
+                        employeeRef.employeeId(), date, time);
+            }
+        } finally {
+            TenantContext.setCurrentTenant(previousTenant);
         }
     }
 
     /**
-     * Looks up an employee's tenant_id by DNI across all tenants using a native query.
+     * Resolves an employee's ID and tenant_id by DNI across all tenants using a native query.
      * Bypasses the Hibernate tenant filter to enable cross-tenant resolution.
-     *
-     * @return the tenant_id if an active employee with the given DNI exists, null otherwise
      */
-    private Long resolveEmployeeTenant(String dni) {
+    private EmployeeRef resolveEmployee(String dni) {
         @SuppressWarnings("unchecked")
-        List<Long> results = entityManager
-                .createNativeQuery("SELECT tenant_id FROM employees WHERE dni = :dni AND deleted = false LIMIT 1")
+        List<Tuple> results = entityManager
+                .createNativeQuery(
+                        "SELECT id, tenant_id FROM employees WHERE dni = :dni AND deleted = false LIMIT 1",
+                        Tuple.class)
                 .setParameter("dni", dni)
                 .getResultList();
-        return results.isEmpty() ? null : results.get(0);
+
+        if (results.isEmpty()) return null;
+
+        Tuple row = results.get(0);
+        return new EmployeeRef(
+                ((Number) row.get("id")).longValue(),
+                ((Number) row.get("tenant_id")).longValue()
+        );
+    }
+
+    /**
+     * Determines the movement type for the next record using a toggle pattern:
+     * If there are no records for the day, or the last record was SALIDA → ENTRADA.
+     * If the last record was ENTRADA → SALIDA.
+     */
+    private MovementType resolveMovementType(Long employeeId, LocalDate date) {
+        List<AttendanceRecord> dayRecords =
+                attendanceRecordRepository.findByEmployeeIdAndDateOrderByTimeAsc(employeeId, date);
+
+        if (dayRecords.isEmpty()) {
+            return MovementType.ENTRADA;
+        }
+
+        AttendanceRecord lastRecord = dayRecords.get(dayRecords.size() - 1);
+        return lastRecord.getMovementType() == MovementType.ENTRADA
+                ? MovementType.SALIDA
+                : MovementType.ENTRADA;
     }
 
     private void saveOrphan(String brand, String rawPayload, String errorMessage) {
@@ -135,4 +192,7 @@ public class BiometricWebhookService implements IBiometricWebhookService {
             log.error("CRITICAL — Failed to save orphan biometric payload: {}", e.getMessage(), e);
         }
     }
+
+    /** Internal record for cross-tenant employee resolution result. */
+    private record EmployeeRef(Long employeeId, Long tenantId) {}
 }

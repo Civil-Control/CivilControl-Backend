@@ -35,7 +35,6 @@ public class TenantFilterAspect {
     @Before("execution(* PSG.backEnd.repository..*(..)) " +
             "&& !execution(* PSG.backEnd.repository.PermissionRepository.*(..)) " +
             "&& !execution(* PSG.backEnd.repository.TenantRepository.*(..)) " +
-            "&& !execution(* PSG.backEnd.repository.BiometricLogRepository.*(..)) " +
             "&& !execution(* PSG.backEnd.repository.OrphanBiometricLogRepository.*(..))")
     public void enableTenantFilter() {
         Long tenantId = TenantContext.getCurrentTenant();
