@@ -71,6 +71,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints - Authentication
                         .requestMatchers("/api/v1/auth/**").permitAll()
+                        // Public endpoints - Biometric webhook (hardware devices cannot authenticate)
+                        .requestMatchers("/api/webhook/biometric/**").permitAll()
                         // Swagger/OpenAPI endpoints
                         .requestMatchers(
                                 "/v3/api-docs/**",
