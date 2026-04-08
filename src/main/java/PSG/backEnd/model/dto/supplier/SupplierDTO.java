@@ -19,9 +19,7 @@ public record SupplierDTO(
             "Must follow the format XX-XXXXXXXX-X where X represents digits. " +
             "This is the unique tax identifier for businesses in Argentina.",
             example = "30-12345678-9",
-            pattern = "^\\d{2}-\\d{8}-\\d$",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
+            pattern = "^\\d{2}-\\d{8}-\\d$")
     @Pattern(regexp = "^\\d{2}-\\d{8}-\\d$", message = "{supplier.cuit.invalid}", groups = {OnCreate.class, OnUpdate.class})
     String cuit,
 
@@ -37,14 +35,10 @@ public record SupplierDTO(
     String legalName,
 
     @Schema(description = "Commercial or trade name used by the supplier for business operations. " +
-            "This is the brand name or business name commonly used. Minimum 1 character, maximum 50 characters.",
+            "This is the brand name or business name commonly used. Maximum 50 characters.",
             example = "García Construcciones",
-            minLength = 1,
-            maxLength = 50,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 1, max = 50, message = "{supplier.tradeName.size}", groups = {OnCreate.class, OnUpdate.class})
-    @Pattern(regexp = "^\\s*\\S.*$", message = "{validation.notBlank}", groups = {OnCreate.class, OnUpdate.class})
+            maxLength = 50)
+    @Size(max = 50, message = "{supplier.tradeName.size}", groups = {OnCreate.class, OnUpdate.class})
     String tradeName,
 
     @Schema(description = "Alias or nickname for the supplier, useful for categorization or quick identification. " +
@@ -55,17 +49,13 @@ public record SupplierDTO(
     @Size(max = 50, message = "{supplier.alias.size}", groups = {OnCreate.class, OnUpdate.class})
     String alias,
 
-    @Schema(description = "List of payment methods accepted by this supplier. At least one method must be specified. " +
+    @Schema(description = "List of payment methods accepted by this supplier. " +
             "Valid values: EFECTIVO (Cash), TRANSFERENCIA (Bank transfer), CHEQUE (Check). " +
             "This defines how payments to this supplier can be made.",
-            example = "[\"EFECTIVO\", \"TRANSFERENCIA\"]",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotEmpty(message = "{supplier.allowedPaymentMethods.required}", groups = OnCreate.class)
+            example = "[\"EFECTIVO\", \"TRANSFERENCIA\"]")
     List<@NotNull(message = "{validation.notNull}", groups = {OnCreate.class, OnUpdate.class}) PaymentMethod> allowedPaymentMethods,
 
-    @Schema(description = "Complete physical address of the supplier including street, number, city, province, and postal code.",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{address.required}", groups = OnCreate.class)
+    @Schema(description = "Complete physical address of the supplier including street, number, city, province, and postal code.")
     @Valid
     AddressDTO address,
 
@@ -77,9 +67,7 @@ public record SupplierDTO(
             "Must be between 0 and 100. Used as a reference for purchase orders and negotiations.",
             example = "5.50",
             minimum = "0.0",
-            maximum = "100.0",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{supplier.defaultDiscountPercentage.required}", groups = OnCreate.class)
+            maximum = "100.0")
     @DecimalMin(value = "0.0", inclusive = true, message = "{supplier.defaultDiscountPercentage.min}", groups = {OnCreate.class, OnUpdate.class})
     @DecimalMax(value = "100.0", inclusive = true, message = "{supplier.defaultDiscountPercentage.max}", groups = {OnCreate.class, OnUpdate.class})
     @Digits(integer = 3, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})

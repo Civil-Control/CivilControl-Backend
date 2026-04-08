@@ -133,7 +133,8 @@ public class SupplierService implements ISupplierService {
     }
 
     private void validateNewSupplier(SupplierDTO supplierDTO) {
-        if (supplierRepository.existsByCuitAndDeletedFalse(supplierDTO.cuit())) {
+        if (supplierDTO.cuit() != null && !supplierDTO.cuit().isBlank()
+                && supplierRepository.existsByCuitAndDeletedFalse(supplierDTO.cuit())) {
             throw new SupplierAlreadyExistsException(messageSourceHelper.getMessage("supplier.cuit.alreadyExists", supplierDTO.cuit()));
         }
         if (supplierRepository.existsByLegalNameAndDeletedFalse(supplierDTO.legalName())) {
@@ -142,11 +143,13 @@ public class SupplierService implements ISupplierService {
     }
 
     private Optional<Supplier> findDeletedSupplier(SupplierDTO supplierDTO) {
-        Optional<Supplier> deletedSupplier = supplierRepository.findByCuitAndDeletedTrue(supplierDTO.cuit());
-        if (deletedSupplier.isEmpty()) {
-            deletedSupplier = supplierRepository.findByLegalNameAndDeletedTrue(supplierDTO.legalName());
+        if (supplierDTO.cuit() != null && !supplierDTO.cuit().isBlank()) {
+            Optional<Supplier> deletedSupplier = supplierRepository.findByCuitAndDeletedTrue(supplierDTO.cuit());
+            if (deletedSupplier.isPresent()) {
+                return deletedSupplier;
+            }
         }
-        return deletedSupplier;
+        return supplierRepository.findByLegalNameAndDeletedTrue(supplierDTO.legalName());
     }
 
     private SupplierResponseDTO reactivateSupplier(Supplier supplier, SupplierDTO supplierDTO) {
