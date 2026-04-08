@@ -15,8 +15,8 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "paid", ignore = true)
     @Mapping(target = "items", ignore = true)  // Ignora items - se procesan manualmente en el service
-    @Mapping(source = "supplierId", target = "supplier.id")
-    @Mapping(source = "projectAreaId", target = "projectArea.id")
+    @Mapping(target = "supplier", ignore = true)
+    @Mapping(target = "projectArea", ignore = true)
     TransactionalDocument toEntity(TransactionalDocumentDTO dto);
 
     @Mapping(source = "supplier.id", target = "supplierId")
@@ -32,8 +32,8 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "paid", ignore = true)
     @Mapping(target = "items", ignore = true)  // Ignora items - se procesan manualmente en el service
-    @Mapping(source = "supplierId", target = "supplier.id")
-    @Mapping(source = "projectAreaId", target = "projectArea.id")
+    @Mapping(target = "supplier", ignore = true)
+    @Mapping(target = "projectArea", ignore = true)
     void partialUpdate(TransactionalDocumentDTO updateDTO, @MappingTarget TransactionalDocument entity);
 
     // Ya no necesitamos @AfterMapping porque los items se procesan manualmente

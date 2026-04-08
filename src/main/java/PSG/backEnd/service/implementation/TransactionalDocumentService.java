@@ -170,8 +170,22 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
      * Updates a TransactionalDocument from DTO, handling ItemDetails correctly
      */
     private void updateDocumentFromDTO(TransactionalDocument document, TransactionalDocumentDTO dto) {
-        // Update basic fields using mapper
+        // Update basic fields using mapper (supplier and projectArea are ignored)
         transactionalDocumentMapper.partialUpdate(dto, document);
+
+        // Resolve supplier if changed
+        if (dto.supplierId() != null) {
+            Supplier supplier = iSupplierService.getEntityById(dto.supplierId());
+            document.setSupplier(supplier);
+        }
+
+        // Resolve projectArea (null = remove assignment)
+        if (dto.projectAreaId() != null) {
+            ProjectArea projectArea = iProjectAreaService.getEntityById(dto.projectAreaId());
+            document.setProjectArea(projectArea);
+        } else {
+            document.setProjectArea(null);
+        }
 
         // Handle ItemDetails updates if provided
         if (dto.items() != null) {
@@ -391,14 +405,14 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         Supplier supplier = iSupplierService.getEntityById(dto.supplierId());
         document.setSupplier(supplier);
 
-        // Process ItemDetails if present
-        if (dto.items() != null && !dto.items().isEmpty()) {
         // Set ProjectArea if provided
         if (dto.projectAreaId() != null) {
             ProjectArea projectArea = iProjectAreaService.getEntityById(dto.projectAreaId());
             document.setProjectArea(projectArea);
         }
 
+        // Process ItemDetails if present
+        if (dto.items() != null && !dto.items().isEmpty()) {
             processItemDetails(document, dto.items());
         }
 
