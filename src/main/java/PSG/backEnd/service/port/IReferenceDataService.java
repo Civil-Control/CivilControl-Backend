@@ -44,4 +44,6 @@ public interface IReferenceDataService {
     List<ReferenceItem> getSalesDocumentReferences();
 
     List<ReferenceItem> getServiceAssignmentReferences();
+
+    List<Long> getLinkedSupplierIds();
 }

@@ -202,4 +202,11 @@ public class ReferenceDataService implements IReferenceDataService {
                 })
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<Long> getLinkedSupplierIds() {
+        return serviceSupplierRepository.findByDeletedFalse().stream()
+                .map(ss -> ss.getSupplier().getId())
+                .collect(Collectors.toList());
+    }
 }

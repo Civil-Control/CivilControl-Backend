@@ -20,11 +20,8 @@ public interface ServiceAssignmentRepository extends JpaRepository<ServiceAssign
     Optional<ServiceAssignment> findByIdAndDeletedFalse(Long id);
     boolean existsByIdAndDeletedFalse(Long id);
 
-    boolean existsByServiceSupplier_IdAndBuilding_IdAndServiceTypeAndDeletedFalse(
-            Long serviceSupplierId, Long buildingId, ServiceType serviceType);
-
-    Optional<ServiceAssignment> findByServiceSupplier_IdAndBuilding_IdAndServiceTypeAndDeletedTrue(
-            Long serviceSupplierId, Long buildingId, ServiceType serviceType);
+    boolean existsByAccountNumberAndDeletedFalse(String accountNumber);
+    boolean existsByAccountNumberAndDeletedFalseAndIdNot(String accountNumber, Long id);
 
     @Query("SELECT sa FROM ServiceAssignment sa " +
             "WHERE sa.deleted = false " +

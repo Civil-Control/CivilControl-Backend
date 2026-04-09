@@ -1,5 +1,6 @@
 package PSG.backEnd.exception;
 
+import PSG.backEnd.exception.serviceSupplier.ServiceAssignmentAlreadyExistsException;
 import PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException;
 import PSG.backEnd.exception.vehicle.VehicleDataConflictException;
 import PSG.backEnd.exception.vehicle.VehicleNotValidException;
@@ -348,6 +349,30 @@ public class GlobalExceptionHandler {
         ProblemDetail problemDetail = createProblemDetail(
                 HttpStatus.CONFLICT,
                 "Vehicle Already Exists",
+                ex.getMessage(),
+                request,
+                ex
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(problemDetail);
+    }
+
+    /**
+     * Handles service assignment already exists conflicts (e.g. duplicate account number)
+     * Returns 409 Conflict
+     */
+    @ExceptionHandler(ServiceAssignmentAlreadyExistsException.class)
+    public ResponseEntity<ProblemDetail> handleServiceAssignmentAlreadyExistsException(
+            ServiceAssignmentAlreadyExistsException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.CONFLICT,
+                "Service Assignment Conflict",
                 ex.getMessage(),
                 request,
                 ex

@@ -25,8 +25,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -52,17 +50,7 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
             validateProjectAreaExists(dto.projectAreaId());
         }
 
-        // Check for deleted assignment to reactivate
-        Optional<ServiceAssignment> deletedAssignment =
-                serviceAssignmentRepository.findByServiceSupplier_IdAndBuilding_IdAndServiceTypeAndDeletedTrue(
-                        dto.serviceSupplierId(), dto.buildingId(), dto.serviceType());
-
-        if (deletedAssignment.isPresent()) {
-            return reactivateAssignment(deletedAssignment.get(), dto);
-        }
-
-        // Check for existing active assignment
-        validateAssignmentNotExists(dto.serviceSupplierId(), dto.buildingId(), dto.serviceType());
+        validateAccountNumberUnique(dto.accountNumber(), null);
 
         return createNewAssignment(dto);
     }
@@ -96,9 +84,6 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
         ServiceAssignment existing = serviceAssignmentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ServiceAssignmentNotFoundException(id));
 
-        // Validate relationship changes
-        Long newSupplierId = dto.serviceSupplierId() != null ? dto.serviceSupplierId() : existing.getServiceSupplier().getId();
-        Long newBuildingId = dto.buildingId() != null ? dto.buildingId() : existing.getBuilding().getId();
         PSG.backEnd.model.enums.ServiceType newServiceType = dto.serviceType() != null ? dto.serviceType() : existing.getServiceType();
 
         if (dto.serviceSupplierId() != null) {
@@ -115,14 +100,7 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
             validateProjectAreaExists(dto.projectAreaId());
         }
 
-        // If key fields changed, check uniqueness
-        boolean keyChanged = !newSupplierId.equals(existing.getServiceSupplier().getId())
-                || !newBuildingId.equals(existing.getBuilding().getId())
-                || !newServiceType.equals(existing.getServiceType());
-
-        if (keyChanged) {
-            validateAssignmentNotExists(newSupplierId, newBuildingId, newServiceType);
-        }
+        validateAccountNumberUnique(dto.accountNumber(), id);
 
         // Update relationships
         if (dto.serviceSupplierId() != null && !existing.getServiceSupplier().getId().equals(dto.serviceSupplierId())) {
@@ -188,42 +166,15 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
         }
     }
 
-    private void validateAssignmentNotExists(Long serviceSupplierId, Long buildingId, PSG.backEnd.model.enums.ServiceType serviceType) {
-        if (serviceAssignmentRepository.existsByServiceSupplier_IdAndBuilding_IdAndServiceTypeAndDeletedFalse(
-                serviceSupplierId, buildingId, serviceType)) {
+    private void validateAccountNumberUnique(String accountNumber, Long excludeId) {
+        if (accountNumber == null || accountNumber.isBlank()) return;
+        boolean exists = excludeId != null
+                ? serviceAssignmentRepository.existsByAccountNumberAndDeletedFalseAndIdNot(accountNumber, excludeId)
+                : serviceAssignmentRepository.existsByAccountNumberAndDeletedFalse(accountNumber);
+        if (exists) {
             throw new ServiceAssignmentAlreadyExistsException(
-                    messageSourceHelper.getMessage("serviceAssignment.alreadyExists"));
+                    messageSourceHelper.getMessage("serviceAssignment.accountNumber.duplicate", accountNumber));
         }
-    }
-
-    private ServiceAssignmentResponseDTO reactivateAssignment(ServiceAssignment existing, ServiceAssignmentDTO dto) {
-        // Check active record doesn't exist
-        validateAssignmentNotExists(dto.serviceSupplierId(), dto.buildingId(), dto.serviceType());
-
-        serviceAssignmentMapper.partialUpdate(dto, existing);
-
-        // Update relationships
-        ServiceSupplier supplier = serviceSupplierRepository.findByIdAndDeletedFalse(dto.serviceSupplierId())
-                .orElseThrow(() -> new ServiceSupplierNotFoundException(dto.serviceSupplierId()));
-        existing.setServiceSupplier(supplier);
-
-        Building building = buildingRepository.findByIdAndDeletedFalse(dto.buildingId())
-                .orElseThrow(() -> new BuildingNotFoundException(dto.buildingId()));
-        existing.setBuilding(building);
-
-        if (dto.paymentLocationId() != null) {
-            Building paymentLocation = buildingRepository.findByIdAndDeletedFalse(dto.paymentLocationId())
-                    .orElseThrow(() -> new BuildingNotFoundException(dto.paymentLocationId()));
-            existing.setPaymentLocation(paymentLocation);
-        }
-        if (dto.projectAreaId() != null) {
-            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(dto.projectAreaId())
-                    .orElseThrow(() -> new RuntimeException(messageSourceHelper.getMessage("projectArea.notFound", dto.projectAreaId())));
-            existing.setProjectArea(projectArea);
-        }
-
-        existing.setDeleted(false);
-        return serviceAssignmentMapper.toResponseDto(serviceAssignmentRepository.save(existing));
     }
 
     private ServiceAssignmentResponseDTO createNewAssignment(ServiceAssignmentDTO dto) {

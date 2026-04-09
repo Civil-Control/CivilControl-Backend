@@ -272,4 +272,19 @@ public class ReferenceDataController {
     public ResponseEntity<List<ReferenceItem>> getServiceAssignmentReferences() {
         return ResponseEntity.ok(referenceDataService.getServiceAssignmentReferences());
     }
+
+    // ── Linked Supplier IDs ───────────────────────────────────────
+    // Needed by: ServiceSupplier form (to filter already-linked suppliers)
+    @GetMapping("/linked-supplier-ids")
+    @Operation(summary = "IDs of suppliers already linked to a service supplier")
+    @ApiResponse(responseCode = "200", description = "List of supplier IDs")
+    @PreAuthorize(
+        "hasAnyAuthority("
+        + "'" + AppPermissions.SERVICE_SUPPLIER_READ + "',"
+        + "'" + AppPermissions.SERVICE_SUPPLIER_WRITE + "'"
+        + ")"
+    )
+    public ResponseEntity<List<Long>> getLinkedSupplierIds() {
+        return ResponseEntity.ok(referenceDataService.getLinkedSupplierIds());
+    }
 }
