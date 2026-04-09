@@ -213,7 +213,8 @@ public class ReferenceDataService implements IReferenceDataService {
                     if (sa.getAccountNumber() != null && !sa.getAccountNumber().isEmpty()) {
                         label += " (Cta: " + sa.getAccountNumber() + ")";
                     }
-                    return new ServiceAssignmentReferenceItem(sa.getId(), label, projectAreaId);
+                    String subjectTypeStr = sa.getSubjectType() != null ? sa.getSubjectType().name() : "BUILDING";
+                    return new ServiceAssignmentReferenceItem(sa.getId(), label, projectAreaId, subjectTypeStr);
                 })
                 .collect(Collectors.toList());
     }

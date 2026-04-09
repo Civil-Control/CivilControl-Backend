@@ -13,5 +13,7 @@ public record ServiceAssignmentReferenceItem(
         @Schema(description = "Human-readable label for display", example = "Proveedor X · LUZ · Edificio Central")
         String label,
         @Schema(description = "ID of the subject's project area (building or vehicle), null if not set", example = "2")
-        Long projectAreaId
+        Long projectAreaId,
+        @Schema(description = "Subject type discriminator: BUILDING or VEHICLE", example = "BUILDING")
+        String subjectType
 ) {}
