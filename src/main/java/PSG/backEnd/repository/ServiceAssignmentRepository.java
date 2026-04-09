@@ -24,17 +24,18 @@ public interface ServiceAssignmentRepository extends JpaRepository<ServiceAssign
     boolean existsByAccountNumberAndDeletedFalseAndIdNot(String accountNumber, Long id);
 
     @Query("SELECT sa FROM ServiceAssignment sa " +
+            "LEFT JOIN sa.building b " +
             "LEFT JOIN sa.vehicle v " +
             "WHERE sa.deleted = false " +
             "AND (:subjectType IS NULL OR sa.subjectType = :subjectType) " +
             "AND (CAST(:serviceSupplierId AS long) IS NULL OR sa.serviceSupplier.id = :serviceSupplierId) " +
-            "AND (CAST(:buildingId AS long) IS NULL OR sa.building.id = :buildingId) " +
+            "AND (CAST(:buildingId AS long) IS NULL OR b.id = :buildingId) " +
             "AND (CAST(:vehicleId AS long) IS NULL OR v.id = :vehicleId) " +
             "AND (:serviceType IS NULL OR sa.serviceType = :serviceType) " +
             "AND (:search IS NULL OR (" +
             "     LOWER(CAST(sa.serviceSupplier.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sa.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(sa.building.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(b.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sa.accountHolder AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sa.accountNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))" +
