@@ -1,7 +1,7 @@
 package PSG.backEnd.repository;
 
 import PSG.backEnd.model.entity.serviceSupplier.ServicePayment;
-import PSG.backEnd.model.enums.PaymentSubjectType;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,22 +34,20 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
     );
 
     @Query("SELECT sp FROM ServicePayment sp " +
-            "LEFT JOIN sp.serviceAssignment sa " +
+            "JOIN sp.serviceAssignment sa " +
             "LEFT JOIN sa.serviceSupplier ss " +
             "LEFT JOIN ss.supplier sup " +
             "LEFT JOIN sa.building b " +
-            "LEFT JOIN sp.vehicle v " +
+            "LEFT JOIN sa.vehicle v " +
             "WHERE sp.deleted = false " +
-            // ——— Subject type filter ———
-            "AND (:subjectType IS NULL OR sp.subjectType = :subjectType) " +
-            // ——— Building-based filters ———
+            // ——— Filters via assignment ———
+            "AND (:subjectType IS NULL OR sa.subjectType = :subjectType) " +
             "AND (CAST(:serviceAssignmentId AS long) IS NULL OR sa.id = :serviceAssignmentId) " +
             "AND (CAST(:serviceSupplierId AS long) IS NULL OR ss.id = :serviceSupplierId) " +
             "AND (CAST(:buildingId AS long) IS NULL OR b.id = :buildingId) " +
             "AND (:serviceType IS NULL OR sa.serviceType = :serviceType) " +
-            // ——— Vehicle-based filters ———
             "AND (CAST(:vehicleId AS long) IS NULL OR v.id = :vehicleId) " +
-            // ——— Common filters ———
+            // ——— Payment filters ———
             "AND (CAST(:projectAreaId AS long) IS NULL OR sp.projectArea.id = :projectAreaId) " +
             "AND (CAST(:year AS integer) IS NULL OR sp.year = :year) " +
             "AND (CAST(:period AS integer) IS NULL OR sp.period = :period) " +
@@ -60,7 +58,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             "AND (:referenceNumber IS NULL OR LOWER(CAST(sp.referenceNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:referenceNumber AS string), '%'))) " +
             "AND (:supplierName IS NULL OR LOWER(CAST(sup.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) " +
             "     OR :supplierName IS NULL OR LOWER(CAST(sup.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
-            // ——— Global search: searches across building-based and vehicle-based fields ———
+            // ——— Global search ———
             "AND (:search IS NULL OR (" +
             "     LOWER(CAST(sup.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sup.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
@@ -69,7 +67,7 @@ public interface ServicePaymentRepository extends JpaRepository<ServicePayment, 
             "     OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "))")
     Page<ServicePayment> findAllWithFilters(
-            @Param("subjectType") PaymentSubjectType subjectType,
+            @Param("subjectType") SubjectType subjectType,
             @Param("serviceAssignmentId") Long serviceAssignmentId,
             @Param("serviceSupplierId") Long serviceSupplierId,
             @Param("buildingId") Long buildingId,

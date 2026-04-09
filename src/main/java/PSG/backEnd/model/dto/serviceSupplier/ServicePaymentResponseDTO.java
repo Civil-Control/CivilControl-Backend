@@ -1,7 +1,6 @@
 package PSG.backEnd.model.dto.serviceSupplier;
 
-import PSG.backEnd.model.enums.PaymentSubjectType;
-import PSG.backEnd.model.enums.ServiceCategory;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -9,31 +8,27 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Schema(description = "Response DTO for service payment, supporting both building-based and vehicle-based payments.")
+@Schema(description = "Response DTO for service payment. Always linked to a service assignment.")
 public record ServicePaymentResponseDTO(
 
         Long id,
 
-        PaymentSubjectType subjectType,
-
-        // ——— Building-based fields (from service assignment) ———
+        // ——— Fields from service assignment ———
         Long serviceAssignmentId,
+        SubjectType subjectType,
         Long serviceSupplierId,
         String supplierName,
         String supplierTradeName,
         String supplierCuit,
         Long buildingId,
         String buildingName,
+        Long vehicleId,
+        String vehicleLicensePlate,
         ServiceType serviceType,
-        ServiceCategory serviceCategory,
         String accountNumber,
         String accountHolder,
 
-        // ——— Vehicle-based fields ———
-        Long vehicleId,
-        String vehicleLicensePlate,
-
-        // ——— Common fields ———
+        // ——— Payment fields ———
         LocalDate paymentDate,
         BigDecimal amount,
         Integer year,

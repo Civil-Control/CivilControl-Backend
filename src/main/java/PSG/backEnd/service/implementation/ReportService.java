@@ -15,7 +15,7 @@ import PSG.backEnd.model.entity.insurance.PolicyPayment;
 import PSG.backEnd.model.entity.serviceSupplier.ServicePayment;
 import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
-import PSG.backEnd.model.enums.PaymentSubjectType;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.vehicle.RepairType;
 import PSG.backEnd.repository.*;
@@ -568,7 +568,7 @@ public class ReportService implements IReportService {
         Pageable pageable = PageRequest.of(0, 10000);
 
         var servicePayments = servicePaymentRepository.findAllWithFilters(
-                PaymentSubjectType.BUILDING, // only building-based payments
+                SubjectType.BUILDING, // only building-based payments
                 null, // serviceAssignmentId
                 null, // serviceSupplierId
                 null, // buildingId
@@ -603,8 +603,7 @@ public class ReportService implements IReportService {
 
             String projectAreaName = sp.getProjectArea() != null
                     ? sp.getProjectArea().getName()
-                    : (assignment != null && assignment.getProjectArea() != null
-                            ? assignment.getProjectArea().getName() : null);
+                    : null;
 
             items.add(ReportItemDTO.builder()
                     .id(sp.getId())
@@ -634,7 +633,7 @@ public class ReportService implements IReportService {
         Pageable pageable = PageRequest.of(0, 10000);
 
         var vehiclePayments = servicePaymentRepository.findAllWithFilters(
-                PaymentSubjectType.VEHICLE,
+                SubjectType.VEHICLE,
                 null, // serviceAssignmentId
                 null, // serviceSupplierId
                 null, // buildingId
@@ -656,7 +655,9 @@ public class ReportService implements IReportService {
         List<ReportItemDTO> items = new ArrayList<>();
 
         for (ServicePayment sp : vehiclePayments) {
-            String licensePlate = sp.getVehicle() != null ? sp.getVehicle().getLicensePlate() : "N/A";
+            var assignment = sp.getServiceAssignment();
+            String licensePlate = assignment != null && assignment.getVehicle() != null
+                    ? assignment.getVehicle().getLicensePlate() : "N/A";
             String description = "Pago de patente"
                     + (sp.getYear() != null ? " " + sp.getYear() : "")
                     + (sp.getPeriod() != null ? " - Período " + sp.getPeriod() : "")

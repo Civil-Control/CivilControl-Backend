@@ -1,7 +1,7 @@
 package PSG.backEnd.repository;
 
 import PSG.backEnd.model.entity.serviceSupplier.ServiceAssignment;
-import PSG.backEnd.model.enums.ServiceCategory;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,25 +24,27 @@ public interface ServiceAssignmentRepository extends JpaRepository<ServiceAssign
     boolean existsByAccountNumberAndDeletedFalseAndIdNot(String accountNumber, Long id);
 
     @Query("SELECT sa FROM ServiceAssignment sa " +
+            "LEFT JOIN sa.vehicle v " +
             "WHERE sa.deleted = false " +
+            "AND (:subjectType IS NULL OR sa.subjectType = :subjectType) " +
             "AND (CAST(:serviceSupplierId AS long) IS NULL OR sa.serviceSupplier.id = :serviceSupplierId) " +
             "AND (CAST(:buildingId AS long) IS NULL OR sa.building.id = :buildingId) " +
+            "AND (CAST(:vehicleId AS long) IS NULL OR v.id = :vehicleId) " +
             "AND (:serviceType IS NULL OR sa.serviceType = :serviceType) " +
-            "AND (:serviceCategory IS NULL OR sa.serviceCategory = :serviceCategory) " +
-            "AND (CAST(:projectAreaId AS long) IS NULL OR sa.projectArea.id = :projectAreaId) " +
             "AND (:search IS NULL OR (" +
             "     LOWER(CAST(sa.serviceSupplier.supplier.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sa.serviceSupplier.supplier.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sa.building.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sa.accountHolder AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sa.accountNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))" +
             "))")
     Page<ServiceAssignment> findAllWithFilters(
+            @Param("subjectType") SubjectType subjectType,
             @Param("serviceSupplierId") Long serviceSupplierId,
             @Param("buildingId") Long buildingId,
+            @Param("vehicleId") Long vehicleId,
             @Param("serviceType") ServiceType serviceType,
-            @Param("serviceCategory") ServiceCategory serviceCategory,
-            @Param("projectAreaId") Long projectAreaId,
             @Param("search") String search,
             Pageable pageable
     );

@@ -3,6 +3,7 @@ package PSG.backEnd.service.port;
 import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
 import PSG.backEnd.model.dto.reference.GasStationReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
+import PSG.backEnd.model.dto.reference.ServiceAssignmentReferenceItem;
 import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
 import PSG.backEnd.model.enums.ItemType;
 
@@ -43,7 +44,7 @@ public interface IReferenceDataService {
 
     List<ReferenceItem> getSalesDocumentReferences();
 
-    List<ReferenceItem> getServiceAssignmentReferences();
+    List<ServiceAssignmentReferenceItem> getServiceAssignmentReferences();
 
     List<Long> getLinkedSupplierIds();
 }

@@ -12,8 +12,8 @@ public interface ServiceAssignmentMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "serviceSupplier", ignore = true)
     @Mapping(target = "building", ignore = true)
+    @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "paymentLocation", ignore = true)
-    @Mapping(target = "projectArea", ignore = true)
     ServiceAssignment toEntity(ServiceAssignmentDTO dto);
 
     @Mapping(target = "serviceSupplierId", expression = "java(entity.getServiceSupplier() != null ? entity.getServiceSupplier().getId() : null)")
@@ -22,11 +22,12 @@ public interface ServiceAssignmentMapper {
     @Mapping(target = "supplierCuit", expression = "java(entity.getServiceSupplier() != null && entity.getServiceSupplier().getSupplier() != null ? entity.getServiceSupplier().getSupplier().getCuit() : null)")
     @Mapping(target = "buildingId", expression = "java(entity.getBuilding() != null ? entity.getBuilding().getId() : null)")
     @Mapping(target = "buildingName", expression = "java(entity.getBuilding() != null ? entity.getBuilding().getName() : null)")
+    @Mapping(target = "vehicleId", expression = "java(entity.getVehicle() != null ? entity.getVehicle().getId() : null)")
+    @Mapping(target = "vehicleLicensePlate", expression = "java(entity.getVehicle() != null ? entity.getVehicle().getLicensePlate() : null)")
     @Mapping(target = "paymentLocationId", expression = "java(entity.getPaymentLocation() != null ? entity.getPaymentLocation().getId() : null)")
     @Mapping(target = "paymentLocationName", expression = "java(entity.getPaymentLocation() != null ? entity.getPaymentLocation().getName() : null)")
-    @Mapping(target = "projectAreaId", expression = "java(entity.getProjectArea() != null ? entity.getProjectArea().getId() : null)")
-    @Mapping(target = "projectAreaName", expression = "java(entity.getProjectArea() != null ? entity.getProjectArea().getName() : null)")
-    @Mapping(target = "projectAreaColor", expression = "java(entity.getProjectArea() != null ? entity.getProjectArea().getColor() : null)")
+    @Mapping(target = "subjectProjectAreaId", expression = "java(resolveSubjectProjectAreaId(entity))")
+    @Mapping(target = "subjectProjectAreaName", expression = "java(resolveSubjectProjectAreaName(entity))")
     ServiceAssignmentResponseDTO toResponseDto(ServiceAssignment entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
@@ -34,7 +35,27 @@ public interface ServiceAssignmentMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "serviceSupplier", ignore = true)
     @Mapping(target = "building", ignore = true)
+    @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "paymentLocation", ignore = true)
-    @Mapping(target = "projectArea", ignore = true)
     void partialUpdate(ServiceAssignmentDTO updateDTO, @MappingTarget ServiceAssignment entity);
+
+    default Long resolveSubjectProjectAreaId(ServiceAssignment entity) {
+        if (entity.getBuilding() != null && entity.getBuilding().getProjectArea() != null) {
+            return entity.getBuilding().getProjectArea().getId();
+        }
+        if (entity.getVehicle() != null && entity.getVehicle().getProjectArea() != null) {
+            return entity.getVehicle().getProjectArea().getId();
+        }
+        return null;
+    }
+
+    default String resolveSubjectProjectAreaName(ServiceAssignment entity) {
+        if (entity.getBuilding() != null && entity.getBuilding().getProjectArea() != null) {
+            return entity.getBuilding().getProjectArea().getName();
+        }
+        if (entity.getVehicle() != null && entity.getVehicle().getProjectArea() != null) {
+            return entity.getVehicle().getProjectArea().getName();
+        }
+        return null;
+    }
 }

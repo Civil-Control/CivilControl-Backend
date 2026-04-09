@@ -1,6 +1,5 @@
 package PSG.backEnd.model.dto.serviceSupplier;
 
-import PSG.backEnd.model.enums.PaymentSubjectType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -11,24 +10,15 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Schema(description = "Data Transfer Object for creating or updating a service payment. " +
-        "Supports both building-based (via service assignment) and vehicle-based payments.")
+        "Always references a service assignment.")
 public record ServicePaymentDTO(
 
-        @Schema(description = "Type of subject: BUILDING (service assignment) or VEHICLE.",
-                example = "BUILDING",
+        @Schema(description = "ID of the service assignment.",
+                example = "5",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "{servicePayment.subjectType.required}", groups = OnCreate.class)
-        PaymentSubjectType subjectType,
-
-        @Schema(description = "ID of the service assignment (required when subjectType = BUILDING).",
-                example = "5")
+        @NotNull(message = "{servicePayment.serviceAssignment.required}", groups = OnCreate.class)
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long serviceAssignmentId,
-
-        @Schema(description = "ID of the vehicle (required when subjectType = VEHICLE).",
-                example = "12")
-        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Long vehicleId,
 
         @Schema(description = "ID of the project area for cost attribution.",
                 example = "2")

@@ -1,9 +1,9 @@
 package PSG.backEnd.model.entity.serviceSupplier;
 
 import PSG.backEnd.model.entity.Building;
-import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.TenantEntity;
-import PSG.backEnd.model.enums.ServiceCategory;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,13 +21,21 @@ public class ServiceAssignment extends TenantEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subject_type", nullable = false)
+    private SubjectType subjectType;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_supplier_id", nullable = false)
     private ServiceSupplier serviceSupplier;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "building_id", nullable = false)
+    @JoinColumn(name = "building_id")
     private Building building;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_id")
+    private Vehicle vehicle;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "service_type", nullable = false)
@@ -42,17 +50,9 @@ public class ServiceAssignment extends TenantEntity {
     @Column(name = "account_holder", length = 200)
     private String accountHolder;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "service_category")
-    private ServiceCategory serviceCategory;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_location_id")
     private Building paymentLocation;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_area_id")
-    private ProjectArea projectArea;
 
     @Column(nullable = false)
     private boolean deleted;

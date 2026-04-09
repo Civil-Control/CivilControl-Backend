@@ -4,6 +4,7 @@ import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
 import PSG.backEnd.model.dto.reference.GasStationReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
+import PSG.backEnd.model.dto.reference.ServiceAssignmentReferenceItem;
 import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
 import PSG.backEnd.model.enums.ItemType;
 import PSG.backEnd.service.port.IReferenceDataService;
@@ -51,8 +52,8 @@ public class ReferenceDataController {
     private final IReferenceDataService referenceDataService;
 
     // ── Vehicles ──────────────────────────────────────────────────
-    // Needed by: Repair, RepairOrder, FuelLoad, ServicePayment (vehicle-based),
-    //            InsurancePolicy, Vehicle (self-ref for types)
+    // Needed by: Repair, RepairOrder, FuelLoad, ServiceAssignment (vehicle-based),
+    //            ServicePayment, InsurancePolicy, Vehicle (self-ref for types)
     @GetMapping("/vehicles")
     @Operation(summary = "Vehicle references for form dropdowns")
     @ApiResponse(responseCode = "200", description = "List of vehicles (id + label)")
@@ -62,6 +63,7 @@ public class ReferenceDataController {
         + "'" + AppPermissions.REPAIR_WRITE + "',"
         + "'" + AppPermissions.REPAIR_ORDER_CREATE + "',"
         + "'" + AppPermissions.FUEL_LOAD_WRITE + "',"
+        + "'" + AppPermissions.SERVICE_ASSIGNMENT_WRITE + "',"
         + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "',"
         + "'" + AppPermissions.INSURANCE_POLICY_WRITE + "'"
         + ")"
@@ -268,7 +270,7 @@ public class ReferenceDataController {
         + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "'"
         + ")"
     )
-    public ResponseEntity<List<ReferenceItem>> getServiceAssignmentReferences() {
+    public ResponseEntity<List<ServiceAssignmentReferenceItem>> getServiceAssignmentReferences() {
         return ResponseEntity.ok(referenceDataService.getServiceAssignmentReferences());
     }
 

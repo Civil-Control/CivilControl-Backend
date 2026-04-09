@@ -1,8 +1,6 @@
 package PSG.backEnd.model.enums;
 
 public enum ServiceCategory {
-    RODADO("Rodado"),
-    INMUEBLE("Inmueble"),
     SERVICIO("Servicio"),
     TASA("Tasa"),
     IMPUESTO("Impuesto"),

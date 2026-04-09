@@ -3,7 +3,7 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentFilterDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentResponseDTO;
-import PSG.backEnd.model.enums.PaymentSubjectType;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -33,7 +33,7 @@ import PSG.backEnd.model.constants.AppPermissions;
 @RequestMapping("/api/v1/service-payments")
 @RequiredArgsConstructor
 @Tag(name = "Service Payments", description = "API for managing service payments. " +
-        "Supports both building-based payments (via service assignments) and vehicle-based payments (e.g. licence plate taxes). " +
+        "All payments are linked to a service assignment which references either a building or vehicle. " +
         "Tracks payment history, amounts, and reference numbers for accounting and auditing purposes.")
 public class ServicePaymentController {
 
@@ -63,8 +63,8 @@ public class ServicePaymentController {
             description = "Retrieves a paginated list of service payments with optional filtering.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved service payments list")
     public ResponseEntity<Page<ServicePaymentResponseDTO>> getServicePayments(
-            @Parameter(description = "Filter by subject type (BUILDING or VEHICLE)")
-            @RequestParam(required = false) PaymentSubjectType subjectType,
+            @Parameter(description = "Filter by subject type (BUILDING or VEHICLE) via assignment")
+            @RequestParam(required = false) SubjectType subjectType,
 
             @Parameter(description = "Filter by service assignment ID")
             @RequestParam(required = false) Long serviceAssignmentId,
@@ -146,7 +146,7 @@ public class ServicePaymentController {
             case "buildingCode" -> "serviceAssignment.building.code";
             case "serviceType" -> "serviceAssignment.serviceType";
             case "projectAreaName" -> "projectArea.name";
-            case "vehicleLicensePlate" -> "vehicle.licensePlate";
+            case "vehicleLicensePlate" -> "serviceAssignment.vehicle.licensePlate";
             default -> sortBy;
         };
     }

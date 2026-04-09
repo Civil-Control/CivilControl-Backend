@@ -3,6 +3,7 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.model.dto.reference.EmployeeReferenceItem;
 import PSG.backEnd.model.dto.reference.GasStationReferenceItem;
 import PSG.backEnd.model.dto.reference.ReferenceItem;
+import PSG.backEnd.model.dto.reference.ServiceAssignmentReferenceItem;
 import PSG.backEnd.model.dto.reference.VehicleReferenceItem;
 import PSG.backEnd.model.entity.Client;
 import PSG.backEnd.repository.ClientRepository;
@@ -185,20 +186,34 @@ public class ReferenceDataService implements IReferenceDataService {
     }
 
     @Override
-    public List<ReferenceItem> getServiceAssignmentReferences() {
+    public List<ServiceAssignmentReferenceItem> getServiceAssignmentReferences() {
         return serviceAssignmentRepository.findByDeletedFalse().stream()
                 .map(sa -> {
                     Supplier sup = sa.getServiceSupplier() != null ? sa.getServiceSupplier().getSupplier() : null;
                     String supplierName = sup != null
                             ? (sup.getTradeName() != null ? sup.getTradeName() : sup.getLegalName())
                             : "Proveedor #" + (sa.getServiceSupplier() != null ? sa.getServiceSupplier().getId() : "?");
-                    String buildingName = sa.getBuilding() != null ? sa.getBuilding().getName() : "";
+                    String subjectName;
+                    Long projectAreaId = null;
+                    if (sa.getSubjectType() == PSG.backEnd.model.enums.SubjectType.VEHICLE && sa.getVehicle() != null) {
+                        subjectName = sa.getVehicle().getLicensePlate();
+                        if (sa.getVehicle().getProjectArea() != null) {
+                            projectAreaId = sa.getVehicle().getProjectArea().getId();
+                        }
+                    } else if (sa.getBuilding() != null) {
+                        subjectName = sa.getBuilding().getName();
+                        if (sa.getBuilding().getProjectArea() != null) {
+                            projectAreaId = sa.getBuilding().getProjectArea().getId();
+                        }
+                    } else {
+                        subjectName = "";
+                    }
                     String serviceType = sa.getServiceType() != null ? sa.getServiceType().getDisplayName() : "";
-                    String label = supplierName + " · " + serviceType + " · " + buildingName;
+                    String label = supplierName + " · " + serviceType + " · " + subjectName;
                     if (sa.getAccountNumber() != null && !sa.getAccountNumber().isEmpty()) {
                         label += " (Cta: " + sa.getAccountNumber() + ")";
                     }
-                    return new ReferenceItem(sa.getId(), label);
+                    return new ServiceAssignmentReferenceItem(sa.getId(), label, projectAreaId);
                 })
                 .collect(Collectors.toList());
     }

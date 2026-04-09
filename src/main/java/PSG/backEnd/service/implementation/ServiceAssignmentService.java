@@ -5,18 +5,20 @@ import PSG.backEnd.exception.serviceSupplier.ServiceAssignmentAlreadyExistsExcep
 import PSG.backEnd.exception.serviceSupplier.ServiceAssignmentNotFoundException;
 import PSG.backEnd.exception.serviceSupplier.ServicePaymentNotValidException;
 import PSG.backEnd.exception.serviceSupplier.ServiceSupplierNotFoundException;
+import PSG.backEnd.exception.vehicle.VehicleNotValidException;
 import PSG.backEnd.model.dto.serviceSupplier.ServiceAssignmentDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServiceAssignmentFilterDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServiceAssignmentResponseDTO;
 import PSG.backEnd.model.entity.Building;
-import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.serviceSupplier.ServiceAssignment;
 import PSG.backEnd.model.entity.serviceSupplier.ServiceSupplier;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.mapper.ServiceAssignmentMapper;
 import PSG.backEnd.repository.BuildingRepository;
-import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.repository.ServiceAssignmentRepository;
 import PSG.backEnd.repository.ServiceSupplierRepository;
+import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.service.port.IServiceAssignmentService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -33,21 +35,18 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
     private final ServiceAssignmentRepository serviceAssignmentRepository;
     private final ServiceSupplierRepository serviceSupplierRepository;
     private final BuildingRepository buildingRepository;
-    private final ProjectAreaRepository projectAreaRepository;
+    private final VehicleRepository vehicleRepository;
     private final ServiceAssignmentMapper serviceAssignmentMapper;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
     public ServiceAssignmentResponseDTO createServiceAssignment(ServiceAssignmentDTO dto) {
         validateServiceSupplierExists(dto.serviceSupplierId());
-        validateBuildingExists(dto.buildingId());
+        validateSubjectReference(dto.subjectType(), dto.buildingId(), dto.vehicleId());
         validateServiceTypeProvidedBySupplier(dto.serviceSupplierId(), dto.serviceType());
 
         if (dto.paymentLocationId() != null) {
             validateBuildingExists(dto.paymentLocationId());
-        }
-        if (dto.projectAreaId() != null) {
-            validateProjectAreaExists(dto.projectAreaId());
         }
 
         validateAccountNumberUnique(dto.accountNumber(), null);
@@ -68,11 +67,11 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
     public Page<ServiceAssignmentResponseDTO> getAllServiceAssignments(
             ServiceAssignmentFilterDTO filterDTO, Pageable pageable) {
         Page<ServiceAssignment> assignments = serviceAssignmentRepository.findAllWithFilters(
+                filterDTO.subjectType(),
                 filterDTO.serviceSupplierId(),
                 filterDTO.buildingId(),
+                filterDTO.vehicleId(),
                 filterDTO.serviceType(),
-                filterDTO.serviceCategory(),
-                filterDTO.projectAreaId(),
                 filterDTO.search(),
                 pageable
         );
@@ -90,14 +89,17 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
             validateServiceSupplierExists(dto.serviceSupplierId());
             validateServiceTypeProvidedBySupplier(dto.serviceSupplierId(), newServiceType);
         }
-        if (dto.buildingId() != null) {
-            validateBuildingExists(dto.buildingId());
+
+        SubjectType effectiveSubjectType = dto.subjectType() != null ? dto.subjectType() : existing.getSubjectType();
+        Long effectiveBuildingId = dto.buildingId() != null ? dto.buildingId() : (existing.getBuilding() != null ? existing.getBuilding().getId() : null);
+        Long effectiveVehicleId = dto.vehicleId() != null ? dto.vehicleId() : (existing.getVehicle() != null ? existing.getVehicle().getId() : null);
+
+        if (dto.subjectType() != null || dto.buildingId() != null || dto.vehicleId() != null) {
+            validateSubjectReference(effectiveSubjectType, effectiveBuildingId, effectiveVehicleId);
         }
+
         if (dto.paymentLocationId() != null) {
             validateBuildingExists(dto.paymentLocationId());
-        }
-        if (dto.projectAreaId() != null) {
-            validateProjectAreaExists(dto.projectAreaId());
         }
 
         validateAccountNumberUnique(dto.accountNumber(), id);
@@ -108,20 +110,32 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
                     .orElseThrow(() -> new ServiceSupplierNotFoundException(dto.serviceSupplierId()));
             existing.setServiceSupplier(supplier);
         }
-        if (dto.buildingId() != null && !existing.getBuilding().getId().equals(dto.buildingId())) {
-            Building building = buildingRepository.findByIdAndDeletedFalse(dto.buildingId())
-                    .orElseThrow(() -> new BuildingNotFoundException(dto.buildingId()));
-            existing.setBuilding(building);
+
+        // Handle subject type change
+        if (dto.subjectType() != null) {
+            existing.setSubjectType(dto.subjectType());
         }
+
+        if (effectiveSubjectType == SubjectType.BUILDING) {
+            if (dto.buildingId() != null) {
+                Building building = buildingRepository.findByIdAndDeletedFalse(dto.buildingId())
+                        .orElseThrow(() -> new BuildingNotFoundException(dto.buildingId()));
+                existing.setBuilding(building);
+            }
+            existing.setVehicle(null);
+        } else if (effectiveSubjectType == SubjectType.VEHICLE) {
+            if (dto.vehicleId() != null) {
+                Vehicle vehicle = vehicleRepository.findByIdAndDeletedFalse(dto.vehicleId())
+                        .orElseThrow(() -> new VehicleNotValidException(dto.vehicleId()));
+                existing.setVehicle(vehicle);
+            }
+            existing.setBuilding(null);
+        }
+
         if (dto.paymentLocationId() != null) {
             Building paymentLocation = buildingRepository.findByIdAndDeletedFalse(dto.paymentLocationId())
                     .orElseThrow(() -> new BuildingNotFoundException(dto.paymentLocationId()));
             existing.setPaymentLocation(paymentLocation);
-        }
-        if (dto.projectAreaId() != null) {
-            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(dto.projectAreaId())
-                    .orElseThrow(() -> new RuntimeException(messageSourceHelper.getMessage("projectArea.notFound", dto.projectAreaId())));
-            existing.setProjectArea(projectArea);
         }
 
         serviceAssignmentMapper.partialUpdate(dto, existing);
@@ -138,6 +152,22 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
 
     // ============= Private validation methods =============
 
+    private void validateSubjectReference(SubjectType subjectType, Long buildingId, Long vehicleId) {
+        if (subjectType == SubjectType.BUILDING) {
+            if (buildingId == null) {
+                throw new ServicePaymentNotValidException(
+                        messageSourceHelper.getMessage("serviceAssignment.building.required"));
+            }
+            validateBuildingExists(buildingId);
+        } else if (subjectType == SubjectType.VEHICLE) {
+            if (vehicleId == null) {
+                throw new ServicePaymentNotValidException(
+                        messageSourceHelper.getMessage("serviceAssignment.vehicle.required"));
+            }
+            validateVehicleExists(vehicleId);
+        }
+    }
+
     private void validateServiceSupplierExists(Long serviceSupplierId) {
         if (!serviceSupplierRepository.existsByIdAndDeletedFalse(serviceSupplierId)) {
             throw new ServiceSupplierNotFoundException(serviceSupplierId);
@@ -150,9 +180,9 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
         }
     }
 
-    private void validateProjectAreaExists(Long projectAreaId) {
-        if (!projectAreaRepository.existsByIdAndDeletedFalse(projectAreaId)) {
-            throw new RuntimeException(messageSourceHelper.getMessage("projectArea.notFound", projectAreaId));
+    private void validateVehicleExists(Long vehicleId) {
+        if (!vehicleRepository.existsByIdAndDeletedFalse(vehicleId)) {
+            throw new VehicleNotValidException(vehicleId);
         }
     }
 
@@ -184,20 +214,20 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
                 .orElseThrow(() -> new ServiceSupplierNotFoundException(dto.serviceSupplierId()));
         assignment.setServiceSupplier(supplier);
 
-        Building building = buildingRepository.findByIdAndDeletedFalse(dto.buildingId())
-                .orElseThrow(() -> new BuildingNotFoundException(dto.buildingId()));
-        assignment.setBuilding(building);
+        if (dto.subjectType() == SubjectType.BUILDING) {
+            Building building = buildingRepository.findByIdAndDeletedFalse(dto.buildingId())
+                    .orElseThrow(() -> new BuildingNotFoundException(dto.buildingId()));
+            assignment.setBuilding(building);
+        } else if (dto.subjectType() == SubjectType.VEHICLE) {
+            Vehicle vehicle = vehicleRepository.findByIdAndDeletedFalse(dto.vehicleId())
+                    .orElseThrow(() -> new VehicleNotValidException(dto.vehicleId()));
+            assignment.setVehicle(vehicle);
+        }
 
         if (dto.paymentLocationId() != null) {
             Building paymentLocation = buildingRepository.findByIdAndDeletedFalse(dto.paymentLocationId())
                     .orElseThrow(() -> new BuildingNotFoundException(dto.paymentLocationId()));
             assignment.setPaymentLocation(paymentLocation);
-        }
-
-        if (dto.projectAreaId() != null) {
-            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(dto.projectAreaId())
-                    .orElseThrow(() -> new RuntimeException(messageSourceHelper.getMessage("projectArea.notFound", dto.projectAreaId())));
-            assignment.setProjectArea(projectArea);
         }
 
         assignment.setDeleted(false);

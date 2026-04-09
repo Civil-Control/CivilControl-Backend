@@ -1,6 +1,6 @@
 package PSG.backEnd.model.dto.serviceSupplier;
 
-import PSG.backEnd.model.enums.ServiceCategory;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -8,8 +8,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 
 @Schema(description = "Data Transfer Object for creating or updating a service assignment. " +
-        "Represents the binding of a specific service from a supplier to a building.")
+        "Represents the binding of a specific service from a supplier to a building or vehicle.")
 public record ServiceAssignmentDTO(
+
+        @Schema(description = "Subject type: BUILDING or VEHICLE.",
+                example = "BUILDING",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull(message = "{serviceAssignment.subjectType.required}", groups = OnCreate.class)
+        SubjectType subjectType,
 
         @Schema(description = "ID of the service supplier.",
                 example = "5",
@@ -18,12 +24,15 @@ public record ServiceAssignmentDTO(
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long serviceSupplierId,
 
-        @Schema(description = "ID of the building that receives the service.",
-                example = "12",
-                requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "{serviceAssignment.buildingId.required}", groups = OnCreate.class)
+        @Schema(description = "ID of the building (required when subjectType = BUILDING).",
+                example = "12")
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long buildingId,
+
+        @Schema(description = "ID of the vehicle (required when subjectType = VEHICLE).",
+                example = "7")
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+        Long vehicleId,
 
         @Schema(description = "Type of service assigned.",
                 example = "LUZ",
@@ -47,17 +56,8 @@ public record ServiceAssignmentDTO(
         @Size(max = 200, message = "{serviceAssignment.accountHolder.size}", groups = {OnCreate.class, OnUpdate.class})
         String accountHolder,
 
-        @Schema(description = "Category of the service or tax.",
-                example = "INMUEBLE")
-        ServiceCategory serviceCategory,
-
         @Schema(description = "ID of the building from where the payment is issued.",
                 example = "3")
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Long paymentLocationId,
-
-        @Schema(description = "ID of the project area for cost attribution.",
-                example = "2")
-        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-        Long projectAreaId
+        Long paymentLocationId
 ) {}

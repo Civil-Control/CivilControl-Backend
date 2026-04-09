@@ -4,7 +4,7 @@ import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.serviceSupplier.ServiceAssignmentDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServiceAssignmentFilterDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServiceAssignmentResponseDTO;
-import PSG.backEnd.model.enums.ServiceCategory;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -58,22 +58,22 @@ public class ServiceAssignmentController {
             description = "Retrieves a paginated list of service assignments with optional filtering.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved service assignments list")
     public ResponseEntity<Page<ServiceAssignmentResponseDTO>> getServiceAssignments(
+            @Parameter(description = "Filter by subject type (BUILDING or VEHICLE)")
+            @RequestParam(required = false) SubjectType subjectType,
+
             @Parameter(description = "Filter by service supplier ID")
             @RequestParam(required = false) Long serviceSupplierId,
 
             @Parameter(description = "Filter by building ID")
             @RequestParam(required = false) Long buildingId,
 
+            @Parameter(description = "Filter by vehicle ID")
+            @RequestParam(required = false) Long vehicleId,
+
             @Parameter(description = "Filter by service type")
             @RequestParam(required = false) ServiceType serviceType,
 
-            @Parameter(description = "Filter by service category")
-            @RequestParam(required = false) ServiceCategory serviceCategory,
-
-            @Parameter(description = "Filter by project area ID")
-            @RequestParam(required = false) Long projectAreaId,
-
-            @Parameter(description = "Generic search across supplier name, building name, account holder")
+            @Parameter(description = "Generic search across supplier name, building name, vehicle plate, account holder")
             @RequestParam(required = false) String search,
 
             @Parameter(description = "Page number (0-indexed)")
@@ -93,7 +93,7 @@ public class ServiceAssignmentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         ServiceAssignmentFilterDTO filterDTO = new ServiceAssignmentFilterDTO(
-                serviceSupplierId, buildingId, serviceType, serviceCategory, projectAreaId, search
+                subjectType, serviceSupplierId, buildingId, vehicleId, serviceType, search
         );
 
         return ResponseEntity.ok(serviceAssignmentService.getAllServiceAssignments(filterDTO, pageable));
@@ -104,7 +104,7 @@ public class ServiceAssignmentController {
             case "supplierName" -> "serviceSupplier.supplier.legalName";
             case "supplierTradeName" -> "serviceSupplier.supplier.tradeName";
             case "buildingName" -> "building.name";
-            case "projectAreaName" -> "projectArea.name";
+            case "vehicleLicensePlate" -> "vehicle.licensePlate";
             case "paymentLocationName" -> "paymentLocation.name";
             default -> sortBy;
         };

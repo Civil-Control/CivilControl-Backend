@@ -2,8 +2,6 @@ package PSG.backEnd.model.entity.serviceSupplier;
 
 import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.TenantEntity;
-import PSG.backEnd.model.entity.vehicle.Vehicle;
-import PSG.backEnd.model.enums.PaymentSubjectType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
@@ -27,17 +25,9 @@ public class ServicePayment extends TenantEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "subject_type", nullable = false)
-    private PaymentSubjectType subjectType;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_assignment_id")
+    @JoinColumn(name = "service_assignment_id", nullable = false)
     private ServiceAssignment serviceAssignment;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_id")
-    private Vehicle vehicle;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id")
