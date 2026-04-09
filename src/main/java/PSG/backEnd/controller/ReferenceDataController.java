@@ -51,7 +51,7 @@ public class ReferenceDataController {
     private final IReferenceDataService referenceDataService;
 
     // ── Vehicles ──────────────────────────────────────────────────
-    // Needed by: Repair, RepairOrder, FuelLoad, LicencePlatePayment,
+    // Needed by: Repair, RepairOrder, FuelLoad, ServicePayment (vehicle-based),
     //            InsurancePolicy, Vehicle (self-ref for types)
     @GetMapping("/vehicles")
     @Operation(summary = "Vehicle references for form dropdowns")
@@ -62,7 +62,7 @@ public class ReferenceDataController {
         + "'" + AppPermissions.REPAIR_WRITE + "',"
         + "'" + AppPermissions.REPAIR_ORDER_CREATE + "',"
         + "'" + AppPermissions.FUEL_LOAD_WRITE + "',"
-        + "'" + AppPermissions.LICENCE_PLATE_PAYMENT_WRITE + "',"
+        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "',"
         + "'" + AppPermissions.INSURANCE_POLICY_WRITE + "'"
         + ")"
     )
@@ -128,7 +128,7 @@ public class ReferenceDataController {
 
     // ── Project Areas ─────────────────────────────────────────────
     // Needed by: Vehicle, FuelLoad, Employee, Building, TransactionalDocument,
-    //            LicencePlatePayment, SalaryPayment, ServiceAssignment, ServicePayment
+    //            SalaryPayment, ServiceAssignment, ServicePayment
     @GetMapping("/project-areas")
     @Operation(summary = "Project area references for form dropdowns")
     @ApiResponse(responseCode = "200", description = "List of project areas (id + label)")
@@ -140,7 +140,6 @@ public class ReferenceDataController {
         + "'" + AppPermissions.EMPLOYEE_WRITE + "',"
         + "'" + AppPermissions.BUILDING_WRITE + "',"
         + "'" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "',"
-        + "'" + AppPermissions.LICENCE_PLATE_PAYMENT_WRITE + "',"
         + "'" + AppPermissions.SALARY_PAYMENT_WRITE + "',"
         + "'" + AppPermissions.SERVICE_ASSIGNMENT_WRITE + "',"
         + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "'"

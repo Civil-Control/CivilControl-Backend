@@ -13,9 +13,9 @@ import PSG.backEnd.model.entity.employee.SalaryPayment;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.entity.insurance.PolicyPayment;
 import PSG.backEnd.model.entity.serviceSupplier.ServicePayment;
-import PSG.backEnd.model.entity.vehicle.LicencePlatePayment;
 import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
+import PSG.backEnd.model.enums.PaymentSubjectType;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.vehicle.RepairType;
 import PSG.backEnd.repository.*;
@@ -58,7 +58,6 @@ public class ReportService implements IReportService {
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
     private final ServicePaymentRepository servicePaymentRepository;
-    private final LicencePlatePaymentRepository licencePlatePaymentRepository;
     private final FuelLoadRepository fuelLoadRepository;
     private final PolicyPaymentRepository policyPaymentRepository;
     private final RepairRepository repairRepository;
@@ -77,7 +76,6 @@ public class ReportService implements IReportService {
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
-            LicencePlatePaymentRepository licencePlatePaymentRepository,
             FuelLoadRepository fuelLoadRepository,
             PolicyPaymentRepository policyPaymentRepository,
             RepairRepository repairRepository,
@@ -96,7 +94,6 @@ public class ReportService implements IReportService {
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
-        this.licencePlatePaymentRepository = licencePlatePaymentRepository;
         this.fuelLoadRepository = fuelLoadRepository;
         this.policyPaymentRepository = policyPaymentRepository;
         this.repairRepository = repairRepository;
@@ -571,11 +568,15 @@ public class ReportService implements IReportService {
         Pageable pageable = PageRequest.of(0, 10000);
 
         var servicePayments = servicePaymentRepository.findAllWithFilters(
+                PaymentSubjectType.BUILDING, // only building-based payments
                 null, // serviceAssignmentId
                 null, // serviceSupplierId
                 null, // buildingId
                 getEffectiveAreaId(filters), // projectAreaId - from filter
                 null, // serviceType
+                null, // vehicleId
+                null, // year
+                null, // period
                 filters.startDate(),
                 filters.endDate(),
                 filters.minAmount(),
@@ -625,51 +626,58 @@ public class ReportService implements IReportService {
     }
 
     /**
-     * Collects money outflow items from LicencePlatePayment entities.
+     * Collects money outflow items from vehicle-based ServicePayment entities (formerly LicencePlatePayment).
      */
     private List<ReportItemDTO> collectFromLicencePlatePayments(ReportFilterDTO filters) {
-        log.debug("Collecting from licence plate payments");
+        log.debug("Collecting from vehicle-based service payments (licence plate)");
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        var licencePlatePayments = licencePlatePaymentRepository.findAllWithFilters(
-                filters.startDate(),
-                filters.endDate(),
+        var vehiclePayments = servicePaymentRepository.findAllWithFilters(
+                PaymentSubjectType.VEHICLE,
+                null, // serviceAssignmentId
+                null, // serviceSupplierId
+                null, // buildingId
+                getEffectiveAreaId(filters), // projectAreaId
+                null, // serviceType
                 null, // vehicleId
-                null, // vehicleLicensePlate
-                getEffectiveAreaId(filters), // projectAreaId - from filter
-                filters.minAmount(),
-                filters.maxAmount(),
                 null, // year
                 null, // period
-                null, // jurisdictionType
+                filters.startDate(),
+                filters.endDate(),
+                filters.minAmount(),
+                filters.maxAmount(),
+                null, // referenceNumber
+                null, // supplierName
+                null, // search
                 pageable
         ).getContent();
 
         List<ReportItemDTO> items = new ArrayList<>();
 
-        for (LicencePlatePayment lpp : licencePlatePayments) {
-            String description = "Pago de patente " + lpp.getYear() + " - Período " + lpp.getPeriod();
+        for (ServicePayment sp : vehiclePayments) {
+            String licensePlate = sp.getVehicle() != null ? sp.getVehicle().getLicensePlate() : "N/A";
+            String description = "Pago de patente"
+                    + (sp.getYear() != null ? " " + sp.getYear() : "")
+                    + (sp.getPeriod() != null ? " - Período " + sp.getPeriod() : "")
+                    + " - " + licensePlate;
 
             items.add(ReportItemDTO.builder()
-                    .id(lpp.getId())
-                    .date(lpp.getDate())
+                    .id(sp.getId())
+                    .date(sp.getPaymentDate())
                     .category(MoneyOutflowCategory.LICENCE_PLATE)
                     .description(description)
-                    .amount(lpp.getAmount())
-                    .paymentMethod(null)
-                    .beneficiary(lpp.getJurisdictionType().getDisplayName())
-                    .reference("Vehículo ID: " + lpp.getVehicleId())
-                    .comment(null)
-                    .projectAreaName(lpp.getProjectAreaId() != null
-                            ? projectAreaRepository.findById(lpp.getProjectAreaId())
-                                    .map(a -> a.getName()).orElse(null)
-                            : null)
+                    .amount(sp.getAmount())
+                    .paymentMethod(sp.getPaymentMethod() != null ? sp.getPaymentMethod().getDisplayName() : null)
+                    .beneficiary(licensePlate)
+                    .reference(sp.getReferenceNumber())
+                    .comment(sp.getComment())
+                    .projectAreaName(sp.getProjectArea() != null ? sp.getProjectArea().getName() : null)
                     .linkedDocumentId(null)
                     .build());
         }
 
-        log.debug("Collected {} licence plate payment items", items.size());
+        log.debug("Collected {} vehicle-based payment items", items.size());
         return items;
     }
 

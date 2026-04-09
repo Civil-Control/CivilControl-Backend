@@ -199,26 +199,6 @@ public final class AppPermissions {
      */
     public static final String INSURANCE_POLICY_DELETE = "INSURANCE_POLICY_DELETE";
 
-    // ==================== MODULE: LICENCE PLATE PAYMENTS ====================
-    
-    /**
-     * Module: Licence Plate Payments
-     * Allows viewing licence plate payments.
-     */
-    public static final String LICENCE_PLATE_PAYMENT_READ = "LICENCE_PLATE_PAYMENT_READ";
-    
-    /**
-     * Module: Licence Plate Payments
-     * Allows creating and editing licence plate payments.
-     */
-    public static final String LICENCE_PLATE_PAYMENT_WRITE = "LICENCE_PLATE_PAYMENT_WRITE";
-    
-    /**
-     * Module: Licence Plate Payments
-     * Allows deleting licence plate payments.
-     */
-    public static final String LICENCE_PLATE_PAYMENT_DELETE = "LICENCE_PLATE_PAYMENT_DELETE";
-
     // ==================== MODULE: GAS STATIONS ====================
     
     /**

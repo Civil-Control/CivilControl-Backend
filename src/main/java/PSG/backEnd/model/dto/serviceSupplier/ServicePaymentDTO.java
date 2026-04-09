@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.serviceSupplier;
 
+import PSG.backEnd.model.enums.PaymentSubjectType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -10,53 +11,66 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Schema(description = "Data Transfer Object for creating or updating a service payment. " +
-        "Represents a payment made for a service assignment (service bound to a building).")
+        "Supports both building-based (via service assignment) and vehicle-based payments.")
 public record ServicePaymentDTO(
 
-        @Schema(description = "ID of the service assignment this payment is for.",
-                example = "5",
+        @Schema(description = "Type of subject: BUILDING (service assignment) or VEHICLE.",
+                example = "BUILDING",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "{servicePayment.serviceAssignmentId.required}", groups = OnCreate.class)
+        @NotNull(message = "{servicePayment.subjectType.required}", groups = OnCreate.class)
+        PaymentSubjectType subjectType,
+
+        @Schema(description = "ID of the service assignment (required when subjectType = BUILDING).",
+                example = "5")
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long serviceAssignmentId,
 
-        @Schema(description = "ID of the project area for cost attribution. " +
-                "Defaults from the service assignment's project area if not specified.",
+        @Schema(description = "ID of the vehicle (required when subjectType = VEHICLE).",
+                example = "12")
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+        Long vehicleId,
+
+        @Schema(description = "ID of the project area for cost attribution.",
                 example = "2")
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long projectAreaId,
 
-        @Schema(description = "Date when the service payment was made. " +
-                "Cannot be in the future. Must be today or a past date.",
+        @Schema(description = "Date when the service payment was made.",
                 example = "2025-11-01",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "{servicePayment.paymentDate.required}", groups = OnCreate.class)
         @PastOrPresent(message = "{servicePayment.paymentDate.pastOrPresent}", groups = {OnCreate.class, OnUpdate.class})
         LocalDate paymentDate,
 
-        @Schema(description = "Amount paid for the service. Must be greater than zero. " +
-                "Format: maximum 8 integer digits and 2 decimal places (e.g., 99999999.99).",
+        @Schema(description = "Amount paid. Must be greater than zero.",
                 example = "15750.50",
-                minimum = "0.01",
-                requiredMode = Schema.RequiredMode.REQUIRED,
-                type = "number",
-                format = "decimal")
+                requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "{servicePayment.amount.required}", groups = OnCreate.class)
         @DecimalMin(value = "0.01", message = "{servicePayment.amount.positive}", groups = {OnCreate.class, OnUpdate.class})
         @Digits(integer = 8, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
         BigDecimal amount,
 
-        @Schema(description = "Reference number or invoice number of the service payment.",
+        @Schema(description = "Year the payment applies to.", example = "2026")
+        @Min(value = 2000, message = "{servicePayment.year.min}", groups = {OnCreate.class, OnUpdate.class})
+        @Max(value = 2100, message = "{servicePayment.year.max}", groups = {OnCreate.class, OnUpdate.class})
+        Integer year,
+
+        @Schema(description = "Period (month) the payment applies to. 1 = January, 12 = December.", example = "3")
+        @Min(value = 1, message = "{servicePayment.period.min}", groups = {OnCreate.class, OnUpdate.class})
+        @Max(value = 12, message = "{servicePayment.period.max}", groups = {OnCreate.class, OnUpdate.class})
+        Integer period,
+
+        @Schema(description = "Reference number or invoice number.",
                 example = "INV-2025-001234")
         @Size(max = 100, message = "{servicePayment.referenceNumber.size}", groups = {OnCreate.class, OnUpdate.class})
         String referenceNumber,
 
-        @Schema(description = "Additional comments or notes about the service payment.",
+        @Schema(description = "Additional comments or notes.",
                 example = "Payment for November 2025 electricity bill")
         @Size(max = 500, message = "{servicePayment.comment.size}", groups = {OnCreate.class, OnUpdate.class})
         String comment,
 
-        @Schema(description = "Payment method used for this service payment.",
+        @Schema(description = "Payment method used.",
                 nullable = true)
         PaymentMethod paymentMethod
 ) {}

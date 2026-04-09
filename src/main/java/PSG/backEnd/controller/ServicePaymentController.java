@@ -3,6 +3,7 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentFilterDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentResponseDTO;
+import PSG.backEnd.model.enums.PaymentSubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -31,8 +32,8 @@ import PSG.backEnd.model.constants.AppPermissions;
 @RestController
 @RequestMapping("/api/v1/service-payments")
 @RequiredArgsConstructor
-@Tag(name = "Service Payments", description = "API for managing utility service payments. " +
-        "Handles payments for electricity, water, gas, internet, phone, and other utility services for buildings. " +
+@Tag(name = "Service Payments", description = "API for managing service payments. " +
+        "Supports both building-based payments (via service assignments) and vehicle-based payments (e.g. licence plate taxes). " +
         "Tracks payment history, amounts, and reference numbers for accounting and auditing purposes.")
 public class ServicePaymentController {
 
@@ -62,6 +63,9 @@ public class ServicePaymentController {
             description = "Retrieves a paginated list of service payments with optional filtering.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved service payments list")
     public ResponseEntity<Page<ServicePaymentResponseDTO>> getServicePayments(
+            @Parameter(description = "Filter by subject type (BUILDING or VEHICLE)")
+            @RequestParam(required = false) PaymentSubjectType subjectType,
+
             @Parameter(description = "Filter by service assignment ID")
             @RequestParam(required = false) Long serviceAssignmentId,
 
@@ -76,6 +80,15 @@ public class ServicePaymentController {
 
             @Parameter(description = "Filter by service type")
             @RequestParam(required = false) ServiceType serviceType,
+
+            @Parameter(description = "Filter by vehicle ID")
+            @RequestParam(required = false) Long vehicleId,
+
+            @Parameter(description = "Filter by year")
+            @RequestParam(required = false) Integer year,
+
+            @Parameter(description = "Filter by period (month 1-12)")
+            @RequestParam(required = false) Integer period,
 
             @Parameter(description = "Filter by minimum payment date (inclusive)")
             @RequestParam(required = false) LocalDate startDate,
@@ -116,7 +129,8 @@ public class ServicePaymentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         ServicePaymentFilterDTO filterDTO = new ServicePaymentFilterDTO(
-                serviceAssignmentId, serviceSupplierId, buildingId, projectAreaId, serviceType,
+                subjectType, serviceAssignmentId, serviceSupplierId, buildingId, projectAreaId, serviceType,
+                vehicleId, year, period,
                 startDate, endDate, minAmount, maxAmount, referenceNumber, supplierName, search
         );
 
@@ -132,6 +146,7 @@ public class ServicePaymentController {
             case "buildingCode" -> "serviceAssignment.building.code";
             case "serviceType" -> "serviceAssignment.serviceType";
             case "projectAreaName" -> "projectArea.name";
+            case "vehicleLicensePlate" -> "vehicle.licensePlate";
             default -> sortBy;
         };
     }
