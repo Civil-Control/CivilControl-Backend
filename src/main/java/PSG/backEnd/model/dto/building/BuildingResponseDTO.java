@@ -25,7 +25,7 @@ public record BuildingResponseDTO(
 
     @Schema(description = "Type of the building.",
             example = "PLANTA",
-            allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "OTRO"})
+            allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "GALPON", "RESIDENCIAL", "CONSULTORIO", "TERRENO", "OTRO"})
     BuildingType buildingType,
 
     @Schema(description = "ID of the project area (sector) to which this building belongs. Null if not assigned to any sector.",

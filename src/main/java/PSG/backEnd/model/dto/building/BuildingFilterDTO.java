@@ -16,7 +16,7 @@ public record BuildingFilterDTO(
 
     @Schema(description = "Filter by building type.",
             example = "PLANTA",
-            allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "OTRO"})
+            allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "GALPON", "RESIDENCIAL", "CONSULTORIO", "TERRENO", "OTRO"})
     BuildingType buildingType,
 
     @Schema(description = "Filter by project area (sector) ID.",

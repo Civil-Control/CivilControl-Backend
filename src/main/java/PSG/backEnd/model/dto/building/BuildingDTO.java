@@ -36,12 +36,10 @@ public record BuildingDTO(
     @Valid
     AddressDTO address,
 
-    @Schema(description = "Type of the building for classification purposes. Valid values: " +
-            "PLANTA (Plant/Factory), DEPOSITO (Warehouse/Storage), OFICINA (Office), " +
-            "SUCURSAL (Branch), OTRO (Other).",
+    @Schema(description = "Type of the building for classification purposes.",
             example = "PLANTA",
             requiredMode = Schema.RequiredMode.REQUIRED,
-            allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "OTRO"})
+            allowableValues = {"PLANTA", "DEPOSITO", "OFICINA", "SUCURSAL", "GALPON", "RESIDENCIAL", "CONSULTORIO", "TERRENO", "OTRO"})
     @NotNull(groups = OnCreate.class, message = "{validation.required}")
     BuildingType buildingType,
 
