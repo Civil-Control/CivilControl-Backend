@@ -7,8 +7,6 @@ import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.payment.CheckPayment;
 import PSG.backEnd.model.entity.payment.PaymentDetails;
 import PSG.backEnd.model.entity.payment.TransferPayment;
-import com.itextpdf.kernel.colors.ColorConstants;
-import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -25,37 +23,44 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * Generates a Payment Order PDF that replicates the format of the company's
+ * official "Orden de Pago" document: black-and-white, thin borders, no colors.
+ */
 @Component
 @Slf4j
 public class PaymentOrderPdfService {
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final DeviceRgb HEADER_BG = new DeviceRgb(41, 128, 185);
-    private static final DeviceRgb LIGHT_GRAY = new DeviceRgb(245, 245, 245);
-    private static final float FONT_SIZE_SMALL = 8f;
-    private static final float FONT_SIZE_NORMAL = 9f;
-    private static final float FONT_SIZE_LABEL = 10f;
-    private static final float FONT_SIZE_TITLE = 14f;
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final SolidBorder THIN = new SolidBorder(0.5f);
+    private static final float SZ_XS = 7.5f;
+    private static final float SZ_SM = 8.5f;
+    private static final float SZ_MD = 9f;
+    private static final float SZ_LG = 13f;
+    private static final float SZ_XL = 22f;
+    private static final float CELL_PAD = 3f;
+
+    // ────────────────────────────────────────────────────────────────
+    // Public API
+    // ────────────────────────────────────────────────────────────────
 
     public byte[] generate(PaymentDetails payment, Tenant tenant) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             PdfWriter writer = new PdfWriter(baos);
             PdfDocument pdfDoc = new PdfDocument(writer);
-            Document document = new Document(pdfDoc);
-            document.setMargins(30, 30, 30, 30);
+            Document doc = new Document(pdfDoc);
+            doc.setMargins(30, 30, 30, 30);
 
-            addHeader(document, payment, tenant);
-            addIssuerSection(document, tenant);
-            addBeneficiarySection(document, payment.getSupplier());
-            addConceptSection(document, payment.getComment());
-            addBodySection(document, payment);
-            addTotalsSection(document, payment);
+            addHeader(doc, payment, tenant);
+            addBeneficiary(doc, payment.getSupplier());
+            addConcept(doc, payment.getComment());
+            addBody(doc, payment);
+            addTotals(doc, payment);
 
-            document.close();
+            doc.close();
             return baos.toByteArray();
         } catch (Exception e) {
             log.error("Error generating payment order PDF for payment ID {}", payment.getId(), e);
@@ -63,167 +68,145 @@ public class PaymentOrderPdfService {
         }
     }
 
-    private void addHeader(Document document, PaymentDetails payment, Tenant tenant) {
-        Table headerTable = new Table(new float[]{3, 1, 3});
-        headerTable.setWidth(UnitValue.createPercentValue(100));
-        headerTable.setBorder(new SolidBorder(1));
+    // ────────────────────────────────────────────────────────────────
+    // Header  (company name + X + "Orden de pago" + issuer data)
+    // Matches the reference: one outer bordered box split in 3 columns
+    // ────────────────────────────────────────────────────────────────
 
-        // Left: Company name
+    private void addHeader(Document doc, PaymentDetails payment, Tenant tenant) {
+        // Outer table: [left = company+issuer] [center = X] [right = title+meta]
+        Table outer = new Table(new float[]{5, 1, 5});
+        outer.setWidth(UnitValue.createPercentValue(100));
+        outer.setBorder(THIN);
+
+        // ── LEFT CELL ──
+        Cell left = new Cell().setBorder(THIN).setPadding(6);
         String companyName = tenant.getLegalName() != null ? tenant.getLegalName() : tenant.getName();
-        Cell companyCell = new Cell(1, 1)
-                .add(new Paragraph(companyName).setBold().setFontSize(12))
-                .setVerticalAlignment(VerticalAlignment.MIDDLE)
-                .setTextAlignment(TextAlignment.CENTER)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(10);
-        headerTable.addCell(companyCell);
+        left.add(new Paragraph(companyName).setBold().setFontSize(SZ_LG)
+                .setTextAlignment(TextAlignment.CENTER).setMarginBottom(8));
+        left.add(labelValue("Razón Social:  ", companyName));
+        left.add(labelValue("Condición IVA:",
+                tenant.getIvaCondition() != null ? tenant.getIvaCondition().getDisplayName() : "-"));
+        left.add(labelValue("Domicilio:     ", formatAddress(tenant.getAddress())));
+        outer.addCell(left);
 
-        // Center: "X" document type marker
-        Cell xCell = new Cell(1, 1)
-                .add(new Paragraph("X").setBold().setFontSize(28))
-                .setVerticalAlignment(VerticalAlignment.MIDDLE)
+        // ── CENTER CELL (X) ──
+        Cell center = new Cell().setBorder(THIN)
+                .setVerticalAlignment(VerticalAlignment.TOP)
                 .setTextAlignment(TextAlignment.CENTER)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(5);
-        headerTable.addCell(xCell);
-
-        // Right: Document info
-        Cell infoCell = new Cell(1, 1)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(8);
-        infoCell.add(new Paragraph("ORDEN DE PAGO").setBold().setFontSize(FONT_SIZE_TITLE)
+                .setPadding(4);
+        center.add(new Paragraph("X").setBold().setFontSize(SZ_XL)
                 .setTextAlignment(TextAlignment.CENTER));
-        infoCell.add(new Paragraph("Fecha emisión: " + payment.getPaymentDate().format(DATE_FORMATTER))
-                .setFontSize(FONT_SIZE_NORMAL));
-        infoCell.add(new Paragraph("Número: " + formatPaymentNumber(payment.getId()))
-                .setFontSize(FONT_SIZE_NORMAL));
+        outer.addCell(center);
+
+        // ── RIGHT CELL ──
+        Cell right = new Cell().setBorder(THIN).setPadding(6);
+        right.add(new Paragraph("Orden de pago").setBold().setFontSize(SZ_LG)
+                .setMarginBottom(4));
+        right.add(new Paragraph("Fecha emisión:       "
+                + payment.getPaymentDate().format(DATE_FMT)).setFontSize(SZ_SM));
+        right.add(new Paragraph("Numero:                "
+                + formatNumber(payment.getId())).setFontSize(SZ_SM));
         if (tenant.getCuit() != null) {
-            infoCell.add(new Paragraph("C.U.I.T: " + tenant.getCuit())
-                    .setFontSize(FONT_SIZE_NORMAL));
+            right.add(new Paragraph("C.U.I.T:               " + tenant.getCuit())
+                    .setFontSize(SZ_SM));
         }
-        headerTable.addCell(infoCell);
+        outer.addCell(right);
 
-        document.add(headerTable);
-        document.add(new Paragraph("\n").setFontSize(4));
+        doc.add(outer);
+        doc.add(spacer());
     }
 
-    private void addIssuerSection(Document document, Tenant tenant) {
-        Table table = new Table(new float[]{1.5f, 4});
-        table.setWidth(UnitValue.createPercentValue(100));
-        table.setBorder(new SolidBorder(0.5f));
+    // ────────────────────────────────────────────────────────────────
+    // Beneficiary – 4-column grid: label | value | label | value
+    // ────────────────────────────────────────────────────────────────
 
-        Cell titleCell = new Cell(1, 2)
-                .add(new Paragraph("EMISOR").setBold().setFontSize(FONT_SIZE_LABEL))
-                .setBackgroundColor(LIGHT_GRAY)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(4);
-        table.addCell(titleCell);
+    private void addBeneficiary(Document doc, Supplier s) {
+        Table t = new Table(new float[]{1.5f, 4, 1.8f, 3});
+        t.setWidth(UnitValue.createPercentValue(100));
+        t.setBorder(THIN);
 
-        String legalName = tenant.getLegalName() != null ? tenant.getLegalName() : tenant.getName();
-        addLabelValueRow(table, "Razón Social:", legalName);
+        String name = s.getTradeName() != null ? s.getTradeName() : s.getLegalName();
+        addKvCell(t, "Nombre:", name);
+        addKvCell(t, "C.U.I.T:", s.getCuit() != null ? s.getCuit() : "-");
 
-        String ivaCondition = tenant.getIvaCondition() != null
-                ? tenant.getIvaCondition().getDisplayName() : "-";
-        addLabelValueRow(table, "Condición IVA:", ivaCondition);
+        addKvCell(t, "Domicilio:", formatAddress(s.getAddress()));
+        addKvCell(t, "Condición de IVA:",
+                s.getIvaCondition() != null ? s.getIvaCondition().getDisplayName() : "-");
 
-        addLabelValueRow(table, "Domicilio:", formatAddress(tenant.getAddress()));
-
-        document.add(table);
-        document.add(new Paragraph("\n").setFontSize(4));
+        doc.add(t);
+        doc.add(spacer());
     }
 
-    private void addBeneficiarySection(Document document, Supplier supplier) {
-        Table table = new Table(new float[]{1.5f, 4});
-        table.setWidth(UnitValue.createPercentValue(100));
-        table.setBorder(new SolidBorder(0.5f));
+    // ────────────────────────────────────────────────────────────────
+    // Concept
+    // ────────────────────────────────────────────────────────────────
 
-        Cell titleCell = new Cell(1, 2)
-                .add(new Paragraph("BENEFICIARIO").setBold().setFontSize(FONT_SIZE_LABEL))
-                .setBackgroundColor(LIGHT_GRAY)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(4);
-        table.addCell(titleCell);
+    private void addConcept(Document doc, String comment) {
+        Table t = new Table(new float[]{1.5f, 10});
+        t.setWidth(UnitValue.createPercentValue(100));
+        t.setBorder(THIN);
 
-        String name = supplier.getTradeName() != null ? supplier.getTradeName() : supplier.getLegalName();
-        addLabelValueRow(table, "Nombre:", name);
-        addLabelValueRow(table, "C.U.I.T:", supplier.getCuit() != null ? supplier.getCuit() : "-");
-        addLabelValueRow(table, "Domicilio:", formatAddress(supplier.getAddress()));
+        addKvCell(t, "Concepto:", comment != null && !comment.isBlank() ? comment : "");
 
-        String ivaCondition = supplier.getIvaCondition() != null
-                ? supplier.getIvaCondition().getDisplayName() : "-";
-        addLabelValueRow(table, "Condición de IVA:", ivaCondition);
-
-        document.add(table);
-        document.add(new Paragraph("\n").setFontSize(4));
+        doc.add(t);
+        doc.add(spacer());
     }
 
-    private void addConceptSection(Document document, String comment) {
-        Table table = new Table(new float[]{1.5f, 4});
-        table.setWidth(UnitValue.createPercentValue(100));
-        table.setBorder(new SolidBorder(0.5f));
+    // ────────────────────────────────────────────────────────────────
+    // Body – side-by-side: documents table | payment method table
+    // Both share the same outer border
+    // ────────────────────────────────────────────────────────────────
 
-        addLabelValueRow(table, "Concepto:", comment != null ? comment : "");
+    private void addBody(Document doc, PaymentDetails payment) {
+        Table wrapper = new Table(new float[]{1, 1});
+        wrapper.setWidth(UnitValue.createPercentValue(100));
+        wrapper.setBorder(THIN);
 
-        document.add(table);
-        document.add(new Paragraph("\n").setFontSize(4));
-    }
-
-    private void addBodySection(Document document, PaymentDetails payment) {
-        // Two side-by-side tables: Comprobantes Imputados | Forma de Pago
-        Table bodyTable = new Table(new float[]{1, 1});
-        bodyTable.setWidth(UnitValue.createPercentValue(100));
-
-        // Left column: Comprobantes Imputados
-        Cell leftCell = new Cell().setBorder(Border.NO_BORDER).setPaddingRight(5);
+        // Left: Comprobantes Imputados
+        Cell leftCell = new Cell().setBorder(THIN).setPadding(0);
         leftCell.add(buildDocumentsTable(payment.getPaidDocuments()));
-        bodyTable.addCell(leftCell);
+        wrapper.addCell(leftCell);
 
-        // Right column: Payment method details
-        Cell rightCell = new Cell().setBorder(Border.NO_BORDER).setPaddingLeft(5);
+        // Right: Payment method
+        Cell rightCell = new Cell().setBorder(THIN).setPadding(0);
         rightCell.add(buildPaymentMethodTable(payment));
-        bodyTable.addCell(rightCell);
+        wrapper.addCell(rightCell);
 
-        document.add(bodyTable);
-        document.add(new Paragraph("\n").setFontSize(4));
+        doc.add(wrapper);
     }
 
     private Table buildDocumentsTable(List<TransactionalDocument> documents) {
-        Table table = new Table(new float[]{2, 3, 2});
-        table.setWidth(UnitValue.createPercentValue(100));
-        table.setBorder(new SolidBorder(0.5f));
+        // Columns: date | reference + amount original | amount paid
+        Table t = new Table(new float[]{2, 4, 2.5f, 2.5f});
+        t.setWidth(UnitValue.createPercentValue(100));
+        t.setBorder(Border.NO_BORDER);
 
-        Cell titleCell = new Cell(1, 3)
-                .add(new Paragraph("Comprobantes Imputados").setBold().setFontSize(FONT_SIZE_LABEL))
-                .setBackgroundColor(LIGHT_GRAY)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(4);
-        table.addCell(titleCell);
-
-        // Headers
-        table.addHeaderCell(createTableHeaderCell("Fecha"));
-        table.addHeaderCell(createTableHeaderCell("Comprobante"));
-        table.addHeaderCell(createTableHeaderCell("Importe"));
+        // Title row
+        Cell title = noBorderCell(1, 4)
+                .add(new Paragraph("Comprobantes Imputados").setBold().setFontSize(SZ_SM)
+                        .setTextAlignment(TextAlignment.CENTER))
+                .setPaddingBottom(2);
+        t.addCell(title);
 
         if (documents != null && !documents.isEmpty()) {
-            for (TransactionalDocument doc : documents) {
-                table.addCell(createDataCell(doc.getDate().format(DATE_FORMATTER), TextAlignment.CENTER));
+            for (TransactionalDocument d : documents) {
+                t.addCell(dataCell(d.getDate().format(DATE_FMT), TextAlignment.LEFT));
 
-                String docRef = doc.getDocumentType().getDisplayName() + " "
-                        + doc.getBranchCode() + "-" + doc.getDocumentNumber();
-                table.addCell(createDataCell(docRef, TextAlignment.LEFT));
+                String ref = shortDocType(d.getDocumentType().getDisplayName())
+                        + " " + d.getBranchCode() + "-" + d.getDocumentNumber();
+                t.addCell(dataCell(ref, TextAlignment.LEFT));
 
-                table.addCell(createDataCell(formatAmount(doc.getTotal()), TextAlignment.RIGHT));
+                t.addCell(dataCell(fmt(d.getTotal()), TextAlignment.RIGHT));
+                t.addCell(dataCell(fmt(d.getTotal()), TextAlignment.RIGHT));
             }
-        } else {
-            Cell emptyCell = new Cell(1, 3)
-                    .add(new Paragraph("Sin comprobantes vinculados").setFontSize(FONT_SIZE_SMALL)
-                            .setTextAlignment(TextAlignment.CENTER))
-                    .setBorder(new SolidBorder(0.5f))
-                    .setPadding(8);
-            table.addCell(emptyCell);
         }
 
-        return table;
+        // Fill remaining space so the table doesn't collapse
+        Cell filler = noBorderCell(1, 4).setMinHeight(30);
+        t.addCell(filler);
+
+        return t;
     }
 
     private Table buildPaymentMethodTable(PaymentDetails payment) {
@@ -237,168 +220,169 @@ public class PaymentOrderPdfService {
     }
 
     private Table buildCheckTable(CheckPayment check, BigDecimal amount) {
-        Table table = new Table(new float[]{2, 2, 2, 2});
-        table.setWidth(UnitValue.createPercentValue(100));
-        table.setBorder(new SolidBorder(0.5f));
+        Table t = new Table(new float[]{2, 3, 3});
+        t.setWidth(UnitValue.createPercentValue(100));
+        t.setBorder(Border.NO_BORDER);
 
-        Cell titleCell = new Cell(1, 4)
-                .add(new Paragraph("Cheques").setBold().setFontSize(FONT_SIZE_LABEL))
-                .setBackgroundColor(LIGHT_GRAY)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(4);
-        table.addCell(titleCell);
+        t.addCell(noBorderCell(1, 3)
+                .add(new Paragraph("Cheques").setBold().setFontSize(SZ_SM)
+                        .setTextAlignment(TextAlignment.CENTER))
+                .setPaddingBottom(2));
 
-        table.addHeaderCell(createTableHeaderCell("Vencimiento"));
-        table.addHeaderCell(createTableHeaderCell("Nro. Cheque"));
-        table.addHeaderCell(createTableHeaderCell("Banco"));
-        table.addHeaderCell(createTableHeaderCell("Importe"));
+        String dueDate = check.getDueDate() != null ? check.getDueDate().format(DATE_FMT) : "-";
+        t.addCell(dataCell(dueDate, TextAlignment.LEFT));
+        t.addCell(dataCell(check.getCheckNumber() != null ? check.getCheckNumber() : "-", TextAlignment.CENTER));
+        t.addCell(dataCell(fmt(amount), TextAlignment.RIGHT));
 
-        String dueDate = check.getDueDate() != null ? check.getDueDate().format(DATE_FORMATTER) : "-";
-        table.addCell(createDataCell(dueDate, TextAlignment.CENTER));
-        table.addCell(createDataCell(check.getCheckNumber() != null ? check.getCheckNumber() : "-", TextAlignment.CENTER));
-        table.addCell(createDataCell(check.getBankName() != null ? check.getBankName() : "-", TextAlignment.LEFT));
-        table.addCell(createDataCell(formatAmount(amount), TextAlignment.RIGHT));
-
-        return table;
+        t.addCell(noBorderCell(1, 3).setMinHeight(30));
+        return t;
     }
 
     private Table buildTransferTable(TransferPayment transfer, BigDecimal amount) {
-        Table table = new Table(new float[]{2, 2, 2});
-        table.setWidth(UnitValue.createPercentValue(100));
-        table.setBorder(new SolidBorder(0.5f));
+        Table t = new Table(new float[]{3, 3, 3});
+        t.setWidth(UnitValue.createPercentValue(100));
+        t.setBorder(Border.NO_BORDER);
 
-        Cell titleCell = new Cell(1, 3)
-                .add(new Paragraph("Transferencia Bancaria").setBold().setFontSize(FONT_SIZE_LABEL))
-                .setBackgroundColor(LIGHT_GRAY)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(4);
-        table.addCell(titleCell);
+        t.addCell(noBorderCell(1, 3)
+                .add(new Paragraph("Transferencia Bancaria").setBold().setFontSize(SZ_SM)
+                        .setTextAlignment(TextAlignment.CENTER))
+                .setPaddingBottom(2));
 
-        table.addHeaderCell(createTableHeaderCell("Nro. Transacción"));
-        table.addHeaderCell(createTableHeaderCell("Banco"));
-        table.addHeaderCell(createTableHeaderCell("Importe"));
+        t.addCell(dataCell(transfer.getTransactionNumber() != null ? transfer.getTransactionNumber() : "-", TextAlignment.LEFT));
+        t.addCell(dataCell(transfer.getBankName() != null ? transfer.getBankName() : "-", TextAlignment.CENTER));
+        t.addCell(dataCell(fmt(amount), TextAlignment.RIGHT));
 
-        table.addCell(createDataCell(
-                transfer.getTransactionNumber() != null ? transfer.getTransactionNumber() : "-",
-                TextAlignment.CENTER));
-        table.addCell(createDataCell(
-                transfer.getBankName() != null ? transfer.getBankName() : "-",
-                TextAlignment.LEFT));
-        table.addCell(createDataCell(formatAmount(amount), TextAlignment.RIGHT));
-
-        return table;
+        t.addCell(noBorderCell(1, 3).setMinHeight(30));
+        return t;
     }
 
     private Table buildCashTable(BigDecimal amount) {
-        Table table = new Table(new float[]{3, 2});
-        table.setWidth(UnitValue.createPercentValue(100));
-        table.setBorder(new SolidBorder(0.5f));
+        Table t = new Table(new float[]{5, 3});
+        t.setWidth(UnitValue.createPercentValue(100));
+        t.setBorder(Border.NO_BORDER);
 
-        Cell titleCell = new Cell(1, 2)
-                .add(new Paragraph("Efectivo").setBold().setFontSize(FONT_SIZE_LABEL))
-                .setBackgroundColor(LIGHT_GRAY)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(4);
-        table.addCell(titleCell);
+        t.addCell(noBorderCell(1, 2)
+                .add(new Paragraph("Efectivo").setBold().setFontSize(SZ_SM)
+                        .setTextAlignment(TextAlignment.CENTER))
+                .setPaddingBottom(2));
 
-        table.addHeaderCell(createTableHeaderCell("Descripción"));
-        table.addHeaderCell(createTableHeaderCell("Importe"));
+        t.addCell(dataCell("Pago en efectivo", TextAlignment.LEFT));
+        t.addCell(dataCell(fmt(amount), TextAlignment.RIGHT));
 
-        table.addCell(createDataCell("Pago en efectivo", TextAlignment.LEFT));
-        table.addCell(createDataCell(formatAmount(amount), TextAlignment.RIGHT));
-
-        return table;
+        t.addCell(noBorderCell(1, 2).setMinHeight(30));
+        return t;
     }
 
-    private void addTotalsSection(Document document, PaymentDetails payment) {
-        BigDecimal totalDocuments = BigDecimal.ZERO;
-        if (payment.getPaidDocuments() != null) {
-            totalDocuments = payment.getPaidDocuments().stream()
-                    .map(TransactionalDocument::getTotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-        }
+    // ────────────────────────────────────────────────────────────────
+    // Totals – matches the reference two-area layout
+    // Left area:  No Imputado / Total Imputado / Retenciones
+    // Right area: Total Neto / Total Bruto / Total Retenciones / Total Neto
+    // ────────────────────────────────────────────────────────────────
 
-        BigDecimal totalPayment = payment.getAmount();
-        BigDecimal notAllocated = totalPayment.subtract(totalDocuments).max(BigDecimal.ZERO);
-        BigDecimal totalAllocated = totalDocuments.min(totalPayment);
-
-        // Net totals from documents
+    private void addTotals(Document doc, PaymentDetails payment) {
+        BigDecimal totalDocs = BigDecimal.ZERO;
         BigDecimal totalNet = BigDecimal.ZERO;
-        BigDecimal totalIva = BigDecimal.ZERO;
         if (payment.getPaidDocuments() != null) {
-            totalNet = payment.getPaidDocuments().stream()
-                    .map(TransactionalDocument::getNetTotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            totalIva = payment.getPaidDocuments().stream()
-                    .map(TransactionalDocument::getIvaTotal)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            for (TransactionalDocument d : payment.getPaidDocuments()) {
+                totalDocs = totalDocs.add(d.getTotal());
+                totalNet = totalNet.add(d.getNetTotal());
+            }
         }
+        BigDecimal totalPayment = payment.getAmount();
+        BigDecimal notAllocated = totalPayment.subtract(totalDocs).max(BigDecimal.ZERO);
 
-        Table table = new Table(new float[]{3, 2});
-        table.setWidth(UnitValue.createPercentValue(100));
-        table.setBorder(new SolidBorder(0.5f));
+        doc.add(spacer());
 
-        addTotalRow(table, "No Imputado:", formatAmount(notAllocated), false);
-        addTotalRow(table, "Total Imputado:", formatAmount(totalAllocated), false);
-        addTotalRow(table, "Total Neto:", formatAmount(totalNet), false);
-        addTotalRow(table, "Total IVA:", formatAmount(totalIva), false);
-        addTotalRow(table, "Total Bruto:", formatAmount(totalPayment), true);
+        // Outer wrapper to keep left + right totals in one bordered section
+        Table wrapper = new Table(new float[]{1, 1});
+        wrapper.setWidth(UnitValue.createPercentValue(100));
+        wrapper.setBorder(THIN);
 
-        document.add(table);
+        // ── LEFT totals ──
+        Cell leftCell = new Cell().setBorder(THIN).setPadding(4);
+        Table leftT = new Table(new float[]{3, 2, 3, 2});
+        leftT.setWidth(UnitValue.createPercentValue(100));
+        leftT.setBorder(Border.NO_BORDER);
+
+        leftT.addCell(totalLabel("No Imputado:"));
+        leftT.addCell(totalValue(fmt(notAllocated)));
+        leftT.addCell(totalLabel("Total Imputado:"));
+        leftT.addCell(totalValue(fmt(totalDocs)));
+
+        // Retenciones row (placeholder — system has no withholdings yet)
+        leftT.addCell(noBorderCell(1, 4)
+                .add(new Paragraph("Retenciones").setBold().setFontSize(SZ_XS)
+                        .setTextAlignment(TextAlignment.CENTER))
+                .setPaddingTop(4));
+
+        leftCell.add(leftT);
+        wrapper.addCell(leftCell);
+
+        // ── RIGHT totals ──
+        Cell rightCell = new Cell().setBorder(THIN).setPadding(4);
+        Table rightT = new Table(new float[]{4, 3});
+        rightT.setWidth(UnitValue.createPercentValue(100));
+        rightT.setBorder(Border.NO_BORDER);
+
+        rightT.addCell(totalLabel("Total Neto:"));
+        rightT.addCell(totalValue(fmt(totalNet)));
+
+        rightT.addCell(totalLabel("Total Bruto:"));
+        rightT.addCell(totalValue(fmt(totalPayment)));
+
+        rightT.addCell(totalLabel("Total Retenciones:"));
+        rightT.addCell(totalValue(fmt(BigDecimal.ZERO)));
+
+        rightT.addCell(totalLabel("Total Neto:"));
+        rightT.addCell(totalValue(fmt(totalPayment)));
+
+        rightCell.add(rightT);
+        wrapper.addCell(rightCell);
+
+        doc.add(wrapper);
     }
 
-    // --- Helper methods ---
+    // ────────────────────────────────────────────────────────────────
+    // Helpers
+    // ────────────────────────────────────────────────────────────────
 
-    private void addLabelValueRow(Table table, String label, String value) {
-        Cell labelCell = new Cell()
-                .add(new Paragraph(label).setBold().setFontSize(FONT_SIZE_NORMAL))
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(4);
-        Cell valueCell = new Cell()
-                .add(new Paragraph(value != null ? value : "-").setFontSize(FONT_SIZE_NORMAL))
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(4);
-        table.addCell(labelCell);
-        table.addCell(valueCell);
+    private Paragraph labelValue(String label, String value) {
+        return new Paragraph()
+                .add(new com.itextpdf.layout.element.Text(label).setBold().setFontSize(SZ_SM))
+                .add(new com.itextpdf.layout.element.Text("  " + (value != null ? value : "-")).setFontSize(SZ_SM))
+                .setMarginBottom(1);
     }
 
-    private Cell createTableHeaderCell(String text) {
-        return new Cell()
-                .add(new Paragraph(text).setBold().setFontSize(FONT_SIZE_SMALL))
-                .setBackgroundColor(HEADER_BG)
-                .setFontColor(ColorConstants.WHITE)
-                .setTextAlignment(TextAlignment.CENTER)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(4);
+    private void addKvCell(Table t, String label, String value) {
+        t.addCell(new Cell().setBorder(THIN).setPadding(CELL_PAD)
+                .add(new Paragraph(label).setBold().setFontSize(SZ_SM)));
+        t.addCell(new Cell().setBorder(THIN).setPadding(CELL_PAD)
+                .add(new Paragraph(value != null ? value : "-").setFontSize(SZ_SM)));
     }
 
-    private Cell createDataCell(String text, TextAlignment alignment) {
-        return new Cell()
-                .add(new Paragraph(text).setFontSize(FONT_SIZE_SMALL))
-                .setTextAlignment(alignment)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(3);
+    private Cell dataCell(String text, TextAlignment align) {
+        return new Cell().setBorder(Border.NO_BORDER).setPadding(2)
+                .add(new Paragraph(text).setFontSize(SZ_XS).setTextAlignment(align));
     }
 
-    private void addTotalRow(Table table, String label, String value, boolean highlight) {
-        Cell labelCell = new Cell()
-                .add(new Paragraph(label).setBold().setFontSize(FONT_SIZE_NORMAL))
-                .setTextAlignment(TextAlignment.RIGHT)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(5);
-        Cell valueCell = new Cell()
-                .add(new Paragraph(value).setBold().setFontSize(FONT_SIZE_NORMAL))
-                .setTextAlignment(TextAlignment.RIGHT)
-                .setBorder(new SolidBorder(0.5f))
-                .setPadding(5);
+    private Cell noBorderCell(int rowSpan, int colSpan) {
+        return new Cell(rowSpan, colSpan).setBorder(Border.NO_BORDER).setPadding(2);
+    }
 
-        if (highlight) {
-            labelCell.setBackgroundColor(HEADER_BG).setFontColor(ColorConstants.WHITE);
-            valueCell.setBackgroundColor(HEADER_BG).setFontColor(ColorConstants.WHITE);
-        }
+    private Cell totalLabel(String text) {
+        return new Cell().setBorder(Border.NO_BORDER).setPadding(2)
+                .add(new Paragraph(text).setBold().setFontSize(SZ_SM)
+                        .setTextAlignment(TextAlignment.RIGHT));
+    }
 
-        table.addCell(labelCell);
-        table.addCell(valueCell);
+    private Cell totalValue(String text) {
+        return new Cell().setBorder(Border.NO_BORDER).setPadding(2)
+                .add(new Paragraph(text).setFontSize(SZ_SM)
+                        .setTextAlignment(TextAlignment.RIGHT));
+    }
+
+    private Paragraph spacer() {
+        return new Paragraph("\n").setFontSize(3);
     }
 
     private String formatAddress(Address address) {
@@ -406,17 +390,31 @@ public class PaymentOrderPdfService {
         StringBuilder sb = new StringBuilder();
         if (address.getStreet() != null) sb.append(address.getStreet());
         if (address.getNumber() != null) sb.append(" ").append(address.getNumber());
-        if (address.getCity() != null) sb.append(", ").append(address.getCity());
+        if (address.getCity() != null) sb.append(" - ").append(address.getCity());
         if (address.getState() != null) sb.append(", ").append(address.getState());
         return sb.length() > 0 ? sb.toString() : "-";
     }
 
-    private String formatPaymentNumber(Long id) {
-        return String.format("0001-%08d", id);
+    private String shortDocType(String displayName) {
+        if (displayName == null) return "";
+        return displayName
+                .replace("Factura A", "FAC-A")
+                .replace("Factura B", "FAC-B")
+                .replace("Factura C", "FAC-C")
+                .replace("Nota de débito A", "ND-A")
+                .replace("Nota de débito B", "ND-B")
+                .replace("Nota de débito C", "ND-C")
+                .replace("Nota de crédito A", "NC-A")
+                .replace("Nota de crédito B", "NC-B")
+                .replace("Nota de crédito C", "NC-C");
     }
 
-    private String formatAmount(BigDecimal amount) {
-        if (amount == null) return "$ 0.00";
-        return String.format("$ %,.2f", amount);
+    private String formatNumber(Long id) {
+        return String.format("0004-%06d", id);
+    }
+
+    private String fmt(BigDecimal amount) {
+        if (amount == null) return "0.00";
+        return String.format("%,.2f", amount);
     }
 }
