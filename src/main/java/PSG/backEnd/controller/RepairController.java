@@ -61,23 +61,20 @@ public class RepairController {
             @Parameter(description = "Filter by vehicle ID") @RequestParam(required = false) Long vehicleId,
             @Parameter(description = "Filter by vehicle license plate") @RequestParam(required = false) String vehicleLicensePlate,
             @Parameter(description = "Filter by project area ID") @RequestParam(required = false) Long projectAreaId,
-            @Parameter(description = "Minimum repair cost") @RequestParam(required = false) BigDecimal minCost,
-            @Parameter(description = "Maximum repair cost") @RequestParam(required = false) BigDecimal maxCost,
-            @Parameter(description = "Filter by employee name") @RequestParam(required = false) String employee,
+            @Parameter(description = "Minimum total cost") @RequestParam(required = false) BigDecimal minCost,
+            @Parameter(description = "Maximum total cost") @RequestParam(required = false) BigDecimal maxCost,
             @Parameter(description = "Filter by supplier ID") @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Filter by supplier legal name") @RequestParam(required = false) String supplierLegalName,
-            @Parameter(description = "Filter by repair type") @RequestParam(required = false) String repairType,
-            @Parameter(description = "Generic search across vehicle license plate, employee and supplier (partial match)") @RequestParam(required = false) String search,
-            @Parameter(description = "Filter by linked transactional document ID") @RequestParam(required = false) Long transactionalDocumentId,
+            @Parameter(description = "Filter by item description") @RequestParam(required = false) String itemDescription,
+            @Parameter(description = "Minimum mileage") @RequestParam(required = false) Integer minMileage,
+            @Parameter(description = "Maximum mileage") @RequestParam(required = false) Integer maxMileage,
+            @Parameter(description = "Generic search across vehicle license plate, supplier and item descriptions") @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by linked transactional document ID on any item") @RequestParam(required = false) Long transactionalDocumentId,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Field to sort by. Direct fields: id, date, cost, description, employee, repairType. " +
-                    "For vehicle use: vehicleLicensePlate, vehicleBrand, vehicleModel, vehicleId. " +
-                    "For supplier use: supplierLegalName, supplierTradeName, supplierCuit, supplierId. " +
-                    "Example: sortBy=vehicleLicensePlate") @RequestParam(defaultValue = "date") String sortBy,
+            @Parameter(description = "Field to sort by.") @RequestParam(defaultValue = "date") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir
     ) {
-        // Map simple field names to entity paths
         String mappedSortBy = mapSortField(sortBy);
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
@@ -85,16 +82,13 @@ public class RepairController {
 
         RepairFilterDTO filterDTO = new RepairFilterDTO(
                 dateFrom, dateTo, vehicleId, vehicleLicensePlate, projectAreaId,
-                minCost, maxCost, employee, supplierId, supplierLegalName, repairType, search, transactionalDocumentId
+                minCost, maxCost, supplierId, supplierLegalName, itemDescription,
+                minMileage, maxMileage, search, transactionalDocumentId
         );
 
         return ResponseEntity.ok(repairService.getAllRepairs(filterDTO, pageable));
     }
 
-    /**
-     * Maps simple field names to their corresponding entity paths.
-     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
-     */
     private String mapSortField(String sortBy) {
         return switch (sortBy) {
             case "vehicleLicensePlate" -> "vehicle.licensePlate";
@@ -105,7 +99,7 @@ public class RepairController {
             case "supplierTradeName" -> "supplier.tradeName";
             case "supplierCuit" -> "supplier.cuit";
             case "supplierId" -> "supplier.id";
-            default -> sortBy; // For 'id', 'date', 'cost', 'description', 'employee', 'repairType', etc.
+            default -> sortBy;
         };
     }
 

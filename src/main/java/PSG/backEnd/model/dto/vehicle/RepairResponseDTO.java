@@ -1,77 +1,53 @@
 package PSG.backEnd.model.dto.vehicle;
 
-import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-@Schema(description = "Response DTO containing complete information about a vehicle repair, " +
-        "including related vehicle and supplier details.")
+@Schema(description = "Response DTO containing complete information about a vehicle repair.")
 public record RepairResponseDTO(
 
-        @Schema(description = "Unique identifier of the repair record.",
-                example = "23")
+        @Schema(description = "Unique identifier of the repair record.")
         Long id,
 
-        @Schema(description = "Date when the repair was performed.",
-                example = "2024-10-01")
+        @Schema(description = "Date when the repair was performed.")
         LocalDate date,
 
-        @Schema(description = "ID of the vehicle that received the repair.",
-                example = "15")
+        @Schema(description = "ID of the vehicle that received the repair.")
         Long vehicleId,
 
-        @Schema(description = "License plate of the vehicle that received the repair.",
-                example = "ABC123")
+        @Schema(description = "License plate of the vehicle.")
         String vehicleLicensePlate,
 
-        @Schema(description = "Total cost of the repair. May be null for internal employee repairs.",
-                example = "1500.50",
-                nullable = true)
-        BigDecimal cost,
-
-        @Schema(description = "Detailed description of the repair work performed.",
-                example = "Replaced brake pads and rotors on front wheels. Performed full brake system inspection.",
-                nullable = true)
+        @Schema(description = "Detailed description of the repair work performed.", nullable = true)
         String description,
 
-        @Schema(description = "Name of the internal employee who performed the repair. " +
-                "Null if the repair was performed by an external supplier.",
-                example = "John Smith",
-                nullable = true)
-        String employee,
+        @Schema(description = "Vehicle mileage (km) at the time of repair.", nullable = true)
+        Integer mileage,
 
-        @Schema(description = "ID of the external supplier who performed the repair. " +
-                "Null if the repair was performed by an internal employee.",
-                example = "8",
-                nullable = true)
+        @Schema(description = "ID of the external supplier.", nullable = true)
         Long supplierId,
 
-        @Schema(description = "Legal name of the external supplier who performed the repair. " +
-                "Null if the repair was performed by an internal employee.",
-                example = "Auto Repairs Inc.",
-                nullable = true)
+        @Schema(description = "Legal name of the external supplier.", nullable = true)
         String supplierLegalName,
 
-        @Schema(description = "Trade name of the external supplier who performed the repair. " +
-                "Null if the repair was performed by an internal employee.",
-                example = "AutoFix",
-                nullable = true)
+        @Schema(description = "Trade name of the external supplier.", nullable = true)
         String supplierTradeName,
 
-        @Schema(description = "Types of repair performed.",
-                example = "[\"ARRANQUE\", \"SISTEMA_ELECTRICO\"]")
-        List<String> repairTypes,
+        @Schema(description = "Repair items (materials and labor).")
+        List<RepairItemResponseDTO> items,
 
-        @Schema(description = "The repair order that originated this repair, if any.",
-                nullable = true)
-        RepairOrderResponseDTO repairOrder,
+        @Schema(description = "Subtotal of material items.")
+        BigDecimal materialSubtotal,
 
-        @Schema(description = "Linked transactional document summary, if any.",
-                nullable = true)
-        TransactionalDocumentSummaryDTO transactionalDocument,
+        @Schema(description = "Subtotal of labor items.")
+        BigDecimal laborSubtotal,
 
-        Integer documentSortOrder
+        @Schema(description = "Total cost (sum of all items).")
+        BigDecimal totalCost,
+
+        @Schema(description = "The repair order that originated this repair, if any.", nullable = true)
+        RepairOrderResponseDTO repairOrder
 ) {}

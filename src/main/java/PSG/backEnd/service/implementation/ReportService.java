@@ -17,7 +17,8 @@ import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ReportFormat;
-import PSG.backEnd.model.enums.vehicle.RepairType;
+import PSG.backEnd.model.entity.vehicle.RepairItem;
+import PSG.backEnd.model.enums.vehicle.RepairItemType;
 import PSG.backEnd.repository.*;
 import PSG.backEnd.repository.PaymentRepository.PaymentRepository;
 import PSG.backEnd.service.export.IReportExporter;
@@ -808,10 +809,11 @@ public class ReportService implements IReportService {
                 getEffectiveAreaId(filters), // projectAreaId - from filter
                 filters.minAmount(),
                 filters.maxAmount(),
-                null, // employee
                 null, // supplierId
                 null, // supplierName
-                null, // repairType
+                null, // itemDescription
+                null, // minMileage
+                null, // maxMileage
                 null, // search
                 null, // transactionalDocumentId
                 pageable
@@ -820,33 +822,53 @@ public class ReportService implements IReportService {
         List<ReportItemDTO> items = new ArrayList<>();
 
         for (Repair r : repairs) {
-            if (r.getCost() == null) {
+            // Calculate total from items
+            java.math.BigDecimal totalCost = java.math.BigDecimal.ZERO;
+            if (r.getItems() != null) {
+                for (RepairItem item : r.getItems()) {
+                    if (item.getAmount() != null) {
+                        totalCost = totalCost.add(item.getAmount());
+                    }
+                }
+            }
+            if (totalCost.compareTo(java.math.BigDecimal.ZERO) == 0) {
                 continue; // Skip repairs without cost
             }
 
-            String repairTypeNames = r.getRepairTypes().stream()
-                    .map(RepairType::getDisplayName)
-                    .collect(java.util.stream.Collectors.joining(", "));
-            String description = "Reparación: " + repairTypeNames +
+            String itemDescriptions = "";
+            if (r.getItems() != null && !r.getItems().isEmpty()) {
+                itemDescriptions = r.getItems().stream()
+                        .map(RepairItem::getDescription)
+                        .collect(java.util.stream.Collectors.joining(", "));
+            }
+            String description = "Reparación: " + itemDescriptions +
                                " - Vehículo: " + r.getVehicle().getLicensePlate();
 
             String beneficiary;
             if (r.getSupplier() != null) {
                 beneficiary = r.getSupplier().getLegalName();
-            } else if (r.getEmployee() != null) {
-                beneficiary = r.getEmployee();
             } else {
-                beneficiary = "No especificado";
+                // Use first MANO_DE_OBRA item description as beneficiary
+                beneficiary = r.getItems() != null ? r.getItems().stream()
+                        .filter(i -> i.getItemType() == RepairItemType.MANO_DE_OBRA)
+                        .map(RepairItem::getDescription)
+                        .findFirst()
+                        .orElse("No especificado") : "No especificado";
             }
 
-            Long rLinkedDocId = r.getTransactionalDocument() != null ? r.getTransactionalDocument().getId() : null;
+            // Collect linked document IDs from items
+            Long rLinkedDocId = r.getItems() != null ? r.getItems().stream()
+                    .filter(i -> i.getTransactionalDocument() != null)
+                    .map(i -> i.getTransactionalDocument().getId())
+                    .findFirst()
+                    .orElse(null) : null;
 
             items.add(ReportItemDTO.builder()
                     .id(r.getId())
                     .date(r.getDate())
                     .category(MoneyOutflowCategory.REPAIR)
                     .description(description)
-                    .amount(r.getCost())
+                    .amount(totalCost)
                     .paymentMethod(null)
                     .beneficiary(beneficiary)
                     .reference(null)

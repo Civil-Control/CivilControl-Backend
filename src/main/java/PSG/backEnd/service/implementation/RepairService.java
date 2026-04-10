@@ -6,10 +6,11 @@ import PSG.backEnd.exception.vehicle.RepairNotFoundException;
 import PSG.backEnd.exception.vehicle.VehicleNotValidException;
 import PSG.backEnd.model.dto.vehicle.RepairDTO;
 import PSG.backEnd.model.dto.vehicle.RepairFilterDTO;
+import PSG.backEnd.model.dto.vehicle.RepairItemDTO;
 import PSG.backEnd.model.dto.vehicle.RepairResponseDTO;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.vehicle.Repair;
-import PSG.backEnd.model.enums.vehicle.RepairType;
+import PSG.backEnd.model.entity.vehicle.RepairItem;
 import PSG.backEnd.model.mapper.RepairMapper;
 import PSG.backEnd.repository.RepairRepository;
 import PSG.backEnd.repository.SupplierRepository;
@@ -21,6 +22,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,18 +40,16 @@ public class RepairService implements IRepairService {
     @Override
     @Transactional
     public RepairResponseDTO createRepair(RepairDTO repairDTO) {
-        // Validate that the vehicle exists
         validateVehicleExists(repairDTO.vehicleId());
-
-        // Validate that the supplier exists if supplierId is provided
         if (repairDTO.supplierId() != null) {
             validateSupplierExists(repairDTO.supplierId());
         }
 
         Repair repair = repairMapper.toEntity(repairDTO);
-        repair.setTransactionalDocument(resolveDocument(repairDTO.transactionalDocumentId()));
+        applyItems(repair, repairDTO.items());
+
         Repair savedRepair = repairRepository.save(repair);
-        documentTotalRecalculator.recalculateDocumentTotals(repairDTO.transactionalDocumentId());
+        recalculateItemDocuments(savedRepair);
 
         return repairMapper.toResponseDto(savedRepair);
     }
@@ -55,19 +57,12 @@ public class RepairService implements IRepairService {
     @Override
     @Transactional(readOnly = true)
     public Page<RepairResponseDTO> getAllRepairs(RepairFilterDTO filterDTO, Pageable pageable) {
-        // Validate vehicle if a filter by vehicleId is provided
         if (filterDTO.vehicleId() != null) {
             validateVehicleExists(filterDTO.vehicleId());
         }
-
-        // Validate supplier if a filter by supplierId is provided
         if (filterDTO.supplierId() != null) {
             validateSupplierExists(filterDTO.supplierId());
         }
-
-        RepairType repairTypeEnum = filterDTO.repairType() != null
-                ? RepairType.valueOf(filterDTO.repairType())
-                : null;
 
         Page<Repair> repairs = repairRepository.findAllWithFilters(
                 filterDTO.dateFrom(),
@@ -77,10 +72,11 @@ public class RepairService implements IRepairService {
                 filterDTO.projectAreaId(),
                 filterDTO.minCost(),
                 filterDTO.maxCost(),
-                filterDTO.employee(),
                 filterDTO.supplierId(),
                 filterDTO.supplierLegalName(),
-                repairTypeEnum,
+                filterDTO.itemDescription(),
+                filterDTO.minMileage(),
+                filterDTO.maxMileage(),
                 filterDTO.search(),
                 filterDTO.transactionalDocumentId(),
                 pageable
@@ -104,28 +100,36 @@ public class RepairService implements IRepairService {
         Repair existingRepair = repairRepository.findById(id)
                 .orElseThrow(() -> new RepairNotFoundException(id));
 
-        Long oldDocumentId = existingRepair.getTransactionalDocument() != null
-                ? existingRepair.getTransactionalDocument().getId() : null;
+        // Collect old document IDs from items before update
+        Set<Long> oldDocIds = existingRepair.getItems().stream()
+                .filter(i -> i.getTransactionalDocument() != null)
+                .map(i -> i.getTransactionalDocument().getId())
+                .collect(Collectors.toSet());
 
-        // Validate vehicle if it is being updated
         if (repairDTO.vehicleId() != null) {
             validateVehicleExists(repairDTO.vehicleId());
         }
-
-        // Validate supplier if it is being updated
         if (repairDTO.supplierId() != null) {
             validateSupplierExists(repairDTO.supplierId());
         }
 
         repairMapper.partialUpdate(repairDTO, existingRepair);
-        existingRepair.setTransactionalDocument(resolveDocument(repairDTO.transactionalDocumentId()));
+
+        if (repairDTO.items() != null) {
+            applyItems(existingRepair, repairDTO.items());
+        }
+
         Repair updatedRepair = repairRepository.save(existingRepair);
 
-        // Recalculate old document if the link changed
-        if (oldDocumentId != null && !oldDocumentId.equals(repairDTO.transactionalDocumentId())) {
-            documentTotalRecalculator.recalculateDocumentTotals(oldDocumentId);
-        }
-        documentTotalRecalculator.recalculateDocumentTotals(repairDTO.transactionalDocumentId());
+        // Recalculate old documents that may have lost items
+        Set<Long> newDocIds = updatedRepair.getItems().stream()
+                .filter(i -> i.getTransactionalDocument() != null)
+                .map(i -> i.getTransactionalDocument().getId())
+                .collect(Collectors.toSet());
+        oldDocIds.stream()
+                .filter(docId -> !newDocIds.contains(docId))
+                .forEach(documentTotalRecalculator::recalculateDocumentTotals);
+        recalculateItemDocuments(updatedRepair);
 
         return repairMapper.toResponseDto(updatedRepair);
     }
@@ -136,10 +140,43 @@ public class RepairService implements IRepairService {
         Repair repair = repairRepository.findById(id)
                 .orElseThrow(() -> new RepairNotFoundException(id));
 
-        Long docId = repair.getTransactionalDocument() != null
-                ? repair.getTransactionalDocument().getId() : null;
+        Set<Long> docIds = repair.getItems().stream()
+                .filter(i -> i.getTransactionalDocument() != null)
+                .map(i -> i.getTransactionalDocument().getId())
+                .collect(Collectors.toSet());
+
         repairRepository.delete(repair);
-        documentTotalRecalculator.recalculateDocumentTotals(docId);
+        docIds.forEach(documentTotalRecalculator::recalculateDocumentTotals);
+    }
+
+    /**
+     * Applies items from DTOs to the repair entity, handling orphan removal.
+     */
+    public void applyItems(Repair repair, List<RepairItemDTO> itemDTOs) {
+        if (itemDTOs == null) return;
+
+        repair.getItems().clear();
+
+        int sortOrder = 0;
+        for (RepairItemDTO itemDTO : itemDTOs) {
+            RepairItem item = RepairItem.builder()
+                    .repair(repair)
+                    .itemType(itemDTO.itemType())
+                    .description(itemDTO.description())
+                    .amount(itemDTO.amount())
+                    .transactionalDocument(resolveDocument(itemDTO.transactionalDocumentId()))
+                    .sortOrder(sortOrder++)
+                    .build();
+            repair.getItems().add(item);
+        }
+    }
+
+    private void recalculateItemDocuments(Repair repair) {
+        repair.getItems().stream()
+                .filter(i -> i.getTransactionalDocument() != null)
+                .map(i -> i.getTransactionalDocument().getId())
+                .distinct()
+                .forEach(documentTotalRecalculator::recalculateDocumentTotals);
     }
 
     private void validateVehicleExists(Long vehicleId) {

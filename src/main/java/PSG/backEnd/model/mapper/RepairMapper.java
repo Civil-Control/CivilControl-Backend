@@ -1,19 +1,20 @@
 package PSG.backEnd.model.mapper;
 
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
-import PSG.backEnd.model.dto.vehicle.RepairDTO;
-import PSG.backEnd.model.dto.vehicle.RepairOrderResponseDTO;
-import PSG.backEnd.model.dto.vehicle.RepairResponseDTO;
+import PSG.backEnd.model.dto.vehicle.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.vehicle.Repair;
+import PSG.backEnd.model.entity.vehicle.RepairItem;
 import PSG.backEnd.model.entity.vehicle.RepairOrder;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.entity.Supplier;
-import PSG.backEnd.model.enums.vehicle.RepairType;
+import PSG.backEnd.model.enums.vehicle.RepairItemType;
 import org.mapstruct.*;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface RepairMapper {
@@ -21,52 +22,72 @@ public interface RepairMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "vehicle", source = "vehicleId", qualifiedByName = "vehicleIdToEntity")
     @Mapping(target = "supplier", source = "supplierId", qualifiedByName = "supplierIdToEntity")
-    @Mapping(target = "repairTypes", source = "repairTypes", qualifiedByName = "stringsToRepairTypes")
     @Mapping(target = "repairOrder", ignore = true)
-    @Mapping(target = "transactionalDocument", ignore = true)
-    @Mapping(target = "documentSortOrder", defaultExpression = "java(0)")
+    @Mapping(target = "items", ignore = true)
     Repair toEntity(RepairDTO repairDTO);
-
-    @Mapping(target = "vehicleId", source = "vehicle.id")
-    @Mapping(target = "vehicleLicensePlate", source = "vehicle.licensePlate")
-    @Mapping(target = "supplierId", source = "supplier.id")
-    @Mapping(target = "supplierLegalName", source = "supplier.legalName")
-    @Mapping(target = "supplierTradeName", source = "supplier.tradeName")
-    @Mapping(target = "repairTypes", source = "repairTypes", qualifiedByName = "repairTypesToStrings")
-    @Mapping(target = "repairOrder", source = "repairOrder", qualifiedByName = "mapRepairOrderToDto")
-    @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
-    RepairResponseDTO toResponseDto(Repair repair);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "vehicle", source = "vehicleId", qualifiedByName = "vehicleIdToEntity")
     @Mapping(target = "supplier", source = "supplierId", qualifiedByName = "supplierIdToEntity")
-    @Mapping(target = "repairTypes", source = "repairTypes", qualifiedByName = "stringsToRepairTypes")
     @Mapping(target = "repairOrder", ignore = true)
-    @Mapping(target = "transactionalDocument", ignore = true)
+    @Mapping(target = "items", ignore = true)
     void partialUpdate(RepairDTO updateDTO, @MappingTarget Repair repair);
 
-    @Named("stringsToRepairTypes")
-    default List<RepairType> stringsToRepairTypes(List<String> strings) {
-        if (strings == null) return null;
-        return strings.stream()
-                .map(RepairType::valueOf)
-                .collect(Collectors.toList());
-    }
+    default RepairResponseDTO toResponseDto(Repair repair) {
+        if (repair == null) return null;
 
-    @Named("repairTypesToStrings")
-    default List<String> repairTypesToStrings(List<RepairType> types) {
-        if (types == null) return null;
-        return types.stream()
-                .map(RepairType::name)
-                .collect(Collectors.toList());
+        List<RepairItemResponseDTO> itemDtos = new ArrayList<>();
+        BigDecimal materialSubtotal = BigDecimal.ZERO;
+        BigDecimal laborSubtotal = BigDecimal.ZERO;
+
+        if (repair.getItems() != null) {
+            List<RepairItem> sorted = repair.getItems().stream()
+                    .sorted(Comparator.comparingInt(i -> i.getSortOrder() != null ? i.getSortOrder() : 0))
+                    .toList();
+
+            for (RepairItem item : sorted) {
+                itemDtos.add(new RepairItemResponseDTO(
+                        item.getId(),
+                        item.getItemType() != null ? item.getItemType().name() : null,
+                        item.getDescription(),
+                        item.getAmount(),
+                        documentToSummaryDto(item.getTransactionalDocument()),
+                        item.getSortOrder()
+                ));
+                if (item.getAmount() != null) {
+                    if (item.getItemType() == RepairItemType.MATERIAL) {
+                        materialSubtotal = materialSubtotal.add(item.getAmount());
+                    } else if (item.getItemType() == RepairItemType.MANO_DE_OBRA) {
+                        laborSubtotal = laborSubtotal.add(item.getAmount());
+                    }
+                }
+            }
+        }
+
+        BigDecimal totalCost = materialSubtotal.add(laborSubtotal);
+
+        return new RepairResponseDTO(
+                repair.getId(),
+                repair.getDate(),
+                repair.getVehicle() != null ? repair.getVehicle().getId() : null,
+                repair.getVehicle() != null ? repair.getVehicle().getLicensePlate() : null,
+                repair.getDescription(),
+                repair.getMileage(),
+                repair.getSupplier() != null ? repair.getSupplier().getId() : null,
+                repair.getSupplier() != null ? repair.getSupplier().getLegalName() : null,
+                repair.getSupplier() != null ? repair.getSupplier().getTradeName() : null,
+                itemDtos,
+                materialSubtotal,
+                laborSubtotal,
+                totalCost,
+                mapRepairOrderToDto(repair.getRepairOrder())
+        );
     }
 
     @Named("vehicleIdToEntity")
     default Vehicle vehicleIdToEntity(Long vehicleId) {
-        if (vehicleId == null) {
-            return null;
-        }
+        if (vehicleId == null) return null;
         Vehicle vehicle = new Vehicle();
         vehicle.setId(vehicleId);
         return vehicle;
@@ -74,9 +95,7 @@ public interface RepairMapper {
 
     @Named("supplierIdToEntity")
     default Supplier supplierIdToEntity(Long supplierId) {
-        if (supplierId == null) {
-            return null;
-        }
+        if (supplierId == null) return null;
         Supplier supplier = new Supplier();
         supplier.setId(supplierId);
         return supplier;

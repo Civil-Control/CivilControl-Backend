@@ -1,7 +1,6 @@
 package PSG.backEnd.repository;
 
 import PSG.backEnd.model.entity.vehicle.Repair;
-import PSG.backEnd.model.enums.vehicle.RepairType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,26 +19,26 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
 
     List<Repair> findBySupplierId(Long supplierId);
 
-    List<Repair> findByTransactionalDocumentId(Long transactionalDocumentId);
-
-    @Query("SELECT r FROM Repair r " +
+    @Query("SELECT DISTINCT r FROM Repair r " +
             "LEFT JOIN r.vehicle v " +
             "LEFT JOIN r.supplier s " +
+            "LEFT JOIN r.items i " +
             "WHERE (CAST(:dateFrom AS date) IS NULL OR r.date >= :dateFrom) " +
             "AND (CAST(:dateTo AS date) IS NULL OR r.date <= :dateTo) " +
             "AND (CAST(:vehicleId AS long) IS NULL OR r.vehicle.id = :vehicleId) " +
             "AND (:licensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:licensePlate AS string), '%'))) " +
             "AND (CAST(:projectAreaId AS long) IS NULL OR v.projectArea.id = :projectAreaId) " +
-            "AND (CAST(:minCost AS BigDecimal) IS NULL OR r.cost >= :minCost) " +
-            "AND (CAST(:maxCost AS BigDecimal) IS NULL OR r.cost <= :maxCost) " +
-            "AND (:employee IS NULL OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:employee AS string), '%'))) " +
+            "AND (CAST(:minCost AS BigDecimal) IS NULL OR (SELECT COALESCE(SUM(ri.amount), 0) FROM RepairItem ri WHERE ri.repair = r) >= :minCost) " +
+            "AND (CAST(:maxCost AS BigDecimal) IS NULL OR (SELECT COALESCE(SUM(ri.amount), 0) FROM RepairItem ri WHERE ri.repair = r) <= :maxCost) " +
             "AND (CAST(:supplierId AS long) IS NULL OR r.supplier.id = :supplierId) " +
             "AND (:supplierName IS NULL OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
-            "AND (:repairType IS NULL OR :repairType MEMBER OF r.repairTypes) " +
+            "AND (:itemDescription IS NULL OR LOWER(CAST(i.description AS string)) LIKE LOWER(CONCAT('%', CAST(:itemDescription AS string), '%'))) " +
+            "AND (CAST(:minMileage AS int) IS NULL OR r.mileage >= :minMileage) " +
+            "AND (CAST(:maxMileage AS int) IS NULL OR r.mileage <= :maxMileage) " +
             "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(r.employee AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))) " +
-            "AND (CAST(:transactionalDocumentId AS long) IS NULL OR r.transactionalDocument.id = :transactionalDocumentId)")
+            "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(i.description AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))) " +
+            "AND (CAST(:transactionalDocumentId AS long) IS NULL OR i.transactionalDocument.id = :transactionalDocumentId)")
     Page<Repair> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
@@ -48,13 +47,13 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             @Param("projectAreaId") Long projectAreaId,
             @Param("minCost") BigDecimal minCost,
             @Param("maxCost") BigDecimal maxCost,
-            @Param("employee") String employee,
             @Param("supplierId") Long supplierId,
             @Param("supplierName") String supplierName,
-            @Param("repairType") RepairType repairType,
+            @Param("itemDescription") String itemDescription,
+            @Param("minMileage") Integer minMileage,
+            @Param("maxMileage") Integer maxMileage,
             @Param("search") String search,
             @Param("transactionalDocumentId") Long transactionalDocumentId,
             Pageable pageable
     );
 }
-

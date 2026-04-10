@@ -6,11 +6,11 @@ import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.vehicle.*;
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.vehicle.Repair;
+import PSG.backEnd.model.entity.vehicle.RepairItem;
 import PSG.backEnd.model.entity.vehicle.RepairOrder;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.model.enums.vehicle.RepairOrderStatus;
-import PSG.backEnd.model.enums.vehicle.RepairType;
 import PSG.backEnd.model.mapper.RepairOrderMapper;
 import PSG.backEnd.repository.RepairOrderRepository;
 import PSG.backEnd.repository.RepairRepository;
@@ -25,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -144,11 +145,6 @@ public class RepairOrderService implements IRepairOrderService {
             validateSupplierExists(completeDTO.supplierId());
         }
 
-        // Build Repair from the order data + completion details
-        List<RepairType> types = completeDTO.repairTypes().stream()
-                .map(RepairType::valueOf)
-                .collect(Collectors.toList());
-
         Supplier supplier = null;
         if (completeDTO.supplierId() != null) {
             supplier = new Supplier();
@@ -159,12 +155,26 @@ public class RepairOrderService implements IRepairOrderService {
                 .date(order.getDate())
                 .vehicle(order.getVehicle())
                 .description(completeDTO.description() != null ? completeDTO.description() : order.getDescription())
-                .cost(completeDTO.cost())
-                .employee(completeDTO.employee())
+                .mileage(completeDTO.mileage())
                 .supplier(supplier)
-                .repairTypes(types)
                 .repairOrder(order)
+                .items(new ArrayList<>())
                 .build();
+
+        // Build items from the completeDTO
+        if (completeDTO.items() != null) {
+            int sortOrder = 0;
+            for (RepairItemDTO itemDTO : completeDTO.items()) {
+                RepairItem item = RepairItem.builder()
+                        .repair(repair)
+                        .itemType(itemDTO.itemType())
+                        .description(itemDTO.description())
+                        .amount(itemDTO.amount())
+                        .sortOrder(sortOrder++)
+                        .build();
+                repair.getItems().add(item);
+            }
+        }
 
         repairRepository.save(repair);
 

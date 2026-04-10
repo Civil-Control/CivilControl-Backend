@@ -21,7 +21,7 @@ import PSG.backEnd.model.mapper.TransactionalDocumentMapper;
 import PSG.backEnd.repository.FuelLoadRepository;
 import PSG.backEnd.repository.ItemDetailRepository;
 import PSG.backEnd.repository.ItemRepository;
-import PSG.backEnd.repository.RepairRepository;
+import PSG.backEnd.repository.RepairItemRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
 import PSG.backEnd.repository.StockPurchaseRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
@@ -57,7 +57,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final ISupplierService iSupplierService;
     private final MessageSourceHelper messageSourceHelper;
 
-    private final RepairRepository repairRepository;
+    private final RepairItemRepository repairItemRepository;
     private final FuelLoadRepository fuelLoadRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
     private final StockPurchaseRepository stockPurchaseRepository;
@@ -332,12 +332,12 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     @Override
     @Transactional(readOnly = true)
     public LinkedRecordsSummaryDTO getLinkedRecordsSummary(Long id) {
-        List<LinkedRecordItemDTO> repairs = repairRepository.findByTransactionalDocumentId(id)
+        List<LinkedRecordItemDTO> repairs = repairItemRepository.findByTransactionalDocumentId(id)
                 .stream()
-                .map(r -> new LinkedRecordItemDTO(r.getId(),
-                        "Reparación – " + r.getVehicle().getLicensePlate()
-                                + (r.getEmployee() != null ? " (" + r.getEmployee() + ")" : "")
-                                + " – " + r.getDate()))
+                .map(ri -> new LinkedRecordItemDTO(ri.getRepair().getId(),
+                        "Reparación – " + ri.getRepair().getVehicle().getLicensePlate()
+                                + " (" + ri.getDescription() + ")"
+                                + " – " + ri.getRepair().getDate()))
                 .toList();
 
         List<LinkedRecordItemDTO> fuelLoads = fuelLoadRepository.findByTransactionalDocumentId(id)
@@ -382,8 +382,9 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         }
 
         if (deleteLinkedRecords) {
-            // Hard-delete Repair, FuelLoad, SalaryPayment (no soft-delete support on these entities)
-            repairRepository.deleteAll(repairRepository.findByTransactionalDocumentId(id));
+            // Unlink RepairItems from this document (don't delete the repair itself)
+            repairItemRepository.findByTransactionalDocumentId(id)
+                    .forEach(ri -> { ri.setTransactionalDocument(null); repairItemRepository.save(ri); });
             fuelLoadRepository.deleteAll(fuelLoadRepository.findByTransactionalDocumentId(id));
             salaryPaymentRepository.deleteAll(salaryPaymentRepository.findByTransactionalDocumentId(id));
 

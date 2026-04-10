@@ -5,9 +5,9 @@ import PSG.backEnd.model.entity.StockPurchase;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.employee.SalaryPayment;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
-import PSG.backEnd.model.entity.vehicle.Repair;
+import PSG.backEnd.model.entity.vehicle.RepairItem;
 import PSG.backEnd.repository.FuelLoadRepository;
-import PSG.backEnd.repository.RepairRepository;
+import PSG.backEnd.repository.RepairItemRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
 import PSG.backEnd.repository.StockPurchaseRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
@@ -29,7 +29,7 @@ public class DocumentTotalRecalculator {
 
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final FuelLoadRepository fuelLoadRepository;
-    private final RepairRepository repairRepository;
+    private final RepairItemRepository repairItemRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
     private final StockPurchaseRepository stockPurchaseRepository;
 
@@ -67,8 +67,8 @@ public class DocumentTotalRecalculator {
         for (FuelLoad fl : fuelLoadRepository.findByTransactionalDocumentId(documentId)) {
             if (fl.getTotalAmount() != null) linkedNet = linkedNet.add(fl.getTotalAmount());
         }
-        for (Repair r : repairRepository.findByTransactionalDocumentId(documentId)) {
-            if (r.getCost() != null) linkedNet = linkedNet.add(r.getCost());
+        for (RepairItem ri : repairItemRepository.findByTransactionalDocumentId(documentId)) {
+            if (ri.getAmount() != null) linkedNet = linkedNet.add(ri.getAmount());
         }
         for (SalaryPayment sp : salaryPaymentRepository.findByTransactionalDocumentId(documentId)) {
             if (sp.getAmount() != null) linkedNet = linkedNet.add(sp.getAmount());
