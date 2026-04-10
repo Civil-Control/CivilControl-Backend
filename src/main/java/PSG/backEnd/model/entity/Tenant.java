@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity;
 
+import PSG.backEnd.model.enums.IvaCondition;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -41,6 +42,10 @@ public class Tenant {
 
     @Column(name = "logo_url", length = 500, columnDefinition = "VARCHAR(500)")
     private String logoUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "iva_condition", length = 30)
+    private IvaCondition ivaCondition;
 
     @Column(name = "founded_date")
     private LocalDate foundedDate;

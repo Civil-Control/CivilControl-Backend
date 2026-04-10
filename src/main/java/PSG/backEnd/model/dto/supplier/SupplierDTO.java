@@ -2,6 +2,7 @@ package PSG.backEnd.model.dto.supplier;
 
 import PSG.backEnd.model.dto.address.AddressDTO;
 import PSG.backEnd.model.dto.contactInfo.ContactInfoDTO;
+import PSG.backEnd.model.enums.IvaCondition;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
@@ -79,5 +80,10 @@ public record SupplierDTO(
             maxLength = 500,
             nullable = true)
     @Size(max = 500, message = "{supplier.comment.size}", groups = {OnCreate.class, OnUpdate.class})
-    String comment
+    String comment,
+
+    @Schema(description = "IVA tax condition of the supplier.",
+            example = "RESPONSABLE_INSCRIPTO",
+            nullable = true)
+    IvaCondition ivaCondition
 ) {}

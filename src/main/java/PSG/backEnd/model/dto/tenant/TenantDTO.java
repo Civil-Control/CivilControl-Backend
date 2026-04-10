@@ -40,5 +40,9 @@ public record TenantDTO(
 
     LocalDate foundedDate,
 
-    Boolean active
+    Boolean active,
+
+    @Schema(description = "IVA tax condition of the tenant.",
+            example = "RESPONSABLE_INSCRIPTO")
+    PSG.backEnd.model.enums.IvaCondition ivaCondition
 ) {}

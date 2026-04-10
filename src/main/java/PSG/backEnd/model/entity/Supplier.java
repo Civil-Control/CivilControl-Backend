@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity;
 
+import PSG.backEnd.model.enums.IvaCondition;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 
 import java.math.BigDecimal;
@@ -36,6 +37,10 @@ public class Supplier extends TenantEntity {
 
     @Column(name = "alias", length = 50)
     private String alias;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "iva_condition", length = 30)
+    private IvaCondition ivaCondition;
 
     @Builder.Default
     @ElementCollection(targetClass = PaymentMethod.class, fetch = FetchType.EAGER)

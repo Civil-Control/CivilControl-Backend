@@ -18,5 +18,6 @@ public record TenantResponseDTO(
     LocalDate foundedDate,
     Boolean active,
     Boolean deleted,
-    String webhookToken
+    String webhookToken,
+    PSG.backEnd.model.enums.IvaCondition ivaCondition
 ) {}
