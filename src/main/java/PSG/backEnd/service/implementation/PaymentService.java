@@ -14,7 +14,9 @@ import PSG.backEnd.repository.PaymentRepository.PaymentRepository;
 import PSG.backEnd.repository.PaymentRepository.TransferPaymentRepository;
 import PSG.backEnd.service.port.IPaymentService;
 import PSG.backEnd.service.port.ISupplierService;
+import PSG.backEnd.service.port.ITenantService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
+import PSG.backEnd.service.export.PaymentOrderPdfService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
@@ -42,6 +44,8 @@ public class PaymentService implements IPaymentService {
 
     private final ISupplierService iSupplierService;
     private final ITransactionalDocumentService iTransactionalDocumentService;
+    private final ITenantService iTenantService;
+    private final PaymentOrderPdfService paymentOrderPdfService;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
@@ -607,5 +611,18 @@ public class PaymentService implements IPaymentService {
             .orElseThrow(() -> new PaymentNotFoundException(errorMessage));
 
         return responseMapper.apply(existing);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generatePaymentOrderPdf(Long id) {
+        PaymentDetails paymentDetails = paymentRepository.findByIdWithPaymentType(id)
+                .orElseThrow(() -> new PaymentNotFoundException(messageSourceHelper.getMessage("payment.notFoundGeneric", id)));
+        Hibernate.initialize(paymentDetails.getPaidDocuments());
+        Hibernate.initialize(paymentDetails.getSupplier());
+
+        var tenant = iTenantService.getEntityById(paymentDetails.getTenantId());
+
+        return paymentOrderPdfService.generate(paymentDetails, tenant);
     }
 }

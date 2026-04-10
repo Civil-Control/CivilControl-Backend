@@ -16,7 +16,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -173,6 +175,23 @@ public class PaymentController {
     public ResponseEntity<PaymentResponseDTO> getById(
             @Parameter(description = "Payment unique identifier", required = true, example = "1") @PathVariable Long id) {
         return ResponseEntity.ok(paymentService.getById(id));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
+    @GetMapping("/{id}/payment-order")
+    @Operation(summary = "Generate payment order PDF",
+            description = "Generates a PDF payment order document for the specified payment.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "PDF generated successfully"),
+            @ApiResponse(responseCode = "404", description = "Payment not found")
+    })
+    public ResponseEntity<byte[]> generatePaymentOrderPdf(
+            @Parameter(description = "Payment unique identifier", required = true, example = "1") @PathVariable Long id) {
+        byte[] pdf = paymentService.generatePaymentOrderPdf(id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "orden-de-pago-" + id + ".pdf");
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")

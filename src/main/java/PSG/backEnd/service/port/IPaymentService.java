@@ -28,4 +28,6 @@ public interface IPaymentService {
 
     /** Returns the payment-details ID for the payment that covers the given document, or empty if none. */
     java.util.Optional<Long> findPaymentIdByDocumentId(Long documentId);
+
+    byte[] generatePaymentOrderPdf(Long id);
 }
