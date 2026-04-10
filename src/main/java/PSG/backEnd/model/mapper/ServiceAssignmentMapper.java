@@ -3,7 +3,12 @@ package PSG.backEnd.model.mapper;
 import PSG.backEnd.model.dto.serviceSupplier.ServiceAssignmentDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServiceAssignmentResponseDTO;
 import PSG.backEnd.model.entity.serviceSupplier.ServiceAssignment;
+import PSG.backEnd.model.entity.serviceSupplier.SpecificDueDate;
 import org.mapstruct.*;
+
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface ServiceAssignmentMapper {
@@ -14,6 +19,7 @@ public interface ServiceAssignmentMapper {
     @Mapping(target = "building", ignore = true)
     @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "paymentLocation", ignore = true)
+    @Mapping(target = "specificDueDates", ignore = true)
     ServiceAssignment toEntity(ServiceAssignmentDTO dto);
 
     @Mapping(target = "serviceSupplierId", expression = "java(entity.getServiceSupplier() != null ? entity.getServiceSupplier().getId() : null)")
@@ -28,6 +34,7 @@ public interface ServiceAssignmentMapper {
     @Mapping(target = "paymentLocationName", expression = "java(entity.getPaymentLocation() != null ? entity.getPaymentLocation().getName() : null)")
     @Mapping(target = "subjectProjectAreaId", expression = "java(resolveSubjectProjectAreaId(entity))")
     @Mapping(target = "subjectProjectAreaName", expression = "java(resolveSubjectProjectAreaName(entity))")
+    @Mapping(target = "specificDueDates", expression = "java(mapSpecificDueDates(entity))")
     ServiceAssignmentResponseDTO toResponseDto(ServiceAssignment entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
@@ -37,7 +44,18 @@ public interface ServiceAssignmentMapper {
     @Mapping(target = "building", ignore = true)
     @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "paymentLocation", ignore = true)
+    @Mapping(target = "specificDueDates", ignore = true)
     void partialUpdate(ServiceAssignmentDTO updateDTO, @MappingTarget ServiceAssignment entity);
+
+    default List<LocalDate> mapSpecificDueDates(ServiceAssignment entity) {
+        if (entity.getSpecificDueDates() == null || entity.getSpecificDueDates().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return entity.getSpecificDueDates().stream()
+                .map(SpecificDueDate::getDueDate)
+                .sorted()
+                .toList();
+    }
 
     default Long resolveSubjectProjectAreaId(ServiceAssignment entity) {
         if (entity.getBuilding() != null && entity.getBuilding().getProjectArea() != null) {

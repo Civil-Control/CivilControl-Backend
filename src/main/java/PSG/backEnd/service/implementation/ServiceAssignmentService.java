@@ -12,7 +12,9 @@ import PSG.backEnd.model.dto.serviceSupplier.ServiceAssignmentResponseDTO;
 import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.serviceSupplier.ServiceAssignment;
 import PSG.backEnd.model.entity.serviceSupplier.ServiceSupplier;
+import PSG.backEnd.model.entity.serviceSupplier.SpecificDueDate;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
+import PSG.backEnd.model.enums.DueDateMode;
 import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.mapper.ServiceAssignmentMapper;
 import PSG.backEnd.repository.BuildingRepository;
@@ -26,6 +28,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -139,6 +143,7 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
         }
 
         serviceAssignmentMapper.partialUpdate(dto, existing);
+        applyDueDateMode(existing, dto);
         return serviceAssignmentMapper.toResponseDto(serviceAssignmentRepository.save(existing));
     }
 
@@ -230,7 +235,37 @@ public class ServiceAssignmentService implements IServiceAssignmentService {
             assignment.setPaymentLocation(paymentLocation);
         }
 
+        applyDueDateMode(assignment, dto);
+
         assignment.setDeleted(false);
         return serviceAssignmentMapper.toResponseDto(serviceAssignmentRepository.save(assignment));
+    }
+
+    private void applyDueDateMode(ServiceAssignment assignment, ServiceAssignmentDTO dto) {
+        if (dto.dueDateMode() == DueDateMode.ESTIMATED) {
+            assignment.setDueDateMode(DueDateMode.ESTIMATED);
+            assignment.setEstimatedDueDay(dto.estimatedDueDay());
+            assignment.setPeriodicity(dto.periodicity());
+            assignment.getSpecificDueDates().clear();
+        } else if (dto.dueDateMode() == DueDateMode.SPECIFIC) {
+            assignment.setDueDateMode(DueDateMode.SPECIFIC);
+            assignment.setEstimatedDueDay(null);
+            assignment.setPeriodicity(null);
+            assignment.getSpecificDueDates().clear();
+            if (dto.specificDueDates() != null) {
+                for (var date : dto.specificDueDates()) {
+                    SpecificDueDate sdd = new SpecificDueDate();
+                    sdd.setDueDate(date);
+                    sdd.setServiceAssignment(assignment);
+                    assignment.getSpecificDueDates().add(sdd);
+                }
+            }
+        } else {
+            // No mode specified — clear all due date fields
+            assignment.setDueDateMode(null);
+            assignment.setEstimatedDueDay(null);
+            assignment.setPeriodicity(null);
+            assignment.getSpecificDueDates().clear();
+        }
     }
 }
