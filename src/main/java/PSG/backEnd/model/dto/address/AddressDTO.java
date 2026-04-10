@@ -14,18 +14,15 @@ public record AddressDTO(
             example = "Av. Colón",
             minLength = 2,
             maxLength = 200,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 200, message = "{validation.size}", groups = OnCreate.class)
-    @Size(max = 200, message = "{validation.size}", groups = OnUpdate.class)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @Size(min = 2, max = 200, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String street,
 
     @Schema(description = "Street number or building number. Must be a positive integer between 1 and 99999.",
             example = "1234",
             minimum = "1",
             maximum = "99999",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{validation.required}", groups = OnCreate.class)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     @Min(value = 1, message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
     @Max(value = 99999, message = "{validation.max}", groups = {OnCreate.class, OnUpdate.class})
     Integer number,
@@ -35,11 +32,9 @@ public record AddressDTO(
             example = "Córdoba",
             minLength = 2,
             maxLength = 100,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "{validation.size}", groups = OnCreate.class)
-    @Size(max = 100, message = "{validation.size}", groups = OnUpdate.class)
-    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = OnCreate.class)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @Size(min = 2, max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
     String city,
 
     @Schema(description = "State or province name. Must contain only letters, spaces, dots, hyphens and apostrophes. " +
@@ -47,11 +42,9 @@ public record AddressDTO(
             example = "Córdoba",
             minLength = 2,
             maxLength = 100,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "{validation.size}", groups = OnCreate.class)
-    @Size(max = 100, message = "{validation.size}", groups = OnUpdate.class)
-    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = OnCreate.class)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @Size(min = 2, max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
     String state,
 
     @Schema(description = "Country name. Must contain only letters, spaces, dots, hyphens and apostrophes. " +
@@ -59,11 +52,9 @@ public record AddressDTO(
             example = "Argentina",
             minLength = 2,
             maxLength = 100,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Size(min = 2, max = 100, message = "{validation.size}", groups = OnCreate.class)
-    @Size(max = 100, message = "{validation.size}", groups = OnUpdate.class)
-    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = OnCreate.class)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @Size(min = 2, max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^[\\p{L}\\s.'-]+$", message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
     String country,
 
     @Schema(description = "Postal code or ZIP code. Must be between 4 and 20 alphanumeric characters in uppercase. " +
@@ -72,8 +63,7 @@ public record AddressDTO(
             pattern = "^[A-Z0-9]{4,20}$",
             minLength = 4,
             maxLength = 20,
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
-    @Pattern(regexp = "^[A-Z0-9]{4,20}$", message = "{validation.size}", groups = OnCreate.class)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
+    @Pattern(regexp = "^[A-Z0-9]{4,20}$", message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
     String zipCode
 ) {}

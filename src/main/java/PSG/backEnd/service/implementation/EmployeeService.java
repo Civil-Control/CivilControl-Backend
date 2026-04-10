@@ -38,7 +38,9 @@ public class EmployeeService implements IEmployeeService {
     @Transactional
     public EmployeeResponseDTO createEmployee(EmployeeDTO employeeDTO) {
         validateNewEmployee(employeeDTO);
-        validateProjectAreaExists(employeeDTO.projectAreaId());
+        if (employeeDTO.projectAreaId() != null) {
+            validateProjectAreaExists(employeeDTO.projectAreaId());
+        }
         validateBusinessRules(employeeDTO);
 
         Optional<Employee> deletedEmployee = findDeletedEmployee(employeeDTO);
@@ -149,16 +151,18 @@ public class EmployeeService implements IEmployeeService {
     }
 
     private void validateBusinessRules(EmployeeDTO employeeDTO) {
-        if (employeeDTO.hireDate().isAfter(LocalDate.now())) {
+        if (employeeDTO.hireDate() != null && employeeDTO.hireDate().isAfter(LocalDate.now())) {
             throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.hireDate.future"));
         }
 
-        LocalDate eighteenYearsAgo = LocalDate.now().minusYears(18);
-        if (employeeDTO.birthDate().isAfter(eighteenYearsAgo)) {
-            throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.age.minimum"));
+        if (employeeDTO.birthDate() != null) {
+            LocalDate eighteenYearsAgo = LocalDate.now().minusYears(18);
+            if (employeeDTO.birthDate().isAfter(eighteenYearsAgo)) {
+                throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.age.minimum"));
+            }
         }
 
-        if (employeeDTO.endDate() != null && employeeDTO.endDate().isBefore(employeeDTO.hireDate())) {
+        if (employeeDTO.endDate() != null && employeeDTO.hireDate() != null && employeeDTO.endDate().isBefore(employeeDTO.hireDate())) {
             throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.endDate.beforeHireDate"));
         }
 
@@ -185,7 +189,7 @@ public class EmployeeService implements IEmployeeService {
 
         if (employeeDTO.endDate() != null) {
             LocalDate hireDate = employeeDTO.hireDate() != null ? employeeDTO.hireDate() : existingEmployee.getHireDate();
-            if (employeeDTO.endDate().isBefore(hireDate)) {
+            if (hireDate != null && employeeDTO.endDate().isBefore(hireDate)) {
                 throw new EmployeeNotValidException(messageSourceHelper.getMessage("employee.endDate.beforeHireDate"));
             }
         }
@@ -214,11 +218,15 @@ public class EmployeeService implements IEmployeeService {
     }
 
     private EmployeeResponseDTO reactivateEmployee(Employee employee, EmployeeDTO employeeDTO) {
-        ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaId())
-                .orElseThrow(() -> new ProjectAreaNotFoundException(employeeDTO.projectAreaId()));
+        if (employeeDTO.projectAreaId() != null) {
+            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaId())
+                    .orElseThrow(() -> new ProjectAreaNotFoundException(employeeDTO.projectAreaId()));
+            employee.setProjectArea(projectArea);
+        } else {
+            employee.setProjectArea(null);
+        }
 
         clearSoftDeletedConflicts(employeeDTO, employee.getId());
-        employee.setProjectArea(projectArea);
         employeeMapper.partialUpdate(employeeDTO, employee);
         employee.setDeleted(false);
         employee.setEndDate(null);
@@ -228,11 +236,13 @@ public class EmployeeService implements IEmployeeService {
     private EmployeeResponseDTO createNewEmployee(EmployeeDTO employeeDTO) {
         Employee employee = employeeMapper.toEntity(employeeDTO);
 
-        ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaId())
-                .orElseThrow(() -> new ProjectAreaNotFoundException(employeeDTO.projectAreaId()));
+        if (employeeDTO.projectAreaId() != null) {
+            ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaId())
+                    .orElseThrow(() -> new ProjectAreaNotFoundException(employeeDTO.projectAreaId()));
+            employee.setProjectArea(projectArea);
+        }
 
         clearSoftDeletedConflicts(employeeDTO, null);
-        employee.setProjectArea(projectArea);
         employee.setDeleted(false);
         return employeeMapper.toResponseDto(employeeRepository.save(employee));
     }

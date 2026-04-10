@@ -42,7 +42,7 @@ public class Employee extends TenantEntity {
     private String cuil;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_area_id", nullable = false)
+    @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
 
     @Embedded
@@ -65,7 +65,7 @@ public class Employee extends TenantEntity {
     private EmploymentType employmentType;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "employee_status", nullable = false)
+    @Column(name = "employee_status")
     private EmployeeStatus employeeStatus;
 
     @ElementCollection(fetch = FetchType.EAGER)

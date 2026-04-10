@@ -63,18 +63,17 @@ public record EmployeeDTO(
     @Schema(description = "Unique identifier of the project area where the employee is assigned. " +
             "Must reference an existing project area in the system.",
             example = "3",
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     Long projectAreaId,
 
     @Schema(description = "Complete residential address of the employee including street, number, city, province, and postal code.",
-            requiredMode = Schema.RequiredMode.REQUIRED)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     @Valid
     AddressDTO address,
 
     @Schema(description = "Employee's date of birth. Must be a date in the past. Used for age calculation and legal requirements.",
             example = "1990-05-15",
-            requiredMode = Schema.RequiredMode.REQUIRED)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     @Past(message = "{employee.birthDate.past}", groups = {OnCreate.class, OnUpdate.class})
     LocalDate birthDate,
 
@@ -123,8 +122,7 @@ public record EmployeeDTO(
             "SUSPENDIDO (temporarily suspended from duties).",
             example = "ACTIVO",
             allowableValues = {"ACTIVO", "LICENCIA", "SUSPENDIDO"},
-            requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     EmployeeStatus employeeStatus,
 
     @Schema(description = "Employee's roles or job positions in the organization. One or more roles can be assigned. " +
