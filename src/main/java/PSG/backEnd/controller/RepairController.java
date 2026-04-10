@@ -70,6 +70,7 @@ public class RepairController {
             @Parameter(description = "Maximum mileage") @RequestParam(required = false) Integer maxMileage,
             @Parameter(description = "Generic search across vehicle license plate, supplier and item descriptions") @RequestParam(required = false) String search,
             @Parameter(description = "Filter by linked transactional document ID on any item") @RequestParam(required = false) Long transactionalDocumentId,
+            @Parameter(description = "When true, return only repairs with all items unlinked") @RequestParam(required = false) Boolean unlinked,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by.") @RequestParam(defaultValue = "date") String sortBy,
@@ -83,7 +84,7 @@ public class RepairController {
         RepairFilterDTO filterDTO = new RepairFilterDTO(
                 dateFrom, dateTo, vehicleId, vehicleLicensePlate, projectAreaId,
                 minCost, maxCost, supplierId, supplierLegalName, itemDescription,
-                minMileage, maxMileage, search, transactionalDocumentId
+                minMileage, maxMileage, search, transactionalDocumentId, unlinked
         );
 
         return ResponseEntity.ok(repairService.getAllRepairs(filterDTO, pageable));
@@ -143,5 +144,32 @@ public class RepairController {
             @Parameter(description = "Repair unique identifier", required = true) @PathVariable Long id) {
         repairService.deleteRepair(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_WRITE + "')")
+    @PatchMapping("/{id}/link/{documentId}")
+    @Operation(summary = "Link repair to a transactional document",
+               description = "Sets the transactional document on all items of the repair.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Repair successfully linked"),
+            @ApiResponse(responseCode = "404", description = "Repair or document not found")
+    })
+    public ResponseEntity<RepairResponseDTO> linkToDocument(
+            @PathVariable Long id,
+            @PathVariable Long documentId) {
+        return ResponseEntity.ok(repairService.linkToDocument(id, documentId));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_WRITE + "')")
+    @PatchMapping("/{id}/unlink")
+    @Operation(summary = "Unlink repair from its transactional document",
+               description = "Removes the transactional document from all items of the repair.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Repair successfully unlinked"),
+            @ApiResponse(responseCode = "404", description = "Repair not found")
+    })
+    public ResponseEntity<RepairResponseDTO> unlinkFromDocument(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(repairService.unlinkFromDocument(id));
     }
 }

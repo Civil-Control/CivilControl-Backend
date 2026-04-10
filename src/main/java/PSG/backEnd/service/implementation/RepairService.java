@@ -79,6 +79,7 @@ public class RepairService implements IRepairService {
                 filterDTO.maxMileage(),
                 filterDTO.search(),
                 filterDTO.transactionalDocumentId(),
+                Boolean.TRUE.equals(filterDTO.unlinked()),
                 pageable
         );
 
@@ -147,6 +148,33 @@ public class RepairService implements IRepairService {
 
         repairRepository.delete(repair);
         docIds.forEach(documentTotalRecalculator::recalculateDocumentTotals);
+    }
+
+    @Override
+    @Transactional
+    public RepairResponseDTO linkToDocument(Long repairId, Long documentId) {
+        Repair repair = repairRepository.findById(repairId)
+                .orElseThrow(() -> new RepairNotFoundException(repairId));
+        TransactionalDocument doc = resolveDocument(documentId);
+        repair.getItems().forEach(item -> item.setTransactionalDocument(doc));
+        Repair saved = repairRepository.save(repair);
+        recalculateItemDocuments(saved);
+        return repairMapper.toResponseDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public RepairResponseDTO unlinkFromDocument(Long repairId) {
+        Repair repair = repairRepository.findById(repairId)
+                .orElseThrow(() -> new RepairNotFoundException(repairId));
+        Set<Long> oldDocIds = repair.getItems().stream()
+                .filter(i -> i.getTransactionalDocument() != null)
+                .map(i -> i.getTransactionalDocument().getId())
+                .collect(Collectors.toSet());
+        repair.getItems().forEach(item -> item.setTransactionalDocument(null));
+        repairRepository.save(repair);
+        oldDocIds.forEach(documentTotalRecalculator::recalculateDocumentTotals);
+        return repairMapper.toResponseDto(repair);
     }
 
     /**

@@ -12,5 +12,7 @@ public interface IRepairService {
     RepairResponseDTO updateRepair(Long id, RepairDTO repairDTO);
     void deleteRepair(Long id);
     Page<RepairResponseDTO> getAllRepairs(RepairFilterDTO filterDTO, Pageable pageable);
+    RepairResponseDTO linkToDocument(Long repairId, Long documentId);
+    RepairResponseDTO unlinkFromDocument(Long repairId);
 }
 

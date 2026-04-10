@@ -816,6 +816,7 @@ public class ReportService implements IReportService {
                 null, // maxMileage
                 null, // search
                 null, // transactionalDocumentId
+                false, // unlinked
                 pageable
         ).getContent();
 

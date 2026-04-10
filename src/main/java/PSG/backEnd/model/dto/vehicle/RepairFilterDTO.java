@@ -48,5 +48,8 @@ public record RepairFilterDTO(
         String search,
 
         @Schema(description = "Filter by linked transactional document ID on any item.", nullable = true)
-        Long transactionalDocumentId
+        Long transactionalDocumentId,
+
+        @Schema(description = "When true, return only repairs whose items are all unlinked (no transactional document).", nullable = true)
+        Boolean unlinked
 ) {}
