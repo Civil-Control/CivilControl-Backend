@@ -147,29 +147,31 @@ public class RepairController {
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_WRITE + "')")
-    @PatchMapping("/{id}/link/{documentId}")
-    @Operation(summary = "Link repair to a transactional document",
-               description = "Sets the transactional document on all items of the repair.")
+    @PatchMapping("/items/{itemId}/link/{documentId}")
+    @Operation(summary = "Link a single repair item to a transactional document",
+               description = "Sets the transactional document on a specific repair item.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Repair successfully linked"),
-            @ApiResponse(responseCode = "404", description = "Repair or document not found")
+            @ApiResponse(responseCode = "204", description = "Item successfully linked"),
+            @ApiResponse(responseCode = "404", description = "Item or document not found")
     })
-    public ResponseEntity<RepairResponseDTO> linkToDocument(
-            @PathVariable Long id,
+    public ResponseEntity<Void> linkItemToDocument(
+            @PathVariable Long itemId,
             @PathVariable Long documentId) {
-        return ResponseEntity.ok(repairService.linkToDocument(id, documentId));
+        repairService.linkItemToDocument(itemId, documentId);
+        return ResponseEntity.noContent().build();
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_WRITE + "')")
-    @PatchMapping("/{id}/unlink")
-    @Operation(summary = "Unlink repair from its transactional document",
-               description = "Removes the transactional document from all items of the repair.")
+    @PatchMapping("/items/{itemId}/unlink")
+    @Operation(summary = "Unlink a single repair item from its transactional document",
+               description = "Removes the transactional document from a specific repair item.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Repair successfully unlinked"),
-            @ApiResponse(responseCode = "404", description = "Repair not found")
+            @ApiResponse(responseCode = "204", description = "Item successfully unlinked"),
+            @ApiResponse(responseCode = "404", description = "Item not found")
     })
-    public ResponseEntity<RepairResponseDTO> unlinkFromDocument(
-            @PathVariable Long id) {
-        return ResponseEntity.ok(repairService.unlinkFromDocument(id));
+    public ResponseEntity<Void> unlinkItem(
+            @PathVariable Long itemId) {
+        repairService.unlinkItem(itemId);
+        return ResponseEntity.noContent().build();
     }
 }

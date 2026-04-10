@@ -39,7 +39,7 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(i.description AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))) " +
             "AND (CAST(:transactionalDocumentId AS long) IS NULL OR i.transactionalDocument.id = :transactionalDocumentId) " +
-            "AND (:unlinked = false OR NOT EXISTS (SELECT 1 FROM RepairItem ri2 WHERE ri2.repair = r AND ri2.transactionalDocument IS NOT NULL))")
+            "AND (:unlinked = false OR EXISTS (SELECT 1 FROM RepairItem ri2 WHERE ri2.repair = r AND ri2.transactionalDocument IS NULL))")
     Page<Repair> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,

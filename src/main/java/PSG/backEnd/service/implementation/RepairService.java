@@ -12,6 +12,7 @@ import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.entity.vehicle.RepairItem;
 import PSG.backEnd.model.mapper.RepairMapper;
+import PSG.backEnd.repository.RepairItemRepository;
 import PSG.backEnd.repository.RepairRepository;
 import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
@@ -36,6 +37,7 @@ public class RepairService implements IRepairService {
     private final SupplierRepository supplierRepository;
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final DocumentTotalRecalculator documentTotalRecalculator;
+    private final RepairItemRepository repairItemRepository;
 
     @Override
     @Transactional
@@ -152,29 +154,27 @@ public class RepairService implements IRepairService {
 
     @Override
     @Transactional
-    public RepairResponseDTO linkToDocument(Long repairId, Long documentId) {
-        Repair repair = repairRepository.findById(repairId)
-                .orElseThrow(() -> new RepairNotFoundException(repairId));
+    public void linkItemToDocument(Long itemId, Long documentId) {
+        RepairItem item = repairItemRepository.findById(itemId)
+                .orElseThrow(() -> new RepairNotFoundException(itemId));
         TransactionalDocument doc = resolveDocument(documentId);
-        repair.getItems().forEach(item -> item.setTransactionalDocument(doc));
-        Repair saved = repairRepository.save(repair);
-        recalculateItemDocuments(saved);
-        return repairMapper.toResponseDto(saved);
+        item.setTransactionalDocument(doc);
+        repairItemRepository.save(item);
+        documentTotalRecalculator.recalculateDocumentTotals(documentId);
     }
 
     @Override
     @Transactional
-    public RepairResponseDTO unlinkFromDocument(Long repairId) {
-        Repair repair = repairRepository.findById(repairId)
-                .orElseThrow(() -> new RepairNotFoundException(repairId));
-        Set<Long> oldDocIds = repair.getItems().stream()
-                .filter(i -> i.getTransactionalDocument() != null)
-                .map(i -> i.getTransactionalDocument().getId())
-                .collect(Collectors.toSet());
-        repair.getItems().forEach(item -> item.setTransactionalDocument(null));
-        repairRepository.save(repair);
-        oldDocIds.forEach(documentTotalRecalculator::recalculateDocumentTotals);
-        return repairMapper.toResponseDto(repair);
+    public void unlinkItem(Long itemId) {
+        RepairItem item = repairItemRepository.findById(itemId)
+                .orElseThrow(() -> new RepairNotFoundException(itemId));
+        Long oldDocId = item.getTransactionalDocument() != null
+                ? item.getTransactionalDocument().getId() : null;
+        item.setTransactionalDocument(null);
+        repairItemRepository.save(item);
+        if (oldDocId != null) {
+            documentTotalRecalculator.recalculateDocumentTotals(oldDocId);
+        }
     }
 
     /**
