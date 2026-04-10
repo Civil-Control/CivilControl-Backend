@@ -177,6 +177,18 @@ public class RepairService implements IRepairService {
         }
     }
 
+    @Override
+    @Transactional
+    public void updateItemAmount(Long itemId, java.math.BigDecimal amount) {
+        RepairItem item = repairItemRepository.findById(itemId)
+                .orElseThrow(() -> new RepairNotFoundException(itemId));
+        item.setAmount(amount);
+        repairItemRepository.save(item);
+        if (item.getTransactionalDocument() != null) {
+            documentTotalRecalculator.recalculateDocumentTotals(item.getTransactionalDocument().getId());
+        }
+    }
+
     /**
      * Applies items from DTOs to the repair entity, handling orphan removal.
      */

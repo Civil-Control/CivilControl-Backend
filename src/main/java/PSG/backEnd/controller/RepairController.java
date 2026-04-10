@@ -174,4 +174,19 @@ public class RepairController {
         repairService.unlinkItem(itemId);
         return ResponseEntity.noContent().build();
     }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_WRITE + "')")
+    @PatchMapping("/items/{itemId}/amount")
+    @Operation(summary = "Update amount of a repair item",
+               description = "Updates the amount of a specific repair item and recalculates linked document totals.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Amount successfully updated"),
+            @ApiResponse(responseCode = "404", description = "Item not found")
+    })
+    public ResponseEntity<Void> updateItemAmount(
+            @PathVariable Long itemId,
+            @RequestBody java.util.Map<String, BigDecimal> body) {
+        repairService.updateItemAmount(itemId, body.get("amount"));
+        return ResponseEntity.noContent().build();
+    }
 }

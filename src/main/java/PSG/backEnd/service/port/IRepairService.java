@@ -14,5 +14,6 @@ public interface IRepairService {
     Page<RepairResponseDTO> getAllRepairs(RepairFilterDTO filterDTO, Pageable pageable);
     void linkItemToDocument(Long itemId, Long documentId);
     void unlinkItem(Long itemId);
+    void updateItemAmount(Long itemId, java.math.BigDecimal amount);
 }
 
