@@ -42,6 +42,8 @@ public class PaymentOrderPdfService {
     private static final float SZ_LG = 13f;
     private static final float SZ_XL = 22f;
     private static final float CELL_PAD = 3f;
+    private static final float BOLD_SPACING = 0.4f;
+    private static final float TITLE_SPACING = 0.6f;
 
     // ────────────────────────────────────────────────────────────────
     // Public API
@@ -83,6 +85,7 @@ public class PaymentOrderPdfService {
         Cell left = new Cell().setBorder(THIN).setPadding(6);
         String companyName = tenant.getLegalName() != null ? tenant.getLegalName() : tenant.getName();
         left.add(new Paragraph(companyName).setBold().setFontSize(SZ_LG)
+                .setCharacterSpacing(TITLE_SPACING)
                 .setTextAlignment(TextAlignment.CENTER).setMarginBottom(8));
         left.add(labelValue("Razón Social:  ", companyName));
         left.add(labelValue("Condición IVA:",
@@ -96,13 +99,14 @@ public class PaymentOrderPdfService {
                 .setTextAlignment(TextAlignment.CENTER)
                 .setPadding(4);
         center.add(new Paragraph("X").setBold().setFontSize(SZ_XL)
+                .setCharacterSpacing(TITLE_SPACING)
                 .setTextAlignment(TextAlignment.CENTER));
         outer.addCell(center);
 
         // ── RIGHT CELL ──
         Cell right = new Cell().setBorder(THIN).setPadding(6);
         right.add(new Paragraph("Orden de pago").setBold().setFontSize(SZ_LG)
-                .setMarginBottom(4));
+                .setCharacterSpacing(TITLE_SPACING).setMarginBottom(4));
         right.add(new Paragraph("Fecha emisión:       "
                 + payment.getPaymentDate().format(DATE_FMT)).setFontSize(SZ_SM));
         right.add(new Paragraph("Numero:                "
@@ -185,7 +189,7 @@ public class PaymentOrderPdfService {
         // Title row
         Cell title = noBorderCell(1, 4)
                 .add(new Paragraph("Comprobantes Imputados").setBold().setFontSize(SZ_SM)
-                        .setTextAlignment(TextAlignment.CENTER))
+                        .setCharacterSpacing(BOLD_SPACING).setTextAlignment(TextAlignment.CENTER))
                 .setPaddingBottom(2);
         t.addCell(title);
 
@@ -226,7 +230,7 @@ public class PaymentOrderPdfService {
 
         t.addCell(noBorderCell(1, 3)
                 .add(new Paragraph("Cheques").setBold().setFontSize(SZ_SM)
-                        .setTextAlignment(TextAlignment.CENTER))
+                        .setCharacterSpacing(BOLD_SPACING).setTextAlignment(TextAlignment.CENTER))
                 .setPaddingBottom(2));
 
         String dueDate = check.getDueDate() != null ? check.getDueDate().format(DATE_FMT) : "-";
@@ -245,7 +249,7 @@ public class PaymentOrderPdfService {
 
         t.addCell(noBorderCell(1, 3)
                 .add(new Paragraph("Transferencia Bancaria").setBold().setFontSize(SZ_SM)
-                        .setTextAlignment(TextAlignment.CENTER))
+                        .setCharacterSpacing(BOLD_SPACING).setTextAlignment(TextAlignment.CENTER))
                 .setPaddingBottom(2));
 
         t.addCell(dataCell(transfer.getTransactionNumber() != null ? transfer.getTransactionNumber() : "-", TextAlignment.LEFT));
@@ -263,7 +267,7 @@ public class PaymentOrderPdfService {
 
         t.addCell(noBorderCell(1, 2)
                 .add(new Paragraph("Efectivo").setBold().setFontSize(SZ_SM)
-                        .setTextAlignment(TextAlignment.CENTER))
+                        .setCharacterSpacing(BOLD_SPACING).setTextAlignment(TextAlignment.CENTER))
                 .setPaddingBottom(2));
 
         t.addCell(dataCell("Pago en efectivo", TextAlignment.LEFT));
@@ -312,7 +316,7 @@ public class PaymentOrderPdfService {
         // Retenciones row (placeholder — system has no withholdings yet)
         leftT.addCell(noBorderCell(1, 4)
                 .add(new Paragraph("Retenciones").setBold().setFontSize(SZ_XS)
-                        .setTextAlignment(TextAlignment.CENTER))
+                        .setCharacterSpacing(BOLD_SPACING).setTextAlignment(TextAlignment.CENTER))
                 .setPaddingTop(4));
 
         leftCell.add(leftT);
@@ -348,14 +352,15 @@ public class PaymentOrderPdfService {
 
     private Paragraph labelValue(String label, String value) {
         return new Paragraph()
-                .add(new com.itextpdf.layout.element.Text(label).setBold().setFontSize(SZ_SM))
+                .add(new com.itextpdf.layout.element.Text(label).setBold().setFontSize(SZ_SM)
+                        .setCharacterSpacing(BOLD_SPACING))
                 .add(new com.itextpdf.layout.element.Text("  " + (value != null ? value : "-")).setFontSize(SZ_SM))
                 .setMarginBottom(1);
     }
 
     private void addKvCell(Table t, String label, String value) {
         t.addCell(new Cell().setBorder(THIN).setPadding(CELL_PAD)
-                .add(new Paragraph(label).setBold().setFontSize(SZ_SM)));
+                .add(new Paragraph(label).setBold().setFontSize(SZ_SM).setCharacterSpacing(BOLD_SPACING)));
         t.addCell(new Cell().setBorder(THIN).setPadding(CELL_PAD)
                 .add(new Paragraph(value != null ? value : "-").setFontSize(SZ_SM)));
     }
@@ -372,7 +377,7 @@ public class PaymentOrderPdfService {
     private Cell totalLabel(String text) {
         return new Cell().setBorder(Border.NO_BORDER).setPadding(2)
                 .add(new Paragraph(text).setBold().setFontSize(SZ_SM)
-                        .setTextAlignment(TextAlignment.RIGHT));
+                        .setCharacterSpacing(BOLD_SPACING).setTextAlignment(TextAlignment.RIGHT));
     }
 
     private Cell totalValue(String text) {
