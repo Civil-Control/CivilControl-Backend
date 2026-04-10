@@ -1,8 +1,13 @@
 package PSG.backEnd.model.dto.serviceSupplier;
 
+import PSG.backEnd.model.enums.DueDateMode;
+import PSG.backEnd.model.enums.Periodicity;
 import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Schema(description = "Response DTO containing complete information about a service assignment.")
 public record ServiceAssignmentResponseDTO(
@@ -43,8 +48,17 @@ public record ServiceAssignmentResponseDTO(
         @Schema(description = "Account number for the service.")
         String accountNumber,
 
+        @Schema(description = "Due date mode: ESTIMATED or SPECIFIC.")
+        DueDateMode dueDateMode,
+
         @Schema(description = "Estimated day of the month when the service is due.")
         Integer estimatedDueDay,
+
+        @Schema(description = "Periodicity of the due date.")
+        Periodicity periodicity,
+
+        @Schema(description = "List of specific due dates.")
+        List<LocalDate> specificDueDates,
 
         @Schema(description = "Name of the person or entity responsible for the service payment.")
         String accountHolder,

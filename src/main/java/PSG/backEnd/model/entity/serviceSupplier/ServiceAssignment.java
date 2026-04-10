@@ -3,10 +3,15 @@ package PSG.backEnd.model.entity.serviceSupplier;
 import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
+import PSG.backEnd.model.enums.DueDateMode;
+import PSG.backEnd.model.enums.Periodicity;
 import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ServiceType;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "service_assignments")
@@ -44,8 +49,20 @@ public class ServiceAssignment extends TenantEntity {
     @Column(name = "account_number", length = 100)
     private String accountNumber;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "due_date_mode")
+    private DueDateMode dueDateMode;
+
     @Column(name = "estimated_due_day")
     private Integer estimatedDueDay;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "periodicity")
+    private Periodicity periodicity;
+
+    @OneToMany(mappedBy = "serviceAssignment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<SpecificDueDate> specificDueDates = new ArrayList<>();
 
     @Column(name = "account_holder", length = 200)
     private String accountHolder;
