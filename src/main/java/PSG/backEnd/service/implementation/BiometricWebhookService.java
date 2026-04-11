@@ -86,7 +86,13 @@ public class BiometricWebhookService implements IBiometricWebhookService {
             return;
         }
 
-        // 3. Validate extracted data
+        // 3. Null means system/non-person event — silently skip (not an error)
+        if (event == null) {
+            log.debug("System event from {} — no employee data, skipping", normalizedBrand);
+            return;
+        }
+
+        // 4. Validate extracted data
         if (event.employeeDni() == null || event.employeeDni().isBlank()) {
             saveOrphan(normalizedBrand, rawPayload, "Parsed employee DNI is null or blank");
             return;
@@ -96,12 +102,12 @@ public class BiometricWebhookService implements IBiometricWebhookService {
             return;
         }
 
-        // 4. Set tenant context from the URL-provided tenantId
+        // 5. Set tenant context from the URL-provided tenantId
         Long previousTenant = TenantContext.getCurrentTenant();
         try {
             TenantContext.setCurrentTenant(tenantId);
 
-            // 5. Look up employee by DNI within this tenant
+            // 6. Look up employee by DNI within this tenant
             Optional<Employee> employeeOpt = findEmployeeByDni(event.employeeDni());
             if (employeeOpt.isEmpty()) {
                 log.warn("No active employee with DNI {} in tenant {} — routing to orphan queue",
@@ -115,10 +121,10 @@ public class BiometricWebhookService implements IBiometricWebhookService {
             LocalDate date = event.timestamp().toLocalDate();
             LocalTime time = event.timestamp().toLocalTime();
 
-            // 6. Determine movement type (toggle: first of day = ENTRADA, then alternate)
+            // 7. Determine movement type (toggle: first of day = ENTRADA, then alternate)
             MovementType movementType = resolveMovementType(employee.getId(), date);
 
-            // 7. Build and persist AttendanceRecord (idempotent via UNIQUE constraint)
+            // 8. Build and persist AttendanceRecord (idempotent via UNIQUE constraint)
             AttendanceRecord record = AttendanceRecord.builder()
                     .employee(employee)
                     .date(date)

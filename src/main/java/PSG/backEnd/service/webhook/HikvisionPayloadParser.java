@@ -12,15 +12,21 @@ import java.time.format.DateTimeParseException;
 /**
  * Parser for Hikvision biometric clock payloads (HTTP Listening protocol).
  *
- * <p>Expected JSON structure:</p>
+ * <p>Expected JSON structure (real Hikvision ISAPI event push):</p>
  * <pre>
  * {
+ *   "dateTime": "2024-03-04T12:48:43-03:00",
+ *   "eventType": "AccessControllerEvent",
  *   "AccessControllerEvent": {
- *     "employeeNoString": "12345678",
- *     "time": "2026-04-07T08:30:00-03:00"
+ *     "employeeNoString": "1",
+ *     "name": "Caceres",
+ *     ...
  *   }
  * }
  * </pre>
+ *
+ * <p>Note: {@code employeeNoString} may be absent on system/non-person events;
+ * in that case this parser returns {@code null} to signal "skip".</p>
  */
 @Component
 @Slf4j
@@ -48,26 +54,27 @@ public class HikvisionPayloadParser implements BiometricPayloadParser {
                 throw new BiometricParseException("Missing 'AccessControllerEvent' node in Hikvision payload");
             }
 
-            // Extract employee DNI
+            // Extract employee DNI — absent on system events, return null to signal "skip"
             JsonNode employeeNode = event.path("employeeNoString");
             if (employeeNode.isMissingNode() || employeeNode.asText().isBlank()) {
-                throw new BiometricParseException("Missing or empty 'employeeNoString' in Hikvision payload");
+                log.debug("Hikvision system event (no employeeNoString) — skipping");
+                return null;
             }
             String employeeDni = employeeNode.asText().trim();
 
-            // Extract timestamp (ISO with timezone, e.g. "2026-04-07T08:30:00-03:00")
-            JsonNode timeNode = event.path("time");
-            if (timeNode.isMissingNode() || timeNode.asText().isBlank()) {
-                throw new BiometricParseException("Missing or empty 'time' in Hikvision payload");
+            // Extract timestamp from root-level "dateTime" (ISO 8601 with offset)
+            JsonNode dateTimeNode = root.path("dateTime");
+            if (dateTimeNode.isMissingNode() || dateTimeNode.asText().isBlank()) {
+                throw new BiometricParseException("Missing or empty 'dateTime' in Hikvision payload");
             }
 
             LocalDateTime timestamp;
             try {
-                OffsetDateTime odt = OffsetDateTime.parse(timeNode.asText().trim());
+                OffsetDateTime odt = OffsetDateTime.parse(dateTimeNode.asText().trim());
                 timestamp = odt.toLocalDateTime();
             } catch (DateTimeParseException e) {
                 throw new BiometricParseException(
-                    "Invalid 'time' format in Hikvision payload: " + timeNode.asText(), e);
+                    "Invalid 'dateTime' format in Hikvision payload: " + dateTimeNode.asText(), e);
             }
 
             return new BiometricParsedEvent(employeeDni, timestamp);

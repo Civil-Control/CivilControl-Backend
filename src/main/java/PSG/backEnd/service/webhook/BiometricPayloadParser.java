@@ -21,7 +21,8 @@ public interface BiometricPayloadParser {
      * Extracts the employee identifier and timestamp from a raw JSON payload.
      *
      * @param rawPayload the full JSON body as received from the device
-     * @return parsed event containing employee DNI and timestamp
+     * @return parsed event containing employee DNI and timestamp,
+     *         or {@code null} if the event is a system/non-person event that should be silently skipped
      * @throws BiometricParseException if the payload is malformed or required fields are missing
      */
     BiometricParsedEvent parse(String rawPayload);
