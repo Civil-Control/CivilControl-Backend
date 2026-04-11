@@ -811,6 +811,7 @@ public class ReportService implements IReportService {
                 filters.maxAmount(),
                 null, // supplierId
                 null, // supplierName
+                null, // description
                 null, // itemDescription
                 null, // minMileage
                 null, // maxMileage

@@ -32,10 +32,12 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             "AND (CAST(:maxCost AS BigDecimal) IS NULL OR (SELECT COALESCE(SUM(ri.amount), 0) FROM RepairItem ri WHERE ri.repair = r) <= :maxCost) " +
             "AND (CAST(:supplierId AS long) IS NULL OR r.supplier.id = :supplierId) " +
             "AND (:supplierName IS NULL OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) " +
+            "AND (:description IS NULL OR LOWER(CAST(r.description AS string)) LIKE LOWER(CONCAT('%', CAST(:description AS string), '%'))) " +
             "AND (:itemDescription IS NULL OR LOWER(CAST(i.description AS string)) LIKE LOWER(CONCAT('%', CAST(:itemDescription AS string), '%'))) " +
             "AND (CAST(:minMileage AS int) IS NULL OR r.mileage >= :minMileage) " +
             "AND (CAST(:maxMileage AS int) IS NULL OR r.mileage <= :maxMileage) " +
-            "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "AND (:search IS NULL OR (LOWER(CAST(r.description AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(i.description AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))) " +
             "AND (CAST(:transactionalDocumentId AS long) IS NULL OR i.transactionalDocument.id = :transactionalDocumentId) " +
@@ -50,6 +52,7 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
             @Param("maxCost") BigDecimal maxCost,
             @Param("supplierId") Long supplierId,
             @Param("supplierName") String supplierName,
+            @Param("description") String description,
             @Param("itemDescription") String itemDescription,
             @Param("minMileage") Integer minMileage,
             @Param("maxMileage") Integer maxMileage,

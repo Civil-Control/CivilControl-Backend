@@ -65,7 +65,8 @@ public class RepairController {
             @Parameter(description = "Maximum total cost") @RequestParam(required = false) BigDecimal maxCost,
             @Parameter(description = "Filter by supplier ID") @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Filter by supplier legal name") @RequestParam(required = false) String supplierLegalName,
-            @Parameter(description = "Filter by item description") @RequestParam(required = false) String itemDescription,
+            @Parameter(description = "Filter by repair description") @RequestParam(required = false) String description,
+            @Parameter(description = "Filter by item description (materials, labor)") @RequestParam(required = false) String itemDescription,
             @Parameter(description = "Minimum mileage") @RequestParam(required = false) Integer minMileage,
             @Parameter(description = "Maximum mileage") @RequestParam(required = false) Integer maxMileage,
             @Parameter(description = "Generic search across vehicle license plate, supplier and item descriptions") @RequestParam(required = false) String search,
@@ -83,7 +84,7 @@ public class RepairController {
 
         RepairFilterDTO filterDTO = new RepairFilterDTO(
                 dateFrom, dateTo, vehicleId, vehicleLicensePlate, projectAreaId,
-                minCost, maxCost, supplierId, supplierLegalName, itemDescription,
+                minCost, maxCost, supplierId, supplierLegalName, description, itemDescription,
                 minMileage, maxMileage, search, transactionalDocumentId, unlinked
         );
 

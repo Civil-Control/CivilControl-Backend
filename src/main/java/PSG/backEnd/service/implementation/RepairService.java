@@ -76,6 +76,7 @@ public class RepairService implements IRepairService {
                 filterDTO.maxCost(),
                 filterDTO.supplierId(),
                 filterDTO.supplierLegalName(),
+                filterDTO.description(),
                 filterDTO.itemDescription(),
                 filterDTO.minMileage(),
                 filterDTO.maxMileage(),

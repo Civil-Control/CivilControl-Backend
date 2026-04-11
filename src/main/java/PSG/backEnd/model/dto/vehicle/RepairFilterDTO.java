@@ -35,7 +35,10 @@ public record RepairFilterDTO(
         @Schema(description = "Filter by supplier legal name. Partial matches are supported.", nullable = true)
         String supplierLegalName,
 
-        @Schema(description = "Filter by item description. Partial matches are supported.", nullable = true)
+        @Schema(description = "Filter by repair description. Partial matches are supported.", nullable = true)
+        String description,
+
+        @Schema(description = "Filter by item description (materials, labor). Partial matches are supported.", nullable = true)
         String itemDescription,
 
         @Schema(description = "Minimum mileage (inclusive).", nullable = true)
@@ -44,7 +47,7 @@ public record RepairFilterDTO(
         @Schema(description = "Maximum mileage (inclusive).", nullable = true)
         Integer maxMileage,
 
-        @Schema(description = "Generic search across vehicle license plate, supplier name and item descriptions.", nullable = true)
+        @Schema(description = "Generic search across repair description, vehicle license plate, supplier name and item descriptions.", nullable = true)
         String search,
 
         @Schema(description = "Filter by linked transactional document ID on any item.", nullable = true)
