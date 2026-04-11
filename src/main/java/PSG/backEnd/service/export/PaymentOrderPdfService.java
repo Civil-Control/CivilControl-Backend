@@ -107,14 +107,33 @@ public class PaymentOrderPdfService {
         Cell right = new Cell().setBorder(THIN).setPadding(6);
         right.add(new Paragraph("Orden de pago").setBold().setFontSize(SZ_LG)
                 .setCharacterSpacing(TITLE_SPACING).setMarginBottom(4));
-        right.add(new Paragraph("Fecha emisión:       "
-                + payment.getPaymentDate().format(DATE_FMT)).setFontSize(SZ_SM));
-        right.add(new Paragraph("Numero:                "
-                + formatNumber(payment.getId())).setFontSize(SZ_SM));
+
+        // Two-column table for metadata so values align to the right
+        Table meta = new Table(new float[]{3, 4});
+        meta.setWidth(UnitValue.createPercentValue(100));
+        meta.setBorder(Border.NO_BORDER);
+
+        meta.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(1)
+                .add(new Paragraph("Fecha emisión:").setBold().setFontSize(SZ_SM).setCharacterSpacing(BOLD_SPACING)));
+        meta.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(1)
+                .add(new Paragraph(payment.getPaymentDate().format(DATE_FMT)).setFontSize(SZ_SM)
+                        .setTextAlignment(TextAlignment.RIGHT)));
+
+        meta.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(1)
+                .add(new Paragraph("Numero:").setBold().setFontSize(SZ_SM).setCharacterSpacing(BOLD_SPACING)));
+        meta.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(1)
+                .add(new Paragraph(formatNumber(payment.getId())).setFontSize(SZ_SM)
+                        .setTextAlignment(TextAlignment.RIGHT)));
+
         if (tenant.getCuit() != null) {
-            right.add(new Paragraph("C.U.I.T:               " + tenant.getCuit())
-                    .setFontSize(SZ_SM));
+            meta.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(1)
+                    .add(new Paragraph("C.U.I.T:").setBold().setFontSize(SZ_SM).setCharacterSpacing(BOLD_SPACING)));
+            meta.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(1)
+                    .add(new Paragraph(tenant.getCuit()).setFontSize(SZ_SM)
+                            .setTextAlignment(TextAlignment.RIGHT)));
         }
+
+        right.add(meta);
         outer.addCell(right);
 
         doc.add(outer);
