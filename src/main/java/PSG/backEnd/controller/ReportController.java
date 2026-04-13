@@ -3,8 +3,12 @@ package PSG.backEnd.controller;
 import PSG.backEnd.model.dto.report.MoneyOutflowReportDTO;
 import PSG.backEnd.model.dto.report.MoneyOutflowReportPreviewDTO;
 import PSG.backEnd.model.dto.report.ReportFilterDTO;
+import PSG.backEnd.model.dto.report.salary.SalaryReportDTO;
+import PSG.backEnd.model.dto.report.salary.SalaryReportFilterDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
+import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import PSG.backEnd.service.port.IReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -292,5 +296,117 @@ public class ReportController {
 
         return ResponseEntity.ok(preview);
     }
-}
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // SALARY REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/salary")
+    @Operation(
+            summary = "Generate salary report data",
+            description = "Generates a hierarchical salary report grouped by project area and employee. " +
+                    "Includes subtotals per frequency (mensual, quincenal, semanal) at each level."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<SalaryReportDTO> generateSalaryReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by salary frequency")
+            @RequestParam(required = false)
+            SalaryFrecuency salaryFrequency,
+
+            @Parameter(description = "Filter by payment method")
+            @RequestParam(required = false)
+            PaymentMethod paymentMethod,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Generating salary report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
+
+        SalaryReportFilterDTO filters = new SalaryReportFilterDTO(
+                startDate, endDate, projectAreaIds, salaryFrequency, paymentMethod, minAmount, maxAmount
+        );
+
+        SalaryReportDTO report = reportService.generateSalaryReport(filters);
+
+        log.info("Salary report generated: {} payments, total: ${}", report.totalCount(), report.totalAmount());
+
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/salary/download")
+    @Operation(
+            summary = "Download salary report file",
+            description = "Generates and downloads a salary report in the specified format (PDF or EXCEL)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadSalaryReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam
+            ReportFormat format,
+
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by salary frequency")
+            @RequestParam(required = false)
+            SalaryFrecuency salaryFrequency,
+
+            @Parameter(description = "Filter by payment method")
+            @RequestParam(required = false)
+            PaymentMethod paymentMethod,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Downloading salary report: format={}", format);
+
+        SalaryReportFilterDTO filters = new SalaryReportFilterDTO(
+                startDate, endDate, projectAreaIds, salaryFrequency, paymentMethod, minAmount, maxAmount
+        );
+
+        return reportService.generateSalaryReportFile(filters, format);
+    }
+}

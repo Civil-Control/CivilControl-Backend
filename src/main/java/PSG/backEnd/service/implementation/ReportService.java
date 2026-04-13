@@ -6,6 +6,7 @@ import PSG.backEnd.model.dto.report.MoneyOutflowReportDTO;
 import PSG.backEnd.model.dto.report.MoneyOutflowReportPreviewDTO;
 import PSG.backEnd.model.dto.report.ReportFilterDTO;
 import PSG.backEnd.model.dto.report.ReportItemDTO;
+import PSG.backEnd.model.dto.report.salary.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
@@ -17,6 +18,7 @@ import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ReportFormat;
+import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import PSG.backEnd.model.entity.vehicle.RepairItem;
 import PSG.backEnd.model.enums.vehicle.RepairItemType;
 import PSG.backEnd.repository.*;
@@ -989,5 +991,297 @@ public class ReportService implements IReportService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(", "));
     }
-}
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // SALARY REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional(readOnly = true)
+    public SalaryReportDTO generateSalaryReport(SalaryReportFilterDTO filters) {
+        log.info("Generating salary report with filters: {}", filters);
+
+        validateSalaryFilters(filters);
+
+        Pageable pageable = PageRequest.of(0, 10000);
+
+        // Collect raw salary payments using existing repository
+        List<Long> areaIds = filters.projectAreaIds();
+        Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
+
+        // If multiple area IDs, we collect per area and merge; otherwise single call
+        List<SalaryPayment> allPayments;
+        if (areaIds != null && areaIds.size() > 1) {
+            allPayments = new ArrayList<>();
+            for (Long areaId : areaIds) {
+                allPayments.addAll(salaryPaymentRepository.findAllWithFilters(
+                        null, null, null,
+                        filters.salaryFrequency(),
+                        areaId,
+                        filters.startDate(),
+                        filters.endDate(),
+                        filters.minAmount(),
+                        filters.maxAmount(),
+                        filters.paymentMethod(),
+                        null, null,
+                        pageable
+                ).getContent());
+            }
+        } else {
+            allPayments = salaryPaymentRepository.findAllWithFilters(
+                    null, null, null,
+                    filters.salaryFrequency(),
+                    effectiveAreaId,
+                    filters.startDate(),
+                    filters.endDate(),
+                    filters.minAmount(),
+                    filters.maxAmount(),
+                    filters.paymentMethod(),
+                    null, null,
+                    pageable
+            ).getContent();
+        }
+
+        // Group by project area, then by employee
+        List<SalaryReportAreaGroupDTO> areaGroups = buildAreaGroups(allPayments);
+
+        // Calculate grand totals
+        BigDecimal totalAmount = allPayments.stream()
+                .map(SalaryPayment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Map<SalaryFrecuency, BigDecimal> totalsByFrequency = buildFrequencySubtotals(allPayments);
+
+        // Build period description
+        String periodDesc = buildSalaryPeriodDescription(filters);
+
+        return SalaryReportDTO.builder()
+                .filters(filters)
+                .areaGroups(areaGroups)
+                .totalAmount(totalAmount)
+                .totalCount(allPayments.size())
+                .totalsByFrequency(totalsByFrequency)
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte de Salarios")
+                .periodDescription(periodDesc)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generateSalaryReportFile(SalaryReportFilterDTO filters, ReportFormat format) {
+        log.info("Generating salary report file: format={}", format);
+
+        IReportExporter exporter = exporters.get(format);
+        if (exporter == null) {
+            throw new InvalidReportFormatException(format.name());
+        }
+
+        // Generate the salary report data
+        SalaryReportDTO report = generateSalaryReport(filters);
+
+        // Convert hierarchical data to flat items for the exporter
+        List<ReportItemDTO> flatItems = flattenSalaryReport(report);
+
+        // Build a MoneyOutflowReportDTO wrapper for the exporter
+        MoneyOutflowReportDTO exportReport = MoneyOutflowReportDTO.builder()
+                .items(flatItems)
+                .totalAmount(report.totalAmount())
+                .totalCount(report.totalCount())
+                .generatedAt(report.generatedAt())
+                .reportName(report.reportName())
+                .periodDescription(report.periodDescription())
+                .summaryByCategory(Map.of(MoneyOutflowCategory.SALARY, report.totalAmount()))
+                .duplicatedAmount(BigDecimal.ZERO)
+                .build();
+
+        byte[] content = exporter.export(exportReport);
+
+        String filename = "reporte_salarios_" +
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "." + exporter.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, exporter.getContentType())
+                .body(content);
+    }
+
+    /**
+     * Builds the hierarchical area groups from a flat list of salary payments.
+     */
+    private List<SalaryReportAreaGroupDTO> buildAreaGroups(List<SalaryPayment> payments) {
+        // Group payments by project area (employee's area)
+        Map<Long, List<SalaryPayment>> byArea = new LinkedHashMap<>();
+
+        for (SalaryPayment sp : payments) {
+            Long areaId = sp.getEmployee().getProjectArea() != null
+                    ? sp.getEmployee().getProjectArea().getId()
+                    : -1L; // sentinel for "no area"
+            byArea.computeIfAbsent(areaId, k -> new ArrayList<>()).add(sp);
+        }
+
+        List<SalaryReportAreaGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<SalaryPayment>> entry : byArea.entrySet()) {
+            Long areaId = entry.getKey();
+            List<SalaryPayment> areaPayments = entry.getValue();
+
+            String areaName;
+            String areaColor;
+            Long areaIdDTO;
+
+            if (areaId == -1L) {
+                areaIdDTO = null;
+                areaName = "Sin área asignada";
+                areaColor = null;
+            } else {
+                areaIdDTO = areaId;
+                SalaryPayment first = areaPayments.get(0);
+                areaName = first.getEmployee().getProjectArea().getName();
+                areaColor = first.getEmployee().getProjectArea().getColor();
+            }
+
+            List<SalaryReportEmployeeGroupDTO> employeeGroups = buildEmployeeGroups(areaPayments);
+
+            BigDecimal subtotal = areaPayments.stream()
+                    .map(SalaryPayment::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            Map<SalaryFrecuency, BigDecimal> areaFreqSubtotals = buildFrequencySubtotals(areaPayments);
+
+            groups.add(SalaryReportAreaGroupDTO.builder()
+                    .projectAreaId(areaIdDTO)
+                    .projectAreaName(areaName)
+                    .projectAreaColor(areaColor)
+                    .subtotalAmount(subtotal)
+                    .paymentCount(areaPayments.size())
+                    .subtotalsByFrequency(areaFreqSubtotals)
+                    .employeeGroups(employeeGroups)
+                    .build());
+        }
+
+        // Sort alphabetically by area name, "Sin área asignada" goes last
+        groups.sort((a, b) -> {
+            if (a.projectAreaId() == null) return 1;
+            if (b.projectAreaId() == null) return -1;
+            return a.projectAreaName().compareToIgnoreCase(b.projectAreaName());
+        });
+
+        return groups;
+    }
+
+    /**
+     * Builds employee groups within an area, sorted alphabetically by lastName then name.
+     */
+    private List<SalaryReportEmployeeGroupDTO> buildEmployeeGroups(List<SalaryPayment> areaPayments) {
+        // Group by employee ID
+        Map<Long, List<SalaryPayment>> byEmployee = new LinkedHashMap<>();
+        for (SalaryPayment sp : areaPayments) {
+            byEmployee.computeIfAbsent(sp.getEmployee().getId(), k -> new ArrayList<>()).add(sp);
+        }
+
+        List<SalaryReportEmployeeGroupDTO> employeeGroups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<SalaryPayment>> entry : byEmployee.entrySet()) {
+            List<SalaryPayment> empPayments = entry.getValue();
+            SalaryPayment first = empPayments.get(0);
+
+            BigDecimal empTotal = empPayments.stream()
+                    .map(SalaryPayment::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            Map<SalaryFrecuency, BigDecimal> empFreqSubtotals = buildFrequencySubtotals(empPayments);
+
+            // Build individual payment DTOs sorted by date descending
+            List<SalaryReportPaymentDTO> paymentDTOs = empPayments.stream()
+                    .sorted(Comparator.comparing(SalaryPayment::getPaymentDate).reversed())
+                    .map(sp -> new SalaryReportPaymentDTO(
+                            sp.getId(),
+                            sp.getPaymentDate(),
+                            sp.getAmount(),
+                            sp.getSalaryFrequency(),
+                            sp.getPaymentMethod()
+                    ))
+                    .toList();
+
+            employeeGroups.add(SalaryReportEmployeeGroupDTO.builder()
+                    .employeeId(first.getEmployee().getId())
+                    .employeeName(first.getEmployee().getName())
+                    .employeeLastName(first.getEmployee().getLastName())
+                    .totalAmount(empTotal)
+                    .paymentCount(empPayments.size())
+                    .subtotalsByFrequency(empFreqSubtotals)
+                    .payments(paymentDTOs)
+                    .build());
+        }
+
+        // Sort alphabetically by lastName, then by name
+        employeeGroups.sort(Comparator
+                .comparing(SalaryReportEmployeeGroupDTO::employeeLastName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(SalaryReportEmployeeGroupDTO::employeeName, String.CASE_INSENSITIVE_ORDER));
+
+        return employeeGroups;
+    }
+
+    /**
+     * Builds a map of subtotals keyed by SalaryFrecuency.
+     * Only frequencies that have actual payments are included.
+     */
+    private Map<SalaryFrecuency, BigDecimal> buildFrequencySubtotals(List<SalaryPayment> payments) {
+        Map<SalaryFrecuency, BigDecimal> subtotals = new EnumMap<>(SalaryFrecuency.class);
+
+        for (SalaryPayment sp : payments) {
+            subtotals.merge(sp.getSalaryFrequency(), sp.getAmount(), BigDecimal::add);
+        }
+
+        return subtotals;
+    }
+
+    /**
+     * Flattens a hierarchical salary report to a list of ReportItemDTO for export.
+     */
+    private List<ReportItemDTO> flattenSalaryReport(SalaryReportDTO report) {
+        List<ReportItemDTO> items = new ArrayList<>();
+        for (SalaryReportAreaGroupDTO area : report.areaGroups()) {
+            for (SalaryReportEmployeeGroupDTO emp : area.employeeGroups()) {
+                for (SalaryReportPaymentDTO payment : emp.payments()) {
+                    items.add(ReportItemDTO.builder()
+                            .id(payment.id())
+                            .date(payment.paymentDate())
+                            .category(MoneyOutflowCategory.SALARY)
+                            .description("Pago de salario - " + payment.salaryFrequency().getDisplayName())
+                            .amount(payment.amount())
+                            .paymentMethod(payment.paymentMethod() != null ? payment.paymentMethod().getDisplayName() : null)
+                            .beneficiary(emp.employeeLastName() + " " + emp.employeeName())
+                            .reference(area.projectAreaName())
+                            .build());
+                }
+            }
+        }
+        return items;
+    }
+
+    private void validateSalaryFilters(SalaryReportFilterDTO filters) {
+        if (filters.startDate() != null && filters.endDate() != null
+                && filters.startDate().isAfter(filters.endDate())) {
+            throw new InvalidReportFilterException("La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
+        if (filters.minAmount() != null && filters.maxAmount() != null
+                && filters.minAmount().compareTo(filters.maxAmount()) > 0) {
+            throw new InvalidReportFilterException("El monto mínimo no puede ser mayor al monto máximo");
+        }
+    }
+
+    private String buildSalaryPeriodDescription(SalaryReportFilterDTO filters) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (filters.startDate() != null && filters.endDate() != null) {
+            return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
+        } else if (filters.startDate() != null) {
+            return "Desde: " + filters.startDate().format(fmt);
+        } else if (filters.endDate() != null) {
+            return "Hasta: " + filters.endDate().format(fmt);
+        }
+        return "Sin filtro de período";
+    }
+}
