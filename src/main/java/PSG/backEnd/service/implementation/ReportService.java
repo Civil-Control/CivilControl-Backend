@@ -24,6 +24,8 @@ import PSG.backEnd.model.enums.vehicle.RepairItemType;
 import PSG.backEnd.repository.*;
 import PSG.backEnd.repository.PaymentRepository.PaymentRepository;
 import PSG.backEnd.service.export.IReportExporter;
+import PSG.backEnd.service.export.SalaryReportExcelExporter;
+import PSG.backEnd.service.export.SalaryReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +59,10 @@ public class ReportService implements IReportService {
     // Map of exporters by format (Strategy Pattern)
     private final Map<ReportFormat, IReportExporter> exporters;
 
+    // Salary report exporters
+    private final SalaryReportExcelExporter salaryExcelExporter;
+    private final SalaryReportPdfExporter salaryPdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -76,6 +82,8 @@ public class ReportService implements IReportService {
      */
     public ReportService(
             List<IReportExporter> exporterList,
+            SalaryReportExcelExporter salaryExcelExporter,
+            SalaryReportPdfExporter salaryPdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -94,6 +102,8 @@ public class ReportService implements IReportService {
                         exporter -> exporter
                 ));
 
+        this.salaryExcelExporter = salaryExcelExporter;
+        this.salaryPdfExporter = salaryPdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -1072,38 +1082,22 @@ public class ReportService implements IReportService {
     public ResponseEntity<byte[]> generateSalaryReportFile(SalaryReportFilterDTO filters, ReportFormat format) {
         log.info("Generating salary report file: format={}", format);
 
-        IReportExporter exporter = exporters.get(format);
-        if (exporter == null) {
-            throw new InvalidReportFormatException(format.name());
-        }
-
-        // Generate the salary report data
         SalaryReportDTO report = generateSalaryReport(filters);
 
-        // Convert hierarchical data to flat items for the exporter
-        List<ReportItemDTO> flatItems = flattenSalaryReport(report);
-
-        // Build a MoneyOutflowReportDTO wrapper for the exporter
-        MoneyOutflowReportDTO exportReport = MoneyOutflowReportDTO.builder()
-                .items(flatItems)
-                .totalAmount(report.totalAmount())
-                .totalCount(report.totalCount())
-                .generatedAt(report.generatedAt())
-                .reportName(report.reportName())
-                .periodDescription(report.periodDescription())
-                .summaryByCategory(Map.of(MoneyOutflowCategory.SALARY, report.totalAmount()))
-                .duplicatedAmount(BigDecimal.ZERO)
-                .build();
-
-        byte[] content = exporter.export(exportReport);
+        byte[] content;
+        switch (format) {
+            case EXCEL -> content = salaryExcelExporter.export(report);
+            case PDF -> content = salaryPdfExporter.export(report);
+            default -> throw new InvalidReportFormatException(format.name());
+        }
 
         String filename = "reporte_salarios_" +
                 LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + filename + "." + exporter.getFileExtension() + "\"")
-                .header(HttpHeaders.CONTENT_TYPE, exporter.getContentType())
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
                 .body(content);
     }
 
@@ -1193,9 +1187,10 @@ public class ReportService implements IReportService {
 
             Map<SalaryFrecuency, BigDecimal> empFreqSubtotals = buildFrequencySubtotals(empPayments);
 
-            // Build individual payment DTOs sorted by date descending
+            // Build individual payment DTOs sorted by frequency (MENSUAL > QUINCENAL > SEMANAL) then date desc
             List<SalaryReportPaymentDTO> paymentDTOs = empPayments.stream()
-                    .sorted(Comparator.comparing(SalaryPayment::getPaymentDate).reversed())
+                    .sorted(Comparator.comparing((SalaryPayment sp) -> sp.getSalaryFrequency().ordinal())
+                            .thenComparing(SalaryPayment::getPaymentDate, Comparator.reverseOrder()))
                     .map(sp -> new SalaryReportPaymentDTO(
                             sp.getId(),
                             sp.getPaymentDate(),
@@ -1238,30 +1233,6 @@ public class ReportService implements IReportService {
         return subtotals;
     }
 
-    /**
-     * Flattens a hierarchical salary report to a list of ReportItemDTO for export.
-     */
-    private List<ReportItemDTO> flattenSalaryReport(SalaryReportDTO report) {
-        List<ReportItemDTO> items = new ArrayList<>();
-        for (SalaryReportAreaGroupDTO area : report.areaGroups()) {
-            for (SalaryReportEmployeeGroupDTO emp : area.employeeGroups()) {
-                for (SalaryReportPaymentDTO payment : emp.payments()) {
-                    items.add(ReportItemDTO.builder()
-                            .id(payment.id())
-                            .date(payment.paymentDate())
-                            .category(MoneyOutflowCategory.SALARY)
-                            .description("Pago de salario - " + payment.salaryFrequency().getDisplayName())
-                            .amount(payment.amount())
-                            .paymentMethod(payment.paymentMethod() != null ? payment.paymentMethod().getDisplayName() : null)
-                            .beneficiary(emp.employeeLastName() + " " + emp.employeeName())
-                            .reference(area.projectAreaName())
-                            .build());
-                }
-            }
-        }
-        return items;
-    }
-
     private void validateSalaryFilters(SalaryReportFilterDTO filters) {
         if (filters.startDate() != null && filters.endDate() != null
                 && filters.startDate().isAfter(filters.endDate())) {
@@ -1273,9 +1244,23 @@ public class ReportService implements IReportService {
         }
     }
 
+    private static final List<SalaryFrecuency> FREQUENCY_ORDER = List.of(
+            SalaryFrecuency.MENSUAL, SalaryFrecuency.QUINCENAL, SalaryFrecuency.SEMANAL);
+
     private String buildSalaryPeriodDescription(SalaryReportFilterDTO filters) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filters.startDate() != null && filters.endDate() != null) {
+            // Check if the range covers a full calendar month
+            if (filters.startDate().getDayOfMonth() == 1
+                    && filters.endDate().equals(filters.startDate().withDayOfMonth(
+                            filters.startDate().lengthOfMonth()))
+                    && filters.startDate().getMonth() == filters.endDate().getMonth()
+                    && filters.startDate().getYear() == filters.endDate().getYear()) {
+                String monthName = filters.startDate().getMonth()
+                        .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "AR"));
+                monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
+                return monthName + " " + filters.startDate().getYear();
+            }
             return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
         } else if (filters.startDate() != null) {
             return "Desde: " + filters.startDate().format(fmt);
