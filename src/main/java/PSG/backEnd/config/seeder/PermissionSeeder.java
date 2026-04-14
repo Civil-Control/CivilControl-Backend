@@ -11,9 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Seeder that synchronizes permissions defined in AppPermissions with the database.
@@ -91,6 +89,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("CLIENT_", "Clients");
         MODULE_MAP.put("SALES_DOCUMENT_", "Sales Documents");
         MODULE_MAP.put("ATTENDANCE_RECORD_", "Attendance Records");
+        MODULE_MAP.put("CREW_ASSIGNMENT_", "Crew Assignments");
         MODULE_MAP.put("REPORT_", "Reports");
         MODULE_MAP.put("DATA_", "System");
         MODULE_MAP.put("USER_", "Users");
@@ -128,6 +127,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("CLIENT_", "Clientes");
         MODULE_SPANISH_MAP.put("SALES_DOCUMENT_", "Comprobantes de Venta");
         MODULE_SPANISH_MAP.put("ATTENDANCE_RECORD_", "Registros de Asistencia");
+        MODULE_SPANISH_MAP.put("CREW_ASSIGNMENT_", "Partes Diarios");
         MODULE_SPANISH_MAP.put("REPORT_", "Reportes");
         MODULE_SPANISH_MAP.put("DATA_", "Sistema");
         MODULE_SPANISH_MAP.put("USER_", "Usuarios");
@@ -162,11 +162,12 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_MAP.put("TRANSACTIONAL_DOCUMENT_", "documents");
         WORK_MODULE_MAP.put("PAYMENT_", "documents");
 
-        // vehicles: vehicle, fuelLoad, gasStation, insurancePolicy, repair
+        // vehicles: vehicle, fuelLoad, gasStation, insurancePolicy, crewAssignment
         WORK_MODULE_MAP.put("VEHICLE_", "vehicles");
         WORK_MODULE_MAP.put("FUEL_LOAD_", "vehicles");
         WORK_MODULE_MAP.put("GAS_STATION_", "vehicles");
         WORK_MODULE_MAP.put("INSURANCE_POLICY_", "vehicles");
+        WORK_MODULE_MAP.put("CREW_ASSIGNMENT_", "vehicles");
 
         // personal: employee, salaryPayment, disciplinaryAction, eppDelivery, employeeVacation
         WORK_MODULE_MAP.put("EMPLOYEE_VACATION_", "personal");
@@ -229,6 +230,9 @@ public class PermissionSeeder implements CommandLineRunner {
         int updatedCount = 0;
         int existingCount = 0;
 
+        // Collect all valid permission names from AppPermissions for stale cleanup later
+        Set<String> validPermissionNames = new HashSet<>();
+
         // Get all constants from AppPermissions using reflection
         Field[] fields = AppPermissions.class.getDeclaredFields();
 
@@ -241,6 +245,7 @@ public class PermissionSeeder implements CommandLineRunner {
 
                 try {
                     String permissionName = (String) field.get(null);
+                    validPermissionNames.add(permissionName);
 
                     // Check if permission already exists in DB
                     Optional<Permission> existingPermission = permissionRepository.findByName(permissionName);
@@ -310,6 +315,20 @@ public class PermissionSeeder implements CommandLineRunner {
         log.info("New permissions created: {}", createdCount);
         log.info("Permissions updated with translations: {}", updatedCount);
         log.info("Existing permissions: {}", existingCount);
+
+        // Clean up stale permissions that no longer exist in AppPermissions
+        if (!validPermissionNames.isEmpty()) {
+            List<Permission> stalePermissions = permissionRepository.findByNameNotIn(validPermissionNames);
+            for (Permission stale : stalePermissions) {
+                permissionRepository.removeFromAllRoles(stale.getId());
+                permissionRepository.delete(stale);
+                log.warn("Removed stale permission: {} (id={})", stale.getName(), stale.getId());
+            }
+            if (!stalePermissions.isEmpty()) {
+                log.info("Stale permissions removed: {}", stalePermissions.size());
+            }
+        }
+
         log.info("Total permissions in system: {}", permissionRepository.count());
     }
 
