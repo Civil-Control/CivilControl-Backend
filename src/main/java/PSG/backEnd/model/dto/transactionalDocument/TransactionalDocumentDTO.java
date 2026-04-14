@@ -67,6 +67,10 @@ public record TransactionalDocumentDTO(
             nullable = true)
     Long projectAreaId,
 
+    @Schema(description = "ID of the project area task (sub-task). Optional.",
+            nullable = true)
+    Long projectAreaTaskId,
+
     @Schema(description = "Total amount of other taxes (excluding IVA/VAT). Must be zero or positive. " +
             "Can include municipal taxes, provincial taxes, or other applicable charges.",
             example = "125.50",

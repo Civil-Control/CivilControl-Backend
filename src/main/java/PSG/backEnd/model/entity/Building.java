@@ -46,7 +46,11 @@ public class Building extends TenantEntity {
     // Relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id")
-    private ProjectArea projectArea; // Project area to which the building belongs
+    private ProjectArea projectArea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask; // Project area to which the building belongs
 
     // private List<TaxOrService> taxesAndServices;  // List of taxes and services associated with the building unused until further notice
 

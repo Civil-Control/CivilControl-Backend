@@ -8,6 +8,7 @@ import PSG.backEnd.exception.projectarea.ProjectAreaNotFoundException;
 import PSG.backEnd.exception.vehicle.VehicleNotFoundException;
 import PSG.backEnd.model.dto.crewAssignment.*;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.entity.vehicle.CrewAssignment;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
@@ -16,6 +17,7 @@ import PSG.backEnd.model.mapper.CrewAssignmentMapper;
 import PSG.backEnd.repository.CrewAssignmentRepository;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
+import PSG.backEnd.repository.ProjectAreaTaskRepository;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.service.port.ICrewAssignmentService;
 import PSG.backEnd.service.util.MessageSourceHelper;
@@ -41,6 +43,7 @@ public class CrewAssignmentService implements ICrewAssignmentService {
     private final EmployeeRepository employeeRepository;
     private final VehicleRepository vehicleRepository;
     private final ProjectAreaRepository projectAreaRepository;
+    private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final CrewAssignmentMapper crewAssignmentMapper;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -50,6 +53,7 @@ public class CrewAssignmentService implements ICrewAssignmentService {
         Employee employee = resolveEmployee(dto.employeeId());
         Vehicle vehicle = resolveVehicle(dto.vehicleId());
         ProjectArea projectArea = resolveProjectArea(dto.projectAreaId());
+        ProjectAreaTask projectAreaTask = resolveProjectAreaTask(dto.projectAreaTaskId());
 
         validateDriverUniqueness(dto.vehicleId(), dto.date(), dto.isDriver());
 
@@ -57,6 +61,7 @@ public class CrewAssignmentService implements ICrewAssignmentService {
         entity.setEmployee(employee);
         entity.setVehicle(vehicle);
         entity.setProjectArea(projectArea);
+        entity.setProjectAreaTask(projectAreaTask);
 
         CrewAssignment saved = crewAssignmentRepository.save(entity);
         syncVehicleKm(vehicle, dto.km());
@@ -257,6 +262,13 @@ public class CrewAssignmentService implements ICrewAssignmentService {
             existing.setProjectArea(projectArea);
         }
 
+        if (dto.projectAreaTaskId() != null) {
+            ProjectAreaTask task = resolveProjectAreaTask(dto.projectAreaTaskId());
+            existing.setProjectAreaTask(task);
+        } else {
+            existing.setProjectAreaTask(null);
+        }
+
         CrewAssignment updated = crewAssignmentRepository.save(existing);
         return crewAssignmentMapper.toResponseDto(updated);
     }
@@ -326,6 +338,12 @@ public class CrewAssignmentService implements ICrewAssignmentService {
             throw new ProjectAreaNotFoundException(projectAreaId);
         }
         return pa;
+    }
+
+    private ProjectAreaTask resolveProjectAreaTask(Long projectAreaTaskId) {
+        if (projectAreaTaskId == null) return null;
+        return projectAreaTaskRepository.findByIdAndDeletedFalse(projectAreaTaskId)
+                .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + projectAreaTaskId));
     }
 
     private void validateNoDuplicate(Long employeeId, LocalDate date) {

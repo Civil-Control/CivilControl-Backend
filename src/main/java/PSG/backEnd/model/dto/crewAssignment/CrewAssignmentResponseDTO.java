@@ -40,6 +40,11 @@ public record CrewAssignmentResponseDTO(
     @Schema(description = "Project area color.", example = "#FF5733", nullable = true)
     String projectAreaColor,
 
+    @Schema(description = "Project area task ID.", nullable = true)
+    Long projectAreaTaskId,
+    @Schema(description = "Project area task name.", nullable = true)
+    String projectAreaTaskName,
+
     @Schema(description = "Assignment date.", example = "2026-04-04")
     LocalDate date,
     @Schema(description = "Whether the employee is the driver.", example = "true")

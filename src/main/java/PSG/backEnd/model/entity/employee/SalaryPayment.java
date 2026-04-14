@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.employee;
 
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
@@ -45,6 +46,10 @@ public class SalaryPayment extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask;
 
     /** Nullable — linked purchase document for this salary payment. */
     @ManyToOne(fetch = FetchType.LAZY)

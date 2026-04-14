@@ -2,6 +2,7 @@ package PSG.backEnd.model.entity.vehicle;
 
 import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.enums.vehicle.JurisdictionType;
@@ -53,6 +54,10 @@ public class Vehicle extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "building_id")

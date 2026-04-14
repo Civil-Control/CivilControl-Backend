@@ -54,6 +54,12 @@ public record SalaryPaymentResponseDTO(
             nullable = true)
     String projectAreaColor,
 
+    @Schema(description = "ID of the project area task (sub-task).", nullable = true)
+    Long projectAreaTaskId,
+
+    @Schema(description = "Name of the project area task (sub-task).", nullable = true)
+    String projectAreaTaskName,
+
     @Schema(description = "Payment method used for this salary payment.",
             example = "TRANSFER",
             nullable = true)

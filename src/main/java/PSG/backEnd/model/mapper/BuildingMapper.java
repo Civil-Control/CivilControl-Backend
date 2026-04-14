@@ -13,11 +13,14 @@ public interface BuildingMapper {
     @Mapping(target = "active", source = "active", defaultValue = "true")
     @Mapping(target = "stockItems", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     Building toEntity(BuildingDTO buildingDTO);
 
     @Mapping(target = "projectAreaId", source = "projectArea.id")
     @Mapping(target = "projectAreaName", source = "projectArea.name")
     @Mapping(target = "projectAreaColor", source = "projectArea.color")
+    @Mapping(target = "projectAreaTaskId", source = "projectAreaTask.id")
+    @Mapping(target = "projectAreaTaskName", source = "projectAreaTask.name")
     BuildingResponseDTO toResponseDto(Building building);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
@@ -25,6 +28,7 @@ public interface BuildingMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "stockItems", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     void partialUpdate(BuildingDTO updateDTO, @MappingTarget Building building);
 }
 

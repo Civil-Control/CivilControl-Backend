@@ -63,6 +63,12 @@ public record FuelLoadDTO(
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long projectAreaId,
 
+        @Schema(description = "ID of the project area task (sub-task) for this fuel load. Optional.",
+                example = "1",
+                nullable = true)
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+        Long projectAreaTaskId,
+
         @Schema(description = "ID of the gas station where the fuel load was made.",
                 example = "5",
                 requiredMode = Schema.RequiredMode.REQUIRED)

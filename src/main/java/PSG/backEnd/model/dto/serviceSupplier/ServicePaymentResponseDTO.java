@@ -38,6 +38,8 @@ public record ServicePaymentResponseDTO(
         Long projectAreaId,
         String projectAreaName,
         String projectAreaColor,
+        Long projectAreaTaskId,
+        String projectAreaTaskName,
         PaymentMethod paymentMethod
 ) {}
 

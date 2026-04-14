@@ -12,6 +12,7 @@ public interface WorkContractMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(source = "clientId", target = "client.id")
     @Mapping(source = "projectAreaId", target = "projectArea.id")
+    @Mapping(target = "projectAreaTask", ignore = true)
     WorkContract toEntity(WorkContractDTO dto);
 
     @Mapping(source = "client.id", target = "clientId")
@@ -20,6 +21,8 @@ public interface WorkContractMapper {
     @Mapping(source = "projectArea.id", target = "projectAreaId")
     @Mapping(source = "projectArea.name", target = "projectAreaName")
     @Mapping(source = "projectArea.color", target = "projectAreaColor")
+    @Mapping(source = "projectAreaTask.id", target = "projectAreaTaskId")
+    @Mapping(source = "projectAreaTask.name", target = "projectAreaTaskName")
     WorkContractResponseDTO toResponseDto(WorkContract entity);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
@@ -27,5 +30,6 @@ public interface WorkContractMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "client", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     void partialUpdate(WorkContractDTO dto, @MappingTarget WorkContract entity);
 }

@@ -43,6 +43,12 @@ public record BuildingResponseDTO(
             nullable = true)
     String projectAreaColor,
 
+    @Schema(description = "ID of the project area task (sub-task).", nullable = true)
+    Long projectAreaTaskId,
+
+    @Schema(description = "Name of the project area task (sub-task).", nullable = true)
+    String projectAreaTaskName,
+
     @Schema(description = "Indicates if the building is active or inactive.",
             example = "true")
     Boolean active,

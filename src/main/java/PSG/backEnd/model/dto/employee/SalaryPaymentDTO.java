@@ -62,6 +62,10 @@ public record SalaryPaymentDTO(
     @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
     Long projectAreaId,
 
+    @Schema(description = "ID of the project area task (sub-task). Optional.", nullable = true)
+    @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+    Long projectAreaTaskId,
+
     @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
     Long transactionalDocumentId,
 

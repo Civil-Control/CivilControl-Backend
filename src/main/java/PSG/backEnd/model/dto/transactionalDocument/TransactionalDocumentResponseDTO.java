@@ -24,6 +24,8 @@ public record TransactionalDocumentResponseDTO(
     Long projectAreaId,
     String projectAreaName,
     String projectAreaColor,
+    Long projectAreaTaskId,
+    String projectAreaTaskName,
     String comment,
     boolean paid,
     boolean deleted

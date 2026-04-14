@@ -66,6 +66,10 @@ public record EmployeeDTO(
             requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     Long projectAreaId,
 
+    @Schema(description = "ID of the project area task (sub-task). Optional.",
+            nullable = true)
+    Long projectAreaTaskId,
+
     @Schema(description = "Complete residential address of the employee including street, number, city, province, and postal code.",
             requiredMode = Schema.RequiredMode.NOT_REQUIRED)
     @Valid

@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.vehicle;
 
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.employee.Employee;
 import jakarta.persistence.*;
@@ -32,6 +33,10 @@ public class CrewAssignment extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id", nullable = false)
     private ProjectArea projectArea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask;
 
     @Column(name = "date", nullable = false)
     private LocalDate date;

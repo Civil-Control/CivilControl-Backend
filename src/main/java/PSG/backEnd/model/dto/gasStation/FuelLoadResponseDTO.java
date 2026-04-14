@@ -60,6 +60,12 @@ public record FuelLoadResponseDTO(
                 nullable = true)
         String projectAreaColor,
 
+        @Schema(description = "ID of the project area task (sub-task).", nullable = true)
+        Long projectAreaTaskId,
+
+        @Schema(description = "Name of the project area task (sub-task).", nullable = true)
+        String projectAreaTaskName,
+
         @Schema(description = "ID of the gas station where the fuel load was made.",
                 example = "5")
         Long gasStationId,

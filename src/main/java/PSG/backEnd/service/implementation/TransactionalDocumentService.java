@@ -26,6 +26,7 @@ import PSG.backEnd.repository.SalaryPaymentRepository;
 import PSG.backEnd.repository.StockPurchaseRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.IProjectAreaService;
+import PSG.backEnd.service.port.IProjectAreaTaskService;
 import PSG.backEnd.service.port.IStockPurchaseService;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
@@ -54,6 +55,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final ItemDetailMapper itemDetailMapper;
 
     private final IProjectAreaService iProjectAreaService;
+    private final IProjectAreaTaskService iProjectAreaTaskService;
     private final ISupplierService iSupplierService;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -185,6 +187,13 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             document.setProjectArea(projectArea);
         } else {
             document.setProjectArea(null);
+        }
+
+        // Resolve projectAreaTask (null = remove assignment)
+        if (dto.projectAreaTaskId() != null) {
+            document.setProjectAreaTask(iProjectAreaTaskService.getEntityById(dto.projectAreaTaskId()));
+        } else {
+            document.setProjectAreaTask(null);
         }
 
         // Handle ItemDetails updates if provided
@@ -410,6 +419,11 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         if (dto.projectAreaId() != null) {
             ProjectArea projectArea = iProjectAreaService.getEntityById(dto.projectAreaId());
             document.setProjectArea(projectArea);
+        }
+
+        // Set ProjectAreaTask if provided
+        if (dto.projectAreaTaskId() != null) {
+            document.setProjectAreaTask(iProjectAreaTaskService.getEntityById(dto.projectAreaTaskId()));
         }
 
         // Process ItemDetails if present

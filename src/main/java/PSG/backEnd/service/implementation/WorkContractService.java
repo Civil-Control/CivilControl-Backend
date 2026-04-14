@@ -6,11 +6,13 @@ import PSG.backEnd.exception.contracts.WorkContractNotFoundException;
 import PSG.backEnd.model.dto.contracts.*;
 import PSG.backEnd.model.entity.Client;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.contracts.WorkContract;
 import PSG.backEnd.model.mapper.WorkContractMapper;
 import PSG.backEnd.repository.ClientRepository;
 import PSG.backEnd.repository.CertificationRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
+import PSG.backEnd.repository.ProjectAreaTaskRepository;
 import PSG.backEnd.repository.WorkContractRepository;
 import PSG.backEnd.service.port.IWorkContractService;
 import PSG.backEnd.service.util.MessageSourceHelper;
@@ -34,6 +36,7 @@ public class WorkContractService implements IWorkContractService {
     private final CertificationRepository certificationRepository;
     private final ClientRepository clientRepository;
     private final ProjectAreaRepository projectAreaRepository;
+    private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final WorkContractMapper workContractMapper;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -59,6 +62,14 @@ public class WorkContractService implements IWorkContractService {
             entity.setProjectArea(pa);
         } else {
             entity.setProjectArea(null);
+        }
+
+        if (dto.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(dto.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + dto.projectAreaTaskId()));
+            entity.setProjectAreaTask(task);
+        } else {
+            entity.setProjectAreaTask(null);
         }
 
         return workContractMapper.toResponseDto(workContractRepository.save(entity));
@@ -151,6 +162,14 @@ public class WorkContractService implements IWorkContractService {
             existing.setProjectArea(pa);
         } else if (dto.projectAreaId() == null && dto.contractNumber() != null) {
             existing.setProjectArea(null);
+        }
+
+        if (dto.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(dto.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + dto.projectAreaTaskId()));
+            existing.setProjectAreaTask(task);
+        } else if (dto.projectAreaTaskId() == null && dto.contractNumber() != null) {
+            existing.setProjectAreaTask(null);
         }
 
         return workContractMapper.toResponseDto(workContractRepository.save(existing));

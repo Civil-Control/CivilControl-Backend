@@ -36,6 +36,12 @@ public record EmployeeResponseDTO(
     @Schema(description = "Complete information about the project area where the employee is assigned.")
     ProjectAreaResponseDTO projectArea,
 
+    @Schema(description = "ID of the project area task (sub-task).", nullable = true)
+    Long projectAreaTaskId,
+
+    @Schema(description = "Name of the project area task (sub-task).", nullable = true)
+    String projectAreaTaskName,
+
     @Schema(description = "Complete residential address of the employee.")
     AddressResponseDTO address,
 

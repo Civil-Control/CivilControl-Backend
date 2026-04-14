@@ -288,7 +288,11 @@ public class SalaryReportExcelExporter {
             for (SalaryReportEmployeeGroupDTO emp : area.employeeGroups()) {
                 for (SalaryReportPaymentDTO payment : emp.payments()) {
                     Row row = sheet.createRow(rowNum++);
-                    row.createCell(0).setCellValue(area.projectAreaName());
+                    String areaDisplay = area.projectAreaName();
+                    if (payment.projectAreaTaskName() != null) {
+                        areaDisplay += " - " + payment.projectAreaTaskName();
+                    }
+                    row.createCell(0).setCellValue(areaDisplay);
                     row.createCell(1).setCellValue(emp.employeeLastName() + ", " + emp.employeeName());
 
                     Cell dateCell = row.createCell(2);

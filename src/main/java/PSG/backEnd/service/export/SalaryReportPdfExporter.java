@@ -245,7 +245,11 @@ public class SalaryReportPdfExporter {
         for (SalaryReportAreaGroupDTO area : report.areaGroups()) {
             for (SalaryReportEmployeeGroupDTO emp : area.employeeGroups()) {
                 for (SalaryReportPaymentDTO payment : emp.payments()) {
-                    table.addCell(new Cell().add(new Paragraph(area.projectAreaName()).setFontSize(8)));
+                    String areaDisplay = area.projectAreaName();
+                    if (payment.projectAreaTaskName() != null) {
+                        areaDisplay += " - " + payment.projectAreaTaskName();
+                    }
+                    table.addCell(new Cell().add(new Paragraph(areaDisplay).setFontSize(8)));
                     table.addCell(new Cell().add(new Paragraph(
                             emp.employeeLastName() + ", " + emp.employeeName()).setFontSize(8)));
                     table.addCell(new Cell().add(new Paragraph(

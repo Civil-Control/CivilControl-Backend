@@ -9,6 +9,7 @@ import PSG.backEnd.model.dto.sales.SalesItemDetailDTO;
 import PSG.backEnd.model.entity.Client;
 import PSG.backEnd.model.entity.Item;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.contracts.Certification;
 import PSG.backEnd.model.entity.sales.SalesDocument;
 import PSG.backEnd.model.entity.sales.SalesItemDetail;
@@ -18,6 +19,7 @@ import PSG.backEnd.repository.CertificationRepository;
 import PSG.backEnd.repository.ClientRepository;
 import PSG.backEnd.repository.ItemRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
+import PSG.backEnd.repository.ProjectAreaTaskRepository;
 import PSG.backEnd.repository.SalesDocumentRepository;
 import PSG.backEnd.service.port.ISalesDocumentService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,7 @@ public class SalesDocumentService implements ISalesDocumentService {
     private final ClientRepository clientRepository;
     private final ItemRepository itemRepository;
     private final ProjectAreaRepository projectAreaRepository;
+    private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final SalesDocumentMapper salesDocumentMapper;
 
     @Override
@@ -57,6 +60,14 @@ public class SalesDocumentService implements ISalesDocumentService {
             document.setProjectArea(pa);
         } else {
             document.setProjectArea(null);
+        }
+
+        if (dto.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(dto.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + dto.projectAreaTaskId()));
+            document.setProjectAreaTask(task);
+        } else {
+            document.setProjectAreaTask(null);
         }
 
         List<SalesItemDetail> items = buildItemDetails(dto.items(), document);
@@ -107,6 +118,14 @@ public class SalesDocumentService implements ISalesDocumentService {
             existing.setProjectArea(pa);
         } else {
             existing.setProjectArea(null);
+        }
+
+        if (dto.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(dto.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + dto.projectAreaTaskId()));
+            existing.setProjectAreaTask(task);
+        } else {
+            existing.setProjectAreaTask(null);
         }
 
         if (dto.items() != null) {

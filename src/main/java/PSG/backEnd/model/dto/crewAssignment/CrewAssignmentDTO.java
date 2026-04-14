@@ -21,6 +21,9 @@ public record CrewAssignmentDTO(
     @NotNull(message = "{validation.required}", groups = OnCreate.class)
     Long projectAreaId,
 
+    @Schema(description = "Project area task (sub-task) ID. Optional.", nullable = true)
+    Long projectAreaTaskId,
+
     @Schema(description = "Date of the assignment.", example = "2026-04-04")
     @NotNull(message = "{validation.required}", groups = OnCreate.class)
     LocalDate date,

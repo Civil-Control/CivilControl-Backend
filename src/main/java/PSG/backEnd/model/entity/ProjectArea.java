@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Collections;
 
 @Entity
 @Table(name = "project_areas", uniqueConstraints = {
@@ -44,4 +45,8 @@ public class ProjectArea extends TenantEntity {
     @OneToMany(mappedBy = "projectArea", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<FuelLoad> fuelLoads = new ArrayList<>();
+
+    @OneToMany(mappedBy = "projectArea", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<ProjectAreaTask> tasks = new ArrayList<>();
 }

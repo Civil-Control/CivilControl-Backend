@@ -195,7 +195,11 @@ public class PdfReportExporter implements IReportExporter {
                     .setFontSize(8));
             table.addCell(new Cell().add(new Paragraph(item.category().getDisplayName()))
                     .setFontSize(7));
-            table.addCell(new Cell().add(new Paragraph(item.projectAreaName() != null ? item.projectAreaName() : ""))
+            String areaDisplay = item.projectAreaName() != null ? item.projectAreaName() : "";
+            if (item.projectAreaTaskName() != null) {
+                areaDisplay += " - " + item.projectAreaTaskName();
+            }
+            table.addCell(new Cell().add(new Paragraph(areaDisplay))
                     .setFontSize(8));
             table.addCell(new Cell().add(new Paragraph(item.description() != null ? item.description() : ""))
                     .setFontSize(8));

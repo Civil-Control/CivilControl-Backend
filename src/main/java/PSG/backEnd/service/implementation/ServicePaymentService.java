@@ -8,11 +8,13 @@ import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentFilterDTO;
 import PSG.backEnd.model.dto.serviceSupplier.ServicePaymentResponseDTO;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.serviceSupplier.ServiceAssignment;
 import PSG.backEnd.model.entity.serviceSupplier.ServicePayment;
 import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.mapper.ServicePaymentMapper;
 import PSG.backEnd.repository.ProjectAreaRepository;
+import PSG.backEnd.repository.ProjectAreaTaskRepository;
 import PSG.backEnd.repository.ServiceAssignmentRepository;
 import PSG.backEnd.repository.ServicePaymentRepository;
 import PSG.backEnd.service.port.IServicePaymentService;
@@ -34,6 +36,7 @@ public class ServicePaymentService implements IServicePaymentService {
     private final ServicePaymentRepository servicePaymentRepository;
     private final ServiceAssignmentRepository serviceAssignmentRepository;
     private final ProjectAreaRepository projectAreaRepository;
+    private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final ServicePaymentMapper servicePaymentMapper;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -51,6 +54,13 @@ public class ServicePaymentService implements IServicePaymentService {
 
         // Resolve project area: explicit > auto-fill from subject
         resolveProjectArea(servicePayment, servicePaymentDTO, assignment);
+
+        // Resolve project area task if provided
+        if (servicePaymentDTO.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(servicePaymentDTO.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException(messageSourceHelper.getMessage("projectArea.notFound", servicePaymentDTO.projectAreaTaskId())));
+            servicePayment.setProjectAreaTask(task);
+        }
 
         return servicePaymentMapper.toResponseDto(servicePaymentRepository.save(servicePayment));
     }
@@ -107,6 +117,15 @@ public class ServicePaymentService implements IServicePaymentService {
             ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(servicePaymentDTO.projectAreaId())
                     .orElseThrow(() -> new RuntimeException(messageSourceHelper.getMessage("projectArea.notFound", servicePaymentDTO.projectAreaId())));
             existingServicePayment.setProjectArea(projectArea);
+        }
+
+        // Update project area task if provided
+        if (servicePaymentDTO.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(servicePaymentDTO.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException(messageSourceHelper.getMessage("projectArea.notFound", servicePaymentDTO.projectAreaTaskId())));
+            existingServicePayment.setProjectAreaTask(task);
+        } else {
+            existingServicePayment.setProjectAreaTask(null);
         }
 
         if (servicePaymentDTO.referenceNumber() != null &&

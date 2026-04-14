@@ -109,7 +109,11 @@ public class ExcelReportExporter implements IReportExporter {
             dateCell.setCellStyle(dateStyle);
 
             row.createCell(1).setCellValue(item.category().getDisplayName());
-            row.createCell(2).setCellValue(item.projectAreaName() != null ? item.projectAreaName() : "");
+            String areaDisplay = item.projectAreaName() != null ? item.projectAreaName() : "";
+            if (item.projectAreaTaskName() != null) {
+                areaDisplay += " - " + item.projectAreaTaskName();
+            }
+            row.createCell(2).setCellValue(areaDisplay);
             row.createCell(3).setCellValue(item.description() != null ? item.description() : "");
             row.createCell(4).setCellValue(item.beneficiary() != null ? item.beneficiary() : "");
             row.createCell(5).setCellValue(item.paymentMethod() != null ? item.paymentMethod() : "");

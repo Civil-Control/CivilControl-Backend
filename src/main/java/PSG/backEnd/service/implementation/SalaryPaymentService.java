@@ -9,11 +9,13 @@ import PSG.backEnd.model.dto.employee.SalaryPaymentDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentFilterDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentResponseDTO;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.entity.employee.SalaryPayment;
 import PSG.backEnd.model.mapper.SalaryPaymentMapper;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
+import PSG.backEnd.repository.ProjectAreaTaskRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
 import PSG.backEnd.model.entity.TransactionalDocument;
@@ -38,6 +40,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     private final SalaryPaymentRepository salaryPaymentRepository;
     private final EmployeeRepository employeeRepository;
     private final ProjectAreaRepository projectAreaRepository;
+    private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final SalaryPaymentMapper salaryPaymentMapper;
     private final MessageSourceHelper messageSourceHelper;
     private final TransactionalDocumentRepository transactionalDocumentRepository;
@@ -55,6 +58,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         SalaryPayment salaryPayment = salaryPaymentMapper.toEntity(salaryPaymentDTO);
         salaryPayment.setEmployee(employee);
         salaryPayment.setProjectArea(resolveProjectArea(salaryPaymentDTO.projectAreaId()));
+        salaryPayment.setProjectAreaTask(resolveProjectAreaTask(salaryPaymentDTO.projectAreaTaskId()));
         salaryPayment.setTransactionalDocument(resolveDocument(salaryPaymentDTO.transactionalDocumentId()));
 
         SalaryPayment savedSalaryPayment = salaryPaymentRepository.save(salaryPayment);
@@ -125,6 +129,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         // This prevents clearing the project area on minimal PATCH operations like document linking/unlinking.
         if (salaryPaymentDTO.employeeId() != null) {
             existingSalaryPayment.setProjectArea(resolveProjectArea(salaryPaymentDTO.projectAreaId()));
+            existingSalaryPayment.setProjectAreaTask(resolveProjectAreaTask(salaryPaymentDTO.projectAreaTaskId()));
         }
         existingSalaryPayment.setTransactionalDocument(resolveDocument(salaryPaymentDTO.transactionalDocumentId()));
         SalaryPayment updatedSalaryPayment = salaryPaymentRepository.save(existingSalaryPayment);
@@ -207,6 +212,12 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         if (projectAreaId == null) return null;
         return projectAreaRepository.findByIdAndDeletedFalse(projectAreaId)
                 .orElseThrow(() -> new ProjectAreaNotFoundException(projectAreaId));
+    }
+
+    private ProjectAreaTask resolveProjectAreaTask(Long projectAreaTaskId) {
+        if (projectAreaTaskId == null) return null;
+        return projectAreaTaskRepository.findByIdAndDeletedFalse(projectAreaTaskId)
+                .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + projectAreaTaskId));
     }
 
     private TransactionalDocument resolveDocument(Long documentId) {

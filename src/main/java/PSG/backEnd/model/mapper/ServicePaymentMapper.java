@@ -12,6 +12,7 @@ public interface ServicePaymentMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "serviceAssignment", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     ServicePayment toEntity(ServicePaymentDTO servicePaymentDTO);
 
     // ——— Fields from service assignment ———
@@ -32,6 +33,8 @@ public interface ServicePaymentMapper {
     @Mapping(target = "projectAreaId", expression = "java(sp.getProjectArea() != null ? sp.getProjectArea().getId() : null)")
     @Mapping(target = "projectAreaName", expression = "java(sp.getProjectArea() != null ? sp.getProjectArea().getName() : null)")
     @Mapping(target = "projectAreaColor", expression = "java(sp.getProjectArea() != null ? sp.getProjectArea().getColor() : null)")
+    @Mapping(target = "projectAreaTaskId", expression = "java(sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getId() : null)")
+    @Mapping(target = "projectAreaTaskName", expression = "java(sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null)")
     ServicePaymentResponseDTO toResponseDto(ServicePayment sp);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
@@ -39,6 +42,7 @@ public interface ServicePaymentMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "serviceAssignment", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     void partialUpdate(ServicePaymentDTO updateDTO, @MappingTarget ServicePayment servicePayment);
 }
 

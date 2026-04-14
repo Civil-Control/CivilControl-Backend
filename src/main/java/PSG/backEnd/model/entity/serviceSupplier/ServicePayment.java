@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.serviceSupplier;
 
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import jakarta.persistence.*;
@@ -32,6 +33,10 @@ public class ServicePayment extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask;
 
     @Column(name = "payment_date", nullable = false)
     private LocalDate paymentDate;

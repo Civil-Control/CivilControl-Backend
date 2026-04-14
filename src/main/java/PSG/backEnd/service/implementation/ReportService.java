@@ -492,6 +492,7 @@ public class ReportService implements IReportService {
                     .reference(reference)
                     .comment(doc.getComment())
                     .projectAreaName(doc.getProjectArea() != null ? doc.getProjectArea().getName() : null)
+                    .projectAreaTaskName(doc.getProjectAreaTask() != null ? doc.getProjectAreaTask().getName() : null)
                     .linkedDocumentId(null)
                     .build());
         }
@@ -567,6 +568,7 @@ public class ReportService implements IReportService {
                     .reference("Salario " + sp.getPaymentDate().getMonthValue() + "/" + sp.getPaymentDate().getYear())
                     .comment(null)
                     .projectAreaName(sp.getEmployee().getProjectArea() != null ? sp.getEmployee().getProjectArea().getName() : null)
+                    .projectAreaTaskName(sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null)
                     .linkedDocumentId(linkedDocId)
                     .build());
         }
@@ -632,6 +634,7 @@ public class ReportService implements IReportService {
                     .reference(sp.getReferenceNumber())
                     .comment(sp.getComment())
                     .projectAreaName(projectAreaName)
+                    .projectAreaTaskName(sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null)
                     .linkedDocumentId(null)
                     .build());
         }
@@ -690,6 +693,7 @@ public class ReportService implements IReportService {
                     .reference(sp.getReferenceNumber())
                     .comment(sp.getComment())
                     .projectAreaName(sp.getProjectArea() != null ? sp.getProjectArea().getName() : null)
+                    .projectAreaTaskName(sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null)
                     .linkedDocumentId(null)
                     .build());
         }
@@ -754,6 +758,7 @@ public class ReportService implements IReportService {
                     .reference("Ticket: " + fl.getTicketNumber())
                     .comment("Vehículo: " + (fl.getVehicle() != null ? fl.getVehicle().getLicensePlate() : "Bidón"))
                     .projectAreaName(fl.getProjectArea() != null ? fl.getProjectArea().getName() : null)
+                    .projectAreaTaskName(fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getName() : null)
                     .linkedDocumentId(flLinkedDocId)
                     .build());
         }
@@ -800,6 +805,7 @@ public class ReportService implements IReportService {
                     .reference(policyNumber)
                     .comment(pp.getNotes())
                     .projectAreaName(null)
+                    .projectAreaTaskName(null)
                     .linkedDocumentId(null)
                     .build());
         }
@@ -892,6 +898,7 @@ public class ReportService implements IReportService {
                     .reference(null)
                     .comment(r.getDescription())
                     .projectAreaName(r.getVehicle() != null && r.getVehicle().getProjectArea() != null ? r.getVehicle().getProjectArea().getName() : null)
+                    .projectAreaTaskName(r.getVehicle() != null && r.getVehicle().getProjectAreaTask() != null ? r.getVehicle().getProjectAreaTask().getName() : null)
                     .linkedDocumentId(rLinkedDocId)
                     .build());
         }
@@ -950,6 +957,7 @@ public class ReportService implements IReportService {
                     .reference(sp.getNotes())
                     .comment(null)
                     .projectAreaName(null)
+                    .projectAreaTaskName(null)
                     .linkedDocumentId(sp.getTransactionalDocumentId())
                     .build());
         }
@@ -1200,7 +1208,9 @@ public class ReportService implements IReportService {
                             sp.getPaymentDate(),
                             sp.getAmount(),
                             sp.getSalaryFrequency(),
-                            sp.getPaymentMethod()
+                            sp.getPaymentMethod(),
+                            sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getId() : null,
+                            sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null
                     ))
                     .toList();
 

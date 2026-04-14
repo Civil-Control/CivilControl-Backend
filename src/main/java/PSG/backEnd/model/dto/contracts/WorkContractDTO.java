@@ -26,6 +26,9 @@ public record WorkContractDTO(
     @Schema(description = "Optional project area ID.")
     Long projectAreaId,
 
+    @Schema(description = "Optional project area task (sub-task) ID.")
+    Long projectAreaTaskId,
+
     @Schema(description = "Description of the contracted work.", example = "Pavimentación calle Belgrano tramo 3")
     @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
     @Size(max = 1000, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})

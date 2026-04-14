@@ -48,6 +48,11 @@ public record BuildingDTO(
             nullable = true)
     Long projectAreaId,
 
+    @Schema(description = "ID of the project area task (sub-task) for this building. Optional.",
+            example = "1",
+            nullable = true)
+    Long projectAreaTaskId,
+
     @Schema(description = "Indicates if the building is active or inactive. Active buildings can be used for operations.",
             example = "true",
             defaultValue = "true")

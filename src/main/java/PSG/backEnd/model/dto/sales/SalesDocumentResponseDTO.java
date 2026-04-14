@@ -25,6 +25,8 @@ public record SalesDocumentResponseDTO(
     BigDecimal discountPercentage,
     Long projectAreaId,
     String projectAreaName,
+    Long projectAreaTaskId,
+    String projectAreaTaskName,
     List<SalesItemDetailResponseDTO> items,
     Boolean paid,
     String comment,

@@ -8,6 +8,7 @@ import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.entity.gasStation.GasStation;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import org.mapstruct.*;
 
 @Mapper(componentModel = "spring")
@@ -18,6 +19,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "totalAmount", ignore = true)
     @Mapping(target = "vehicle", source = "vehicleId", qualifiedByName = "vehicleIdToEntity")
     @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
+    @Mapping(target = "projectAreaTask", source = "projectAreaTaskId", qualifiedByName = "projectAreaTaskIdToEntity")
     @Mapping(target = "gasStation", source = "gasStationId", qualifiedByName = "gasStationIdToEntity")
     @Mapping(target = "fuelType", source = "fuelType")
     @Mapping(target = "transactionalDocument", ignore = true)
@@ -31,6 +33,8 @@ public interface FuelLoadMapper {
     @Mapping(target = "projectAreaId", source = "projectArea.id")
     @Mapping(target = "projectAreaName", source = "projectArea.name")
     @Mapping(target = "projectAreaColor", source = "projectArea.color")
+    @Mapping(target = "projectAreaTaskId", source = "projectAreaTask.id")
+    @Mapping(target = "projectAreaTaskName", source = "projectAreaTask.name")
     @Mapping(target = "gasStationId", source = "gasStation.id")
     @Mapping(target = "gasStationName", expression = "java(fuelLoad.getGasStation() != null ? fuelLoad.getGasStation().getSupplier().getLegalName() : null)")
     @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
@@ -42,6 +46,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "totalAmount", ignore = true)
     @Mapping(target = "vehicle", source = "vehicleId", qualifiedByName = "vehicleIdToEntity")
     @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
+    @Mapping(target = "projectAreaTask", source = "projectAreaTaskId", qualifiedByName = "projectAreaTaskIdToEntity")
     @Mapping(target = "gasStation", source = "gasStationId", qualifiedByName = "gasStationIdToEntity")
     @Mapping(target = "transactionalDocument", ignore = true)
     void partialUpdate(FuelLoadDTO updateDTO, @MappingTarget FuelLoad fuelLoad);
@@ -64,6 +69,16 @@ public interface FuelLoadMapper {
         ProjectArea projectArea = new ProjectArea();
         projectArea.setId(projectAreaId);
         return projectArea;
+    }
+
+    @Named("projectAreaTaskIdToEntity")
+    default ProjectAreaTask projectAreaTaskIdToEntity(Long projectAreaTaskId) {
+        if (projectAreaTaskId == null) {
+            return null;
+        }
+        ProjectAreaTask task = new ProjectAreaTask();
+        task.setId(projectAreaTaskId);
+        return task;
     }
 
     @Named("gasStationIdToEntity")

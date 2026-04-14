@@ -25,6 +25,11 @@ public record ServicePaymentDTO(
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
         Long projectAreaId,
 
+        @Schema(description = "ID of the project area task (sub-task). Optional.",
+                nullable = true)
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+        Long projectAreaTaskId,
+
         @Schema(description = "Date when the service payment was made.",
                 example = "2025-11-01",
                 requiredMode = Schema.RequiredMode.REQUIRED)

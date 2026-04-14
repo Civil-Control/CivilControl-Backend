@@ -2,6 +2,7 @@ package PSG.backEnd.model.entity.employee;
 
 import PSG.backEnd.model.entity.Address;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.employee.EmployeeRole;
 import PSG.backEnd.model.enums.employee.EmployeeStatus;
@@ -44,6 +45,10 @@ public class Employee extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask;
 
     @Embedded
     private Address address;

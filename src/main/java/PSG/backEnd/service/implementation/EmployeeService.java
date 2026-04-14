@@ -9,10 +9,12 @@ import PSG.backEnd.model.dto.employee.EmployeeDTO;
 import PSG.backEnd.model.dto.employee.EmployeeFilterDTO;
 import PSG.backEnd.model.dto.employee.EmployeeResponseDTO;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.mapper.EmployeeMapper;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
+import PSG.backEnd.repository.ProjectAreaTaskRepository;
 import PSG.backEnd.service.port.IEmployeeService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +34,7 @@ public class EmployeeService implements IEmployeeService {
     private final EmployeeRepository employeeRepository;
     private final EmployeeMapper employeeMapper;
     private final ProjectAreaRepository projectAreaRepository;
+    private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
@@ -99,6 +102,15 @@ public class EmployeeService implements IEmployeeService {
             ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaId())
                     .orElseThrow(() -> new ProjectAreaNotFoundException(employeeDTO.projectAreaId()));
             existingEmployee.setProjectArea(projectArea);
+        }
+
+        // Assign ProjectAreaTask
+        if (employeeDTO.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + employeeDTO.projectAreaTaskId()));
+            existingEmployee.setProjectAreaTask(task);
+        } else {
+            existingEmployee.setProjectAreaTask(null);
         }
 
         try {
@@ -226,6 +238,14 @@ public class EmployeeService implements IEmployeeService {
             employee.setProjectArea(null);
         }
 
+        if (employeeDTO.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + employeeDTO.projectAreaTaskId()));
+            employee.setProjectAreaTask(task);
+        } else {
+            employee.setProjectAreaTask(null);
+        }
+
         clearSoftDeletedConflicts(employeeDTO, employee.getId());
         employeeMapper.partialUpdate(employeeDTO, employee);
         employee.setDeleted(false);
@@ -240,6 +260,12 @@ public class EmployeeService implements IEmployeeService {
             ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaId())
                     .orElseThrow(() -> new ProjectAreaNotFoundException(employeeDTO.projectAreaId()));
             employee.setProjectArea(projectArea);
+        }
+
+        if (employeeDTO.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(employeeDTO.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + employeeDTO.projectAreaTaskId()));
+            employee.setProjectAreaTask(task);
         }
 
         clearSoftDeletedConflicts(employeeDTO, null);

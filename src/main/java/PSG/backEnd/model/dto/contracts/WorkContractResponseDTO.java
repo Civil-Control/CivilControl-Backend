@@ -17,6 +17,8 @@ public record WorkContractResponseDTO(
     Long projectAreaId,
     String projectAreaName,
     String projectAreaColor,
+    Long projectAreaTaskId,
+    String projectAreaTaskName,
     String description,
     LocalDate contractDate,
     LocalDate endDate,

@@ -17,11 +17,14 @@ public interface SalesDocumentMapper {
     @Mapping(target = "items", ignore = true)
     @Mapping(source = "clientId", target = "client.id")
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     SalesDocument toEntity(SalesDocumentDTO dto);
 
     @Mapping(source = "client", target = "client")
     @Mapping(source = "projectArea.id", target = "projectAreaId")
     @Mapping(source = "projectArea.name", target = "projectAreaName")
+    @Mapping(source = "projectAreaTask.id", target = "projectAreaTaskId")
+    @Mapping(source = "projectAreaTask.name", target = "projectAreaTaskName")
     SalesDocumentResponseDTO toResponseDto(SalesDocument salesDocument);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
@@ -31,6 +34,7 @@ public interface SalesDocumentMapper {
     @Mapping(target = "items", ignore = true)
     @Mapping(source = "clientId", target = "client.id")
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     void partialUpdate(SalesDocumentDTO dto, @MappingTarget SalesDocument salesDocument);
 
     @Mapping(target = "id", ignore = true)

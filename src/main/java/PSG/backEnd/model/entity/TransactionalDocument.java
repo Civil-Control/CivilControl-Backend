@@ -79,6 +79,10 @@ public class TransactionalDocument extends TenantEntity {
     @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask;
+
     // Helper method to maintain bidirectional relationship
     public void addItemDetail(ItemDetail itemDetail) {
         items.add(itemDetail);

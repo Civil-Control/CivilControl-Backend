@@ -2,6 +2,7 @@ package PSG.backEnd.model.entity.contracts;
 
 import PSG.backEnd.model.entity.Client;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.contracts.Currency;
 import PSG.backEnd.model.enums.contracts.WorkContractStatus;
@@ -37,6 +38,10 @@ public class WorkContract extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask;
 
     @Column(nullable = false, length = 1000)
     private String description;

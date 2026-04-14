@@ -66,6 +66,12 @@ public record VehicleResponseDTO(
                 nullable = true)
         Long projectAreaId,
 
+        @Schema(description = "ID of the project area task (sub-task).", nullable = true)
+        Long projectAreaTaskId,
+
+        @Schema(description = "Name of the project area task (sub-task).", nullable = true)
+        String projectAreaTaskName,
+
         @Schema(description = "ID of the building where the vehicle is stored.",
                 example = "5",
                 nullable = true)

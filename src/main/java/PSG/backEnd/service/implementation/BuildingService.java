@@ -10,9 +10,11 @@ import PSG.backEnd.model.dto.building.BuildingFilterDTO;
 import PSG.backEnd.model.dto.building.BuildingResponseDTO;
 import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.mapper.BuildingMapper;
 import PSG.backEnd.repository.BuildingRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
+import PSG.backEnd.repository.ProjectAreaTaskRepository;
 import PSG.backEnd.service.port.IBuildingService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ public class BuildingService implements IBuildingService {
 
     private final BuildingRepository buildingRepository;
     private final ProjectAreaRepository projectAreaRepository;
+    private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final BuildingMapper buildingMapper;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -84,6 +87,15 @@ public class BuildingService implements IBuildingService {
                 ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(buildingDTO.projectAreaId())
                         .orElseThrow(() -> new ProjectAreaNotFoundException(buildingDTO.projectAreaId()));
                 existingBuilding.setProjectArea(projectArea);
+            }
+
+            // Update ProjectAreaTask if provided
+            if (buildingDTO.projectAreaTaskId() != null) {
+                ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(buildingDTO.projectAreaTaskId())
+                        .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + buildingDTO.projectAreaTaskId()));
+                existingBuilding.setProjectAreaTask(task);
+            } else {
+                existingBuilding.setProjectAreaTask(null);
             }
 
             Building updatedBuilding = buildingRepository.save(existingBuilding);
@@ -233,6 +245,13 @@ public class BuildingService implements IBuildingService {
         }
         // Note: If projectAreaId is not provided, we keep the existing projectArea (don't set to null)
 
+        // Update ProjectAreaTask if provided
+        if (buildingDTO.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(buildingDTO.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + buildingDTO.projectAreaTaskId()));
+            building.setProjectAreaTask(task);
+        }
+
         return buildingMapper.toResponseDto(buildingRepository.save(building));
     }
 
@@ -247,6 +266,15 @@ public class BuildingService implements IBuildingService {
             building.setProjectArea(projectArea);
         } else {
             building.setProjectArea(null);
+        }
+
+        // Load and set ProjectAreaTask if provided
+        if (buildingDTO.projectAreaTaskId() != null) {
+            ProjectAreaTask task = projectAreaTaskRepository.findByIdAndDeletedFalse(buildingDTO.projectAreaTaskId())
+                    .orElseThrow(() -> new RuntimeException("ProjectAreaTask not found: " + buildingDTO.projectAreaTaskId()));
+            building.setProjectAreaTask(task);
+        } else {
+            building.setProjectAreaTask(null);
         }
 
         // The mapper sets active with default value

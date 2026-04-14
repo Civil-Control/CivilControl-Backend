@@ -17,6 +17,7 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "items", ignore = true)  // Ignora items - se procesan manualmente en el service
     @Mapping(target = "supplier", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     TransactionalDocument toEntity(TransactionalDocumentDTO dto);
 
     @Mapping(source = "supplier.id", target = "supplierId")
@@ -24,6 +25,8 @@ public interface TransactionalDocumentMapper {
     @Mapping(source = "projectArea.id", target = "projectAreaId")
     @Mapping(source = "projectArea.name", target = "projectAreaName")
     @Mapping(source = "projectArea.color", target = "projectAreaColor")
+    @Mapping(source = "projectAreaTask.id", target = "projectAreaTaskId")
+    @Mapping(source = "projectAreaTask.name", target = "projectAreaTaskName")
     @Mapping(expression = "java(entity.getDocumentType().getDisplayName())", target = "documentType")
     TransactionalDocumentResponseDTO toResponseDto(TransactionalDocument entity);
 
@@ -34,6 +37,7 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "items", ignore = true)  // Ignora items - se procesan manualmente en el service
     @Mapping(target = "supplier", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     void partialUpdate(TransactionalDocumentDTO updateDTO, @MappingTarget TransactionalDocument entity);
 
     // Ya no necesitamos @AfterMapping porque los items se procesan manualmente

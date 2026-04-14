@@ -14,6 +14,7 @@ import PSG.backEnd.model.mapper.VehicleMapper;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.repository.VehicleTypeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
+import PSG.backEnd.repository.ProjectAreaTaskRepository;
 import PSG.backEnd.service.port.IVehicleService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -33,6 +34,7 @@ public class VehicleService implements IVehicleService {
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
     private final ProjectAreaRepository projectAreaRepository;
+    private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -42,6 +44,7 @@ public class VehicleService implements IVehicleService {
         validateVehicleTypeRequired(vehicleDTO.vehicleTypeId());
         validateNewVehicle(vehicleDTO);
         validateProjectAreaExists(vehicleDTO.projectAreaId());
+        validateProjectAreaTaskExists(vehicleDTO.projectAreaTaskId());
         validateVehicleTypeExists(vehicleDTO.vehicleTypeId());
 
         Optional<Vehicle> deletedVehicle = findDeletedVehicle(vehicleDTO);
@@ -99,6 +102,10 @@ public class VehicleService implements IVehicleService {
 
         if (vehicleDTO.projectAreaId() != null) {
             validateProjectAreaExists(vehicleDTO.projectAreaId());
+        }
+
+        if (vehicleDTO.projectAreaTaskId() != null) {
+            validateProjectAreaTaskExists(vehicleDTO.projectAreaTaskId());
         }
 
         if (vehicleDTO.vehicleTypeId() != null) {
@@ -173,6 +180,12 @@ public class VehicleService implements IVehicleService {
     private void validateProjectAreaExists(Long projectAreaId) {
         if (projectAreaId != null && !projectAreaRepository.existsById(projectAreaId)) {
             throw new ProjectAreaNotValidException(projectAreaId);
+        }
+    }
+
+    private void validateProjectAreaTaskExists(Long projectAreaTaskId) {
+        if (projectAreaTaskId != null && !projectAreaTaskRepository.existsById(projectAreaTaskId)) {
+            throw new RuntimeException("ProjectAreaTask not found: " + projectAreaTaskId);
         }
     }
 

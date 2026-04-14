@@ -60,6 +60,9 @@ public record SalesDocumentDTO(
     @Schema(description = "Project area ID associated with this document.")
     Long projectAreaId,
 
+    @Schema(description = "Project area task (sub-task) ID.")
+    Long projectAreaTaskId,
+
     @Schema(description = "Line items included in this document.")
     @Valid
     List<SalesItemDetailDTO> items,

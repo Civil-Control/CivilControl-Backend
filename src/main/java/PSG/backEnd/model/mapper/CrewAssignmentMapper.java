@@ -13,6 +13,7 @@ public interface CrewAssignmentMapper {
     @Mapping(target = "employee", ignore = true)
     @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     @Mapping(target = "driver", source = "isDriver", defaultValue = "false")
     CrewAssignment toEntity(CrewAssignmentDTO dto);
 
@@ -29,6 +30,8 @@ public interface CrewAssignmentMapper {
     @Mapping(source = "projectArea.id", target = "projectAreaId")
     @Mapping(source = "projectArea.name", target = "projectAreaName")
     @Mapping(source = "projectArea.color", target = "projectAreaColor")
+    @Mapping(source = "projectAreaTask.id", target = "projectAreaTaskId")
+    @Mapping(source = "projectAreaTask.name", target = "projectAreaTaskName")
     @Mapping(source = "driver", target = "isDriver")
     CrewAssignmentResponseDTO toResponseDto(CrewAssignment entity);
 
@@ -38,6 +41,7 @@ public interface CrewAssignmentMapper {
     @Mapping(target = "employee", ignore = true)
     @Mapping(target = "vehicle", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
+    @Mapping(target = "projectAreaTask", ignore = true)
     @Mapping(target = "driver", source = "isDriver")
     void partialUpdate(CrewAssignmentDTO dto, @MappingTarget CrewAssignment entity);
 }

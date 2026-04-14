@@ -23,5 +23,11 @@ public record SalaryReportPaymentDTO(
     SalaryFrecuency salaryFrequency,
 
     @Schema(description = "Payment method used", nullable = true)
-    PaymentMethod paymentMethod
+    PaymentMethod paymentMethod,
+
+    @Schema(description = "Project area task ID", nullable = true)
+    Long projectAreaTaskId,
+
+    @Schema(description = "Project area task name", nullable = true)
+    String projectAreaTaskName
 ) {}

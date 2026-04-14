@@ -2,6 +2,7 @@ package PSG.backEnd.model.entity.sales;
 
 import PSG.backEnd.model.entity.Client;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.documents.SalesDocumentType;
 import jakarta.persistence.*;
@@ -66,6 +67,10 @@ public class SalesDocument extends TenantEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask;
 
     @OneToMany(mappedBy = "salesDocument", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     @Builder.Default

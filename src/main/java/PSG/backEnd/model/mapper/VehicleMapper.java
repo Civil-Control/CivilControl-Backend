@@ -6,6 +6,7 @@ import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.entity.vehicle.VehicleType;
 import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
 import org.mapstruct.*;
 
 @Mapper(componentModel = "spring")
@@ -17,6 +18,7 @@ public interface VehicleMapper {
     @Mapping(target = "fuelLoads", ignore = true)
     @Mapping(target = "km", ignore = true)
     @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
+    @Mapping(target = "projectAreaTask", source = "projectAreaTaskId", qualifiedByName = "projectAreaTaskIdToEntity")
     @Mapping(target = "vehicleType", source = "vehicleTypeId", qualifiedByName = "vehicleTypeIdToEntity")
     @Mapping(target = "storedInBuilding", source = "buildingId", qualifiedByName = "buildingIdToEntity")
     Vehicle toEntity(VehicleDTO vehicleDTO);
@@ -24,6 +26,8 @@ public interface VehicleMapper {
     @Mapping(target = "projectAreaId", source = "projectArea.id")
     @Mapping(target = "projectAreaName", source = "projectArea.name")
     @Mapping(target = "projectAreaColor", source = "projectArea.color")
+    @Mapping(target = "projectAreaTaskId", source = "projectAreaTask.id")
+    @Mapping(target = "projectAreaTaskName", source = "projectAreaTask.name")
     @Mapping(target = "vehicleTypeId", source = "vehicleType.id")
     @Mapping(target = "vehicleTypeName", source = "vehicleType.name")
     @Mapping(target = "buildingId", source = "storedInBuilding.id")
@@ -39,6 +43,7 @@ public interface VehicleMapper {
     @Mapping(target = "fuelLoads", ignore = true)
     @Mapping(target = "km", ignore = true)
     @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
+    @Mapping(target = "projectAreaTask", source = "projectAreaTaskId", qualifiedByName = "projectAreaTaskIdToEntity")
     @Mapping(target = "vehicleType", source = "vehicleTypeId", qualifiedByName = "vehicleTypeIdToEntity")
     @Mapping(target = "storedInBuilding", source = "buildingId", qualifiedByName = "buildingIdToEntity")
     void partialUpdate(VehicleDTO updateDTO, @MappingTarget Vehicle vehicle);
@@ -61,6 +66,16 @@ public interface VehicleMapper {
         ProjectArea projectArea = new ProjectArea();
         projectArea.setId(projectAreaId);
         return projectArea;
+    }
+
+    @Named("projectAreaTaskIdToEntity")
+    default ProjectAreaTask projectAreaTaskIdToEntity(Long projectAreaTaskId) {
+        if (projectAreaTaskId == null) {
+            return null;
+        }
+        ProjectAreaTask task = new ProjectAreaTask();
+        task.setId(projectAreaTaskId);
+        return task;
     }
 
     @Named("vehicleTypeIdToEntity")
