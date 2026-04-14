@@ -357,6 +357,9 @@ public class ReportService implements IReportService {
         return switch (sortBy.toLowerCase()) {
             case "amount" -> Comparator.comparing(ReportItemDTO::amount);
             case "category" -> Comparator.comparing(item -> item.category().name());
+            case "beneficiary" -> Comparator.comparing(
+                    item -> item.beneficiary() != null ? item.beneficiary() : "",
+                    String.CASE_INSENSITIVE_ORDER);
             default -> Comparator.comparing(ReportItemDTO::date);
         };
     }

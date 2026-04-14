@@ -50,7 +50,7 @@ public record ReportFilterDTO(
 
     @Schema(description = "Field to sort by. Default is 'date'.",
             example = "date",
-            allowableValues = {"date", "amount", "category"})
+            allowableValues = {"date", "amount", "category", "beneficiary"})
     String sortBy,
 
     @Schema(description = "Sort order: 'asc' for ascending, 'desc' for descending. Default is 'desc'.",

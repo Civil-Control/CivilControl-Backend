@@ -45,10 +45,11 @@ public class ExcelReportExporter implements IReportExporter {
             CellStyle dateStyle = createDateStyle(workbook);
             CellStyle currencyStyle = createCurrencyStyle(workbook);
             CellStyle totalStyle = createTotalStyle(workbook);
+            CellStyle totalLabelStyle = createTotalLabelStyle(workbook);
 
             // Create sheets
-            createDataSheet(workbook, report, headerStyle, dateStyle, currencyStyle, totalStyle);
-            createSummarySheet(workbook, report, headerStyle, currencyStyle, totalStyle);
+            createDataSheet(workbook, report, headerStyle, dateStyle, currencyStyle, totalStyle, totalLabelStyle);
+            createSummarySheet(workbook, report, headerStyle, currencyStyle, totalStyle, totalLabelStyle);
 
             workbook.write(baos);
 
@@ -66,7 +67,8 @@ public class ExcelReportExporter implements IReportExporter {
      */
     private void createDataSheet(Workbook workbook, MoneyOutflowReportDTO report,
                                   CellStyle headerStyle, CellStyle dateStyle,
-                                  CellStyle currencyStyle, CellStyle totalStyle) {
+                                  CellStyle currencyStyle, CellStyle totalStyle,
+                                  CellStyle totalLabelStyle) {
         Sheet sheet = workbook.createSheet("Datos");
 
         int rowNum = 0;
@@ -81,7 +83,7 @@ public class ExcelReportExporter implements IReportExporter {
         titleFont.setFontHeightInPoints((short) 14);
         titleStyle.setFont(titleFont);
         titleCell.setCellStyle(titleStyle);
-        sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 6));
+        sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, 7));
 
         rowNum++; // Empty row
 
@@ -91,7 +93,7 @@ public class ExcelReportExporter implements IReportExporter {
 
         // Headers
         Row headerRow = sheet.createRow(rowNum++);
-        String[] headers = {"Fecha", "Categoría", "Descripción", "Beneficiario", "Método Pago", "Referencia", "Monto"};
+        String[] headers = {"Fecha", "Categoría", "Área", "Descripción", "Beneficiario", "Método Pago", "Referencia", "Monto"};
         for (int i = 0; i < headers.length; i++) {
             Cell cell = headerRow.createCell(i);
             cell.setCellValue(headers[i]);
@@ -107,41 +109,54 @@ public class ExcelReportExporter implements IReportExporter {
             dateCell.setCellStyle(dateStyle);
 
             row.createCell(1).setCellValue(item.category().getDisplayName());
-            row.createCell(2).setCellValue(item.description() != null ? item.description() : "");
-            row.createCell(3).setCellValue(item.beneficiary() != null ? item.beneficiary() : "");
-            row.createCell(4).setCellValue(item.paymentMethod() != null ? item.paymentMethod() : "");
-            row.createCell(5).setCellValue(item.reference() != null ? item.reference() : "");
+            row.createCell(2).setCellValue(item.projectAreaName() != null ? item.projectAreaName() : "");
+            row.createCell(3).setCellValue(item.description() != null ? item.description() : "");
+            row.createCell(4).setCellValue(item.beneficiary() != null ? item.beneficiary() : "");
+            row.createCell(5).setCellValue(item.paymentMethod() != null ? item.paymentMethod() : "");
+            row.createCell(6).setCellValue(item.reference() != null ? item.reference() : "");
 
-            Cell amountCell = row.createCell(6);
+            Cell amountCell = row.createCell(7);
             amountCell.setCellValue(item.amount().doubleValue());
             amountCell.setCellStyle(currencyStyle);
         }
 
         // Total row
+        rowNum++; // blank row before total
         Row totalRow = sheet.createRow(rowNum++);
-        Cell totalLabelCell = totalRow.createCell(5);
-        totalLabelCell.setCellValue("TOTAL:");
-        totalLabelCell.setCellStyle(totalStyle);
+        // Merge label across first columns
+        Cell totalLabelCell = totalRow.createCell(0);
+        totalLabelCell.setCellValue("TOTAL GENERAL");
+        totalLabelCell.setCellStyle(totalLabelStyle);
+        sheet.addMergedRegion(new CellRangeAddress(totalRow.getRowNum(), totalRow.getRowNum(), 0, 6));
+        // Apply style to merged cells
+        for (int i = 1; i <= 6; i++) {
+            totalRow.createCell(i).setCellStyle(totalLabelStyle);
+        }
 
-        Cell totalValueCell = totalRow.createCell(6);
+        Cell totalValueCell = totalRow.createCell(7);
         totalValueCell.setCellValue(report.totalAmount().doubleValue());
         totalValueCell.setCellStyle(totalStyle);
 
         // Adjusted total row when there are duplicated amounts
         if (report.duplicatedAmount() != null && report.duplicatedAmount().compareTo(BigDecimal.ZERO) > 0) {
             Row dupRow = sheet.createRow(rowNum++);
-            Cell dupLabelCell = dupRow.createCell(5);
-            dupLabelCell.setCellValue("VINCULADO:");
-            Cell dupValueCell = dupRow.createCell(6);
+            Cell dupLabelCell = dupRow.createCell(0);
+            dupLabelCell.setCellValue("VINCULADO");
+            sheet.addMergedRegion(new CellRangeAddress(dupRow.getRowNum(), dupRow.getRowNum(), 0, 6));
+            Cell dupValueCell = dupRow.createCell(7);
             dupValueCell.setCellValue(report.duplicatedAmount().negate().doubleValue());
             dupValueCell.setCellStyle(currencyStyle);
 
             BigDecimal adjustedTotal = report.totalAmount().subtract(report.duplicatedAmount());
             Row adjRow = sheet.createRow(rowNum++);
-            Cell adjLabelCell = adjRow.createCell(5);
-            adjLabelCell.setCellValue("TOTAL AJUSTADO:");
-            adjLabelCell.setCellStyle(totalStyle);
-            Cell adjValueCell = adjRow.createCell(6);
+            Cell adjLabelCell = adjRow.createCell(0);
+            adjLabelCell.setCellValue("TOTAL AJUSTADO");
+            adjLabelCell.setCellStyle(totalLabelStyle);
+            sheet.addMergedRegion(new CellRangeAddress(adjRow.getRowNum(), adjRow.getRowNum(), 0, 6));
+            for (int i = 1; i <= 6; i++) {
+                adjRow.createCell(i).setCellStyle(totalLabelStyle);
+            }
+            Cell adjValueCell = adjRow.createCell(7);
             adjValueCell.setCellValue(adjustedTotal.doubleValue());
             adjValueCell.setCellStyle(totalStyle);
         }
@@ -157,7 +172,7 @@ public class ExcelReportExporter implements IReportExporter {
      */
     private void createSummarySheet(Workbook workbook, MoneyOutflowReportDTO report,
                                     CellStyle headerStyle, CellStyle currencyStyle,
-                                    CellStyle totalStyle) {
+                                    CellStyle totalStyle, CellStyle totalLabelStyle) {
         Sheet sheet = workbook.createSheet("Resumen");
 
         int rowNum = 0;
@@ -250,9 +265,9 @@ public class ExcelReportExporter implements IReportExporter {
 
         // Grand total
         Row totalRow = sheet.createRow(rowNum++);
-        Cell totalLabelCell = totalRow.createCell(0);
-        totalLabelCell.setCellValue("TOTAL GENERAL:");
-        totalLabelCell.setCellStyle(totalStyle);
+        Cell grandTotalLabelCell = totalRow.createCell(0);
+        grandTotalLabelCell.setCellValue("TOTAL GENERAL");
+        grandTotalLabelCell.setCellStyle(totalLabelStyle);
 
         Cell totalCountCell = totalRow.createCell(1);
         totalCountCell.setCellValue(report.totalCount());
@@ -382,6 +397,21 @@ public class ExcelReportExporter implements IReportExporter {
         DataFormat format = workbook.createDataFormat();
         style.setDataFormat(format.getFormat("$ #,##0.00"));
         style.setAlignment(HorizontalAlignment.RIGHT);
+        style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setBorderTop(BorderStyle.DOUBLE);
+        return style;
+    }
+
+    /**
+     * Creates total label cell style (left-aligned, no currency format).
+     */
+    private CellStyle createTotalLabelStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.LEFT);
         style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setBorderTop(BorderStyle.DOUBLE);

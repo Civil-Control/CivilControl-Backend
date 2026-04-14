@@ -2,7 +2,6 @@ package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.projectarea.ProjectAreaNotFoundException;
-import PSG.backEnd.exception.salaryPayment.DuplicateSalaryPaymentException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotFoundException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotValidException;
 import PSG.backEnd.model.dto.employee.SalaryPaymentBatchDTO;
@@ -48,8 +47,6 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     @Transactional
     public SalaryPaymentResponseDTO createSalaryPayment(SalaryPaymentDTO salaryPaymentDTO) {
         validateEmployeeExists(salaryPaymentDTO.employeeId());
-        validateDuplicatePayment(salaryPaymentDTO.employeeId(), salaryPaymentDTO.salaryFrequency(),
-                                 salaryPaymentDTO.paymentDate(), null);
         validateBusinessRules(salaryPaymentDTO);
 
         Employee employee = employeeRepository.findByIdAndDeletedFalse(salaryPaymentDTO.employeeId())
@@ -189,36 +186,21 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         }
     }
 
-    private void validateDuplicatePayment(Long employeeId, PSG.backEnd.model.enums.employee.SalaryFrecuency frequency,
-                                          LocalDate paymentDate, Long excludePaymentId) {
+    /**
+     * Returns the count of existing salary payments for a given employee, frequency and month.
+     */
+    public int countExistingPayments(Long employeeId, PSG.backEnd.model.enums.employee.SalaryFrecuency frequency,
+                                     LocalDate paymentDate, Long excludePaymentId) {
         int year = paymentDate.getYear();
         int month = paymentDate.getMonthValue();
 
-        switch (frequency) {
-            case MENSUAL:
-                boolean monthlyPaymentExists = salaryPaymentRepository.existsMonthlyPaymentForEmployeeInMonth(
-                        employeeId, year, month, excludePaymentId);
-
-                if (monthlyPaymentExists) {
-                    throw new DuplicateSalaryPaymentException(
-                            String.format("Employee already has a monthly payment registered for %d-%02d", year, month));
-                }
-                break;
-
-            case QUINCENAL:
-                long biweeklyCount = salaryPaymentRepository.countBiweeklyPaymentsForEmployeeInMonth(
-                        employeeId, year, month, excludePaymentId);
-
-                if (biweeklyCount >= 2) {
-                    throw new DuplicateSalaryPaymentException(
-                            String.format("Employee already has 2 biweekly payments registered for %d-%02d. Maximum allowed is 2 per month",
-                                    year, month));
-                }
-                break;
-
-            case SEMANAL:
-                break;
-        }
+        return switch (frequency) {
+            case MENSUAL -> salaryPaymentRepository.existsMonthlyPaymentForEmployeeInMonth(
+                    employeeId, year, month, excludePaymentId) ? 1 : 0;
+            case QUINCENAL -> (int) salaryPaymentRepository.countBiweeklyPaymentsForEmployeeInMonth(
+                    employeeId, year, month, excludePaymentId);
+            case SEMANAL -> 0;
+        };
     }
 
     private ProjectArea resolveProjectArea(Long projectAreaId) {

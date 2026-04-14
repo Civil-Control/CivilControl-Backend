@@ -127,6 +127,22 @@ public class SalaryPaymentController {
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_READ + "')")
+    @GetMapping("/check-existing")
+    @Operation(summary = "Check existing salary payments for an employee in a given month",
+            description = "Returns the count of existing salary payments for an employee with the specified frequency " +
+                    "in the same month as the given payment date. Used to show non-blocking warnings in the form.")
+    @ApiResponse(responseCode = "200", description = "Count of existing payments returned")
+    public ResponseEntity<Integer> checkExistingPayments(
+            @Parameter(description = "Employee ID", required = true) @RequestParam Long employeeId,
+            @Parameter(description = "Salary frequency (MENSUAL, QUINCENAL, SEMANAL)", required = true) @RequestParam SalaryFrecuency frequency,
+            @Parameter(description = "Payment date to check against", required = true) @RequestParam LocalDate paymentDate,
+            @Parameter(description = "Payment ID to exclude (for edit mode)") @RequestParam(required = false) Long excludePaymentId
+    ) {
+        int count = iSalaryPaymentService.countExistingPayments(employeeId, frequency, paymentDate, excludePaymentId);
+        return ResponseEntity.ok(count);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get salary payment by ID",
             description = "Retrieves detailed information about a specific salary payment by its unique identifier. " +

@@ -48,6 +48,7 @@ public class PdfReportExporter implements IReportExporter {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             PdfWriter writer = new PdfWriter(baos);
             PdfDocument pdfDoc = new PdfDocument(writer);
+            pdfDoc.setDefaultPageSize(com.itextpdf.kernel.geom.PageSize.A4.rotate());
             Document document = new Document(pdfDoc);
 
             // Add title
@@ -174,30 +175,39 @@ public class PdfReportExporter implements IReportExporter {
                 .setMarginBottom(10);
         document.add(itemsTitle);
 
-        // Create table with 5 columns
-        Table table = new Table(new float[]{1.5f, 1, 3, 2, 1.5f});
+        // Create table with 8 columns
+        Table table = new Table(new float[]{1.2f, 1f, 1f, 2.5f, 1.5f, 1f, 1f, 1.2f});
         table.setWidth(UnitValue.createPercentValue(100));
 
         // Headers
         table.addHeaderCell(createHeaderCell("Fecha"));
         table.addHeaderCell(createHeaderCell("Categoría"));
+        table.addHeaderCell(createHeaderCell("Área"));
         table.addHeaderCell(createHeaderCell("Descripción"));
         table.addHeaderCell(createHeaderCell("Beneficiario"));
+        table.addHeaderCell(createHeaderCell("Método"));
+        table.addHeaderCell(createHeaderCell("Referencia"));
         table.addHeaderCell(createHeaderCell("Monto"));
 
         // Rows
         for (ReportItemDTO item : report.items()) {
             table.addCell(new Cell().add(new Paragraph(item.date().format(DATE_FORMATTER)))
-                    .setFontSize(9));
+                    .setFontSize(8));
             table.addCell(new Cell().add(new Paragraph(item.category().getDisplayName()))
+                    .setFontSize(7));
+            table.addCell(new Cell().add(new Paragraph(item.projectAreaName() != null ? item.projectAreaName() : ""))
                     .setFontSize(8));
             table.addCell(new Cell().add(new Paragraph(item.description() != null ? item.description() : ""))
-                    .setFontSize(9));
+                    .setFontSize(8));
             table.addCell(new Cell().add(new Paragraph(item.beneficiary() != null ? item.beneficiary() : ""))
-                    .setFontSize(9));
+                    .setFontSize(8));
+            table.addCell(new Cell().add(new Paragraph(item.paymentMethod() != null ? item.paymentMethod() : ""))
+                    .setFontSize(8));
+            table.addCell(new Cell().add(new Paragraph(item.reference() != null ? item.reference() : ""))
+                    .setFontSize(8));
             table.addCell(new Cell().add(new Paragraph(formatAmount(item.amount())))
                     .setTextAlignment(TextAlignment.RIGHT)
-                    .setFontSize(9));
+                    .setFontSize(8));
         }
 
         document.add(table);
