@@ -16,5 +16,9 @@ public record ProjectAreaTaskDTO(
     @NotNull(message = "{projectAreaTask.name.required}", groups = OnCreate.class)
     @Size(min = 1, max = 150, groups = {OnCreate.class, OnUpdate.class})
     @Schema(description = "Name of the sub-task", example = "Cableado")
-    String name
+    String name,
+
+    @Size(max = 500, groups = {OnCreate.class, OnUpdate.class})
+    @Schema(description = "Description of the sub-task", example = "Tendido de cableado eléctrico")
+    String description
 ) {}

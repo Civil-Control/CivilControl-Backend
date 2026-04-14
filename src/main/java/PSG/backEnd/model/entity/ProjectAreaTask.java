@@ -26,6 +26,9 @@ public class ProjectAreaTask extends TenantEntity {
     @Column(nullable = false, columnDefinition = "VARCHAR(150)")
     private String name;
 
+    @Column(columnDefinition = "VARCHAR(500)")
+    private String description;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean deleted = false;

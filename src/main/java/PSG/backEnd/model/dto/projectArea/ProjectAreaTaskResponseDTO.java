@@ -11,6 +11,9 @@ public record ProjectAreaTaskResponseDTO(
     @Schema(description = "Task name", example = "Cableado")
     String name,
 
+    @Schema(description = "Description of the sub-task")
+    String description,
+
     @Schema(description = "Parent project area ID", example = "5")
     Long projectAreaId,
 

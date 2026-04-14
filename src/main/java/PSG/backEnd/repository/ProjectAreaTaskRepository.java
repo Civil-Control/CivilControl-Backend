@@ -17,4 +17,6 @@ public interface ProjectAreaTaskRepository extends JpaRepository<ProjectAreaTask
     boolean existsByProjectAreaIdAndNameAndDeletedFalse(Long projectAreaId, String name);
 
     boolean existsByIdAndDeletedFalse(Long id);
+
+    Optional<ProjectAreaTask> findByProjectAreaIdAndNameAndDeletedTrue(Long projectAreaId, String name);
 }

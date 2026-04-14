@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,8 +32,17 @@ public class ProjectAreaTaskService implements IProjectAreaTaskService {
         ProjectArea projectArea = projectAreaRepository.findByIdAndDeletedFalse(dto.projectAreaId())
                 .orElseThrow(() -> new ProjectAreaNotFoundException(dto.projectAreaId()));
 
+        // Check if an active task with same name already exists
         if (taskRepository.existsByProjectAreaIdAndNameAndDeletedFalse(dto.projectAreaId(), dto.name())) {
             throw new IllegalArgumentException("Ya existe una sub-tarea con ese nombre en este sector");
+        }
+
+        // Check for soft-deleted task with same name → reactivate
+        Optional<ProjectAreaTask> deletedTask = taskRepository.findByProjectAreaIdAndNameAndDeletedTrue(
+                dto.projectAreaId(), dto.name());
+
+        if (deletedTask.isPresent()) {
+            return reactivateTask(deletedTask.get(), dto);
         }
 
         ProjectAreaTask task = taskMapper.toEntity(dto);
@@ -40,6 +50,14 @@ public class ProjectAreaTaskService implements IProjectAreaTaskService {
         task.setDeleted(false);
 
         ProjectAreaTask saved = taskRepository.save(task);
+        return taskMapper.toResponseDto(saved);
+    }
+
+    private ProjectAreaTaskResponseDTO reactivateTask(ProjectAreaTask deletedTask, ProjectAreaTaskDTO dto) {
+        deletedTask.setDeleted(false);
+        deletedTask.setName(dto.name());
+        deletedTask.setDescription(dto.description());
+        ProjectAreaTask saved = taskRepository.save(deletedTask);
         return taskMapper.toResponseDto(saved);
     }
 
@@ -54,6 +72,9 @@ public class ProjectAreaTaskService implements IProjectAreaTaskService {
             if (taskRepository.existsByProjectAreaIdAndNameAndDeletedFalse(areaId, dto.name())) {
                 throw new IllegalArgumentException("Ya existe una sub-tarea con ese nombre en este sector");
             }
+            // Remove any soft-deleted record with same name to avoid unique constraint violation
+            taskRepository.findByProjectAreaIdAndNameAndDeletedTrue(areaId, dto.name())
+                    .ifPresent(taskRepository::delete);
         }
 
         taskMapper.partialUpdate(dto, task);
