@@ -10,8 +10,7 @@ public record GasStationPriceResponseDTO(
         String supplierName,
 
         @Schema(description = "Type of fuel.",
-                example = "NAFTA_SUPER",
-                allowableValues = {"NAFTA_SUPER", "NAFTA_COMUN", "DIESEL", "GNC"})
+                example = "INFINIA")
         String fuelType,
 
         @Schema(description = "Price per liter of fuel.",

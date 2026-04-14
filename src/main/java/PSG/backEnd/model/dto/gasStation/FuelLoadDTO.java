@@ -35,11 +35,9 @@ public record FuelLoadDTO(
         @Pattern(regexp = "\\d{8}", message = "{fuelLoad.ticketNumber.size}", groups = {OnCreate.class, OnUpdate.class})
         String ticketNumber,
 
-        @Schema(description = "Type of fuel loaded. Valid values: INFINIA (premium gasoline), SUPER (super gasoline), " +
-                "INFINIA_DIESEL (premium diesel), DIESEL_500 (diesel 500), GNC (compressed natural gas).",
+        @Schema(description = "Type of fuel loaded.",
                 example = "INFINIA",
-                requiredMode = Schema.RequiredMode.REQUIRED,
-                allowableValues = {"INFINIA", "SUPER", "INFINIA_DIESEL", "DIESEL_500", "GNC"})
+                requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "{fuelLoad.fuelType.required}", groups = OnCreate.class)
         FuelType fuelType,
 

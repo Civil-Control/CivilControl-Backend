@@ -77,6 +77,13 @@ public class GasStationService implements IGasStationService {
             throw new SupplierNotFoundException(gasStationDTO.supplierId());
         }
 
+        // Flush price deletions before inserting new ones to avoid unique constraint
+        // violations on the (gas_station_id, fuel_type) index in @ElementCollection.
+        if (gasStationDTO.prices() != null) {
+            gasStation.getPrices().clear();
+            gasStationRepository.saveAndFlush(gasStation);
+        }
+
         gasStationMapper.partialUpdate(gasStationDTO, gasStation);
         GasStation updatedGasStation = gasStationRepository.save(gasStation);
 
