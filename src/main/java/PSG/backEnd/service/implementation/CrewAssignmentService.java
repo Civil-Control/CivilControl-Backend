@@ -51,7 +51,6 @@ public class CrewAssignmentService implements ICrewAssignmentService {
         Vehicle vehicle = resolveVehicle(dto.vehicleId());
         ProjectArea projectArea = resolveProjectArea(dto.projectAreaId());
 
-        validateNoDuplicate(dto.employeeId(), dto.date());
         validateDriverUniqueness(dto.vehicleId(), dto.date(), dto.isDriver());
 
         CrewAssignment entity = crewAssignmentMapper.toEntity(dto);
@@ -60,6 +59,7 @@ public class CrewAssignmentService implements ICrewAssignmentService {
         entity.setProjectArea(projectArea);
 
         CrewAssignment saved = crewAssignmentRepository.save(entity);
+        syncVehicleKm(vehicle, dto.km());
         return crewAssignmentMapper.toResponseDto(saved);
     }
 
@@ -69,12 +69,40 @@ public class CrewAssignmentService implements ICrewAssignmentService {
         List<CrewAssignmentResponseDTO> created = new ArrayList<>();
         List<CrewAssignmentWarningDTO> warnings = new ArrayList<>();
 
+        // Track vehicles already warned about duplicate to avoid repeated warnings
+        var warnedEmployees = new java.util.HashSet<Long>();
+        var warnedVehicles = new java.util.HashSet<Long>();
+
         for (CrewAssignmentDTO dto : batchDTO.assignments()) {
             Employee employee = resolveEmployee(dto.employeeId());
             Vehicle vehicle = resolveVehicle(dto.vehicleId());
             ProjectArea projectArea = resolveProjectArea(dto.projectAreaId());
 
-            validateNoDuplicate(dto.employeeId(), dto.date());
+            // Warning W3: employee already has assignment for this date
+            if (!warnedEmployees.contains(dto.employeeId()) &&
+                    crewAssignmentRepository.existsByEmployeeIdAndDateAndDeletedFalse(dto.employeeId(), dto.date())) {
+                warnings.add(new CrewAssignmentWarningDTO(
+                        "W3",
+                        messageSourceHelper.getMessage("crewAssignment.warning.duplicateEmployee",
+                                employee.getName() + " " + employee.getLastName(), dto.date()),
+                        employee.getId(),
+                        vehicle.getId()
+                ));
+                warnedEmployees.add(dto.employeeId());
+            }
+
+            // Warning W4: vehicle already has assignments for this date
+            if (!warnedVehicles.contains(dto.vehicleId()) &&
+                    crewAssignmentRepository.existsByVehicleIdAndDateAndDeletedFalse(dto.vehicleId(), dto.date())) {
+                warnings.add(new CrewAssignmentWarningDTO(
+                        "W4",
+                        messageSourceHelper.getMessage("crewAssignment.warning.duplicateVehicle",
+                                vehicle.getLicensePlate(), dto.date()),
+                        employee.getId(),
+                        vehicle.getId()
+                ));
+                warnedVehicles.add(dto.vehicleId());
+            }
 
             // Warning W1: employee assigned as driver but doesn't have CHOFER role
             if (Boolean.TRUE.equals(dto.isDriver()) &&
@@ -110,6 +138,7 @@ public class CrewAssignmentService implements ICrewAssignmentService {
             entity.setProjectArea(projectArea);
 
             CrewAssignment saved = crewAssignmentRepository.save(entity);
+            syncVehicleKm(vehicle, dto.km());
             created.add(crewAssignmentMapper.toResponseDto(saved));
         }
 
@@ -186,6 +215,7 @@ public class CrewAssignmentService implements ICrewAssignmentService {
                             pa.getId(),
                             pa.getName(),
                             pa.getColor(),
+                            first.getKm(),
                             members
                     );
                 })
@@ -304,6 +334,13 @@ public class CrewAssignmentService implements ICrewAssignmentService {
             String empName = emp != null ? emp.getName() + " " + emp.getLastName() : String.valueOf(employeeId);
             throw new DuplicateCrewAssignmentException(
                     messageSourceHelper.getMessage("crewAssignment.duplicate", empName, date));
+        }
+    }
+
+    private void syncVehicleKm(Vehicle vehicle, Integer km) {
+        if (km != null) {
+            vehicle.setKm(km);
+            vehicleRepository.save(vehicle);
         }
     }
 

@@ -87,5 +87,10 @@ public record VehicleResponseDTO(
         @Schema(description = "Type of truck equipment. Only present for vehicles of type CAMION.",
                 example = "HIDROELEVADOR",
                 allowableValues = {"NADA", "HIDROELEVADOR", "HIDROGRUA"})
-        String truckEquipment
+        String truckEquipment,
+
+        @Schema(description = "Current mileage of the vehicle (km). Synced from the latest crew assignment.",
+                example = "45000",
+                nullable = true)
+        Integer km
 ) {}

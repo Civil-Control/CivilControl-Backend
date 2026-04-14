@@ -69,6 +69,9 @@ public class Vehicle extends TenantEntity {
     @Enumerated(EnumType.STRING)
     private TruckEquipment truckEquipment;
 
+    @Column
+    private Integer km;
+
     /** Soft-delete flag — set to true only for permanent record removal. Never use for operational status. */
     @Column
     private boolean deleted;

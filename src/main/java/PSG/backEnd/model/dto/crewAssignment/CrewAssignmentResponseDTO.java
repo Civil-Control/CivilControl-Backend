@@ -45,5 +45,7 @@ public record CrewAssignmentResponseDTO(
     @Schema(description = "Whether the employee is the driver.", example = "true")
     Boolean isDriver,
     @Schema(description = "Optional observation.", nullable = true)
-    String observation
+    String observation,
+    @Schema(description = "Vehicle mileage at the time of assignment.", example = "45000", nullable = true)
+    Integer km
 ) {}

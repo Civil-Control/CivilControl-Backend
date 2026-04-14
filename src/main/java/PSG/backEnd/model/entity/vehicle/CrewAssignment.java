@@ -9,9 +9,7 @@ import lombok.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "crew_assignments", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"tenant_id", "employee_id", "date"})
-})
+@Table(name = "crew_assignments")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -43,6 +41,9 @@ public class CrewAssignment extends TenantEntity {
 
     @Column(name = "observation", length = 500)
     private String observation;
+
+    @Column
+    private Integer km;
 
     @Column(nullable = false)
     private boolean deleted;

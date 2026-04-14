@@ -20,6 +20,8 @@ public interface CrewAssignmentRepository extends JpaRepository<CrewAssignment, 
 
     boolean existsByEmployeeIdAndDateAndDeletedFalse(Long employeeId, LocalDate date);
 
+    boolean existsByVehicleIdAndDateAndDeletedFalse(Long vehicleId, LocalDate date);
+
     @Query("SELECT ca FROM CrewAssignment ca WHERE ca.vehicle.id = :vehicleId AND ca.date = :date AND ca.driver = true AND ca.deleted = false")
     Optional<CrewAssignment> findDriverByVehicleAndDate(
             @Param("vehicleId") Long vehicleId,

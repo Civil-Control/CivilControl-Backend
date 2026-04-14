@@ -30,5 +30,8 @@ public record CrewAssignmentDTO(
 
     @Schema(description = "Optional observation.", example = "Sale temprano", nullable = true)
     @Size(max = 500, message = "{validation.size.max}")
-    String observation
+    String observation,
+
+    @Schema(description = "Vehicle mileage at the time of assignment.", example = "45000", nullable = true)
+    Integer km
 ) {}

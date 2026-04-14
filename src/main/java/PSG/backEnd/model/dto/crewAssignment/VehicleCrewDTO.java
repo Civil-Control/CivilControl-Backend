@@ -22,6 +22,8 @@ public record VehicleCrewDTO(
     String projectAreaName,
     @Schema(description = "Project area color.", example = "#FF5733", nullable = true)
     String projectAreaColor,
+    @Schema(description = "Vehicle mileage registered for this day.", example = "45000", nullable = true)
+    Integer km,
     @Schema(description = "Crew members assigned to this vehicle.")
     List<CrewMemberDTO> members
 ) {}
