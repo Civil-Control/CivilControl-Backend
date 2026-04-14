@@ -155,12 +155,11 @@ public class SalaryReportPdfExporter {
 
     private void addEmployeeSummaryTable(Document document, SalaryReportDTO report,
                                           List<SalaryFrecuency> activeFrequencies) {
-        int colCount = 3 + activeFrequencies.size(); // Empleado, Cant, [freqs...], Total
+        int colCount = 2 + activeFrequencies.size(); // Empleado, [freqs...], Total
         float[] colWidths = new float[colCount];
         colWidths[0] = 3;   // Empleado
-        colWidths[1] = 0.8f; // Cant
         for (int i = 0; i < activeFrequencies.size(); i++) {
-            colWidths[2 + i] = 1.5f;
+            colWidths[1 + i] = 1.5f;
         }
         colWidths[colCount - 1] = 1.5f; // Total
 
@@ -169,7 +168,6 @@ public class SalaryReportPdfExporter {
 
         // Headers
         table.addHeaderCell(headerCell("Empleado"));
-        table.addHeaderCell(headerCell("Cant."));
         for (SalaryFrecuency freq : activeFrequencies) {
             table.addHeaderCell(headerCell("Total " + freq.getDisplayName()));
         }
@@ -186,7 +184,6 @@ public class SalaryReportPdfExporter {
             // Employee rows
             for (SalaryReportEmployeeGroupDTO emp : area.employeeGroups()) {
                 table.addCell(cell(emp.employeeLastName() + ", " + emp.employeeName()));
-                table.addCell(cellCenter(String.valueOf(emp.paymentCount())));
                 for (SalaryFrecuency freq : activeFrequencies) {
                     BigDecimal val = emp.subtotalsByFrequency().getOrDefault(freq, BigDecimal.ZERO);
                     table.addCell(cellAmount(val));
@@ -195,11 +192,17 @@ public class SalaryReportPdfExporter {
             }
 
             // Area subtotal row
-            table.addCell(new Cell(1, colCount - 1)
-                    .add(new Paragraph("Subtotal " + area.projectAreaName()
-                            + " (" + area.paymentCount() + " pagos)")
+            table.addCell(new Cell()
+                    .add(new Paragraph("Subtotal " + area.projectAreaName())
                             .setFontSize(9).setBold().setItalic())
                     .setBackgroundColor(SUBTOTAL_COLOR).setPadding(4));
+            for (SalaryFrecuency freq : activeFrequencies) {
+                BigDecimal val = area.subtotalsByFrequency().getOrDefault(freq, BigDecimal.ZERO);
+                table.addCell(new Cell()
+                        .add(new Paragraph(formatAmount(val)).setFontSize(9).setBold().setItalic())
+                        .setBackgroundColor(SUBTOTAL_COLOR)
+                        .setTextAlignment(TextAlignment.RIGHT).setPadding(4));
+            }
             table.addCell(new Cell()
                     .add(new Paragraph(formatAmount(area.subtotalAmount())).setFontSize(9).setBold().setItalic())
                     .setBackgroundColor(SUBTOTAL_COLOR)
@@ -207,10 +210,15 @@ public class SalaryReportPdfExporter {
         }
 
         // Grand total row
-        Cell totalLabel = new Cell(1, colCount - 1)
-                .add(new Paragraph("TOTAL GENERAL (" + report.totalCount() + " pagos)").setBold().setFontSize(10))
-                .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE).setPadding(6);
-        table.addCell(totalLabel);
+        table.addCell(new Cell()
+                .add(new Paragraph("TOTAL GENERAL").setBold().setFontSize(10))
+                .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE).setPadding(6));
+        for (SalaryFrecuency freq : activeFrequencies) {
+            BigDecimal val = report.totalsByFrequency().getOrDefault(freq, BigDecimal.ZERO);
+            table.addCell(new Cell().add(new Paragraph(formatAmount(val)).setBold().setFontSize(10))
+                    .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE)
+                    .setTextAlignment(TextAlignment.RIGHT).setPadding(6));
+        }
         table.addCell(new Cell().add(new Paragraph(formatAmount(report.totalAmount())).setBold().setFontSize(10))
                 .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE)
                 .setTextAlignment(TextAlignment.RIGHT).setPadding(6));

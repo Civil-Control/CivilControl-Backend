@@ -163,16 +163,15 @@ public class SalaryReportExcelExporter {
         int rowNum = 0;
 
         // Title
-        int totalCols = 3 + activeFrequencies.size(); // Empleado, Cant, [freqs...], Total
+        int totalCols = 2 + activeFrequencies.size(); // Empleado, [freqs...], Total
         rowNum = addSheetHeader(sheet, "REPORTE DE SALARIOS - RESUMEN POR EMPLEADO", report, titleCellStyle,
                 totalCols);
         rowNum++;
 
-        // Headers: Empleado | Cant. Pagos | [freq columns...] | Total
+        // Headers: Empleado | [freq columns...] | Total
         Row headerRow = sheet.createRow(rowNum++);
         int col = 0;
         setCellWithStyle(headerRow, col++, "Empleado", headerStyle);
-        setCellWithStyle(headerRow, col++, "Cant. Pagos", headerStyle);
         for (SalaryFrecuency freq : activeFrequencies) {
             setCellWithStyle(headerRow, col++, "Total " + freq.getDisplayName(), headerStyle);
         }
@@ -200,12 +199,11 @@ public class SalaryReportExcelExporter {
             }
             sheet.addMergedRegion(new CellRangeAddress(areaHeaderRowNum, areaHeaderRowNum, 0, totalCols - 1));
 
-            // Employee rows (already sorted by backend, but data comes from area.employeeGroups)
+            // Employee rows (already sorted by backend)
             for (SalaryReportEmployeeGroupDTO emp : area.employeeGroups()) {
                 Row row = sheet.createRow(rowNum++);
                 int c = 0;
                 row.createCell(c++).setCellValue(emp.employeeLastName() + ", " + emp.employeeName());
-                row.createCell(c++).setCellValue(emp.paymentCount());
                 for (SalaryFrecuency freq : activeFrequencies) {
                     Cell cell = row.createCell(c++);
                     BigDecimal val = emp.subtotalsByFrequency().getOrDefault(freq, BigDecimal.ZERO);
@@ -221,17 +219,16 @@ public class SalaryReportExcelExporter {
             int subtotalRowNum = rowNum;
             Row subtotalRow = sheet.createRow(rowNum++);
             Cell subtotalLabel = subtotalRow.createCell(0);
-            subtotalLabel.setCellValue("Subtotal " + area.projectAreaName() + " (" + area.paymentCount() + " pagos)");
+            subtotalLabel.setCellValue("Subtotal " + area.projectAreaName());
             subtotalLabel.setCellStyle(subtotalLabelStyle);
-            // Fill cells up to the last value column - 1 for merge
-            int lastDataCol = totalCols - 1;
-            for (int i = 1; i < lastDataCol; i++) {
-                subtotalRow.createCell(i).setCellStyle(subtotalLabelStyle);
+            int sc = 1;
+            for (SalaryFrecuency freq : activeFrequencies) {
+                Cell cell = subtotalRow.createCell(sc++);
+                BigDecimal val = area.subtotalsByFrequency().getOrDefault(freq, BigDecimal.ZERO);
+                cell.setCellValue(val.doubleValue());
+                cell.setCellStyle(subtotalStyle);
             }
-            if (lastDataCol > 1) {
-                sheet.addMergedRegion(new CellRangeAddress(subtotalRowNum, subtotalRowNum, 0, lastDataCol - 1));
-            }
-            Cell subtotalAmount = subtotalRow.createCell(lastDataCol);
+            Cell subtotalAmount = subtotalRow.createCell(sc);
             subtotalAmount.setCellValue(area.subtotalAmount().doubleValue());
             subtotalAmount.setCellStyle(subtotalStyle);
 
@@ -239,19 +236,18 @@ public class SalaryReportExcelExporter {
         }
 
         // Grand total row
-        int totalRowNum = rowNum;
-        Row totalRow = sheet.createRow(totalRowNum);
-        Cell totalLabel = totalRow.createCell(0);
-        totalLabel.setCellValue("TOTAL GENERAL (" + report.totalCount() + " pagos)");
+        Row totalRow = sheet.createRow(rowNum);
+        int tc = 0;
+        Cell totalLabel = totalRow.createCell(tc++);
+        totalLabel.setCellValue("TOTAL GENERAL");
         totalLabel.setCellStyle(totalLabelStyle);
-        int lastCol = totalCols - 1;
-        for (int i = 1; i < lastCol; i++) {
-            totalRow.createCell(i).setCellStyle(totalLabelStyle);
+        for (SalaryFrecuency freq : activeFrequencies) {
+            Cell cell = totalRow.createCell(tc++);
+            BigDecimal val = report.totalsByFrequency().getOrDefault(freq, BigDecimal.ZERO);
+            cell.setCellValue(val.doubleValue());
+            cell.setCellStyle(totalStyle);
         }
-        if (lastCol > 1) {
-            sheet.addMergedRegion(new CellRangeAddress(totalRowNum, totalRowNum, 0, lastCol - 1));
-        }
-        Cell grandTotalCell = totalRow.createCell(lastCol);
+        Cell grandTotalCell = totalRow.createCell(tc);
         grandTotalCell.setCellValue(report.totalAmount().doubleValue());
         grandTotalCell.setCellStyle(totalStyle);
 
