@@ -752,7 +752,7 @@ public class ReportService implements IReportService {
                     .paymentMethod(null)
                     .beneficiary(beneficiary)
                     .reference("Ticket: " + fl.getTicketNumber())
-                    .comment("Vehículo: " + fl.getVehicle().getLicensePlate())
+                    .comment("Vehículo: " + (fl.getVehicle() != null ? fl.getVehicle().getLicensePlate() : "Bidón"))
                     .projectAreaName(fl.getProjectArea() != null ? fl.getProjectArea().getName() : null)
                     .linkedDocumentId(flLinkedDocId)
                     .build());
@@ -858,8 +858,9 @@ public class ReportService implements IReportService {
                         .map(RepairItem::getDescription)
                         .collect(java.util.stream.Collectors.joining(", "));
             }
+            String vehiclePlate = r.getVehicle() != null ? r.getVehicle().getLicensePlate() : "N/A";
             String description = "Reparación: " + itemDescriptions +
-                               " - Vehículo: " + r.getVehicle().getLicensePlate();
+                               " - Vehículo: " + vehiclePlate;
 
             String beneficiary;
             if (r.getSupplier() != null) {
@@ -890,7 +891,7 @@ public class ReportService implements IReportService {
                     .beneficiary(beneficiary)
                     .reference(null)
                     .comment(r.getDescription())
-                    .projectAreaName(r.getVehicle().getProjectArea() != null ? r.getVehicle().getProjectArea().getName() : null)
+                    .projectAreaName(r.getVehicle() != null && r.getVehicle().getProjectArea() != null ? r.getVehicle().getProjectArea().getName() : null)
                     .linkedDocumentId(rLinkedDocId)
                     .build());
         }
