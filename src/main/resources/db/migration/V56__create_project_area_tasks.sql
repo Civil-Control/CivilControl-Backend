@@ -17,31 +17,31 @@ CREATE TABLE IF NOT EXISTS project_area_tasks (
 
 -- Add project_area_task_id to all entities that have project_area_id
 ALTER TABLE buildings ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE buildings ADD CONSTRAINT IF NOT EXISTS fk_building_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE buildings ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
 
 ALTER TABLE work_contracts ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE work_contracts ADD CONSTRAINT IF NOT EXISTS fk_work_contract_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE work_contracts ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
 
 ALTER TABLE fuel_loads ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE fuel_loads ADD CONSTRAINT IF NOT EXISTS fk_fuel_load_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE fuel_loads ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
 
 ALTER TABLE sales_documents ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE sales_documents ADD CONSTRAINT IF NOT EXISTS fk_sales_document_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE sales_documents ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
 
 ALTER TABLE service_payments ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE service_payments ADD CONSTRAINT IF NOT EXISTS fk_service_payment_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE service_payments ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
 
 ALTER TABLE transactional_documents ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE transactional_documents ADD CONSTRAINT IF NOT EXISTS fk_transactional_document_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE transactional_documents ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
 
 ALTER TABLE salary_payments ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE salary_payments ADD CONSTRAINT IF NOT EXISTS fk_salary_payment_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE salary_payments ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
 
 ALTER TABLE crew_assignments ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE crew_assignments ADD CONSTRAINT IF NOT EXISTS fk_crew_assignment_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE crew_assignments ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
 
 ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE vehicles ADD CONSTRAINT IF NOT EXISTS fk_vehicle_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE vehicles ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
 
 ALTER TABLE employees ADD COLUMN IF NOT EXISTS project_area_task_id BIGINT NULL;
-ALTER TABLE employees ADD CONSTRAINT IF NOT EXISTS fk_employee_project_area_task FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
+ALTER TABLE employees ADD FOREIGN KEY (project_area_task_id) REFERENCES project_area_tasks(id);
