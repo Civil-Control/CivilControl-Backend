@@ -47,9 +47,11 @@ public class SalaryReportExcelExporter {
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle currencyStyle = createCurrencyStyle(workbook);
             CellStyle totalStyle = createTotalStyle(workbook);
+            CellStyle totalLabelStyle = createTotalLabelStyle(workbook);
             CellStyle dateStyle = createDateStyle(workbook);
             CellStyle titleCellStyle = createTitleStyle(workbook);
             CellStyle subtotalStyle = createSubtotalStyle(workbook);
+            CellStyle subtotalLabelStyle = createSubtotalLabelStyle(workbook);
 
             // Determine which frequencies exist in the report
             List<SalaryFrecuency> activeFrequencies = FREQUENCY_ORDER.stream()
@@ -57,11 +59,12 @@ public class SalaryReportExcelExporter {
                     .toList();
 
             createAreaSummarySheet(workbook, report, activeFrequencies,
-                    headerStyle, currencyStyle, totalStyle, titleCellStyle);
+                    headerStyle, currencyStyle, totalStyle, totalLabelStyle, titleCellStyle);
             createEmployeeSummarySheet(workbook, report, activeFrequencies,
-                    headerStyle, currencyStyle, totalStyle, titleCellStyle);
+                    headerStyle, currencyStyle, totalStyle, totalLabelStyle, titleCellStyle);
             createPaymentDetailSheet(workbook, report,
-                    headerStyle, currencyStyle, totalStyle, dateStyle, titleCellStyle, subtotalStyle);
+                    headerStyle, currencyStyle, totalStyle, totalLabelStyle, dateStyle,
+                    titleCellStyle, subtotalStyle, subtotalLabelStyle);
 
             workbook.write(baos);
 
@@ -82,7 +85,8 @@ public class SalaryReportExcelExporter {
     private void createAreaSummarySheet(Workbook workbook, SalaryReportDTO report,
                                          List<SalaryFrecuency> activeFrequencies,
                                          CellStyle headerStyle, CellStyle currencyStyle,
-                                         CellStyle totalStyle, CellStyle titleCellStyle) {
+                                         CellStyle totalStyle, CellStyle totalLabelStyle,
+                                         CellStyle titleCellStyle) {
         Sheet sheet = workbook.createSheet("Resumen por Área");
         int rowNum = 0;
 
@@ -124,7 +128,7 @@ public class SalaryReportExcelExporter {
         int tc = 0;
         Cell totalLabel = totalRow.createCell(tc++);
         totalLabel.setCellValue("TOTAL GENERAL");
-        totalLabel.setCellStyle(totalStyle);
+        totalLabel.setCellStyle(totalLabelStyle);
         Cell totalCountCell = totalRow.createCell(tc++);
         totalCountCell.setCellValue(report.totalCount());
         totalCountCell.setCellStyle(totalStyle);
@@ -151,21 +155,22 @@ public class SalaryReportExcelExporter {
     private void createEmployeeSummarySheet(Workbook workbook, SalaryReportDTO report,
                                              List<SalaryFrecuency> activeFrequencies,
                                              CellStyle headerStyle, CellStyle currencyStyle,
-                                             CellStyle totalStyle, CellStyle titleCellStyle) {
+                                             CellStyle totalStyle, CellStyle totalLabelStyle,
+                                             CellStyle titleCellStyle) {
         Sheet sheet = workbook.createSheet("Resumen por Empleado");
         int rowNum = 0;
 
         // Title
+        int totalCols = 4 + activeFrequencies.size(); // Área, Empleado, Cant, [freqs...], Total
         rowNum = addSheetHeader(sheet, "REPORTE DE SALARIOS - RESUMEN POR EMPLEADO", report, titleCellStyle,
-                4 + activeFrequencies.size());
+                totalCols);
         rowNum++;
 
-        // Headers: Área | Apellido | Nombre | Cant. Pagos | [freq columns...] | Total
+        // Headers: Área | Empleado | Cant. Pagos | [freq columns...] | Total
         Row headerRow = sheet.createRow(rowNum++);
         int col = 0;
         setCellWithStyle(headerRow, col++, "Área", headerStyle);
-        setCellWithStyle(headerRow, col++, "Apellido", headerStyle);
-        setCellWithStyle(headerRow, col++, "Nombre", headerStyle);
+        setCellWithStyle(headerRow, col++, "Empleado", headerStyle);
         setCellWithStyle(headerRow, col++, "Cant. Pagos", headerStyle);
         for (SalaryFrecuency freq : activeFrequencies) {
             setCellWithStyle(headerRow, col++, "Total " + freq.getDisplayName(), headerStyle);
@@ -178,8 +183,7 @@ public class SalaryReportExcelExporter {
                 Row row = sheet.createRow(rowNum++);
                 int c = 0;
                 row.createCell(c++).setCellValue(area.projectAreaName());
-                row.createCell(c++).setCellValue(emp.employeeLastName());
-                row.createCell(c++).setCellValue(emp.employeeName());
+                row.createCell(c++).setCellValue(emp.employeeLastName() + ", " + emp.employeeName());
                 row.createCell(c++).setCellValue(emp.paymentCount());
                 for (SalaryFrecuency freq : activeFrequencies) {
                     Cell cell = row.createCell(c++);
@@ -195,12 +199,15 @@ public class SalaryReportExcelExporter {
 
         // Grand total row
         rowNum++;
-        Row totalRow = sheet.createRow(rowNum);
+        int totalRowNum = rowNum;
+        Row totalRow = sheet.createRow(totalRowNum);
         int tc = 0;
         Cell totalLabel = totalRow.createCell(tc++);
         totalLabel.setCellValue("TOTAL GENERAL");
-        totalLabel.setCellStyle(totalStyle);
-        tc += 2; // skip apellido, nombre
+        totalLabel.setCellStyle(totalLabelStyle);
+        // Merge label across Área + Empleado columns
+        totalRow.createCell(tc++).setCellStyle(totalLabelStyle);
+        sheet.addMergedRegion(new CellRangeAddress(totalRowNum, totalRowNum, 0, 1));
         Cell totalCountCell = totalRow.createCell(tc++);
         totalCountCell.setCellValue(report.totalCount());
         totalCountCell.setCellStyle(totalStyle);
@@ -215,7 +222,7 @@ public class SalaryReportExcelExporter {
         grandTotalCell.setCellStyle(totalStyle);
 
         // Auto-size
-        for (int i = 0; i <= tc; i++) {
+        for (int i = 0; i < totalCols; i++) {
             sheet.autoSizeColumn(i);
         }
     }
@@ -226,8 +233,10 @@ public class SalaryReportExcelExporter {
 
     private void createPaymentDetailSheet(Workbook workbook, SalaryReportDTO report,
                                            CellStyle headerStyle, CellStyle currencyStyle,
-                                           CellStyle totalStyle, CellStyle dateStyle,
-                                           CellStyle titleCellStyle, CellStyle subtotalStyle) {
+                                           CellStyle totalStyle, CellStyle totalLabelStyle,
+                                           CellStyle dateStyle,
+                                           CellStyle titleCellStyle, CellStyle subtotalStyle,
+                                           CellStyle subtotalLabelStyle) {
         Sheet sheet = workbook.createSheet("Detalle de Pagos");
         int rowNum = 0;
 
@@ -266,23 +275,30 @@ public class SalaryReportExcelExporter {
                 }
 
                 // Employee subtotal row
+                int empSubtotalRowNum = rowNum;
                 Row empSubtotalRow = sheet.createRow(rowNum++);
-                Cell empLabel = empSubtotalRow.createCell(1);
+                Cell empLabel = empSubtotalRow.createCell(0);
                 empLabel.setCellValue("Subtotal " + emp.employeeLastName() + ", " + emp.employeeName());
-                empLabel.setCellStyle(subtotalStyle);
+                empLabel.setCellStyle(subtotalLabelStyle);
+                for (int i = 1; i <= 4; i++) {
+                    empSubtotalRow.createCell(i).setCellStyle(subtotalLabelStyle);
+                }
+                sheet.addMergedRegion(new CellRangeAddress(empSubtotalRowNum, empSubtotalRowNum, 0, 4));
                 Cell empTotal = empSubtotalRow.createCell(5);
                 empTotal.setCellValue(emp.totalAmount().doubleValue());
                 empTotal.setCellStyle(subtotalStyle);
             }
 
             // Area subtotal row
+            int areaSubtotalRowNum = rowNum;
             Row areaSubtotalRow = sheet.createRow(rowNum++);
             Cell areaLabel = areaSubtotalRow.createCell(0);
-            areaLabel.setCellValue("Subtotal " + area.projectAreaName());
-            areaLabel.setCellStyle(subtotalStyle);
-            Cell areaCount = areaSubtotalRow.createCell(4);
-            areaCount.setCellValue(area.paymentCount() + " pagos");
-            areaCount.setCellStyle(subtotalStyle);
+            areaLabel.setCellValue("Subtotal " + area.projectAreaName() + " (" + area.paymentCount() + " pagos)");
+            areaLabel.setCellStyle(subtotalLabelStyle);
+            for (int i = 1; i <= 4; i++) {
+                areaSubtotalRow.createCell(i).setCellStyle(subtotalLabelStyle);
+            }
+            sheet.addMergedRegion(new CellRangeAddress(areaSubtotalRowNum, areaSubtotalRowNum, 0, 4));
             Cell areaTotal = areaSubtotalRow.createCell(5);
             areaTotal.setCellValue(area.subtotalAmount().doubleValue());
             areaTotal.setCellStyle(subtotalStyle);
@@ -291,13 +307,15 @@ public class SalaryReportExcelExporter {
         }
 
         // Grand total
+        int grandTotalRowNum = rowNum;
         Row totalRow = sheet.createRow(rowNum);
         Cell totalLabel = totalRow.createCell(0);
-        totalLabel.setCellValue("TOTAL GENERAL");
-        totalLabel.setCellStyle(totalStyle);
-        Cell totalCount = totalRow.createCell(4);
-        totalCount.setCellValue(report.totalCount() + " pagos");
-        totalCount.setCellStyle(totalStyle);
+        totalLabel.setCellValue("TOTAL GENERAL (" + report.totalCount() + " pagos)");
+        totalLabel.setCellStyle(totalLabelStyle);
+        for (int i = 1; i <= 4; i++) {
+            totalRow.createCell(i).setCellStyle(totalLabelStyle);
+        }
+        sheet.addMergedRegion(new CellRangeAddress(grandTotalRowNum, grandTotalRowNum, 0, 4));
         Cell grandTotal = totalRow.createCell(5);
         grandTotal.setCellValue(report.totalAmount().doubleValue());
         grandTotal.setCellStyle(totalStyle);
@@ -393,6 +411,18 @@ public class SalaryReportExcelExporter {
         return style;
     }
 
+    private CellStyle createTotalLabelStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setBorderTop(BorderStyle.DOUBLE);
+        return style;
+    }
+
     private CellStyle createSubtotalStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
@@ -402,6 +432,19 @@ public class SalaryReportExcelExporter {
         DataFormat format = workbook.createDataFormat();
         style.setDataFormat(format.getFormat("$ #,##0.00"));
         style.setAlignment(HorizontalAlignment.RIGHT);
+        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setBorderTop(BorderStyle.THIN);
+        return style;
+    }
+
+    private CellStyle createSubtotalLabelStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setItalic(true);
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.LEFT);
         style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setBorderTop(BorderStyle.THIN);

@@ -155,14 +155,13 @@ public class SalaryReportPdfExporter {
 
     private void addEmployeeSummaryTable(Document document, SalaryReportDTO report,
                                           List<SalaryFrecuency> activeFrequencies) {
-        int colCount = 5 + activeFrequencies.size(); // Área, Apellido, Nombre, Cant, [freqs...], Total
+        int colCount = 4 + activeFrequencies.size(); // Área, Empleado, Cant, [freqs...], Total
         float[] colWidths = new float[colCount];
         colWidths[0] = 2;   // Área
-        colWidths[1] = 2;   // Apellido
-        colWidths[2] = 2;   // Nombre
-        colWidths[3] = 0.8f; // Cant
+        colWidths[1] = 3;   // Empleado
+        colWidths[2] = 0.8f; // Cant
         for (int i = 0; i < activeFrequencies.size(); i++) {
-            colWidths[4 + i] = 1.5f;
+            colWidths[3 + i] = 1.5f;
         }
         colWidths[colCount - 1] = 1.5f; // Total
 
@@ -171,8 +170,7 @@ public class SalaryReportPdfExporter {
 
         // Headers
         table.addHeaderCell(headerCell("Área"));
-        table.addHeaderCell(headerCell("Apellido"));
-        table.addHeaderCell(headerCell("Nombre"));
+        table.addHeaderCell(headerCell("Empleado"));
         table.addHeaderCell(headerCell("Cant."));
         for (SalaryFrecuency freq : activeFrequencies) {
             table.addHeaderCell(headerCell("Total " + freq.getDisplayName()));
@@ -183,8 +181,7 @@ public class SalaryReportPdfExporter {
         for (SalaryReportAreaGroupDTO area : report.areaGroups()) {
             for (SalaryReportEmployeeGroupDTO emp : area.employeeGroups()) {
                 table.addCell(cell(area.projectAreaName()));
-                table.addCell(cell(emp.employeeLastName()));
-                table.addCell(cell(emp.employeeName()));
+                table.addCell(cell(emp.employeeLastName() + ", " + emp.employeeName()));
                 table.addCell(cellCenter(String.valueOf(emp.paymentCount())));
                 for (SalaryFrecuency freq : activeFrequencies) {
                     BigDecimal val = emp.subtotalsByFrequency().getOrDefault(freq, BigDecimal.ZERO);
@@ -195,7 +192,7 @@ public class SalaryReportPdfExporter {
         }
 
         // Grand total row
-        Cell totalLabel = new Cell(1, 3).add(new Paragraph("TOTAL GENERAL").setBold())
+        Cell totalLabel = new Cell(1, 2).add(new Paragraph("TOTAL GENERAL").setBold())
                 .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE).setPadding(5);
         table.addCell(totalLabel);
         table.addCell(new Cell().add(new Paragraph(String.valueOf(report.totalCount())).setBold())
@@ -250,11 +247,10 @@ public class SalaryReportPdfExporter {
                 }
 
                 // Employee subtotal
-                table.addCell(new Cell(1, 2).add(new Paragraph(
+                table.addCell(new Cell(1, 5).add(new Paragraph(
                         "Subtotal " + emp.employeeLastName() + ", " + emp.employeeName())
                         .setFontSize(8).setBold().setItalic())
                         .setBackgroundColor(SUBTOTAL_COLOR).setPadding(3));
-                table.addCell(new Cell(1, 3));
                 table.addCell(new Cell().add(new Paragraph(formatAmount(emp.totalAmount()))
                         .setFontSize(8).setBold().setItalic())
                         .setBackgroundColor(SUBTOTAL_COLOR)
@@ -262,11 +258,10 @@ public class SalaryReportPdfExporter {
             }
 
             // Area subtotal
-            table.addCell(new Cell(1, 4).add(new Paragraph(
+            table.addCell(new Cell(1, 5).add(new Paragraph(
                     "Subtotal " + area.projectAreaName() + " (" + area.paymentCount() + " pagos)")
                     .setFontSize(9).setBold())
                     .setBackgroundColor(SUBTOTAL_COLOR).setPadding(4));
-            table.addCell(new Cell());
             table.addCell(new Cell().add(new Paragraph(formatAmount(area.subtotalAmount()))
                     .setFontSize(9).setBold())
                     .setBackgroundColor(SUBTOTAL_COLOR)
