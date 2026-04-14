@@ -155,13 +155,12 @@ public class SalaryReportPdfExporter {
 
     private void addEmployeeSummaryTable(Document document, SalaryReportDTO report,
                                           List<SalaryFrecuency> activeFrequencies) {
-        int colCount = 4 + activeFrequencies.size(); // Área, Empleado, Cant, [freqs...], Total
+        int colCount = 3 + activeFrequencies.size(); // Empleado, Cant, [freqs...], Total
         float[] colWidths = new float[colCount];
-        colWidths[0] = 2;   // Área
-        colWidths[1] = 3;   // Empleado
-        colWidths[2] = 0.8f; // Cant
+        colWidths[0] = 3;   // Empleado
+        colWidths[1] = 0.8f; // Cant
         for (int i = 0; i < activeFrequencies.size(); i++) {
-            colWidths[3 + i] = 1.5f;
+            colWidths[2 + i] = 1.5f;
         }
         colWidths[colCount - 1] = 1.5f; // Total
 
@@ -169,7 +168,6 @@ public class SalaryReportPdfExporter {
         table.setWidth(UnitValue.createPercentValue(100));
 
         // Headers
-        table.addHeaderCell(headerCell("Área"));
         table.addHeaderCell(headerCell("Empleado"));
         table.addHeaderCell(headerCell("Cant."));
         for (SalaryFrecuency freq : activeFrequencies) {
@@ -177,10 +175,16 @@ public class SalaryReportPdfExporter {
         }
         table.addHeaderCell(headerCell("Total"));
 
-        // Data rows
+        // Data rows grouped by area
+        DeviceRgb areaHeaderColor = new DeviceRgb(189, 215, 238);
         for (SalaryReportAreaGroupDTO area : report.areaGroups()) {
+            // Area header row
+            table.addCell(new Cell(1, colCount)
+                    .add(new Paragraph(area.projectAreaName()).setBold().setFontSize(9))
+                    .setBackgroundColor(areaHeaderColor).setPadding(4));
+
+            // Employee rows
             for (SalaryReportEmployeeGroupDTO emp : area.employeeGroups()) {
-                table.addCell(cell(area.projectAreaName()));
                 table.addCell(cell(emp.employeeLastName() + ", " + emp.employeeName()));
                 table.addCell(cellCenter(String.valueOf(emp.paymentCount())));
                 for (SalaryFrecuency freq : activeFrequencies) {
@@ -189,24 +193,27 @@ public class SalaryReportPdfExporter {
                 }
                 table.addCell(cellAmount(emp.totalAmount()));
             }
+
+            // Area subtotal row
+            table.addCell(new Cell(1, colCount - 1)
+                    .add(new Paragraph("Subtotal " + area.projectAreaName()
+                            + " (" + area.paymentCount() + " pagos)")
+                            .setFontSize(9).setBold().setItalic())
+                    .setBackgroundColor(SUBTOTAL_COLOR).setPadding(4));
+            table.addCell(new Cell()
+                    .add(new Paragraph(formatAmount(area.subtotalAmount())).setFontSize(9).setBold().setItalic())
+                    .setBackgroundColor(SUBTOTAL_COLOR)
+                    .setTextAlignment(TextAlignment.RIGHT).setPadding(4));
         }
 
         // Grand total row
-        Cell totalLabel = new Cell(1, 2).add(new Paragraph("TOTAL GENERAL").setBold())
-                .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE).setPadding(5);
+        Cell totalLabel = new Cell(1, colCount - 1)
+                .add(new Paragraph("TOTAL GENERAL (" + report.totalCount() + " pagos)").setBold().setFontSize(10))
+                .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE).setPadding(6);
         table.addCell(totalLabel);
-        table.addCell(new Cell().add(new Paragraph(String.valueOf(report.totalCount())).setBold())
+        table.addCell(new Cell().add(new Paragraph(formatAmount(report.totalAmount())).setBold().setFontSize(10))
                 .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE)
-                .setTextAlignment(TextAlignment.CENTER).setPadding(5));
-        for (SalaryFrecuency freq : activeFrequencies) {
-            BigDecimal val = report.totalsByFrequency().getOrDefault(freq, BigDecimal.ZERO);
-            table.addCell(new Cell().add(new Paragraph(formatAmount(val)).setBold())
-                    .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE)
-                    .setTextAlignment(TextAlignment.RIGHT).setPadding(5));
-        }
-        table.addCell(new Cell().add(new Paragraph(formatAmount(report.totalAmount())).setBold())
-                .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE)
-                .setTextAlignment(TextAlignment.RIGHT).setPadding(5));
+                .setTextAlignment(TextAlignment.RIGHT).setPadding(6));
 
         document.add(table);
     }
