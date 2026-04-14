@@ -79,6 +79,11 @@ public class ProjectAreaTaskService implements IProjectAreaTaskService {
 
         taskMapper.partialUpdate(dto, task);
 
+        // Explicitly handle description clearing (partialUpdate ignores nulls)
+        if (dto.description() != null && dto.description().isBlank()) {
+            task.setDescription(null);
+        }
+
         if (dto.projectAreaId() != null && !dto.projectAreaId().equals(task.getProjectArea().getId())) {
             ProjectArea newArea = projectAreaRepository.findByIdAndDeletedFalse(dto.projectAreaId())
                     .orElseThrow(() -> new ProjectAreaNotFoundException(dto.projectAreaId()));
