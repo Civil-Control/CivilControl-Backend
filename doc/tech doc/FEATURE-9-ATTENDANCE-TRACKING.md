@@ -1,12 +1,13 @@
-# Feature 9 — Registro de Entradas y Salidas de Empleados (Attendance Tracking)
+# Feature 9 — Asistencia Inteligente: Registro de Fichajes con Integración Biométrica
 
 ## 1. Resumen
 
-Feature de registro de asistencia (fichaje) de empleados. Cada registro representa **un único movimiento**: una ENTRADA o una SALIDA. El sistema soporta:
+Feature completa de registro de asistencia (fichaje) de empleados. Cada registro representa **un único movimiento**: una ENTRADA o una SALIDA. El sistema soporta cuatro vías de ingreso de datos:
 
 1. **CRUD completo** — Idéntico a los demás módulos del sistema (tabla con filtros, formulario batch, detalle, paginación, sort).
 2. **Importación masiva desde Excel** — El usuario sube un archivo `.xlsx` con un formato predefinido y el sistema lo valida exhaustivamente antes de persistir los datos.
 3. **Exportación a Excel** — El usuario descarga los registros filtrados en un `.xlsx` con el mismo formato que la plantilla de importación (ida y vuelta compatible).
+4. **Integración biométrica vía webhook** — Relojes biométricos (actualmente Hikvision) envían eventos HTTP al sistema, que los parsea y crea registros de asistencia automáticamente. El diseño utiliza un **sistema de adaptadores genéricos** (strategy pattern) para soportar múltiples marcas de dispositivos.
 
 ---
 
@@ -811,3 +812,167 @@ Se reutiliza `AttendanceRecordFilterDTO` ya definido en la sección 3.3 — no h
 3. Consulta de COUNT previa para mostrar estimación
 4. Descarga del archivo vía blob download
 5. Integración con toolbar (botón "Exportar Excel")
+
+---
+
+## 10. Integración Biométrica — Webhooks con Adaptadores Genéricos
+
+### 10.1 Arquitectura
+
+El sistema recibe eventos push de relojes biométricos a través de un endpoint público (sin autenticación JWT). La resolución del tenant se hace mediante un **token de webhook** único por empresa, incluido en la URL.
+
+```
+Reloj Hikvision                    CivilControl
+      │                                 │
+      │  POST /api/webhook/biometric    │
+      │  /{webhookToken}/{brand}        │
+      │  Body: JSON del evento          │
+      ├────────────────────────────────→│
+      │                                 ├─ 1. Resolver tenant por webhookToken
+      │                                 ├─ 2. Buscar parser por brand ("hikvision")
+      │                                 ├─ 3. Parsear payload → (DNI, timestamp)
+      │                                 ├─ 4. Buscar empleado por DNI
+      │                                 ├─ 5. Determinar tipo: ENTRADA o SALIDA (toggle)
+      │                                 ├─ 6. Crear AttendanceRecord
+      │  HTTP 200 OK                    │
+      │←────────────────────────────────┤
+```
+
+> **Principio de diseño:** Siempre retorna HTTP 200 para evitar reintentos del dispositivo, incluso si el payload es inválido o el empleado no existe.
+
+### 10.2 Strategy Pattern — Sistema de Adaptadores
+
+#### Interface: `BiometricPayloadParser`
+
+```java
+public interface BiometricPayloadParser {
+    boolean supports(String brand);
+    BiometricParsedEvent parse(String rawPayload);
+}
+```
+
+**Archivo:** `service/webhook/BiometricPayloadParser.java`
+
+- `supports(brand)` — Determina si este parser maneja la marca indicada.
+- `parse(rawPayload)` — Retorna el evento parseado, `null` para eventos de sistema (ignorar), o lanza `BiometricParseException` para payloads malformados.
+
+#### Record: `BiometricParsedEvent`
+
+```java
+public record BiometricParsedEvent(String employeeDni, LocalDateTime timestamp) {}
+```
+
+**Archivo:** `service/webhook/BiometricParsedEvent.java`
+
+#### Implementación: `HikvisionPayloadParser`
+
+```java
+@Component
+public class HikvisionPayloadParser implements BiometricPayloadParser {
+    
+    @Override
+    public boolean supports(String brand) {
+        return "hikvision".equalsIgnoreCase(brand);
+    }
+    
+    @Override
+    public BiometricParsedEvent parse(String rawPayload) {
+        // Parsea JSON con formato ISAPI:
+        // - AccessControllerEvent.employeeNoString → DNI
+        // - root dateTime (ISO 8601 con offset) → timestamp
+        // Retorna null si no tiene employeeNoString (evento de sistema)
+    }
+}
+```
+
+**Archivo:** `service/webhook/HikvisionPayloadParser.java`
+
+> **Extensibilidad:** Para soportar una nueva marca de reloj, basta crear un nuevo `@Component` que implemente `BiometricPayloadParser` con su propio `supports("nueva-marca")` y lógica de parseo. No se modifica ningún código existente.
+
+### 10.3 Dead-letter Queue — Eventos Huérfanos
+
+#### Entidad: `OrphanBiometricLog`
+
+Almacena payloads que no pudieron procesarse (DNI no encontrado, formato inválido, etc.) para auditoría.
+
+| Campo | Tipo | Nullable | Descripción |
+|---|---|---|---|
+| `id` | `Long` (PK) | No | Identificador |
+| `clockBrand` | `String(50)` | No | Marca del dispositivo |
+| `rawPayload` | `TEXT` | No | Payload completo recibido |
+| `errorMessage` | `TEXT` | Sí | Mensaje de error descriptivo |
+| `receivedAt` | `LocalDateTime` | No | Timestamp de recepción |
+
+**Archivo:** `model/entity/OrphanBiometricLog.java`
+
+> **Nota:** Esta entidad NO extiende `TenantEntity` ya que puede contener payloads cuyo tenant no se pudo resolver.
+
+### 10.4 Servicio: `BiometricWebhookService`
+
+**Archivo:** `service/implementation/BiometricWebhookService.java`
+
+Implementa `IBiometricWebhookService`. Flujo del método `process()`:
+
+1. **Resolver tenant** por `webhookToken` via `TenantRepository.findByWebhookTokenAndDeletedFalse()`.
+2. **Buscar parser** — Itera los `BiometricPayloadParser` inyectados y selecciona el que `supports(brand)`.
+3. **Parsear** — Invoca `parser.parse(rawPayload)`. Si retorna `null`, ignora (evento de sistema).
+4. **Buscar empleado** por DNI dentro del tenant.
+5. **Determinar MovementType** — Toggle: la última entrada/salida del empleado ese día determina si el nuevo evento es ENTRADA o SALIDA.
+6. **Crear `AttendanceRecord`** — Persiste el registro.
+7. **Idempotencia** — Captura `DataIntegrityViolationException` silenciosamente (unique constraint impide duplicados).
+8. **Error handling** — Cualquier fallo guarda un `OrphanBiometricLog` para auditoría.
+
+### 10.5 Controller: `BiometricWebhookController`
+
+**Archivo:** `controller/BiometricWebhookController.java`
+
+| Método | Ruta | Auth |
+|---|---|---|
+| `POST` / `PUT` | `/api/webhook/biometric/{webhookToken}/{brand}` | **Público** (sin JWT) |
+
+- Acepta body como JSON raw o form param `event_log` (compatibilidad con dispositivos que envían formularios).
+- **Siempre retorna HTTP 200** para evitar reintentos del dispositivo.
+- Configurado como endpoint público en `SecurityConfig.java`:
+
+```java
+.requestMatchers("/api/webhook/**").permitAll()
+```
+
+### 10.6 Integración con Tenant
+
+La entidad `Tenant` fue ampliada con un campo para el token de webhook:
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `webhookToken` | `UUID` (UNIQUE, NOT NULL) | Token único de webhook generado automáticamente al crear el tenant |
+
+**Resolución:** `TenantRepository.findByWebhookTokenAndDeletedFalse(webhookToken)` mapea el token de la URL al tenant correspondiente.
+
+### 10.7 Frontend — Configuración de Webhook
+
+**Archivo:** `pages/company/company-settings-page/company-settings-page.ts`
+
+En la página de configuración de la empresa se muestra:
+
+- La **URL completa del webhook** lista para copiar:
+  ```
+  {baseUrl}/api/webhook/biometric/{webhookToken}/hikvision
+  ```
+- Botón **"Copiar URL"** que copia al portapapeles.
+- **Instrucciones** para configurar el reloj Hikvision:
+  - Ir a "Configuración → Red → HTTP Listening"
+  - Pegar la URL
+  - Activar el envío de eventos
+
+### 10.8 Migraciones
+
+| Migración | Descripción |
+|---|---|
+| `V46__create_biometric_webhook_tables.sql` | Crea tabla `orphan_biometric_logs` |
+| `V47__add_webhook_token_to_tenants.sql` | Agrega columna `webhook_token` (UUID, NOT NULL, UNIQUE) a `tenants` con valor default random |
+
+### 10.9 Permisos
+
+No se agregan permisos nuevos para el webhook — el endpoint es público. Los registros de asistencia creados automáticamente son accesibles con los mismos permisos `ATTENDANCE_RECORD_*` del CRUD manual.
+
+---

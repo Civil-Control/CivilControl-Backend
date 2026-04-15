@@ -1,4 +1,4 @@
-# Feature 6 — Vinculación de Comprobantes de Compra a Registros del Sistema
+# Feature 2 — Vinculación de Comprobantes de Compra a Registros del Sistema
 
 ## Contexto
 
