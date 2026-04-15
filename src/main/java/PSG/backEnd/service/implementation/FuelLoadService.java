@@ -92,7 +92,7 @@ public class FuelLoadService implements IFuelLoadService {
                 ? existingFuelLoad.getTransactionalDocument().getId() : null;
         fuelLoadFactory.updateFuelLoad(existingFuelLoad, fuelLoadDTO);
         existingFuelLoad.setTransactionalDocument(resolveDocument(fuelLoadDTO.transactionalDocumentId()));
-        FuelLoad updatedFuelLoad = fuelLoadRepository.save(existingFuelLoad);
+        FuelLoad updatedFuelLoad = fuelLoadRepository.saveAndFlush(existingFuelLoad);
         entityManager.refresh(updatedFuelLoad);
         // Recalculate old document if the link changed
         if (oldDocumentId != null && !oldDocumentId.equals(fuelLoadDTO.transactionalDocumentId())) {
