@@ -1,4 +1,4 @@
-# Feature 2 — Vinculación de Comprobantes de Compra a Registros del Sistema
+# Feature 6 — Vinculación de Comprobantes de Compra a Registros del Sistema
 
 ## Contexto
 
@@ -73,7 +73,7 @@ Agregar campo:
 ```java
 TransactionalDocumentSummaryDTO transactionalDocument  // null si no hay vínculo
 ```
-> **Nota:** `RepairResponseDTO` ya fue extendido en Feature 1 con `repairOrder`. Se agrega un campo más.
+> **Nota:** `RepairResponseDTO` ya fue extendido en Feature 5 con `repairOrder`. Se agrega un campo más.
 
 ### `SalaryPaymentDTO` (request)
 Agregar campo:

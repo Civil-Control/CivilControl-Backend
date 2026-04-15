@@ -1,4 +1,4 @@
-# Feature 4 — Certificaciones de Obra y Seguimiento de Facturación por Contrato
+# Feature 8 — Certificaciones de Obra y Seguimiento de Facturación por Contrato
 
 ## Contexto
 
@@ -9,7 +9,7 @@ El objetivo central de este módulo es dar visibilidad inmediata sobre tres preg
 - ¿Cuánto de lo certificado ya fue facturado?
 - ¿Cuánto de lo facturado ya fue cobrado?
 
-> **Dependencia con Feature 3:** `WorkContract.client` referencia a `Supplier` con `isClient = true`. `Certification.salesDocument` referencia a `SalesDocument` de F3.
+> **Dependencia con Feature 7:** `WorkContract.client` referencia a `Supplier` con `isClient = true`. `Certification.salesDocument` referencia a `SalesDocument` de F7.
 
 ---
 

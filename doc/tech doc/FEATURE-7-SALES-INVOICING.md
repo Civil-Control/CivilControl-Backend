@@ -1,4 +1,4 @@
-# Feature 3 — Facturación de Ventas y Gestión de Clientes
+# Feature 7 — Facturación de Ventas y Gestión de Clientes
 
 ## Contexto
 
