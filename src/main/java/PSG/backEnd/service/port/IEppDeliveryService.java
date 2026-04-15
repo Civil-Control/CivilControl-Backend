@@ -1,5 +1,6 @@
 package PSG.backEnd.service.port;
 
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryBatchDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryFilterDTO;
@@ -11,7 +12,7 @@ import java.util.List;
 
 public interface IEppDeliveryService {
     EppDeliveryResponseDTO createEppDelivery(EppDeliveryDTO eppDeliveryDTO);
-    List<EppDeliveryResponseDTO> createBatchEppDeliveries(EppDeliveryBatchDTO batchDTO);
+    BatchResponseDTO<EppDeliveryResponseDTO> createBatchEppDeliveries(EppDeliveryBatchDTO batchDTO);
     EppDeliveryResponseDTO getEppDeliveryById(Long id);
     EppDeliveryResponseDTO updateEppDelivery(Long id, EppDeliveryDTO eppDeliveryDTO);
     void deleteEppDelivery(Long id);

@@ -1,5 +1,6 @@
 package PSG.backEnd.controller;
 
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryBatchDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryFilterDTO;
@@ -63,10 +64,11 @@ public class EppDeliveryController {
             @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
             @ApiResponse(responseCode = "404", description = "One or more employees not found")
     })
-    public ResponseEntity<List<EppDeliveryResponseDTO>> createBatchEppDeliveries(
+    public ResponseEntity<BatchResponseDTO<EppDeliveryResponseDTO>> createBatchEppDeliveries(
             @Validated @RequestBody EppDeliveryBatchDTO batchDTO) {
-        List<EppDeliveryResponseDTO> created = iEppDeliveryService.createBatchEppDeliveries(batchDTO);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
+        BatchResponseDTO<EppDeliveryResponseDTO> result = iEppDeliveryService.createBatchEppDeliveries(batchDTO);
+        HttpStatus status = result.totalSuccessful() > 0 ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(result, status);
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.EPP_DELIVERY_READ + "')")

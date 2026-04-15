@@ -1,6 +1,7 @@
 package PSG.backEnd.controller;
 
 import PSG.backEnd.model.constants.AppPermissions;
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseBatchDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseFilterDTO;
@@ -59,9 +60,11 @@ public class StockPurchaseController {
             @ApiResponse(responseCode = "400", description = "Invalid input data or validation error"),
             @ApiResponse(responseCode = "404", description = "Stock item not found")
     })
-    public ResponseEntity<List<StockPurchaseResponseDTO>> createBatchStockPurchases(
+    public ResponseEntity<BatchResponseDTO<StockPurchaseResponseDTO>> createBatchStockPurchases(
             @Validated @RequestBody StockPurchaseBatchDTO batchDTO) {
-        return new ResponseEntity<>(stockPurchaseService.createBatchStockPurchases(batchDTO), HttpStatus.CREATED);
+        BatchResponseDTO<StockPurchaseResponseDTO> result = stockPurchaseService.createBatchStockPurchases(batchDTO);
+        HttpStatus status = result.totalSuccessful() > 0 ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(result, status);
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.STOCK_PURCHASE_READ + "')")

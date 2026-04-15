@@ -2,6 +2,7 @@ package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.stock.StockNotFoundException;
 import PSG.backEnd.exception.stockPurchase.StockPurchaseNotFoundException;
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseBatchDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseFilterDTO;
@@ -29,6 +30,7 @@ public class StockPurchaseService implements IStockPurchaseService {
     private final StockPurchaseMapper stockPurchaseMapper;
     private final StockRepository stockRepository;
     private final DocumentTotalRecalculator documentTotalRecalculator;
+    private final BatchProcessor batchProcessor;
 
     @Override
     @Transactional
@@ -54,11 +56,8 @@ public class StockPurchaseService implements IStockPurchaseService {
     }
 
     @Override
-    @Transactional
-    public List<StockPurchaseResponseDTO> createBatchStockPurchases(StockPurchaseBatchDTO batchDTO) {
-        return batchDTO.purchases().stream()
-                .map(this::createStockPurchase)
-                .toList();
+    public BatchResponseDTO<StockPurchaseResponseDTO> createBatchStockPurchases(StockPurchaseBatchDTO batchDTO) {
+        return batchProcessor.process(batchDTO.purchases(), this::createStockPurchase);
     }
 
     @Override

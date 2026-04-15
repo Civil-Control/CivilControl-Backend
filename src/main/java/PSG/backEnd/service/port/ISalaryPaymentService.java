@@ -1,5 +1,6 @@
 package PSG.backEnd.service.port;
 
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentBatchDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentFilterDTO;
@@ -13,7 +14,7 @@ import java.util.List;
 
 public interface ISalaryPaymentService {
     SalaryPaymentResponseDTO createSalaryPayment(SalaryPaymentDTO salaryPaymentDTO);
-    List<SalaryPaymentResponseDTO> createBatchSalaryPayments(SalaryPaymentBatchDTO batchDTO);
+    BatchResponseDTO<SalaryPaymentResponseDTO> createBatchSalaryPayments(SalaryPaymentBatchDTO batchDTO);
     SalaryPaymentResponseDTO getSalaryPaymentById(Long id);
     SalaryPaymentResponseDTO updateSalaryPayment(Long id, SalaryPaymentDTO salaryPaymentDTO);
     void deleteSalaryPayment(Long id);

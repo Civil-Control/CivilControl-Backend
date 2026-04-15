@@ -1,5 +1,6 @@
 package PSG.backEnd.controller;
 
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentBatchDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentFilterDTO;
@@ -59,10 +60,11 @@ public class SalaryPaymentController {
     @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_WRITE + "')")
     @PostMapping("/batch")
     @Operation(summary = "Create multiple salary payments in one request")
-    public ResponseEntity<List<SalaryPaymentResponseDTO>> createBatchSalaryPayments(
+    public ResponseEntity<BatchResponseDTO<SalaryPaymentResponseDTO>> createBatchSalaryPayments(
             @Validated @RequestBody SalaryPaymentBatchDTO batchDTO) {
-        List<SalaryPaymentResponseDTO> created = iSalaryPaymentService.createBatchSalaryPayments(batchDTO);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
+        BatchResponseDTO<SalaryPaymentResponseDTO> result = iSalaryPaymentService.createBatchSalaryPayments(batchDTO);
+        HttpStatus status = result.totalSuccessful() > 0 ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(result, status);
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_READ + "')")

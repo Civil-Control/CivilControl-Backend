@@ -3,6 +3,7 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.eppDelivery.EppDeliveryNotFoundException;
 import PSG.backEnd.exception.eppDelivery.EppDeliveryNotValidException;
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryBatchDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryFilterDTO;
@@ -32,6 +33,7 @@ public class EppDeliveryService implements IEppDeliveryService {
     private final EmployeeRepository employeeRepository;
     private final EppDeliveryMapper eppDeliveryMapper;
     private final MessageSourceHelper messageSourceHelper;
+    private final BatchProcessor batchProcessor;
 
     @Override
     @Transactional
@@ -56,11 +58,8 @@ public class EppDeliveryService implements IEppDeliveryService {
     }
 
     @Override
-    @Transactional
-    public List<EppDeliveryResponseDTO> createBatchEppDeliveries(EppDeliveryBatchDTO batchDTO) {
-        return batchDTO.deliveries().stream()
-                .map(this::createEppDelivery)
-                .collect(Collectors.toList());
+    public BatchResponseDTO<EppDeliveryResponseDTO> createBatchEppDeliveries(EppDeliveryBatchDTO batchDTO) {
+        return batchProcessor.process(batchDTO.deliveries(), this::createEppDelivery);
     }
 
     @Override

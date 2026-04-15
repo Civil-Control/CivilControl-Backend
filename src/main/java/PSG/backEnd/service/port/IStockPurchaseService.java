@@ -1,5 +1,6 @@
 package PSG.backEnd.service.port;
 
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseBatchDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseFilterDTO;
@@ -11,7 +12,7 @@ import java.util.List;
 
 public interface IStockPurchaseService {
     StockPurchaseResponseDTO createStockPurchase(StockPurchaseDTO dto);
-    List<StockPurchaseResponseDTO> createBatchStockPurchases(StockPurchaseBatchDTO batchDTO);
+    BatchResponseDTO<StockPurchaseResponseDTO> createBatchStockPurchases(StockPurchaseBatchDTO batchDTO);
     StockPurchaseResponseDTO getStockPurchaseById(Long id);
     StockPurchaseResponseDTO updateStockPurchase(Long id, StockPurchaseDTO dto);
     void deleteStockPurchase(Long id);

@@ -1,5 +1,6 @@
 package PSG.backEnd.service.port;
 
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,7 +11,7 @@ import java.util.Set;
 
 public interface IAttendanceRecordService {
     AttendanceRecordResponseDTO createAttendanceRecord(AttendanceRecordDTO dto);
-    List<AttendanceRecordResponseDTO> createBatchAttendanceRecords(AttendanceRecordBatchDTO batchDTO);
+    BatchResponseDTO<AttendanceRecordResponseDTO> createBatchAttendanceRecords(AttendanceRecordBatchDTO batchDTO);
     AttendanceRecordResponseDTO getAttendanceRecordById(Long id);
     AttendanceRecordResponseDTO updateAttendanceRecord(Long id, AttendanceRecordDTO dto);
     void deleteAttendanceRecord(Long id);

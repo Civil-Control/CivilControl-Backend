@@ -1,6 +1,7 @@
 package PSG.backEnd.controller;
 
 import PSG.backEnd.model.constants.AppPermissions;
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.*;
 import PSG.backEnd.model.enums.employee.MovementType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
@@ -58,10 +59,11 @@ public class AttendanceRecordController {
     @PreAuthorize("hasAuthority('" + AppPermissions.ATTENDANCE_RECORD_WRITE + "')")
     @PostMapping("/batch")
     @Operation(summary = "Create multiple attendance records in one request")
-    public ResponseEntity<List<AttendanceRecordResponseDTO>> createBatchAttendanceRecords(
+    public ResponseEntity<BatchResponseDTO<AttendanceRecordResponseDTO>> createBatchAttendanceRecords(
             @Validated @RequestBody AttendanceRecordBatchDTO batchDTO) {
-        List<AttendanceRecordResponseDTO> created = iAttendanceRecordService.createBatchAttendanceRecords(batchDTO);
-        return new ResponseEntity<>(created, HttpStatus.CREATED);
+        BatchResponseDTO<AttendanceRecordResponseDTO> result = iAttendanceRecordService.createBatchAttendanceRecords(batchDTO);
+        HttpStatus status = result.totalSuccessful() > 0 ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(result, status);
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.ATTENDANCE_RECORD_READ + "')")

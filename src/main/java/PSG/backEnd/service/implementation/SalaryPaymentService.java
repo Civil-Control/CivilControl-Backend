@@ -4,6 +4,7 @@ import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.projectarea.ProjectAreaNotFoundException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotFoundException;
 import PSG.backEnd.exception.salaryPayment.SalaryPaymentNotValidException;
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentBatchDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentDTO;
 import PSG.backEnd.model.dto.employee.SalaryPaymentFilterDTO;
@@ -45,6 +46,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     private final MessageSourceHelper messageSourceHelper;
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final DocumentTotalRecalculator documentTotalRecalculator;
+    private final BatchProcessor batchProcessor;
 
     @Override
     @Transactional
@@ -67,11 +69,8 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     }
 
     @Override
-    @Transactional
-    public List<SalaryPaymentResponseDTO> createBatchSalaryPayments(SalaryPaymentBatchDTO batchDTO) {
-        return batchDTO.payments().stream()
-                .map(this::createSalaryPayment)
-                .collect(Collectors.toList());
+    public BatchResponseDTO<SalaryPaymentResponseDTO> createBatchSalaryPayments(SalaryPaymentBatchDTO batchDTO) {
+        return batchProcessor.process(batchDTO.payments(), this::createSalaryPayment);
     }
 
     @Override

@@ -6,6 +6,7 @@ import PSG.backEnd.exception.attendanceRecord.DuplicateAttendanceRecordException
 import PSG.backEnd.exception.building.BuildingNotFoundException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.report.ReportGenerationException;
+import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.*;
 import PSG.backEnd.model.entity.Building;
 import PSG.backEnd.model.entity.employee.AttendanceRecord;
@@ -45,6 +46,7 @@ public class AttendanceRecordService implements IAttendanceRecordService {
     private final AttendanceRecordMapper attendanceRecordMapper;
     private final AttendanceExcelImporter attendanceExcelImporter;
     private final MessageSourceHelper messageSourceHelper;
+    private final BatchProcessor batchProcessor;
 
     @Override
     @Transactional
@@ -65,11 +67,8 @@ public class AttendanceRecordService implements IAttendanceRecordService {
     }
 
     @Override
-    @Transactional
-    public List<AttendanceRecordResponseDTO> createBatchAttendanceRecords(AttendanceRecordBatchDTO batchDTO) {
-        return batchDTO.records().stream()
-                .map(this::createAttendanceRecord)
-                .collect(Collectors.toList());
+    public BatchResponseDTO<AttendanceRecordResponseDTO> createBatchAttendanceRecords(AttendanceRecordBatchDTO batchDTO) {
+        return batchProcessor.process(batchDTO.records(), this::createAttendanceRecord);
     }
 
     @Override
