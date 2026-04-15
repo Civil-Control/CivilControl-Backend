@@ -31,6 +31,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -180,6 +181,12 @@ public class AttendanceRecordService implements IAttendanceRecordService {
     @Transactional
     public AttendanceImportResultDTO importFromExcel(MultipartFile file, boolean dryRun) {
         return attendanceExcelImporter.processFile(file, dryRun);
+    }
+
+    @Override
+    @Transactional
+    public AttendanceImportResultDTO importFromExcel(MultipartFile file, boolean dryRun, Set<Integer> excludeRows) {
+        return attendanceExcelImporter.processFile(file, dryRun, excludeRows);
     }
 
     @Override

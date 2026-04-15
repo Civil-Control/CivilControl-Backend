@@ -41,6 +41,10 @@ public class AttendanceExcelImporter {
     private final AttendanceRecordRepository attendanceRecordRepository;
 
     public AttendanceImportResultDTO processFile(MultipartFile file, boolean dryRun) {
+        return processFile(file, dryRun, Set.of());
+    }
+
+    public AttendanceImportResultDTO processFile(MultipartFile file, boolean dryRun, Set<Integer> excludeRows) {
         validateFile(file);
 
         try (InputStream is = file.getInputStream();
@@ -63,12 +67,14 @@ public class AttendanceExcelImporter {
             Map<String, Building> buildingsByName = preloadBuildings();
             LocalDate today = LocalDate.now();
 
-            // Parse all rows
+            // Parse all rows (skip excluded rows when not in dry-run)
             List<ParsedRow> parsedRows = new ArrayList<>();
             for (int i = 1; i <= lastRow; i++) {
                 Row row = sheet.getRow(i);
                 if (isRowEmpty(row)) continue;
-                parsedRows.add(parseRow(row, i + 1)); // +1 for 1-indexed display
+                int rowNumber = i + 1; // +1 for 1-indexed display
+                if (!dryRun && excludeRows.contains(rowNumber)) continue;
+                parsedRows.add(parseRow(row, rowNumber));
             }
 
             if (parsedRows.isEmpty()) {
@@ -78,8 +84,25 @@ public class AttendanceExcelImporter {
             // Preload existing records for duplicate detection
             Set<String> existingKeys = preloadExistingRecordKeys(parsedRows, employeesByDni);
 
+            // Pre-pass: detect intra-file duplicate keys (flag ALL occurrences, not just the second)
+            Map<String, Integer> keyOccurrences = new HashMap<>();
+            for (ParsedRow parsed : parsedRows) {
+                if (parsed.dni != null && parsed.dni.matches("\\d{7,8}") && parsed.date != null && parsed.time != null
+                        && parsed.movementTypeRaw != null) {
+                    Employee emp = employeesByDni.get(parsed.dni);
+                    MovementType mt = resolveMovementType(parsed.movementTypeRaw);
+                    if (emp != null && mt != null) {
+                        String key = buildKey(emp.getId(), parsed.date, parsed.time, mt);
+                        keyOccurrences.merge(key, 1, Integer::sum);
+                    }
+                }
+            }
+            Set<String> duplicateKeysInFile = keyOccurrences.entrySet().stream()
+                    .filter(e -> e.getValue() > 1)
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toSet());
+
             // Validate each row
-            Set<String> seenKeysInFile = new HashSet<>();
             List<AttendanceImportRowResultDTO> rowResults = new ArrayList<>();
             List<AttendanceRecord> recordsToSave = new ArrayList<>();
 
@@ -143,11 +166,11 @@ public class AttendanceExcelImporter {
                     errors.add(String.format("Fila %d: La observación supera el máximo de 500 caracteres", parsed.rowNumber));
                 }
 
-                // E10: Intra-file duplicate
+                // E10: Intra-file duplicate (flags ALL rows with the same key)
                 if (resolvedEmployee != null && parsed.date != null && parsed.time != null && resolvedType != null) {
                     String key = buildKey(resolvedEmployee.getId(), parsed.date, parsed.time, resolvedType);
-                    if (!seenKeysInFile.add(key)) {
-                        errors.add(String.format("Fila %d: Este registro es idéntico a una fila anterior (mismo empleado, fecha, hora y tipo)", parsed.rowNumber));
+                    if (duplicateKeysInFile.contains(key)) {
+                        errors.add(String.format("Fila %d: Este registro está duplicado en el archivo (mismo empleado, fecha, hora y tipo)", parsed.rowNumber));
                     }
 
                     // E11: Database duplicate

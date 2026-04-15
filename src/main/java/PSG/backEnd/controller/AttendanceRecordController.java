@@ -27,7 +27,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/attendance-records")
@@ -204,15 +206,17 @@ public class AttendanceRecordController {
     @PreAuthorize("hasAuthority('" + AppPermissions.ATTENDANCE_RECORD_WRITE + "')")
     @PostMapping("/import")
     @Operation(summary = "Import attendance records from Excel file",
-            description = "Uploads an .xlsx file with attendance records. Use dryRun=true to validate without persisting.")
+            description = "Uploads an .xlsx file with attendance records. Use dryRun=true to validate without persisting. Use excludeRows to skip specific row numbers.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Import processed successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid file or validation errors")
     })
     public ResponseEntity<AttendanceImportResultDTO> importFromExcel(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(defaultValue = "true") boolean dryRun) {
-        AttendanceImportResultDTO result = iAttendanceRecordService.importFromExcel(file, dryRun);
+            @RequestParam(defaultValue = "true") boolean dryRun,
+            @RequestParam(required = false) List<Integer> excludeRows) {
+        Set<Integer> excluded = excludeRows != null ? new HashSet<>(excludeRows) : Set.of();
+        AttendanceImportResultDTO result = iAttendanceRecordService.importFromExcel(file, dryRun, excluded);
         return ResponseEntity.ok(result);
     }
 

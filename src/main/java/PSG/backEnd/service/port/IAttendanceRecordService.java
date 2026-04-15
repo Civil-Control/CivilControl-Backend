@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 
 public interface IAttendanceRecordService {
     AttendanceRecordResponseDTO createAttendanceRecord(AttendanceRecordDTO dto);
@@ -17,6 +18,7 @@ public interface IAttendanceRecordService {
     long countWithFilters(AttendanceRecordFilterDTO filterDTO);
     List<AttendanceRecordResponseDTO> getAllAttendanceRecordsNoPage(AttendanceRecordFilterDTO filterDTO);
     AttendanceImportResultDTO importFromExcel(MultipartFile file, boolean dryRun);
+    AttendanceImportResultDTO importFromExcel(MultipartFile file, boolean dryRun, Set<Integer> excludeRows);
     byte[] generateTemplate();
     byte[] exportToExcel(AttendanceRecordFilterDTO filterDTO);
 }
