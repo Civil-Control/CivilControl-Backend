@@ -1551,6 +1551,7 @@ public class ReportService implements IReportService {
                             td.getIvaTotal(),
                             td.getIvaExemptTotal(),
                             td.getOtherTaxes(),
+                            td.getSupplier().getLegalName(),
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getId() : null,
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getName() : null,
                             td.getPaid()
