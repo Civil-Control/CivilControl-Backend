@@ -4,8 +4,10 @@ import PSG.backEnd.exception.gasStation.GasStationNotFoundException;
 import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.model.dto.gasStation.GasStationDTO;
 import PSG.backEnd.model.dto.gasStation.GasStationFilterDTO;
+import PSG.backEnd.model.dto.gasStation.GasStationPriceDTO;
 import PSG.backEnd.model.dto.gasStation.GasStationResponseDTO;
 import PSG.backEnd.model.entity.gasStation.GasStation;
+import PSG.backEnd.model.entity.gasStation.GasStationPrice;
 import PSG.backEnd.model.mapper.GasStationMapper;
 import PSG.backEnd.repository.GasStationRepository;
 import PSG.backEnd.repository.SupplierRepository;
@@ -15,6 +17,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -71,22 +75,26 @@ public class GasStationService implements IGasStationService {
         GasStation gasStation = gasStationRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new GasStationNotFoundException(id));
 
-        // Verify that the supplier exists if being updated
-        if (gasStationDTO.supplierId() != null &&
-            !supplierRepository.existsByIdAndDeletedFalse(gasStationDTO.supplierId())) {
-            throw new SupplierNotFoundException(gasStationDTO.supplierId());
+        // Update supplier if provided
+        if (gasStationDTO.supplierId() != null) {
+            if (!supplierRepository.existsByIdAndDeletedFalse(gasStationDTO.supplierId())) {
+                throw new SupplierNotFoundException(gasStationDTO.supplierId());
+            }
+            gasStation.setSupplier(supplierRepository.getReferenceById(gasStationDTO.supplierId()));
         }
 
-        // Flush price deletions before inserting new ones to avoid unique constraint
-        // violations on the (gas_station_id, fuel_type) index in @ElementCollection.
+        // Replace prices: clear + re-add lets Hibernate's @ElementCollection bag
+        // semantics handle the DELETE ALL + INSERT ALL in a single flush.
         if (gasStationDTO.prices() != null) {
             gasStation.getPrices().clear();
-            gasStationRepository.saveAndFlush(gasStation);
+            for (GasStationPriceDTO p : gasStationDTO.prices()) {
+                gasStation.getPrices().add(
+                        new GasStationPrice(p.fuelType(), BigDecimal.valueOf(p.price()))
+                );
+            }
         }
 
-        gasStationMapper.partialUpdate(gasStationDTO, gasStation);
         GasStation updatedGasStation = gasStationRepository.save(gasStation);
-
         return gasStationMapper.toResponseDto(updatedGasStation);
     }
 
