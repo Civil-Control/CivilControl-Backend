@@ -1363,7 +1363,20 @@ public class ReportService implements IReportService {
                 .map(TransactionalDocument::getTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        BigDecimal totalNet = allDocuments.stream()
+                .map(TransactionalDocument::getNetTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalIva = allDocuments.stream()
+                .map(TransactionalDocument::getIvaTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalIvaExempt = allDocuments.stream()
+                .map(TransactionalDocument::getIvaExemptTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         Map<DocumentType, BigDecimal> totalsByDocType = buildDocumentTypeSubtotals(allDocuments);
+        Map<String, BigDecimal> totalsByIvaRate = buildIvaRateSubtotals(allDocuments);
 
         String periodDesc = buildInvoicePeriodDescription(filters);
 
@@ -1371,8 +1384,12 @@ public class ReportService implements IReportService {
                 .filters(filters)
                 .areaGroups(areaGroups)
                 .totalAmount(totalAmount)
+                .totalNet(totalNet)
+                .totalIva(totalIva)
+                .totalIvaExempt(totalIvaExempt)
                 .totalCount(allDocuments.size())
                 .totalsByDocumentType(totalsByDocType)
+                .totalsByIvaRate(totalsByIvaRate)
                 .generatedAt(LocalDateTime.now())
                 .reportName("Reporte de Facturación")
                 .periodDescription(periodDesc)
@@ -1440,6 +1457,18 @@ public class ReportService implements IReportService {
                     .map(TransactionalDocument::getTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            BigDecimal subtotalNet = areaDocs.stream()
+                    .map(TransactionalDocument::getNetTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal subtotalIva = areaDocs.stream()
+                    .map(TransactionalDocument::getIvaTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal subtotalIvaExempt = areaDocs.stream()
+                    .map(TransactionalDocument::getIvaExemptTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             Map<DocumentType, BigDecimal> areaDocTypeSubtotals = buildDocumentTypeSubtotals(areaDocs);
 
             groups.add(InvoiceReportAreaGroupDTO.builder()
@@ -1447,6 +1476,9 @@ public class ReportService implements IReportService {
                     .projectAreaName(areaName)
                     .projectAreaColor(areaColor)
                     .subtotalAmount(subtotal)
+                    .subtotalNet(subtotalNet)
+                    .subtotalIva(subtotalIva)
+                    .subtotalIvaExempt(subtotalIvaExempt)
                     .documentCount(areaDocs.size())
                     .subtotalsByDocumentType(areaDocTypeSubtotals)
                     .supplierGroups(supplierGroups)
@@ -1478,6 +1510,18 @@ public class ReportService implements IReportService {
                     .map(TransactionalDocument::getTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            BigDecimal supplierNet = supplierDocs.stream()
+                    .map(TransactionalDocument::getNetTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal supplierIva = supplierDocs.stream()
+                    .map(TransactionalDocument::getIvaTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal supplierIvaExempt = supplierDocs.stream()
+                    .map(TransactionalDocument::getIvaExemptTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             Map<DocumentType, BigDecimal> supplierDocTypeSubtotals = buildDocumentTypeSubtotals(supplierDocs);
 
             List<InvoiceReportDocumentDTO> documentDTOs = supplierDocs.stream()
@@ -1491,6 +1535,7 @@ public class ReportService implements IReportService {
                             td.getTotal(),
                             td.getNetTotal(),
                             td.getIvaTotal(),
+                            td.getIvaExemptTotal(),
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getId() : null,
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getName() : null,
                             td.getPaid()
@@ -1503,6 +1548,9 @@ public class ReportService implements IReportService {
                     .supplierTradeName(first.getSupplier().getTradeName())
                     .supplierCuit(first.getSupplier().getCuit())
                     .totalAmount(supplierTotal)
+                    .totalNet(supplierNet)
+                    .totalIva(supplierIva)
+                    .totalIvaExempt(supplierIvaExempt)
                     .documentCount(supplierDocs.size())
                     .subtotalsByDocumentType(supplierDocTypeSubtotals)
                     .documents(documentDTOs)
@@ -1523,6 +1571,39 @@ public class ReportService implements IReportService {
         }
 
         return subtotals;
+    }
+
+    private Map<String, BigDecimal> buildIvaRateSubtotals(List<TransactionalDocument> documents) {
+        Map<BigDecimal, BigDecimal> byRate = new TreeMap<>();
+
+        for (TransactionalDocument td : documents) {
+            // Add IVA exempt total under rate 0
+            if (td.getIvaExemptTotal() != null && td.getIvaExemptTotal().compareTo(BigDecimal.ZERO) > 0) {
+                byRate.merge(BigDecimal.ZERO, td.getIvaExemptTotal(), BigDecimal::add);
+            }
+
+            // Aggregate IVA from line items by ivaPercentage
+            if (td.getItems() != null) {
+                for (var item : td.getItems()) {
+                    if (item.getIvaPercentage() != null && item.getIvaPercentage().compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal netAmount = item.getUnitAmount().multiply(BigDecimal.valueOf(item.getQuantity()));
+                        BigDecimal ivaAmount = netAmount.multiply(item.getIvaPercentage())
+                                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                        byRate.merge(item.getIvaPercentage().stripTrailingZeros(), ivaAmount, BigDecimal::add);
+                    }
+                }
+            }
+        }
+
+        // Convert to String keys for JSON serialization (e.g., "0", "10.5", "21")
+        Map<String, BigDecimal> result = new LinkedHashMap<>();
+        for (Map.Entry<BigDecimal, BigDecimal> entry : byRate.entrySet()) {
+            String label = entry.getKey().compareTo(BigDecimal.ZERO) == 0
+                    ? "Exento"
+                    : "IVA " + entry.getKey().toPlainString() + "%";
+            result.put(label, entry.getValue());
+        }
+        return result;
     }
 
     private void validateInvoiceFilters(InvoiceReportFilterDTO filters) {

@@ -15,8 +15,12 @@ public record InvoiceReportDTO(
     InvoiceReportFilterDTO filters,
     List<InvoiceReportAreaGroupDTO> areaGroups,
     BigDecimal totalAmount,
+    BigDecimal totalNet,
+    BigDecimal totalIva,
+    BigDecimal totalIvaExempt,
     int totalCount,
     Map<DocumentType, BigDecimal> totalsByDocumentType,
+    Map<String, BigDecimal> totalsByIvaRate,
     LocalDateTime generatedAt,
     String reportName,
     String periodDescription

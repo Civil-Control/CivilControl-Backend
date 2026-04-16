@@ -16,6 +16,9 @@ public record InvoiceReportSupplierGroupDTO(
     String supplierTradeName,
     String supplierCuit,
     BigDecimal totalAmount,
+    BigDecimal totalNet,
+    BigDecimal totalIva,
+    BigDecimal totalIvaExempt,
     int documentCount,
     Map<DocumentType, BigDecimal> subtotalsByDocumentType,
     List<InvoiceReportDocumentDTO> documents

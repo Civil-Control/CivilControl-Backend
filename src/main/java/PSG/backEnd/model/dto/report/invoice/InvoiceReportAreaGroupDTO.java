@@ -15,6 +15,9 @@ public record InvoiceReportAreaGroupDTO(
     String projectAreaName,
     String projectAreaColor,
     BigDecimal subtotalAmount,
+    BigDecimal subtotalNet,
+    BigDecimal subtotalIva,
+    BigDecimal subtotalIvaExempt,
     int documentCount,
     Map<DocumentType, BigDecimal> subtotalsByDocumentType,
     List<InvoiceReportSupplierGroupDTO> supplierGroups
