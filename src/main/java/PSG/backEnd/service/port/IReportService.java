@@ -8,6 +8,8 @@ import PSG.backEnd.model.dto.report.invoice.InvoiceReportDTO;
 import PSG.backEnd.model.dto.report.invoice.InvoiceReportFilterDTO;
 import PSG.backEnd.model.dto.report.salary.SalaryReportDTO;
 import PSG.backEnd.model.dto.report.salary.SalaryReportFilterDTO;
+import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportDTO;
+import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportFilterDTO;
 import PSG.backEnd.model.enums.ReportFormat;
 import org.springframework.http.ResponseEntity;
 
@@ -77,5 +79,9 @@ public interface IReportService {
     InvoiceReportDTO generateInvoiceReport(InvoiceReportFilterDTO filters);
 
     ResponseEntity<byte[]> generateInvoiceReportFile(InvoiceReportFilterDTO filters, ReportFormat format);
+
+    ServicePaymentReportDTO generateServicePaymentReport(ServicePaymentReportFilterDTO filters);
+
+    ResponseEntity<byte[]> generateServicePaymentReportFile(ServicePaymentReportFilterDTO filters, ReportFormat format);
 }
 

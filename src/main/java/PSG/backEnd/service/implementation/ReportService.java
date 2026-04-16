@@ -8,6 +8,7 @@ import PSG.backEnd.model.dto.report.ReportFilterDTO;
 import PSG.backEnd.model.dto.report.ReportItemDTO;
 import PSG.backEnd.model.dto.report.salary.*;
 import PSG.backEnd.model.dto.report.invoice.*;
+import PSG.backEnd.model.dto.report.servicePayment.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
@@ -18,6 +19,7 @@ import PSG.backEnd.model.entity.serviceSupplier.ServicePayment;
 import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.SubjectType;
+import PSG.backEnd.model.enums.ServiceType;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
@@ -30,6 +32,8 @@ import PSG.backEnd.service.export.SalaryReportExcelExporter;
 import PSG.backEnd.service.export.SalaryReportPdfExporter;
 import PSG.backEnd.service.export.InvoiceReportExcelExporter;
 import PSG.backEnd.service.export.InvoiceReportPdfExporter;
+import PSG.backEnd.service.export.ServicePaymentReportExcelExporter;
+import PSG.backEnd.service.export.ServicePaymentReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -71,6 +75,10 @@ public class ReportService implements IReportService {
     private final InvoiceReportExcelExporter invoiceExcelExporter;
     private final InvoiceReportPdfExporter invoicePdfExporter;
 
+    // Service payment report exporters
+    private final ServicePaymentReportExcelExporter servicePaymentExcelExporter;
+    private final ServicePaymentReportPdfExporter servicePaymentPdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -94,6 +102,8 @@ public class ReportService implements IReportService {
             SalaryReportPdfExporter salaryPdfExporter,
             InvoiceReportExcelExporter invoiceExcelExporter,
             InvoiceReportPdfExporter invoicePdfExporter,
+            ServicePaymentReportExcelExporter servicePaymentExcelExporter,
+            ServicePaymentReportPdfExporter servicePaymentPdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -116,6 +126,8 @@ public class ReportService implements IReportService {
         this.salaryPdfExporter = salaryPdfExporter;
         this.invoiceExcelExporter = invoiceExcelExporter;
         this.invoicePdfExporter = invoicePdfExporter;
+        this.servicePaymentExcelExporter = servicePaymentExcelExporter;
+        this.servicePaymentPdfExporter = servicePaymentPdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -1665,6 +1677,305 @@ public class ReportService implements IReportService {
     }
 
     private String buildInvoicePeriodDescription(InvoiceReportFilterDTO filters) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (filters.startDate() != null && filters.endDate() != null) {
+            if (filters.startDate().getDayOfMonth() == 1
+                    && filters.endDate().equals(filters.startDate().withDayOfMonth(
+                            filters.startDate().lengthOfMonth()))
+                    && filters.startDate().getMonth() == filters.endDate().getMonth()
+                    && filters.startDate().getYear() == filters.endDate().getYear()) {
+                String monthName = filters.startDate().getMonth()
+                        .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "AR"));
+                monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
+                return monthName + " " + filters.startDate().getYear();
+            }
+            return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
+        } else if (filters.startDate() != null) {
+            return "Desde: " + filters.startDate().format(fmt);
+        } else if (filters.endDate() != null) {
+            return "Hasta: " + filters.endDate().format(fmt);
+        }
+        return "Sin filtro de período";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SERVICE PAYMENT REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional(readOnly = true)
+    public ServicePaymentReportDTO generateServicePaymentReport(ServicePaymentReportFilterDTO filters) {
+        log.info("Generating service payment report with filters: {}", filters);
+
+        validateServicePaymentFilters(filters);
+
+        Pageable pageable = PageRequest.of(0, 10000);
+
+        // Collect raw service payments using existing repository
+        List<Long> areaIds = filters.projectAreaIds();
+
+        List<ServicePayment> allPayments;
+        if (areaIds != null && areaIds.size() > 1) {
+            allPayments = new ArrayList<>();
+            for (Long areaId : areaIds) {
+                allPayments.addAll(servicePaymentRepository.findAllWithFilters(
+                        null, null, null, null,
+                        areaId,
+                        filters.serviceType(),
+                        null,
+                        filters.year(),
+                        filters.period(),
+                        filters.startDate(),
+                        filters.endDate(),
+                        filters.minAmount(),
+                        filters.maxAmount(),
+                        null, null, null,
+                        pageable
+                ).getContent());
+            }
+        } else {
+            Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
+            allPayments = servicePaymentRepository.findAllWithFilters(
+                    null, null, null, null,
+                    effectiveAreaId,
+                    filters.serviceType(),
+                    null,
+                    filters.year(),
+                    filters.period(),
+                    filters.startDate(),
+                    filters.endDate(),
+                    filters.minAmount(),
+                    filters.maxAmount(),
+                    null, null, null,
+                    pageable
+            ).getContent();
+        }
+
+        // Filter by payment method if specified (not in repository query)
+        if (filters.paymentMethod() != null) {
+            allPayments = allPayments.stream()
+                    .filter(sp -> filters.paymentMethod().equals(sp.getPaymentMethod()))
+                    .toList();
+        }
+
+        // Group by project area, then by building
+        List<ServicePaymentReportAreaGroupDTO> areaGroups = buildServicePaymentAreaGroups(allPayments);
+
+        // Calculate grand totals
+        BigDecimal totalAmount = allPayments.stream()
+                .map(ServicePayment::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Map<String, BigDecimal> totalsByServiceType = buildServiceTypeSubtotals(allPayments);
+
+        // Build period description
+        String periodDesc = buildServicePaymentPeriodDescription(filters);
+
+        return ServicePaymentReportDTO.builder()
+                .filters(filters)
+                .areaGroups(areaGroups)
+                .totalAmount(totalAmount)
+                .totalCount(allPayments.size())
+                .totalsByServiceType(totalsByServiceType)
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte de Pago de Servicios")
+                .periodDescription(periodDesc)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generateServicePaymentReportFile(ServicePaymentReportFilterDTO filters, ReportFormat format) {
+        log.info("Generating service payment report file: format={}", format);
+
+        ServicePaymentReportDTO report = generateServicePaymentReport(filters);
+
+        byte[] content;
+        switch (format) {
+            case EXCEL -> content = servicePaymentExcelExporter.export(report);
+            case PDF -> content = servicePaymentPdfExporter.export(report);
+            default -> throw new InvalidReportFormatException(format.name());
+        }
+
+        String filename = "reporte_servicios_" +
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
+                .body(content);
+    }
+
+    /**
+     * Builds the hierarchical area groups from a flat list of service payments.
+     */
+    private List<ServicePaymentReportAreaGroupDTO> buildServicePaymentAreaGroups(List<ServicePayment> payments) {
+        Map<Long, List<ServicePayment>> byArea = new LinkedHashMap<>();
+
+        for (ServicePayment sp : payments) {
+            Long areaId = sp.getProjectArea() != null
+                    ? sp.getProjectArea().getId()
+                    : -1L;
+            byArea.computeIfAbsent(areaId, k -> new ArrayList<>()).add(sp);
+        }
+
+        List<ServicePaymentReportAreaGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<ServicePayment>> entry : byArea.entrySet()) {
+            Long areaId = entry.getKey();
+            List<ServicePayment> areaPayments = entry.getValue();
+
+            String areaName;
+            String areaColor;
+            Long areaIdDTO;
+
+            if (areaId == -1L) {
+                areaIdDTO = null;
+                areaName = "Sin área asignada";
+                areaColor = null;
+            } else {
+                areaIdDTO = areaId;
+                ServicePayment first = areaPayments.get(0);
+                areaName = first.getProjectArea().getName();
+                areaColor = first.getProjectArea().getColor();
+            }
+
+            List<ServicePaymentReportBuildingGroupDTO> buildingGroups = buildBuildingGroups(areaPayments);
+
+            BigDecimal subtotal = areaPayments.stream()
+                    .map(ServicePayment::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            Map<String, BigDecimal> areaServiceTypeSubtotals = buildServiceTypeSubtotals(areaPayments);
+
+            groups.add(ServicePaymentReportAreaGroupDTO.builder()
+                    .projectAreaId(areaIdDTO)
+                    .projectAreaName(areaName)
+                    .projectAreaColor(areaColor)
+                    .subtotalAmount(subtotal)
+                    .paymentCount(areaPayments.size())
+                    .subtotalsByServiceType(areaServiceTypeSubtotals)
+                    .buildingGroups(buildingGroups)
+                    .build());
+        }
+
+        // Sort alphabetically, "Sin área asignada" goes last
+        groups.sort((a, b) -> {
+            if (a.projectAreaId() == null) return 1;
+            if (b.projectAreaId() == null) return -1;
+            return a.projectAreaName().compareToIgnoreCase(b.projectAreaName());
+        });
+
+        return groups;
+    }
+
+    /**
+     * Builds building groups within an area.
+     * Building services group by building, vehicle services group under "Sin Edificio asignado".
+     */
+    private List<ServicePaymentReportBuildingGroupDTO> buildBuildingGroups(List<ServicePayment> areaPayments) {
+        // Group by building, using -1L sentinel for payments without building (vehicle or unassigned)
+        Map<Long, List<ServicePayment>> byBuilding = new LinkedHashMap<>();
+        for (ServicePayment sp : areaPayments) {
+            Long buildingId = (sp.getServiceAssignment() != null && sp.getServiceAssignment().getBuilding() != null)
+                    ? sp.getServiceAssignment().getBuilding().getId()
+                    : -1L;
+            byBuilding.computeIfAbsent(buildingId, k -> new ArrayList<>()).add(sp);
+        }
+
+        List<ServicePaymentReportBuildingGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<ServicePayment>> entry : byBuilding.entrySet()) {
+            Long buildingId = entry.getKey();
+            List<ServicePayment> buildingPayments = entry.getValue();
+
+            String buildingName;
+            Long buildingIdDTO;
+
+            if (buildingId == -1L) {
+                buildingIdDTO = null;
+                buildingName = "Sin Edificio asignado";
+            } else {
+                buildingIdDTO = buildingId;
+                buildingName = buildingPayments.get(0).getServiceAssignment().getBuilding().getName();
+            }
+
+            // Build individual payment items sorted by service type then date desc
+            List<ServicePaymentReportItemDTO> paymentItems = buildingPayments.stream()
+                    .sorted(Comparator.comparing((ServicePayment sp) ->
+                                    sp.getServiceAssignment().getServiceType().ordinal())
+                            .thenComparing(ServicePayment::getPaymentDate, Comparator.reverseOrder()))
+                    .map(sp -> new ServicePaymentReportItemDTO(
+                            sp.getId(),
+                            sp.getPaymentDate(),
+                            sp.getAmount(),
+                            sp.getYear(),
+                            sp.getPeriod(),
+                            sp.getServiceAssignment().getServiceType().name(),
+                            sp.getServiceAssignment().getServiceSupplier().getSupplier().getLegalName(),
+                            sp.getServiceAssignment().getServiceSupplier().getSupplier().getTradeName(),
+                            sp.getReferenceNumber(),
+                            sp.getPaymentMethod(),
+                            sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getId() : null,
+                            sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null,
+                            buildingName,
+                            sp.getServiceAssignment().getSubjectType().name()
+                    ))
+                    .toList();
+
+            BigDecimal total = buildingPayments.stream()
+                    .map(ServicePayment::getAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            Map<String, BigDecimal> serviceTypeSubtotals = buildServiceTypeSubtotals(buildingPayments);
+
+            groups.add(ServicePaymentReportBuildingGroupDTO.builder()
+                    .buildingId(buildingIdDTO)
+                    .buildingName(buildingName)
+                    .totalAmount(total)
+                    .paymentCount(buildingPayments.size())
+                    .subtotalsByServiceType(serviceTypeSubtotals)
+                    .payments(paymentItems)
+                    .build());
+        }
+
+        // Sort alphabetically, "Sin Edificio asignado" goes last
+        groups.sort((a, b) -> {
+            if (a.buildingId() == null) return 1;
+            if (b.buildingId() == null) return -1;
+            return a.buildingName().compareToIgnoreCase(b.buildingName());
+        });
+
+        return groups;
+    }
+
+    /**
+     * Builds a map of subtotals keyed by ServiceType name.
+     */
+    private Map<String, BigDecimal> buildServiceTypeSubtotals(List<ServicePayment> payments) {
+        Map<String, BigDecimal> subtotals = new LinkedHashMap<>();
+        for (ServicePayment sp : payments) {
+            String key = sp.getServiceAssignment().getServiceType().name();
+            subtotals.merge(key, sp.getAmount(), BigDecimal::add);
+        }
+        return subtotals;
+    }
+
+    private void validateServicePaymentFilters(ServicePaymentReportFilterDTO filters) {
+        if (filters.startDate() != null && filters.endDate() != null
+                && filters.startDate().isAfter(filters.endDate())) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.date.range.invalid"));
+        }
+        if (filters.minAmount() != null && filters.maxAmount() != null
+                && filters.minAmount().compareTo(filters.maxAmount()) > 0) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.amount.range.invalid"));
+        }
+    }
+
+    private String buildServicePaymentPeriodDescription(ServicePaymentReportFilterDTO filters) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filters.startDate() != null && filters.endDate() != null) {
             if (filters.startDate().getDayOfMonth() == 1

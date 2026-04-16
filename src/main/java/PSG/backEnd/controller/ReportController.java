@@ -7,8 +7,11 @@ import PSG.backEnd.model.dto.report.salary.SalaryReportDTO;
 import PSG.backEnd.model.dto.report.salary.SalaryReportFilterDTO;
 import PSG.backEnd.model.dto.report.invoice.InvoiceReportDTO;
 import PSG.backEnd.model.dto.report.invoice.InvoiceReportFilterDTO;
+import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportDTO;
+import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportFilterDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
+import PSG.backEnd.model.enums.ServiceType;
 import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
@@ -524,5 +527,134 @@ public class ReportController {
         );
 
         return reportService.generateInvoiceReportFile(filters, format);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SERVICE PAYMENT REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/service-payments")
+    @Operation(
+            summary = "Generate service payment report data",
+            description = "Generates a hierarchical service payment report grouped by project area and building. " +
+                    "Includes subtotals per service type at each level."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<ServicePaymentReportDTO> generateServicePaymentReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by service type")
+            @RequestParam(required = false)
+            ServiceType serviceType,
+
+            @Parameter(description = "Filter by payment method")
+            @RequestParam(required = false)
+            PaymentMethod paymentMethod,
+
+            @Parameter(description = "Filter by year")
+            @RequestParam(required = false)
+            Integer year,
+
+            @Parameter(description = "Filter by period/month (1-12)")
+            @RequestParam(required = false)
+            Integer period,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Generating service payment report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
+
+        ServicePaymentReportFilterDTO filters = new ServicePaymentReportFilterDTO(
+                startDate, endDate, projectAreaIds, serviceType, paymentMethod, year, period, minAmount, maxAmount
+        );
+
+        ServicePaymentReportDTO report = reportService.generateServicePaymentReport(filters);
+
+        log.info("Service payment report generated: {} payments, total: ${}", report.totalCount(), report.totalAmount());
+
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/service-payments/download")
+    @Operation(
+            summary = "Download service payment report file",
+            description = "Generates and downloads a service payment report in the specified format (PDF or EXCEL)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadServicePaymentReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam
+            ReportFormat format,
+
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by service type")
+            @RequestParam(required = false)
+            ServiceType serviceType,
+
+            @Parameter(description = "Filter by payment method")
+            @RequestParam(required = false)
+            PaymentMethod paymentMethod,
+
+            @Parameter(description = "Filter by year")
+            @RequestParam(required = false)
+            Integer year,
+
+            @Parameter(description = "Filter by period/month (1-12)")
+            @RequestParam(required = false)
+            Integer period,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Downloading service payment report: format={}", format);
+
+        ServicePaymentReportFilterDTO filters = new ServicePaymentReportFilterDTO(
+                startDate, endDate, projectAreaIds, serviceType, paymentMethod, year, period, minAmount, maxAmount
+        );
+
+        return reportService.generateServicePaymentReportFile(filters, format);
     }
 }
