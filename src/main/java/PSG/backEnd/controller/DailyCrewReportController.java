@@ -2,6 +2,10 @@ package PSG.backEnd.controller;
 
 import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.crewAssignment.*;
+import PSG.backEnd.repository.CrewScheduleDefaultRepository;
+import PSG.backEnd.model.entity.vehicle.CrewScheduleDefault;
+import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.service.port.ICrewAssignmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -16,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/crew-reports")
@@ -24,6 +29,8 @@ import java.time.LocalDate;
 public class DailyCrewReportController {
 
     private final ICrewAssignmentService iCrewAssignmentService;
+    private final CrewScheduleDefaultRepository scheduleDefaultRepo;
+    private final ProjectAreaRepository projectAreaRepo;
 
     @PreAuthorize("hasAuthority('" + AppPermissions.CREW_ASSIGNMENT_WRITE + "')")
     @PostMapping
@@ -78,5 +85,47 @@ public class DailyCrewReportController {
     public ResponseEntity<Void> deleteReport(@PathVariable Long id) {
         iCrewAssignmentService.deleteReport(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── Schedule Defaults ─────────────────────────────────────────
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.CREW_ASSIGNMENT_READ + "')")
+    @GetMapping("/schedule-defaults")
+    @Operation(summary = "Get default departure/return times for all sectors")
+    public ResponseEntity<List<CrewScheduleDefaultDTO>> getScheduleDefaults() {
+        List<CrewScheduleDefaultDTO> result = scheduleDefaultRepo.findAllWithProjectArea().stream()
+                .map(d -> new CrewScheduleDefaultDTO(
+                        d.getId(),
+                        d.getProjectArea().getId(),
+                        d.getProjectArea().getName(),
+                        d.getProjectArea().getColor(),
+                        d.getDepartureTime(),
+                        d.getReturnTime()
+                )).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.CREW_ASSIGNMENT_WRITE + "')")
+    @PutMapping("/schedule-defaults")
+    @Operation(summary = "Batch upsert default times for sectors")
+    public ResponseEntity<List<CrewScheduleDefaultDTO>> saveScheduleDefaults(
+            @RequestBody List<CrewScheduleDefaultSaveDTO> dtos) {
+        List<CrewScheduleDefaultDTO> result = dtos.stream().map(dto -> {
+            CrewScheduleDefault entity = scheduleDefaultRepo.findByProjectAreaId(dto.projectAreaId())
+                    .orElseGet(() -> {
+                        CrewScheduleDefault d = new CrewScheduleDefault();
+                        ProjectArea pa = projectAreaRepo.getReferenceById(dto.projectAreaId());
+                        d.setProjectArea(pa);
+                        return d;
+                    });
+            entity.setDepartureTime(dto.departureTime());
+            entity.setReturnTime(dto.returnTime());
+            CrewScheduleDefault saved = scheduleDefaultRepo.save(entity);
+            ProjectArea pa = saved.getProjectArea();
+            return new CrewScheduleDefaultDTO(
+                    saved.getId(), pa.getId(), pa.getName(), pa.getColor(),
+                    saved.getDepartureTime(), saved.getReturnTime());
+        }).toList();
+        return ResponseEntity.ok(result);
     }
 }
