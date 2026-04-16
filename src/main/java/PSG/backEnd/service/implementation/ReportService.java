@@ -1223,7 +1223,9 @@ public class ReportService implements IReportService {
                             sp.getSalaryFrequency(),
                             sp.getPaymentMethod(),
                             sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getId() : null,
-                            sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null
+                            sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null,
+                            sp.getEmployee().getName(),
+                            sp.getEmployee().getLastName()
                     ))
                     .toList();
 

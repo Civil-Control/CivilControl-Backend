@@ -29,5 +29,11 @@ public record SalaryReportPaymentDTO(
     Long projectAreaTaskId,
 
     @Schema(description = "Project area task name", nullable = true)
-    String projectAreaTaskName
+    String projectAreaTaskName,
+
+    @Schema(description = "Employee first name (for flat view)", nullable = true)
+    String employeeName,
+
+    @Schema(description = "Employee last name (for flat view)", nullable = true)
+    String employeeLastName
 ) {}
