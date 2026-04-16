@@ -4,6 +4,7 @@ import PSG.backEnd.model.enums.employee.EmployeeRole;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Schema(description = "Response DTO for a crew assignment with resolved entity names.")
@@ -52,5 +53,11 @@ public record CrewAssignmentResponseDTO(
     @Schema(description = "Optional observation.", nullable = true)
     String observation,
     @Schema(description = "Vehicle mileage at the time of assignment.", example = "45000", nullable = true)
-    Integer km
+    Integer km,
+
+    @Schema(description = "Departure time.", nullable = true)
+    LocalTime departureTime,
+
+    @Schema(description = "Return time.", nullable = true)
+    LocalTime returnTime
 ) {}

@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "crew_assignments")
@@ -31,7 +32,11 @@ public class CrewAssignment extends TenantEntity {
     private Vehicle vehicle;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_area_id", nullable = false)
+    @JoinColumn(name = "crew_report_id")
+    private DailyCrewReport crewReport;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_id")
     private ProjectArea projectArea;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -49,6 +54,12 @@ public class CrewAssignment extends TenantEntity {
 
     @Column
     private Integer km;
+
+    @Column(name = "departure_time")
+    private LocalTime departureTime;
+
+    @Column(name = "return_time")
+    private LocalTime returnTime;
 
     @Column(nullable = false)
     private boolean deleted;

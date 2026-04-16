@@ -3,6 +3,7 @@ package PSG.backEnd.model.dto.crewAssignment;
 import PSG.backEnd.model.enums.employee.EmployeeRole;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Schema(description = "A crew member within a vehicle assignment.")
@@ -22,5 +23,9 @@ public record CrewMemberDTO(
     @Schema(description = "Whether this member is the driver.", example = "true")
     Boolean isDriver,
     @Schema(description = "Optional observation.", nullable = true)
-    String observation
+    String observation,
+    @Schema(description = "Departure time for this member.", nullable = true)
+    LocalTime departureTime,
+    @Schema(description = "Return time for this member.", nullable = true)
+    LocalTime returnTime
 ) {}

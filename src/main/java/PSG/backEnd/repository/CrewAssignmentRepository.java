@@ -84,4 +84,35 @@ public interface CrewAssignmentRepository extends JpaRepository<CrewAssignment, 
 
     @Query("SELECT ca.employee.id FROM CrewAssignment ca WHERE ca.date = :date AND ca.deleted = false")
     List<Long> findAssignedEmployeeIdsByDate(@Param("date") LocalDate date);
+
+    // ── Report-scoped queries ──────────────────────────────────────
+
+    @Query("SELECT ca FROM CrewAssignment ca " +
+           "WHERE ca.crewReport.id = :reportId AND ca.deleted = false " +
+           "ORDER BY ca.vehicle.licensePlate ASC, ca.employee.lastName ASC")
+    List<CrewAssignment> findByReportIdAndDeletedFalseOrdered(@Param("reportId") Long reportId);
+
+    @Modifying
+    @Query("UPDATE CrewAssignment ca SET ca.deleted = true WHERE ca.crewReport.id = :reportId AND ca.deleted = false")
+    int softDeleteByReportId(@Param("reportId") Long reportId);
+
+    @Query("SELECT ca FROM CrewAssignment ca WHERE ca.vehicle.id = :vehicleId " +
+           "AND ca.crewReport.id = :reportId AND ca.driver = true AND ca.deleted = false")
+    Optional<CrewAssignment> findDriverByVehicleAndReportId(
+            @Param("vehicleId") Long vehicleId,
+            @Param("reportId") Long reportId);
+
+    long countByVehicleIdAndCrewReportIdAndDeletedFalse(Long vehicleId, Long crewReportId);
+
+    @Query("SELECT ca.employee.id FROM CrewAssignment ca " +
+           "WHERE ca.date = :date AND ca.deleted = false AND ca.crewReport.id <> :excludeReportId")
+    List<Long> findAssignedEmployeeIdsByDateExcludingReport(
+            @Param("date") LocalDate date,
+            @Param("excludeReportId") Long excludeReportId);
+
+    @Query("SELECT ca.vehicle.id FROM CrewAssignment ca " +
+           "WHERE ca.date = :date AND ca.deleted = false AND ca.crewReport.id <> :excludeReportId")
+    List<Long> findAssignedVehicleIdsByDateExcludingReport(
+            @Param("date") LocalDate date,
+            @Param("excludeReportId") Long excludeReportId);
 }

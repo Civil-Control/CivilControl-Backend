@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Schema(description = "Data Transfer Object for creating or updating a crew assignment.")
 public record CrewAssignmentDTO(
@@ -36,5 +37,11 @@ public record CrewAssignmentDTO(
     String observation,
 
     @Schema(description = "Vehicle mileage at the time of assignment.", example = "45000", nullable = true)
-    Integer km
+    Integer km,
+
+    @Schema(description = "Departure time.", nullable = true)
+    LocalTime departureTime,
+
+    @Schema(description = "Return time.", nullable = true)
+    LocalTime returnTime
 ) {}

@@ -17,4 +17,11 @@ public interface ICrewAssignmentService {
     CrewAssignmentResponseDTO toggleDriver(Long id);
     void deleteCrewAssignment(Long id);
     int deleteDailyAssignments(LocalDate date);
+
+    // ── Report-level operations ────────────────────────────────────
+    DailyCrewReportResponseDTO saveReport(DailyCrewReportSaveDTO dto);
+    DailyCrewReportResponseDTO updateReport(Long reportId, DailyCrewReportSaveDTO dto);
+    DailyCrewReportResponseDTO getReportById(Long reportId);
+    DailyReportsSummaryDTO getDailyReportsSummary(LocalDate date);
+    void deleteReport(Long reportId);
 }

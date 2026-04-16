@@ -11,10 +11,13 @@ import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.entity.vehicle.CrewAssignment;
+import PSG.backEnd.model.entity.vehicle.DailyCrewReport;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.enums.employee.EmployeeRole;
+import PSG.backEnd.model.enums.vehicle.CrewReportType;
 import PSG.backEnd.model.mapper.CrewAssignmentMapper;
 import PSG.backEnd.repository.CrewAssignmentRepository;
+import PSG.backEnd.repository.DailyCrewReportRepository;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.repository.ProjectAreaTaskRepository;
@@ -28,11 +31,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.YearMonth;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 public class CrewAssignmentService implements ICrewAssignmentService {
 
     private final CrewAssignmentRepository crewAssignmentRepository;
+    private final DailyCrewReportRepository dailyCrewReportRepository;
     private final EmployeeRepository employeeRepository;
     private final VehicleRepository vehicleRepository;
     private final ProjectAreaRepository projectAreaRepository;
@@ -207,7 +209,9 @@ public class CrewAssignmentService implements ICrewAssignmentService {
                                     ca.getEmployee().getDni(),
                                     ca.getEmployee().getEmployeeRoles(),
                                     ca.isDriver(),
-                                    ca.getObservation()
+                                    ca.getObservation(),
+                                    ca.getDepartureTime(),
+                                    ca.getReturnTime()
                             ))
                             .toList();
 
@@ -315,6 +319,112 @@ public class CrewAssignmentService implements ICrewAssignmentService {
         return crewAssignmentRepository.softDeleteByDate(date);
     }
 
+    // ── Report-level operations ────────────────────────────────────
+
+    @Override
+    @Transactional
+    public DailyCrewReportResponseDTO saveReport(DailyCrewReportSaveDTO dto) {
+        ProjectArea projectArea = dto.projectAreaId() != null ? resolveProjectArea(dto.projectAreaId()) : null;
+
+        DailyCrewReport report = DailyCrewReport.builder()
+                .date(dto.date())
+                .projectArea(projectArea)
+                .type(dto.type())
+                .departureTime(dto.departureTime())
+                .returnTime(dto.returnTime())
+                .deleted(false)
+                .build();
+
+        report = dailyCrewReportRepository.save(report);
+        return saveReportAssignments(report, dto, null);
+    }
+
+    @Override
+    @Transactional
+    public DailyCrewReportResponseDTO updateReport(Long reportId, DailyCrewReportSaveDTO dto) {
+        DailyCrewReport report = dailyCrewReportRepository.findByIdAndDeletedFalse(reportId)
+                .orElseThrow(() -> new CrewAssignmentNotFoundException(reportId));
+
+        if (dto.projectAreaId() != null) {
+            report.setProjectArea(resolveProjectArea(dto.projectAreaId()));
+        } else {
+            report.setProjectArea(null);
+        }
+        report.setType(dto.type());
+        report.setDepartureTime(dto.departureTime());
+        report.setReturnTime(dto.returnTime());
+        report = dailyCrewReportRepository.save(report);
+
+        // Delete old assignments, then re-create
+        crewAssignmentRepository.softDeleteByReportId(reportId);
+        return saveReportAssignments(report, dto, reportId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DailyCrewReportResponseDTO getReportById(Long reportId) {
+        DailyCrewReport report = dailyCrewReportRepository.findByIdAndDeletedFalse(reportId)
+                .orElseThrow(() -> new CrewAssignmentNotFoundException(reportId));
+
+        List<CrewAssignment> assignments = crewAssignmentRepository.findByReportIdAndDeletedFalseOrdered(reportId);
+        List<VehicleCrewDTO> vehicles = buildVehicleCrewList(assignments);
+
+        ProjectArea pa = report.getProjectArea();
+        return new DailyCrewReportResponseDTO(
+                report.getId(),
+                report.getDate(),
+                pa != null ? pa.getId() : null,
+                pa != null ? pa.getName() : null,
+                pa != null ? pa.getColor() : null,
+                report.getType(),
+                report.getDepartureTime(),
+                report.getReturnTime(),
+                vehicles,
+                List.of()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DailyReportsSummaryDTO getDailyReportsSummary(LocalDate date) {
+        List<DailyCrewReport> reports = dailyCrewReportRepository.findByDateAndDeletedFalse(date);
+
+        List<DailyReportSummaryItemDTO> items = reports.stream().map(report -> {
+            List<CrewAssignment> assignments = crewAssignmentRepository
+                    .findByReportIdAndDeletedFalseOrdered(report.getId());
+
+            long vehicleCount = assignments.stream()
+                    .map(ca -> ca.getVehicle().getId())
+                    .distinct().count();
+            int employeeCount = assignments.size();
+
+            ProjectArea pa = report.getProjectArea();
+            return new DailyReportSummaryItemDTO(
+                    report.getId(),
+                    pa != null ? pa.getId() : null,
+                    pa != null ? pa.getName() : null,
+                    pa != null ? pa.getColor() : null,
+                    report.getType(),
+                    report.getDepartureTime(),
+                    report.getReturnTime(),
+                    (int) vehicleCount,
+                    employeeCount
+            );
+        }).toList();
+
+        return new DailyReportsSummaryDTO(date, items);
+    }
+
+    @Override
+    @Transactional
+    public void deleteReport(Long reportId) {
+        DailyCrewReport report = dailyCrewReportRepository.findByIdAndDeletedFalse(reportId)
+                .orElseThrow(() -> new CrewAssignmentNotFoundException(reportId));
+        crewAssignmentRepository.softDeleteByReportId(reportId);
+        report.setDeleted(true);
+        dailyCrewReportRepository.save(report);
+    }
+
     // ── Private helpers ────────────────────────────────────────────────
 
     private Employee resolveEmployee(Long employeeId) {
@@ -374,5 +484,175 @@ public class CrewAssignmentService implements ICrewAssignmentService {
                                     v.getLicensePlate(), date,
                                     driverEmp.getName() + " " + driverEmp.getLastName()));
                 });
+    }
+
+    private DailyCrewReportResponseDTO saveReportAssignments(
+            DailyCrewReport report, DailyCrewReportSaveDTO dto, Long excludeReportIdForWarnings) {
+
+        List<CrewAssignmentWarningDTO> warnings = new ArrayList<>();
+        var warnedEmployees = new HashSet<Long>();
+        var warnedVehicles = new HashSet<Long>();
+
+        // Collect employee/vehicle IDs already in OTHER reports for this date (for cross-report duplicate warnings)
+        Set<Long> employeesInOtherReports = new HashSet<>();
+        Set<Long> vehiclesInOtherReports = new HashSet<>();
+        if (excludeReportIdForWarnings != null) {
+            employeesInOtherReports.addAll(crewAssignmentRepository
+                    .findAssignedEmployeeIdsByDateExcludingReport(dto.date(), excludeReportIdForWarnings));
+            vehiclesInOtherReports.addAll(crewAssignmentRepository
+                    .findAssignedVehicleIdsByDateExcludingReport(dto.date(), excludeReportIdForWarnings));
+        } else {
+            // New report: check all existing assignments for this date
+            List<Long> existingEmpIds = crewAssignmentRepository.findAssignedEmployeeIdsByDate(dto.date());
+            employeesInOtherReports.addAll(existingEmpIds);
+            // For vehicles, get from existing assignments
+            List<CrewAssignment> existingAssignments = crewAssignmentRepository
+                    .findByDateAndDeletedFalseOrdered(dto.date());
+            existingAssignments.forEach(ca -> vehiclesInOtherReports.add(ca.getVehicle().getId()));
+        }
+
+        LocalTime reportDeparture = dto.departureTime();
+        LocalTime reportReturn = dto.returnTime();
+
+        for (CrewReportAssignmentDTO aDto : dto.assignments()) {
+            Employee employee = resolveEmployee(aDto.employeeId());
+            Vehicle vehicle = resolveVehicle(aDto.vehicleId());
+            ProjectArea projectArea = resolveProjectArea(aDto.projectAreaId());
+            ProjectAreaTask projectAreaTask = resolveProjectAreaTask(aDto.projectAreaTaskId());
+
+            // Warning W3: employee already in another report for this date
+            if (!warnedEmployees.contains(aDto.employeeId())
+                    && employeesInOtherReports.contains(aDto.employeeId())) {
+                warnings.add(new CrewAssignmentWarningDTO(
+                        "W3",
+                        messageSourceHelper.getMessage("crewAssignment.warning.duplicateEmployee",
+                                employee.getName() + " " + employee.getLastName(), dto.date()),
+                        employee.getId(), vehicle.getId()));
+                warnedEmployees.add(aDto.employeeId());
+            }
+
+            // Warning W4: vehicle already in another report for this date
+            if (!warnedVehicles.contains(aDto.vehicleId())
+                    && vehiclesInOtherReports.contains(aDto.vehicleId())) {
+                warnings.add(new CrewAssignmentWarningDTO(
+                        "W4",
+                        messageSourceHelper.getMessage("crewAssignment.warning.duplicateVehicle",
+                                vehicle.getLicensePlate(), dto.date()),
+                        employee.getId(), vehicle.getId()));
+                warnedVehicles.add(aDto.vehicleId());
+            }
+
+            // Warning W1: driver without CHOFER role
+            if (Boolean.TRUE.equals(aDto.isDriver())
+                    && !employee.getEmployeeRoles().contains(EmployeeRole.CHOFER)) {
+                warnings.add(new CrewAssignmentWarningDTO(
+                        "W1",
+                        messageSourceHelper.getMessage("crewAssignment.warning.notDriver",
+                                employee.getName() + " " + employee.getLastName()),
+                        employee.getId(), vehicle.getId()));
+            }
+
+            // Warning W2: vehicle capacity >= 3
+            long currentCount = crewAssignmentRepository
+                    .countByVehicleIdAndCrewReportIdAndDeletedFalse(aDto.vehicleId(), report.getId());
+            if (currentCount >= 2) {
+                warnings.add(new CrewAssignmentWarningDTO(
+                        "W2",
+                        messageSourceHelper.getMessage("crewAssignment.warning.capacityExceeded",
+                                vehicle.getLicensePlate(), currentCount + 1, dto.date()),
+                        employee.getId(), vehicle.getId()));
+            }
+
+            // Validate driver uniqueness within this report
+            if (Boolean.TRUE.equals(aDto.isDriver())) {
+                crewAssignmentRepository.findDriverByVehicleAndReportId(aDto.vehicleId(), report.getId())
+                        .ifPresent(existingDriver -> {
+                            throw new DuplicateDriverException(
+                                    messageSourceHelper.getMessage("crewAssignment.duplicateDriver",
+                                            vehicle.getLicensePlate(), dto.date(),
+                                            existingDriver.getEmployee().getName() + " " + existingDriver.getEmployee().getLastName()));
+                        });
+            }
+
+            CrewAssignment entity = CrewAssignment.builder()
+                    .crewReport(report)
+                    .employee(employee)
+                    .vehicle(vehicle)
+                    .projectArea(projectArea)
+                    .projectAreaTask(projectAreaTask)
+                    .date(dto.date())
+                    .driver(Boolean.TRUE.equals(aDto.isDriver()))
+                    .observation(aDto.observation())
+                    .km(aDto.km())
+                    .departureTime(aDto.departureTime() != null ? aDto.departureTime() : reportDeparture)
+                    .returnTime(aDto.returnTime() != null ? aDto.returnTime() : reportReturn)
+                    .deleted(false)
+                    .build();
+
+            crewAssignmentRepository.save(entity);
+            syncVehicleKm(vehicle, aDto.km());
+        }
+
+        // Build response
+        List<CrewAssignment> savedAssignments = crewAssignmentRepository
+                .findByReportIdAndDeletedFalseOrdered(report.getId());
+        List<VehicleCrewDTO> vehicles = buildVehicleCrewList(savedAssignments);
+
+        ProjectArea pa = report.getProjectArea();
+        return new DailyCrewReportResponseDTO(
+                report.getId(),
+                report.getDate(),
+                pa != null ? pa.getId() : null,
+                pa != null ? pa.getName() : null,
+                pa != null ? pa.getColor() : null,
+                report.getType(),
+                report.getDepartureTime(),
+                report.getReturnTime(),
+                vehicles,
+                warnings
+        );
+    }
+
+    private List<VehicleCrewDTO> buildVehicleCrewList(List<CrewAssignment> assignments) {
+        Map<Long, List<CrewAssignment>> byVehicle = assignments.stream()
+                .collect(Collectors.groupingBy(
+                        ca -> ca.getVehicle().getId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()
+                ));
+
+        return byVehicle.entrySet().stream()
+                .map(entry -> {
+                    List<CrewAssignment> vehicleAssignments = entry.getValue();
+                    CrewAssignment first = vehicleAssignments.get(0);
+                    Vehicle v = first.getVehicle();
+                    ProjectArea pa = first.getProjectArea();
+
+                    List<CrewMemberDTO> members = vehicleAssignments.stream()
+                            .map(ca -> new CrewMemberDTO(
+                                    ca.getId(),
+                                    ca.getEmployee().getId(),
+                                    ca.getEmployee().getName(),
+                                    ca.getEmployee().getLastName(),
+                                    ca.getEmployee().getDni(),
+                                    ca.getEmployee().getEmployeeRoles(),
+                                    ca.isDriver(),
+                                    ca.getObservation(),
+                                    ca.getDepartureTime(),
+                                    ca.getReturnTime()
+                            ))
+                            .toList();
+
+                    return new VehicleCrewDTO(
+                            v.getId(), v.getLicensePlate(), v.getNickName(),
+                            v.getBrand(), v.getModel(),
+                            pa != null ? pa.getId() : null,
+                            pa != null ? pa.getName() : null,
+                            pa != null ? pa.getColor() : null,
+                            first.getKm(),
+                            members
+                    );
+                })
+                .toList();
     }
 }
