@@ -47,6 +47,7 @@ public class ServicePaymentService implements IServicePaymentService {
 
         ServicePayment servicePayment = servicePaymentMapper.toEntity(servicePaymentDTO);
         servicePayment.setDeleted(false);
+        normalizeReferenceNumber(servicePayment);
 
         // Resolve assignment (required)
         ServiceAssignment assignment = resolveAssignment(servicePaymentDTO.serviceAssignmentId());
@@ -136,6 +137,7 @@ public class ServicePaymentService implements IServicePaymentService {
         validateBusinessRulesForUpdate(servicePaymentDTO);
 
         servicePaymentMapper.partialUpdate(servicePaymentDTO, existingServicePayment);
+        normalizeReferenceNumber(existingServicePayment);
         return servicePaymentMapper.toResponseDto(servicePaymentRepository.save(existingServicePayment));
     }
 
@@ -206,6 +208,12 @@ public class ServicePaymentService implements IServicePaymentService {
             if (servicePaymentDTO.amount().compareTo(BigDecimal.valueOf(99999999.99)) > 0) {
                 throw new ServicePaymentNotValidException(messageSourceHelper.getMessage("servicePayment.amount.exceedsMaximum"));
             }
+        }
+    }
+
+    private void normalizeReferenceNumber(ServicePayment payment) {
+        if (payment.getReferenceNumber() != null && payment.getReferenceNumber().trim().isEmpty()) {
+            payment.setReferenceNumber(null);
         }
     }
 
