@@ -254,7 +254,7 @@ public class InvoiceReportExcelExporter {
         Sheet sheet = workbook.createSheet("Detalle de Comprobantes");
         int rowNum = 0;
 
-        rowNum = addSheetHeader(sheet, "REPORTE DE FACTURACIÓN - DETALLE DE COMPROBANTES", report, titleCellStyle, 9);
+        rowNum = addSheetHeader(sheet, "REPORTE DE FACTURACIÓN - DETALLE DE COMPROBANTES", report, titleCellStyle, 11);
         rowNum++;
 
         Row headerRow = sheet.createRow(rowNum++);
@@ -265,8 +265,10 @@ public class InvoiceReportExcelExporter {
         setCellWithStyle(headerRow, 4, "PV-Nro", headerStyle);
         setCellWithStyle(headerRow, 5, "Neto", headerStyle);
         setCellWithStyle(headerRow, 6, "IVA", headerStyle);
-        setCellWithStyle(headerRow, 7, "Total", headerStyle);
-        setCellWithStyle(headerRow, 8, "Pagado", headerStyle);
+        setCellWithStyle(headerRow, 7, "IVA Exento", headerStyle);
+        setCellWithStyle(headerRow, 8, "Otros Trib.", headerStyle);
+        setCellWithStyle(headerRow, 9, "Total", headerStyle);
+        setCellWithStyle(headerRow, 10, "Pagado", headerStyle);
 
         for (InvoiceReportAreaGroupDTO area : report.areaGroups()) {
             for (InvoiceReportSupplierGroupDTO supplier : area.supplierGroups()) {
@@ -294,11 +296,19 @@ public class InvoiceReportExcelExporter {
                     ivaCell.setCellValue(doc.ivaTotal() != null ? doc.ivaTotal().doubleValue() : 0);
                     ivaCell.setCellStyle(currencyStyle);
 
-                    Cell amountCell = row.createCell(7);
+                    Cell ivaExemptCell = row.createCell(7);
+                    ivaExemptCell.setCellValue(doc.ivaExemptTotal() != null ? doc.ivaExemptTotal().doubleValue() : 0);
+                    ivaExemptCell.setCellStyle(currencyStyle);
+
+                    Cell otherTaxesCell = row.createCell(8);
+                    otherTaxesCell.setCellValue(doc.otherTaxes() != null ? doc.otherTaxes().doubleValue() : 0);
+                    otherTaxesCell.setCellStyle(currencyStyle);
+
+                    Cell amountCell = row.createCell(9);
                     amountCell.setCellValue(doc.totalAmount().doubleValue());
                     amountCell.setCellStyle(currencyStyle);
 
-                    row.createCell(8).setCellValue(Boolean.TRUE.equals(doc.paid()) ? "Sí" : "No");
+                    row.createCell(10).setCellValue(Boolean.TRUE.equals(doc.paid()) ? "Sí" : "No");
                 }
 
                 int supplierSubtotalRowNum = rowNum;
@@ -306,14 +316,14 @@ public class InvoiceReportExcelExporter {
                 Cell supplierLabel = supplierSubtotalRow.createCell(0);
                 supplierLabel.setCellValue("Subtotal " + supplier.supplierLegalName());
                 supplierLabel.setCellStyle(subtotalLabelStyle);
-                for (int i = 1; i <= 6; i++) {
+                for (int i = 1; i <= 8; i++) {
                     supplierSubtotalRow.createCell(i).setCellStyle(subtotalLabelStyle);
                 }
-                sheet.addMergedRegion(new CellRangeAddress(supplierSubtotalRowNum, supplierSubtotalRowNum, 0, 6));
-                Cell supplierTotal = supplierSubtotalRow.createCell(7);
+                sheet.addMergedRegion(new CellRangeAddress(supplierSubtotalRowNum, supplierSubtotalRowNum, 0, 8));
+                Cell supplierTotal = supplierSubtotalRow.createCell(9);
                 supplierTotal.setCellValue(supplier.totalAmount().doubleValue());
                 supplierTotal.setCellStyle(subtotalStyle);
-                supplierSubtotalRow.createCell(8).setCellStyle(subtotalLabelStyle);
+                supplierSubtotalRow.createCell(10).setCellStyle(subtotalLabelStyle);
             }
 
             int areaSubtotalRowNum = rowNum;
@@ -321,14 +331,14 @@ public class InvoiceReportExcelExporter {
             Cell areaLabel = areaSubtotalRow.createCell(0);
             areaLabel.setCellValue("Subtotal " + area.projectAreaName() + " (" + area.documentCount() + " docs)");
             areaLabel.setCellStyle(subtotalLabelStyle);
-            for (int i = 1; i <= 6; i++) {
+            for (int i = 1; i <= 8; i++) {
                 areaSubtotalRow.createCell(i).setCellStyle(subtotalLabelStyle);
             }
-            sheet.addMergedRegion(new CellRangeAddress(areaSubtotalRowNum, areaSubtotalRowNum, 0, 6));
-            Cell areaTotal = areaSubtotalRow.createCell(7);
+            sheet.addMergedRegion(new CellRangeAddress(areaSubtotalRowNum, areaSubtotalRowNum, 0, 8));
+            Cell areaTotal = areaSubtotalRow.createCell(9);
             areaTotal.setCellValue(area.subtotalAmount().doubleValue());
             areaTotal.setCellStyle(subtotalStyle);
-            areaSubtotalRow.createCell(8).setCellStyle(subtotalLabelStyle);
+            areaSubtotalRow.createCell(10).setCellStyle(subtotalLabelStyle);
 
             rowNum++;
         }
@@ -338,16 +348,16 @@ public class InvoiceReportExcelExporter {
         Cell totalLabel = totalRow.createCell(0);
         totalLabel.setCellValue("TOTAL GENERAL (" + report.totalCount() + " docs)");
         totalLabel.setCellStyle(totalLabelStyle);
-        for (int i = 1; i <= 6; i++) {
+        for (int i = 1; i <= 8; i++) {
             totalRow.createCell(i).setCellStyle(totalLabelStyle);
         }
-        sheet.addMergedRegion(new CellRangeAddress(grandTotalRowNum, grandTotalRowNum, 0, 6));
-        Cell grandTotal = totalRow.createCell(7);
+        sheet.addMergedRegion(new CellRangeAddress(grandTotalRowNum, grandTotalRowNum, 0, 8));
+        Cell grandTotal = totalRow.createCell(9);
         grandTotal.setCellValue(report.totalAmount().doubleValue());
         grandTotal.setCellStyle(totalStyle);
-        totalRow.createCell(8).setCellStyle(totalLabelStyle);
+        totalRow.createCell(10).setCellStyle(totalLabelStyle);
 
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 11; i++) {
             sheet.autoSizeColumn(i);
         }
     }

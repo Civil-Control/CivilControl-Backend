@@ -1375,6 +1375,10 @@ public class ReportService implements IReportService {
                 .map(TransactionalDocument::getIvaExemptTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        BigDecimal totalOtherTaxes = allDocuments.stream()
+                .map(TransactionalDocument::getOtherTaxes)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         Map<DocumentType, BigDecimal> totalsByDocType = buildDocumentTypeSubtotals(allDocuments);
         Map<String, BigDecimal> totalsByIvaRate = buildIvaRateSubtotals(allDocuments);
 
@@ -1387,6 +1391,7 @@ public class ReportService implements IReportService {
                 .totalNet(totalNet)
                 .totalIva(totalIva)
                 .totalIvaExempt(totalIvaExempt)
+                .totalOtherTaxes(totalOtherTaxes)
                 .totalCount(allDocuments.size())
                 .totalsByDocumentType(totalsByDocType)
                 .totalsByIvaRate(totalsByIvaRate)
@@ -1469,6 +1474,10 @@ public class ReportService implements IReportService {
                     .map(TransactionalDocument::getIvaExemptTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            BigDecimal subtotalOtherTaxes = areaDocs.stream()
+                    .map(TransactionalDocument::getOtherTaxes)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             Map<DocumentType, BigDecimal> areaDocTypeSubtotals = buildDocumentTypeSubtotals(areaDocs);
 
             groups.add(InvoiceReportAreaGroupDTO.builder()
@@ -1479,6 +1488,7 @@ public class ReportService implements IReportService {
                     .subtotalNet(subtotalNet)
                     .subtotalIva(subtotalIva)
                     .subtotalIvaExempt(subtotalIvaExempt)
+                    .subtotalOtherTaxes(subtotalOtherTaxes)
                     .documentCount(areaDocs.size())
                     .subtotalsByDocumentType(areaDocTypeSubtotals)
                     .supplierGroups(supplierGroups)
@@ -1522,6 +1532,10 @@ public class ReportService implements IReportService {
                     .map(TransactionalDocument::getIvaExemptTotal)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            BigDecimal supplierOtherTaxes = supplierDocs.stream()
+                    .map(TransactionalDocument::getOtherTaxes)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             Map<DocumentType, BigDecimal> supplierDocTypeSubtotals = buildDocumentTypeSubtotals(supplierDocs);
 
             List<InvoiceReportDocumentDTO> documentDTOs = supplierDocs.stream()
@@ -1536,6 +1550,7 @@ public class ReportService implements IReportService {
                             td.getNetTotal(),
                             td.getIvaTotal(),
                             td.getIvaExemptTotal(),
+                            td.getOtherTaxes(),
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getId() : null,
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getName() : null,
                             td.getPaid()
@@ -1551,6 +1566,7 @@ public class ReportService implements IReportService {
                     .totalNet(supplierNet)
                     .totalIva(supplierIva)
                     .totalIvaExempt(supplierIvaExempt)
+                    .totalOtherTaxes(supplierOtherTaxes)
                     .documentCount(supplierDocs.size())
                     .subtotalsByDocumentType(supplierDocTypeSubtotals)
                     .documents(documentDTOs)
@@ -1574,35 +1590,56 @@ public class ReportService implements IReportService {
     }
 
     private Map<String, BigDecimal> buildIvaRateSubtotals(List<TransactionalDocument> documents) {
-        Map<BigDecimal, BigDecimal> byRate = new TreeMap<>();
+        Map<String, BigDecimal> result = new LinkedHashMap<>();
 
         for (TransactionalDocument td : documents) {
-            // Add IVA exempt total under rate 0
+            // IVA exempt total
             if (td.getIvaExemptTotal() != null && td.getIvaExemptTotal().compareTo(BigDecimal.ZERO) > 0) {
-                byRate.merge(BigDecimal.ZERO, td.getIvaExemptTotal(), BigDecimal::add);
+                result.merge("Exento", td.getIvaExemptTotal(), BigDecimal::add);
             }
 
-            // Aggregate IVA from line items by ivaPercentage
-            if (td.getItems() != null) {
+            // Attribute document's actual ivaTotal to IVA rates based on item proportions
+            if (td.getIvaTotal() != null && td.getIvaTotal().compareTo(BigDecimal.ZERO) > 0
+                    && td.getItems() != null && !td.getItems().isEmpty()) {
+
+                // Calculate net subtotals per IVA rate from items
+                Map<BigDecimal, BigDecimal> netByRate = new TreeMap<>();
+                BigDecimal totalItemNet = BigDecimal.ZERO;
+
                 for (var item : td.getItems()) {
                     if (item.getIvaPercentage() != null && item.getIvaPercentage().compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal netAmount = item.getUnitAmount().multiply(BigDecimal.valueOf(item.getQuantity()));
-                        BigDecimal ivaAmount = netAmount.multiply(item.getIvaPercentage())
-                                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
-                        byRate.merge(item.getIvaPercentage().stripTrailingZeros(), ivaAmount, BigDecimal::add);
+                        BigDecimal itemNet = item.getUnitAmount().multiply(BigDecimal.valueOf(item.getQuantity()));
+                        netByRate.merge(item.getIvaPercentage().stripTrailingZeros(), itemNet, BigDecimal::add);
+                        totalItemNet = totalItemNet.add(itemNet);
+                    }
+                }
+
+                if (totalItemNet.compareTo(BigDecimal.ZERO) > 0) {
+                    if (netByRate.size() == 1) {
+                        // Single rate: attribute the full ivaTotal directly (avoids rounding issues)
+                        BigDecimal rate = netByRate.keySet().iterator().next();
+                        String label = "IVA " + rate.toPlainString() + "%";
+                        result.merge(label, td.getIvaTotal(), BigDecimal::add);
+                    } else {
+                        // Multiple rates: split ivaTotal proportionally
+                        for (Map.Entry<BigDecimal, BigDecimal> entry : netByRate.entrySet()) {
+                            BigDecimal proportion = entry.getValue()
+                                    .divide(totalItemNet, 10, java.math.RoundingMode.HALF_UP);
+                            BigDecimal ivaForRate = td.getIvaTotal().multiply(proportion)
+                                    .setScale(2, java.math.RoundingMode.HALF_UP);
+                            String label = "IVA " + entry.getKey().toPlainString() + "%";
+                            result.merge(label, ivaForRate, BigDecimal::add);
+                        }
                     }
                 }
             }
+
+            // Other taxes
+            if (td.getOtherTaxes() != null && td.getOtherTaxes().compareTo(BigDecimal.ZERO) > 0) {
+                result.merge("Otros tributos", td.getOtherTaxes(), BigDecimal::add);
+            }
         }
 
-        // Convert to String keys for JSON serialization (e.g., "0", "10.5", "21")
-        Map<String, BigDecimal> result = new LinkedHashMap<>();
-        for (Map.Entry<BigDecimal, BigDecimal> entry : byRate.entrySet()) {
-            String label = entry.getKey().compareTo(BigDecimal.ZERO) == 0
-                    ? "Exento"
-                    : "IVA " + entry.getKey().toPlainString() + "%";
-            result.put(label, entry.getValue());
-        }
         return result;
     }
 

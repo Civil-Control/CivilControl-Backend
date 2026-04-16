@@ -17,6 +17,7 @@ public record InvoiceReportDocumentDTO(
     BigDecimal netTotal,
     BigDecimal ivaTotal,
     BigDecimal ivaExemptTotal,
+    BigDecimal otherTaxes,
     Long projectAreaTaskId,
     String projectAreaTaskName,
     Boolean paid
