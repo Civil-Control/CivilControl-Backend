@@ -79,6 +79,7 @@ public class FuelLoadService implements IFuelLoadService {
                 filterDTO.totalAmountMin(),
                 filterDTO.totalAmountMax(),
                 filterDTO.transactionalDocumentId(),
+                filterDTO.totalAmountLike(),
                 pageable
         );
 

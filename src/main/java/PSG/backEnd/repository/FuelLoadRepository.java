@@ -36,7 +36,8 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             "AND (:ticketNumber IS NULL OR LOWER(CAST(fl.ticketNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:ticketNumber AS string), '%'))) " +
             "AND (:fuelType IS NULL OR LOWER(CAST(fl.fuelType AS string)) LIKE LOWER(CONCAT('%', CAST(:fuelType AS string), '%'))) " +
             "AND (CAST(:vehicleId AS long) IS NULL OR fl.vehicle.id = :vehicleId) " +
-            "AND (:vehicleLicensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleLicensePlate AS string), '%'))) " +
+            "AND (:vehicleLicensePlate IS NULL OR LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:vehicleLicensePlate AS string), '%')) " +
+            "     OR (fl.vehicle IS NULL AND (LOWER('bidon') LIKE LOWER(CONCAT('%', CAST(:vehicleLicensePlate AS string), '%')) OR LOWER('bidón') LIKE LOWER(CONCAT('%', CAST(:vehicleLicensePlate AS string), '%'))))) " +
             "AND (CAST(:projectAreaId AS long) IS NULL OR fl.projectArea.id = :projectAreaId) " +
             "AND (:projectAreaName IS NULL OR LOWER(CAST(pa.name AS string)) LIKE LOWER(CONCAT('%', CAST(:projectAreaName AS string), '%'))) " +
             "AND (CAST(:gasStationId AS long) IS NULL OR fl.gasStation.id = :gasStationId) " +
@@ -45,7 +46,9 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             "AND (CAST(:totalAmountMin AS big_decimal) IS NULL OR fl.totalAmount >= :totalAmountMin) " +
             "AND (CAST(:totalAmountMax AS big_decimal) IS NULL OR fl.totalAmount <= :totalAmountMax) " +
             "AND (CAST(:transactionalDocumentId AS long) IS NULL OR fl.transactionalDocument.id = :transactionalDocumentId) " +
+            "AND (:totalAmountLike IS NULL OR CAST(fl.totalAmount AS string) LIKE CONCAT('%', CAST(:totalAmountLike AS string), '%')) " +
             "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR (fl.vehicle IS NULL AND (LOWER('bidon') LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER('bidón') LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))) " +
             "     OR LOWER(CAST(fl.fuelType AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(gsS.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(gsS.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
@@ -67,6 +70,7 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             @Param("totalAmountMin") java.math.BigDecimal totalAmountMin,
             @Param("totalAmountMax") java.math.BigDecimal totalAmountMax,
             @Param("transactionalDocumentId") Long transactionalDocumentId,
+            @Param("totalAmountLike") String totalAmountLike,
             Pageable pageable
     );
 }

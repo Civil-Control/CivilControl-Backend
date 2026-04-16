@@ -82,5 +82,10 @@ public record FuelLoadFilterDTO(
         @Schema(description = "Filter by linked transactional document ID.",
                 example = "7",
                 nullable = true)
-        Long transactionalDocumentId
+        Long transactionalDocumentId,
+
+        @Schema(description = "Filter by total amount (partial string match). Typing '50' matches 10050.00, 5000.00, etc.",
+                example = "50",
+                nullable = true)
+        String totalAmountLike
 ) {}

@@ -726,6 +726,7 @@ public class ReportService implements IReportService {
                 null, // totalAmountMin
                 null, // totalAmountMax
                 null, // transactionalDocumentId
+                null, // totalAmountLike
                 pageable
         ).getContent();
 
