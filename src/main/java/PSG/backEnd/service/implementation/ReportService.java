@@ -1592,46 +1592,53 @@ public class ReportService implements IReportService {
     private Map<String, BigDecimal> buildIvaRateSubtotals(List<TransactionalDocument> documents) {
         Map<String, BigDecimal> result = new LinkedHashMap<>();
 
+        BigDecimal LINKED_IVA_RATE = new BigDecimal("21");
+
         for (TransactionalDocument td : documents) {
             // IVA exempt total
             if (td.getIvaExemptTotal() != null && td.getIvaExemptTotal().compareTo(BigDecimal.ZERO) > 0) {
                 result.merge("Exento", td.getIvaExemptTotal(), BigDecimal::add);
             }
 
-            // Attribute document's actual ivaTotal to IVA rates based on item proportions
-            if (td.getIvaTotal() != null && td.getIvaTotal().compareTo(BigDecimal.ZERO) > 0
-                    && td.getItems() != null && !td.getItems().isEmpty()) {
+            if (td.getIvaTotal() == null || td.getIvaTotal().compareTo(BigDecimal.ZERO) <= 0) {
+                // No IVA on this document — skip to other taxes
+                if (td.getOtherTaxes() != null && td.getOtherTaxes().compareTo(BigDecimal.ZERO) > 0) {
+                    result.merge("Otros tributos", td.getOtherTaxes(), BigDecimal::add);
+                }
+                continue;
+            }
 
-                // Calculate net subtotals per IVA rate from items
-                Map<BigDecimal, BigDecimal> netByRate = new TreeMap<>();
-                BigDecimal totalItemNet = BigDecimal.ZERO;
+            // Compute IVA explicitly from ItemDetails, grouped by rate
+            // Uses the same formula as DocumentTotalRecalculator:
+            //   iva = unitAmount * quantity * (ivaPercentage / 100)
+            Map<BigDecimal, BigDecimal> ivaByRate = new TreeMap<>();
+            BigDecimal totalItemsIva = BigDecimal.ZERO;
 
+            if (td.getItems() != null) {
                 for (var item : td.getItems()) {
                     if (item.getIvaPercentage() != null && item.getIvaPercentage().compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal itemNet = item.getUnitAmount().multiply(BigDecimal.valueOf(item.getQuantity()));
-                        netByRate.merge(item.getIvaPercentage().stripTrailingZeros(), itemNet, BigDecimal::add);
-                        totalItemNet = totalItemNet.add(itemNet);
+                        BigDecimal itemIva = item.getUnitAmount()
+                                .multiply(BigDecimal.valueOf(item.getQuantity()))
+                                .multiply(item.getIvaPercentage()
+                                        .divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP));
+                        ivaByRate.merge(item.getIvaPercentage().stripTrailingZeros(), itemIva, BigDecimal::add);
+                        totalItemsIva = totalItemsIva.add(itemIva);
                     }
                 }
+            }
 
-                if (totalItemNet.compareTo(BigDecimal.ZERO) > 0) {
-                    if (netByRate.size() == 1) {
-                        // Single rate: attribute the full ivaTotal directly (avoids rounding issues)
-                        BigDecimal rate = netByRate.keySet().iterator().next();
-                        String label = "IVA " + rate.toPlainString() + "%";
-                        result.merge(label, td.getIvaTotal(), BigDecimal::add);
-                    } else {
-                        // Multiple rates: split ivaTotal proportionally
-                        for (Map.Entry<BigDecimal, BigDecimal> entry : netByRate.entrySet()) {
-                            BigDecimal proportion = entry.getValue()
-                                    .divide(totalItemNet, 10, java.math.RoundingMode.HALF_UP);
-                            BigDecimal ivaForRate = td.getIvaTotal().multiply(proportion)
-                                    .setScale(2, java.math.RoundingMode.HALF_UP);
-                            String label = "IVA " + entry.getKey().toPlainString() + "%";
-                            result.merge(label, ivaForRate, BigDecimal::add);
-                        }
-                    }
-                }
+            // Remaining IVA not covered by ItemDetails comes from linked records
+            // (FuelLoad, RepairItem, SalaryPayment, StockPurchase — all at 21% per DocumentTotalRecalculator)
+            BigDecimal remainingIva = td.getIvaTotal()
+                    .subtract(totalItemsIva.setScale(2, java.math.RoundingMode.HALF_UP));
+            if (remainingIva.compareTo(BigDecimal.ZERO) > 0) {
+                ivaByRate.merge(LINKED_IVA_RATE, remainingIva, BigDecimal::add);
+            }
+
+            // Add to result map
+            for (Map.Entry<BigDecimal, BigDecimal> entry : ivaByRate.entrySet()) {
+                String label = "IVA " + entry.getKey().stripTrailingZeros().toPlainString() + "%";
+                result.merge(label, entry.getValue().setScale(2, java.math.RoundingMode.HALF_UP), BigDecimal::add);
             }
 
             // Other taxes
