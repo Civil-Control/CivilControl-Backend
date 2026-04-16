@@ -1599,38 +1599,46 @@ public class ReportService implements IReportService {
             }
 
             // Attribute document's actual ivaTotal to IVA rates based on item proportions
-            if (td.getIvaTotal() != null && td.getIvaTotal().compareTo(BigDecimal.ZERO) > 0
-                    && td.getItems() != null && !td.getItems().isEmpty()) {
+            if (td.getIvaTotal() != null && td.getIvaTotal().compareTo(BigDecimal.ZERO) > 0) {
+                boolean attributed = false;
 
-                // Calculate net subtotals per IVA rate from items
-                Map<BigDecimal, BigDecimal> netByRate = new TreeMap<>();
-                BigDecimal totalItemNet = BigDecimal.ZERO;
+                if (td.getItems() != null && !td.getItems().isEmpty()) {
+                    // Calculate net subtotals per IVA rate from items
+                    Map<BigDecimal, BigDecimal> netByRate = new TreeMap<>();
+                    BigDecimal totalItemNet = BigDecimal.ZERO;
 
-                for (var item : td.getItems()) {
-                    if (item.getIvaPercentage() != null && item.getIvaPercentage().compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal itemNet = item.getUnitAmount().multiply(BigDecimal.valueOf(item.getQuantity()));
-                        netByRate.merge(item.getIvaPercentage().stripTrailingZeros(), itemNet, BigDecimal::add);
-                        totalItemNet = totalItemNet.add(itemNet);
+                    for (var item : td.getItems()) {
+                        if (item.getIvaPercentage() != null && item.getIvaPercentage().compareTo(BigDecimal.ZERO) > 0) {
+                            BigDecimal itemNet = item.getUnitAmount().multiply(BigDecimal.valueOf(item.getQuantity()));
+                            netByRate.merge(item.getIvaPercentage().stripTrailingZeros(), itemNet, BigDecimal::add);
+                            totalItemNet = totalItemNet.add(itemNet);
+                        }
+                    }
+
+                    if (totalItemNet.compareTo(BigDecimal.ZERO) > 0) {
+                        attributed = true;
+                        if (netByRate.size() == 1) {
+                            // Single rate: attribute the full ivaTotal directly (avoids rounding issues)
+                            BigDecimal rate = netByRate.keySet().iterator().next();
+                            String label = "IVA " + rate.toPlainString() + "%";
+                            result.merge(label, td.getIvaTotal(), BigDecimal::add);
+                        } else {
+                            // Multiple rates: split ivaTotal proportionally
+                            for (Map.Entry<BigDecimal, BigDecimal> entry : netByRate.entrySet()) {
+                                BigDecimal proportion = entry.getValue()
+                                        .divide(totalItemNet, 10, java.math.RoundingMode.HALF_UP);
+                                BigDecimal ivaForRate = td.getIvaTotal().multiply(proportion)
+                                        .setScale(2, java.math.RoundingMode.HALF_UP);
+                                String label = "IVA " + entry.getKey().toPlainString() + "%";
+                                result.merge(label, ivaForRate, BigDecimal::add);
+                            }
+                        }
                     }
                 }
 
-                if (totalItemNet.compareTo(BigDecimal.ZERO) > 0) {
-                    if (netByRate.size() == 1) {
-                        // Single rate: attribute the full ivaTotal directly (avoids rounding issues)
-                        BigDecimal rate = netByRate.keySet().iterator().next();
-                        String label = "IVA " + rate.toPlainString() + "%";
-                        result.merge(label, td.getIvaTotal(), BigDecimal::add);
-                    } else {
-                        // Multiple rates: split ivaTotal proportionally
-                        for (Map.Entry<BigDecimal, BigDecimal> entry : netByRate.entrySet()) {
-                            BigDecimal proportion = entry.getValue()
-                                    .divide(totalItemNet, 10, java.math.RoundingMode.HALF_UP);
-                            BigDecimal ivaForRate = td.getIvaTotal().multiply(proportion)
-                                    .setScale(2, java.math.RoundingMode.HALF_UP);
-                            String label = "IVA " + entry.getKey().toPlainString() + "%";
-                            result.merge(label, ivaForRate, BigDecimal::add);
-                        }
-                    }
+                // Fallback: document has ivaTotal but no items or items lack IVA rate info
+                if (!attributed) {
+                    result.merge("IVA (sin detalle)", td.getIvaTotal(), BigDecimal::add);
                 }
             }
 
