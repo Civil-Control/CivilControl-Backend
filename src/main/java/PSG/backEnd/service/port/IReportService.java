@@ -4,6 +4,8 @@ import PSG.backEnd.model.dto.report.MoneyOutflowReportDTO;
 import PSG.backEnd.model.dto.report.MoneyOutflowReportPreviewDTO;
 import PSG.backEnd.model.dto.report.ReportFilterDTO;
 import PSG.backEnd.model.dto.report.ReportItemDTO;
+import PSG.backEnd.model.dto.report.invoice.InvoiceReportDTO;
+import PSG.backEnd.model.dto.report.invoice.InvoiceReportFilterDTO;
 import PSG.backEnd.model.dto.report.salary.SalaryReportDTO;
 import PSG.backEnd.model.dto.report.salary.SalaryReportFilterDTO;
 import PSG.backEnd.model.enums.ReportFormat;
@@ -71,5 +73,9 @@ public interface IReportService {
      * @return ResponseEntity containing the file as byte array with proper content-type and headers
      */
     ResponseEntity<byte[]> generateSalaryReportFile(SalaryReportFilterDTO filters, ReportFormat format);
+
+    InvoiceReportDTO generateInvoiceReport(InvoiceReportFilterDTO filters);
+
+    ResponseEntity<byte[]> generateInvoiceReportFile(InvoiceReportFilterDTO filters, ReportFormat format);
 }
 

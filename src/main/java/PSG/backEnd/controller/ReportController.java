@@ -5,8 +5,11 @@ import PSG.backEnd.model.dto.report.MoneyOutflowReportPreviewDTO;
 import PSG.backEnd.model.dto.report.ReportFilterDTO;
 import PSG.backEnd.model.dto.report.salary.SalaryReportDTO;
 import PSG.backEnd.model.dto.report.salary.SalaryReportFilterDTO;
+import PSG.backEnd.model.dto.report.invoice.InvoiceReportDTO;
+import PSG.backEnd.model.dto.report.invoice.InvoiceReportFilterDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
+import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import PSG.backEnd.service.port.IReportService;
@@ -408,5 +411,118 @@ public class ReportController {
         );
 
         return reportService.generateSalaryReportFile(filters, format);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // INVOICE REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/invoices")
+    @Operation(
+            summary = "Generate invoice report data",
+            description = "Generates a hierarchical invoice report grouped by project area and supplier. " +
+                    "Includes subtotals per document type at each level."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<InvoiceReportDTO> generateInvoiceReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by document type")
+            @RequestParam(required = false)
+            DocumentType documentType,
+
+            @Parameter(description = "Filter by paid status")
+            @RequestParam(required = false)
+            Boolean paid,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Generating invoice report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
+
+        InvoiceReportFilterDTO filters = new InvoiceReportFilterDTO(
+                startDate, endDate, projectAreaIds, documentType, paid, minAmount, maxAmount
+        );
+
+        InvoiceReportDTO report = reportService.generateInvoiceReport(filters);
+
+        log.info("Invoice report generated: {} documents, total: ${}", report.totalCount(), report.totalAmount());
+
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/invoices/download")
+    @Operation(
+            summary = "Download invoice report file",
+            description = "Generates and downloads an invoice report in the specified format (PDF or EXCEL)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadInvoiceReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam
+            ReportFormat format,
+
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by document type")
+            @RequestParam(required = false)
+            DocumentType documentType,
+
+            @Parameter(description = "Filter by paid status")
+            @RequestParam(required = false)
+            Boolean paid,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Downloading invoice report: format={}", format);
+
+        InvoiceReportFilterDTO filters = new InvoiceReportFilterDTO(
+                startDate, endDate, projectAreaIds, documentType, paid, minAmount, maxAmount
+        );
+
+        return reportService.generateInvoiceReportFile(filters, format);
     }
 }

@@ -7,6 +7,7 @@ import PSG.backEnd.model.dto.report.MoneyOutflowReportPreviewDTO;
 import PSG.backEnd.model.dto.report.ReportFilterDTO;
 import PSG.backEnd.model.dto.report.ReportItemDTO;
 import PSG.backEnd.model.dto.report.salary.*;
+import PSG.backEnd.model.dto.report.invoice.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
@@ -18,6 +19,7 @@ import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.ReportFormat;
+import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
 import PSG.backEnd.model.entity.vehicle.RepairItem;
 import PSG.backEnd.model.enums.vehicle.RepairItemType;
@@ -26,6 +28,8 @@ import PSG.backEnd.repository.PaymentRepository.PaymentRepository;
 import PSG.backEnd.service.export.IReportExporter;
 import PSG.backEnd.service.export.SalaryReportExcelExporter;
 import PSG.backEnd.service.export.SalaryReportPdfExporter;
+import PSG.backEnd.service.export.InvoiceReportExcelExporter;
+import PSG.backEnd.service.export.InvoiceReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +67,10 @@ public class ReportService implements IReportService {
     private final SalaryReportExcelExporter salaryExcelExporter;
     private final SalaryReportPdfExporter salaryPdfExporter;
 
+    // Invoice report exporters
+    private final InvoiceReportExcelExporter invoiceExcelExporter;
+    private final InvoiceReportPdfExporter invoicePdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -84,6 +92,8 @@ public class ReportService implements IReportService {
             List<IReportExporter> exporterList,
             SalaryReportExcelExporter salaryExcelExporter,
             SalaryReportPdfExporter salaryPdfExporter,
+            InvoiceReportExcelExporter invoiceExcelExporter,
+            InvoiceReportPdfExporter invoicePdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -104,6 +114,8 @@ public class ReportService implements IReportService {
 
         this.salaryExcelExporter = salaryExcelExporter;
         this.salaryPdfExporter = salaryPdfExporter;
+        this.invoiceExcelExporter = invoiceExcelExporter;
+        this.invoicePdfExporter = invoicePdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -1266,6 +1278,267 @@ public class ReportService implements IReportService {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filters.startDate() != null && filters.endDate() != null) {
             // Check if the range covers a full calendar month
+            if (filters.startDate().getDayOfMonth() == 1
+                    && filters.endDate().equals(filters.startDate().withDayOfMonth(
+                            filters.startDate().lengthOfMonth()))
+                    && filters.startDate().getMonth() == filters.endDate().getMonth()
+                    && filters.startDate().getYear() == filters.endDate().getYear()) {
+                String monthName = filters.startDate().getMonth()
+                        .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "AR"));
+                monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
+                return monthName + " " + filters.startDate().getYear();
+            }
+            return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
+        } else if (filters.startDate() != null) {
+            return "Desde: " + filters.startDate().format(fmt);
+        } else if (filters.endDate() != null) {
+            return "Hasta: " + filters.endDate().format(fmt);
+        }
+        return "Sin filtro de período";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // INVOICE REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private static final List<DocumentType> DOCUMENT_TYPE_ORDER = List.of(
+            DocumentType.BILL_A, DocumentType.BILL_B, DocumentType.BILL_C,
+            DocumentType.DEBIT_NOTE_A, DocumentType.DEBIT_NOTE_B, DocumentType.DEBIT_NOTE_C,
+            DocumentType.CREDIT_NOTE_A, DocumentType.CREDIT_NOTE_B, DocumentType.CREDIT_NOTE_C,
+            DocumentType.OTHER_DOCUMENT);
+
+    @Override
+    @Transactional(readOnly = true)
+    public InvoiceReportDTO generateInvoiceReport(InvoiceReportFilterDTO filters) {
+        log.info("Generating invoice report with filters: {}", filters);
+
+        validateInvoiceFilters(filters);
+
+        Pageable pageable = PageRequest.of(0, 10000);
+
+        List<Long> areaIds = filters.projectAreaIds();
+        Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
+
+        List<TransactionalDocument> allDocuments;
+        if (areaIds != null && areaIds.size() > 1) {
+            allDocuments = new ArrayList<>();
+            for (Long areaId : areaIds) {
+                allDocuments.addAll(transactionalDocumentRepository.findAllWithFilters(
+                        null,
+                        filters.documentType(),
+                        null, null,
+                        areaId,
+                        null,
+                        filters.maxAmount(),
+                        filters.minAmount(),
+                        null,
+                        filters.startDate(),
+                        filters.endDate(),
+                        filters.paid(),
+                        null,
+                        pageable
+                ).getContent());
+            }
+        } else {
+            allDocuments = transactionalDocumentRepository.findAllWithFilters(
+                    null,
+                    filters.documentType(),
+                    null, null,
+                    effectiveAreaId,
+                    null,
+                    filters.maxAmount(),
+                    filters.minAmount(),
+                    null,
+                    filters.startDate(),
+                    filters.endDate(),
+                    filters.paid(),
+                    null,
+                    pageable
+            ).getContent();
+        }
+
+        List<InvoiceReportAreaGroupDTO> areaGroups = buildInvoiceAreaGroups(allDocuments);
+
+        BigDecimal totalAmount = allDocuments.stream()
+                .map(TransactionalDocument::getTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Map<DocumentType, BigDecimal> totalsByDocType = buildDocumentTypeSubtotals(allDocuments);
+
+        String periodDesc = buildInvoicePeriodDescription(filters);
+
+        return InvoiceReportDTO.builder()
+                .filters(filters)
+                .areaGroups(areaGroups)
+                .totalAmount(totalAmount)
+                .totalCount(allDocuments.size())
+                .totalsByDocumentType(totalsByDocType)
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte de Facturación")
+                .periodDescription(periodDesc)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generateInvoiceReportFile(InvoiceReportFilterDTO filters, ReportFormat format) {
+        log.info("Generating invoice report file: format={}", format);
+
+        InvoiceReportDTO report = generateInvoiceReport(filters);
+
+        byte[] content;
+        switch (format) {
+            case EXCEL -> content = invoiceExcelExporter.export(report);
+            case PDF -> content = invoicePdfExporter.export(report);
+            default -> throw new InvalidReportFormatException(format.name());
+        }
+
+        String filename = "reporte_facturacion_" +
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
+                .body(content);
+    }
+
+    private List<InvoiceReportAreaGroupDTO> buildInvoiceAreaGroups(List<TransactionalDocument> documents) {
+        Map<Long, List<TransactionalDocument>> byArea = new LinkedHashMap<>();
+
+        for (TransactionalDocument td : documents) {
+            Long areaId = td.getProjectArea() != null
+                    ? td.getProjectArea().getId()
+                    : -1L;
+            byArea.computeIfAbsent(areaId, k -> new ArrayList<>()).add(td);
+        }
+
+        List<InvoiceReportAreaGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<TransactionalDocument>> entry : byArea.entrySet()) {
+            Long areaId = entry.getKey();
+            List<TransactionalDocument> areaDocs = entry.getValue();
+
+            String areaName;
+            String areaColor;
+            Long areaIdDTO;
+
+            if (areaId == -1L) {
+                areaIdDTO = null;
+                areaName = "Sin área asignada";
+                areaColor = null;
+            } else {
+                areaIdDTO = areaId;
+                TransactionalDocument first = areaDocs.get(0);
+                areaName = first.getProjectArea().getName();
+                areaColor = first.getProjectArea().getColor();
+            }
+
+            List<InvoiceReportSupplierGroupDTO> supplierGroups = buildSupplierGroups(areaDocs);
+
+            BigDecimal subtotal = areaDocs.stream()
+                    .map(TransactionalDocument::getTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            Map<DocumentType, BigDecimal> areaDocTypeSubtotals = buildDocumentTypeSubtotals(areaDocs);
+
+            groups.add(InvoiceReportAreaGroupDTO.builder()
+                    .projectAreaId(areaIdDTO)
+                    .projectAreaName(areaName)
+                    .projectAreaColor(areaColor)
+                    .subtotalAmount(subtotal)
+                    .documentCount(areaDocs.size())
+                    .subtotalsByDocumentType(areaDocTypeSubtotals)
+                    .supplierGroups(supplierGroups)
+                    .build());
+        }
+
+        groups.sort((a, b) -> {
+            if (a.projectAreaId() == null) return 1;
+            if (b.projectAreaId() == null) return -1;
+            return a.projectAreaName().compareToIgnoreCase(b.projectAreaName());
+        });
+
+        return groups;
+    }
+
+    private List<InvoiceReportSupplierGroupDTO> buildSupplierGroups(List<TransactionalDocument> areaDocs) {
+        Map<Long, List<TransactionalDocument>> bySupplier = new LinkedHashMap<>();
+        for (TransactionalDocument td : areaDocs) {
+            bySupplier.computeIfAbsent(td.getSupplier().getId(), k -> new ArrayList<>()).add(td);
+        }
+
+        List<InvoiceReportSupplierGroupDTO> supplierGroups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<TransactionalDocument>> entry : bySupplier.entrySet()) {
+            List<TransactionalDocument> supplierDocs = entry.getValue();
+            TransactionalDocument first = supplierDocs.get(0);
+
+            BigDecimal supplierTotal = supplierDocs.stream()
+                    .map(TransactionalDocument::getTotal)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            Map<DocumentType, BigDecimal> supplierDocTypeSubtotals = buildDocumentTypeSubtotals(supplierDocs);
+
+            List<InvoiceReportDocumentDTO> documentDTOs = supplierDocs.stream()
+                    .sorted(Comparator.comparing(TransactionalDocument::getDate, Comparator.reverseOrder()))
+                    .map(td -> new InvoiceReportDocumentDTO(
+                            td.getId(),
+                            td.getDate(),
+                            td.getDocumentType(),
+                            td.getBranchCode(),
+                            td.getDocumentNumber(),
+                            td.getTotal(),
+                            td.getNetTotal(),
+                            td.getIvaTotal(),
+                            td.getProjectAreaTask() != null ? td.getProjectAreaTask().getId() : null,
+                            td.getProjectAreaTask() != null ? td.getProjectAreaTask().getName() : null,
+                            td.getPaid()
+                    ))
+                    .toList();
+
+            supplierGroups.add(InvoiceReportSupplierGroupDTO.builder()
+                    .supplierId(first.getSupplier().getId())
+                    .supplierLegalName(first.getSupplier().getLegalName())
+                    .supplierTradeName(first.getSupplier().getTradeName())
+                    .supplierCuit(first.getSupplier().getCuit())
+                    .totalAmount(supplierTotal)
+                    .documentCount(supplierDocs.size())
+                    .subtotalsByDocumentType(supplierDocTypeSubtotals)
+                    .documents(documentDTOs)
+                    .build());
+        }
+
+        supplierGroups.sort(Comparator
+                .comparing(InvoiceReportSupplierGroupDTO::supplierLegalName, String.CASE_INSENSITIVE_ORDER));
+
+        return supplierGroups;
+    }
+
+    private Map<DocumentType, BigDecimal> buildDocumentTypeSubtotals(List<TransactionalDocument> documents) {
+        Map<DocumentType, BigDecimal> subtotals = new EnumMap<>(DocumentType.class);
+
+        for (TransactionalDocument td : documents) {
+            subtotals.merge(td.getDocumentType(), td.getTotal(), BigDecimal::add);
+        }
+
+        return subtotals;
+    }
+
+    private void validateInvoiceFilters(InvoiceReportFilterDTO filters) {
+        if (filters.startDate() != null && filters.endDate() != null
+                && filters.startDate().isAfter(filters.endDate())) {
+            throw new InvalidReportFilterException("La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
+        if (filters.minAmount() != null && filters.maxAmount() != null
+                && filters.minAmount().compareTo(filters.maxAmount()) > 0) {
+            throw new InvalidReportFilterException("El monto mínimo no puede ser mayor al monto máximo");
+        }
+    }
+
+    private String buildInvoicePeriodDescription(InvoiceReportFilterDTO filters) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (filters.startDate() != null && filters.endDate() != null) {
             if (filters.startDate().getDayOfMonth() == 1
                     && filters.endDate().equals(filters.startDate().withDayOfMonth(
                             filters.startDate().lengthOfMonth()))
