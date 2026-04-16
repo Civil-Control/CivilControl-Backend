@@ -46,7 +46,11 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             "AND (CAST(:totalAmountMax AS big_decimal) IS NULL OR fl.totalAmount <= :totalAmountMax) " +
             "AND (CAST(:transactionalDocumentId AS long) IS NULL OR fl.transactionalDocument.id = :transactionalDocumentId) " +
             "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
-            "     OR LOWER(CAST(fl.fuelType AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))")
+            "     OR LOWER(CAST(fl.fuelType AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(gsS.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR LOWER(CAST(gsS.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "     OR CAST(fl.totalAmount AS string) LIKE CONCAT('%', CAST(:search AS string), '%') " +
+            "     OR CAST(fl.liters AS string) LIKE CONCAT('%', CAST(:search AS string), '%')))")
     Page<FuelLoad> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
             @Param("dateTo") LocalDate dateTo,
