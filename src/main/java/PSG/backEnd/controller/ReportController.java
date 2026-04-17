@@ -712,6 +712,10 @@ public class ReportController {
             @RequestParam(required = false)
             Long vehicleId,
 
+            @Parameter(description = "Filter by vehicle type ID")
+            @RequestParam(required = false)
+            Long vehicleTypeId,
+
             @Parameter(description = "Minimum amount (inclusive)")
             @RequestParam(required = false)
             BigDecimal minAmount,
@@ -723,7 +727,7 @@ public class ReportController {
         log.info("Generating fuel load report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
 
         FuelLoadReportFilterDTO filters = new FuelLoadReportFilterDTO(
-                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, vehicleTypeId, minAmount, maxAmount
         );
 
         FuelLoadReportDTO report = reportService.generateFuelLoadReport(filters);
@@ -774,6 +778,10 @@ public class ReportController {
             @RequestParam(required = false)
             Long vehicleId,
 
+            @Parameter(description = "Filter by vehicle type ID")
+            @RequestParam(required = false)
+            Long vehicleTypeId,
+
             @Parameter(description = "Minimum amount (inclusive)")
             @RequestParam(required = false)
             BigDecimal minAmount,
@@ -785,7 +793,7 @@ public class ReportController {
         log.info("Downloading fuel load report: format={}", format);
 
         FuelLoadReportFilterDTO filters = new FuelLoadReportFilterDTO(
-                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, vehicleTypeId, minAmount, maxAmount
         );
 
         return reportService.generateFuelLoadReportFile(filters, format);

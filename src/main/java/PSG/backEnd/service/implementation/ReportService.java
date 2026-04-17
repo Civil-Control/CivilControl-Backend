@@ -2071,6 +2071,15 @@ public class ReportService implements IReportService {
             ).getContent();
         }
 
+        // In-memory filter: vehicle type (not supported by repository query)
+        if (filters.vehicleTypeId() != null) {
+            allLoads = allLoads.stream()
+                    .filter(fl -> fl.getVehicle() != null
+                            && fl.getVehicle().getVehicleType() != null
+                            && filters.vehicleTypeId().equals(fl.getVehicle().getVehicleType().getId()))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
         // Build area groups (without gas station grouping — frontend handles gas station toggle)
         List<FuelLoadReportAreaGroupDTO> areaGroups = buildFuelLoadAreaGroups(allLoads);
 

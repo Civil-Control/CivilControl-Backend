@@ -28,6 +28,9 @@ public record FuelLoadReportFilterDTO(
     @Schema(description = "Filter by vehicle ID")
     Long vehicleId,
 
+    @Schema(description = "Filter by vehicle type ID")
+    Long vehicleTypeId,
+
     @Schema(description = "Minimum amount (inclusive)")
     BigDecimal minAmount,
 
