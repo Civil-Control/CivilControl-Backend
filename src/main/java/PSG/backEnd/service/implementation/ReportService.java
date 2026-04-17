@@ -2246,7 +2246,8 @@ public class ReportService implements IReportService {
                             fl.getBranchCode(),
                             fl.getTicketNumber(),
                             fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getId() : null,
-                            fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getName() : null
+                            fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getName() : null,
+                            fl.getProjectArea() != null ? fl.getProjectArea().getName() : "Sin área"
                     ))
                     .toList();
 

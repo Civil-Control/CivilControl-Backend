@@ -45,5 +45,8 @@ public record FuelLoadReportItemDTO(
     Long projectAreaTaskId,
 
     @Schema(description = "Project area task name", nullable = true)
-    String projectAreaTaskName
+    String projectAreaTaskName,
+
+    @Schema(description = "Project area name")
+    String projectAreaName
 ) {}
