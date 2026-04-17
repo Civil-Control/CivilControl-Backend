@@ -10,6 +10,7 @@ import PSG.backEnd.model.dto.report.salary.*;
 import PSG.backEnd.model.dto.report.invoice.*;
 import PSG.backEnd.model.dto.report.servicePayment.*;
 import PSG.backEnd.model.dto.report.fuelLoad.*;
+import PSG.backEnd.model.dto.report.repair.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
@@ -37,6 +38,8 @@ import PSG.backEnd.service.export.ServicePaymentReportExcelExporter;
 import PSG.backEnd.service.export.ServicePaymentReportPdfExporter;
 import PSG.backEnd.service.export.FuelLoadReportExcelExporter;
 import PSG.backEnd.service.export.FuelLoadReportPdfExporter;
+import PSG.backEnd.service.export.RepairReportExcelExporter;
+import PSG.backEnd.service.export.RepairReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -86,6 +89,10 @@ public class ReportService implements IReportService {
     private final FuelLoadReportExcelExporter fuelLoadExcelExporter;
     private final FuelLoadReportPdfExporter fuelLoadPdfExporter;
 
+    // Repair report exporters
+    private final RepairReportExcelExporter repairExcelExporter;
+    private final RepairReportPdfExporter repairPdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -113,6 +120,8 @@ public class ReportService implements IReportService {
             ServicePaymentReportPdfExporter servicePaymentPdfExporter,
             FuelLoadReportExcelExporter fuelLoadExcelExporter,
             FuelLoadReportPdfExporter fuelLoadPdfExporter,
+            RepairReportExcelExporter repairExcelExporter,
+            RepairReportPdfExporter repairPdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -139,6 +148,8 @@ public class ReportService implements IReportService {
         this.servicePaymentPdfExporter = servicePaymentPdfExporter;
         this.fuelLoadExcelExporter = fuelLoadExcelExporter;
         this.fuelLoadPdfExporter = fuelLoadPdfExporter;
+        this.repairExcelExporter = repairExcelExporter;
+        this.repairPdfExporter = repairPdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -2394,6 +2405,311 @@ public class ReportService implements IReportService {
     }
 
     private String buildFuelLoadPeriodDescription(FuelLoadReportFilterDTO filters) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (filters.startDate() != null && filters.endDate() != null) {
+            if (filters.startDate().getDayOfMonth() == 1
+                    && filters.endDate().equals(filters.startDate().withDayOfMonth(
+                            filters.startDate().lengthOfMonth()))
+                    && filters.startDate().getMonth() == filters.endDate().getMonth()
+                    && filters.startDate().getYear() == filters.endDate().getYear()) {
+                String monthName = filters.startDate().getMonth()
+                        .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "AR"));
+                monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
+                return monthName + " " + filters.startDate().getYear();
+            }
+            return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
+        } else if (filters.startDate() != null) {
+            return "Desde: " + filters.startDate().format(fmt);
+        } else if (filters.endDate() != null) {
+            return "Hasta: " + filters.endDate().format(fmt);
+        }
+        return "Sin filtro de período";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // REPAIR REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional(readOnly = true)
+    public RepairReportDTO generateRepairReport(RepairReportFilterDTO filters) {
+        log.info("Generating repair report with filters: {}", filters);
+
+        validateRepairFilters(filters);
+
+        Pageable pageable = PageRequest.of(0, 10000);
+
+        List<Long> areaIds = filters.projectAreaIds();
+
+        List<Repair> allRepairs;
+        if (areaIds != null && areaIds.size() > 1) {
+            allRepairs = new ArrayList<>();
+            for (Long areaId : areaIds) {
+                allRepairs.addAll(repairRepository.findAllWithFilters(
+                        filters.startDate(), filters.endDate(),
+                        filters.vehicleId(), null,
+                        areaId,
+                        filters.minAmount(), filters.maxAmount(),
+                        filters.supplierId(), null,
+                        null, null, null, null, null, null, false,
+                        pageable
+                ).getContent());
+            }
+        } else {
+            Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
+            allRepairs = repairRepository.findAllWithFilters(
+                    filters.startDate(), filters.endDate(),
+                    filters.vehicleId(), null,
+                    effectiveAreaId,
+                    filters.minAmount(), filters.maxAmount(),
+                    filters.supplierId(), null,
+                    null, null, null, null, null, null, false,
+                    pageable
+            ).getContent();
+        }
+
+        List<RepairReportAreaGroupDTO> areaGroups = buildRepairAreaGroups(allRepairs);
+
+        BigDecimal totalMaterialCost = BigDecimal.ZERO;
+        BigDecimal totalLaborCost = BigDecimal.ZERO;
+        for (Repair r : allRepairs) {
+            for (RepairItem item : r.getItems()) {
+                BigDecimal amt = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+                if (item.getItemType() == RepairItemType.MATERIAL) {
+                    totalMaterialCost = totalMaterialCost.add(amt);
+                } else if (item.getItemType() == RepairItemType.MANO_DE_OBRA) {
+                    totalLaborCost = totalLaborCost.add(amt);
+                }
+            }
+        }
+
+        BigDecimal totalAmount = totalMaterialCost.add(totalLaborCost);
+
+        Map<String, BigDecimal> totalsByItemType = new LinkedHashMap<>();
+        totalsByItemType.put(RepairItemType.MATERIAL.name(), totalMaterialCost);
+        totalsByItemType.put(RepairItemType.MANO_DE_OBRA.name(), totalLaborCost);
+
+        String periodDesc = buildRepairPeriodDescription(filters);
+
+        return RepairReportDTO.builder()
+                .filters(filters)
+                .areaGroups(areaGroups)
+                .totalAmount(totalAmount)
+                .totalCount(allRepairs.size())
+                .totalMaterialCost(totalMaterialCost)
+                .totalLaborCost(totalLaborCost)
+                .totalsByItemType(totalsByItemType)
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte de Reparaciones")
+                .periodDescription(periodDesc)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generateRepairReportFile(RepairReportFilterDTO filters, ReportFormat format) {
+        log.info("Generating repair report file: format={}", format);
+
+        RepairReportDTO report = generateRepairReport(filters);
+
+        byte[] content;
+        switch (format) {
+            case EXCEL -> content = repairExcelExporter.export(report);
+            case PDF -> content = repairPdfExporter.export(report);
+            default -> throw new InvalidReportFormatException(format.name());
+        }
+
+        String filename = "reporte_reparaciones_" +
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
+                .body(content);
+    }
+
+    private List<RepairReportAreaGroupDTO> buildRepairAreaGroups(List<Repair> repairs) {
+        Map<Long, List<Repair>> byArea = new LinkedHashMap<>();
+
+        for (Repair r : repairs) {
+            Long areaId = r.getVehicle() != null && r.getVehicle().getProjectArea() != null
+                    ? r.getVehicle().getProjectArea().getId() : -1L;
+            byArea.computeIfAbsent(areaId, k -> new ArrayList<>()).add(r);
+        }
+
+        List<RepairReportAreaGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<Repair>> entry : byArea.entrySet()) {
+            Long areaId = entry.getKey();
+            List<Repair> areaRepairs = entry.getValue();
+
+            String areaName;
+            String areaColor;
+            Long areaIdDTO;
+
+            if (areaId == -1L) {
+                areaIdDTO = null;
+                areaName = "Sin área asignada";
+                areaColor = null;
+            } else {
+                areaIdDTO = areaId;
+                var pa = areaRepairs.get(0).getVehicle().getProjectArea();
+                areaName = pa.getName();
+                areaColor = pa.getColor();
+            }
+
+            List<RepairReportVehicleGroupDTO> vehicleGroups = buildRepairVehicleGroups(areaRepairs, areaName);
+
+            BigDecimal materialSubtotal = BigDecimal.ZERO;
+            BigDecimal laborSubtotal = BigDecimal.ZERO;
+            for (Repair r : areaRepairs) {
+                for (RepairItem item : r.getItems()) {
+                    BigDecimal amt = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+                    if (item.getItemType() == RepairItemType.MATERIAL) {
+                        materialSubtotal = materialSubtotal.add(amt);
+                    } else if (item.getItemType() == RepairItemType.MANO_DE_OBRA) {
+                        laborSubtotal = laborSubtotal.add(amt);
+                    }
+                }
+            }
+
+            groups.add(RepairReportAreaGroupDTO.builder()
+                    .projectAreaId(areaIdDTO)
+                    .projectAreaName(areaName)
+                    .projectAreaColor(areaColor)
+                    .subtotalAmount(materialSubtotal.add(laborSubtotal))
+                    .repairCount(areaRepairs.size())
+                    .materialSubtotal(materialSubtotal)
+                    .laborSubtotal(laborSubtotal)
+                    .vehicleGroups(vehicleGroups)
+                    .build());
+        }
+
+        groups.sort((a, b) -> {
+            if (a.projectAreaId() == null) return 1;
+            if (b.projectAreaId() == null) return -1;
+            return a.projectAreaName().compareToIgnoreCase(b.projectAreaName());
+        });
+
+        return groups;
+    }
+
+    private List<RepairReportVehicleGroupDTO> buildRepairVehicleGroups(List<Repair> areaRepairs, String areaName) {
+        Map<Long, List<Repair>> byVehicle = new LinkedHashMap<>();
+        for (Repair r : areaRepairs) {
+            Long vehicleId = r.getVehicle() != null ? r.getVehicle().getId() : -1L;
+            byVehicle.computeIfAbsent(vehicleId, k -> new ArrayList<>()).add(r);
+        }
+
+        List<RepairReportVehicleGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<Repair>> entry : byVehicle.entrySet()) {
+            Long vehicleId = entry.getKey();
+            List<Repair> vehicleRepairs = entry.getValue();
+
+            String licensePlate;
+            String brand;
+            String model;
+            Long vehicleIdDTO;
+
+            if (vehicleId == -1L) {
+                vehicleIdDTO = null;
+                licensePlate = "Sin vehículo";
+                brand = null;
+                model = null;
+            } else {
+                vehicleIdDTO = vehicleId;
+                var vehicle = vehicleRepairs.get(0).getVehicle();
+                licensePlate = vehicle.getLicensePlate();
+                brand = vehicle.getBrand();
+                model = vehicle.getModel();
+            }
+
+            BigDecimal materialSubtotal = BigDecimal.ZERO;
+            BigDecimal laborSubtotal = BigDecimal.ZERO;
+            for (Repair r : vehicleRepairs) {
+                for (RepairItem item : r.getItems()) {
+                    BigDecimal amt = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+                    if (item.getItemType() == RepairItemType.MATERIAL) {
+                        materialSubtotal = materialSubtotal.add(amt);
+                    } else if (item.getItemType() == RepairItemType.MANO_DE_OBRA) {
+                        laborSubtotal = laborSubtotal.add(amt);
+                    }
+                }
+            }
+
+            List<RepairReportItemDTO> items = vehicleRepairs.stream()
+                    .sorted(Comparator.comparing(Repair::getDate, Comparator.reverseOrder()))
+                    .map(r -> {
+                        BigDecimal matCost = BigDecimal.ZERO;
+                        BigDecimal labCost = BigDecimal.ZERO;
+                        boolean hasLinked = false;
+                        for (RepairItem ri : r.getItems()) {
+                            BigDecimal amt = ri.getAmount() != null ? ri.getAmount() : BigDecimal.ZERO;
+                            if (ri.getItemType() == RepairItemType.MATERIAL) {
+                                matCost = matCost.add(amt);
+                            } else if (ri.getItemType() == RepairItemType.MANO_DE_OBRA) {
+                                labCost = labCost.add(amt);
+                            }
+                            if (ri.getTransactionalDocument() != null) {
+                                hasLinked = true;
+                            }
+                        }
+                        return new RepairReportItemDTO(
+                                r.getId(),
+                                r.getDate(),
+                                r.getDescription(),
+                                r.getMileage(),
+                                matCost,
+                                labCost,
+                                matCost.add(labCost),
+                                r.getSupplier() != null ? r.getSupplier().getLegalName() : null,
+                                r.getItems().size(),
+                                hasLinked,
+                                r.getVehicle() != null ? r.getVehicle().getLicensePlate() : null,
+                                r.getVehicle() != null ? buildVehicleDescription(r.getVehicle()) : null,
+                                areaName
+                        );
+                    })
+                    .toList();
+
+            groups.add(RepairReportVehicleGroupDTO.builder()
+                    .vehicleId(vehicleIdDTO)
+                    .vehicleLicensePlate(licensePlate)
+                    .vehicleBrand(brand)
+                    .vehicleModel(model)
+                    .totalAmount(materialSubtotal.add(laborSubtotal))
+                    .repairCount(vehicleRepairs.size())
+                    .materialSubtotal(materialSubtotal)
+                    .laborSubtotal(laborSubtotal)
+                    .repairs(items)
+                    .build());
+        }
+
+        groups.sort((a, b) -> {
+            if (a.vehicleId() == null) return 1;
+            if (b.vehicleId() == null) return -1;
+            return a.vehicleLicensePlate().compareToIgnoreCase(b.vehicleLicensePlate());
+        });
+
+        return groups;
+    }
+
+    private void validateRepairFilters(RepairReportFilterDTO filters) {
+        if (filters.startDate() != null && filters.endDate() != null
+                && filters.startDate().isAfter(filters.endDate())) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.date.range.invalid"));
+        }
+        if (filters.minAmount() != null && filters.maxAmount() != null
+                && filters.minAmount().compareTo(filters.maxAmount()) > 0) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.amount.range.invalid"));
+        }
+    }
+
+    private String buildRepairPeriodDescription(RepairReportFilterDTO filters) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filters.startDate() != null && filters.endDate() != null) {
             if (filters.startDate().getDayOfMonth() == 1

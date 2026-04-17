@@ -11,6 +11,8 @@ import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportDTO;
 import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportFilterDTO;
 import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportDTO;
 import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportFilterDTO;
+import PSG.backEnd.model.dto.report.repair.RepairReportDTO;
+import PSG.backEnd.model.dto.report.repair.RepairReportFilterDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.ServiceType;
@@ -797,5 +799,118 @@ public class ReportController {
         );
 
         return reportService.generateFuelLoadReportFile(filters, format);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // REPAIR REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/repairs")
+    @Operation(
+            summary = "Generate repair report data",
+            description = "Generates a hierarchical repair report grouped by project area and vehicle. " +
+                    "Includes material and labor cost subtotals at each level."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<RepairReportDTO> generateRepairReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by vehicle ID")
+            @RequestParam(required = false)
+            Long vehicleId,
+
+            @Parameter(description = "Filter by supplier ID (external repairs)")
+            @RequestParam(required = false)
+            Long supplierId,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Generating repair report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
+
+        RepairReportFilterDTO filters = new RepairReportFilterDTO(
+                startDate, endDate, projectAreaIds, vehicleId, supplierId, minAmount, maxAmount
+        );
+
+        RepairReportDTO report = reportService.generateRepairReport(filters);
+
+        log.info("Repair report generated: {} repairs, total: ${}", report.totalCount(), report.totalAmount());
+
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/repairs/download")
+    @Operation(
+            summary = "Download repair report file",
+            description = "Generates and downloads a repair report in the specified format (PDF or EXCEL)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadRepairReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam
+            ReportFormat format,
+
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by vehicle ID")
+            @RequestParam(required = false)
+            Long vehicleId,
+
+            @Parameter(description = "Filter by supplier ID (external repairs)")
+            @RequestParam(required = false)
+            Long supplierId,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Downloading repair report: format={}", format);
+
+        RepairReportFilterDTO filters = new RepairReportFilterDTO(
+                startDate, endDate, projectAreaIds, vehicleId, supplierId, minAmount, maxAmount
+        );
+
+        return reportService.generateRepairReportFile(filters, format);
     }
 }

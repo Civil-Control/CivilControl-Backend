@@ -12,6 +12,8 @@ import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportDTO;
 import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportFilterDTO;
 import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportDTO;
 import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportFilterDTO;
+import PSG.backEnd.model.dto.report.repair.RepairReportDTO;
+import PSG.backEnd.model.dto.report.repair.RepairReportFilterDTO;
 import PSG.backEnd.model.enums.ReportFormat;
 import org.springframework.http.ResponseEntity;
 
@@ -89,5 +91,9 @@ public interface IReportService {
     FuelLoadReportDTO generateFuelLoadReport(FuelLoadReportFilterDTO filters);
 
     ResponseEntity<byte[]> generateFuelLoadReportFile(FuelLoadReportFilterDTO filters, ReportFormat format);
+
+    RepairReportDTO generateRepairReport(RepairReportFilterDTO filters);
+
+    ResponseEntity<byte[]> generateRepairReportFile(RepairReportFilterDTO filters, ReportFormat format);
 }
 
