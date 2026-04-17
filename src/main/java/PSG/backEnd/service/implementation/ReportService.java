@@ -1184,7 +1184,7 @@ public class ReportService implements IReportService {
                 areaColor = first.getEmployee().getProjectArea().getColor();
             }
 
-            List<SalaryReportEmployeeGroupDTO> employeeGroups = buildEmployeeGroups(areaPayments);
+            List<SalaryReportEmployeeGroupDTO> employeeGroups = buildEmployeeGroups(areaPayments, areaName);
 
             BigDecimal subtotal = areaPayments.stream()
                     .map(SalaryPayment::getAmount)
@@ -1216,7 +1216,7 @@ public class ReportService implements IReportService {
     /**
      * Builds employee groups within an area, sorted alphabetically by lastName then name.
      */
-    private List<SalaryReportEmployeeGroupDTO> buildEmployeeGroups(List<SalaryPayment> areaPayments) {
+    private List<SalaryReportEmployeeGroupDTO> buildEmployeeGroups(List<SalaryPayment> areaPayments, String areaName) {
         // Group by employee ID
         Map<Long, List<SalaryPayment>> byEmployee = new LinkedHashMap<>();
         for (SalaryPayment sp : areaPayments) {
@@ -1248,7 +1248,8 @@ public class ReportService implements IReportService {
                             sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getId() : null,
                             sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null,
                             sp.getEmployee().getName(),
-                            sp.getEmployee().getLastName()
+                            sp.getEmployee().getLastName(),
+                            areaName
                     ))
                     .toList();
 
@@ -1481,7 +1482,7 @@ public class ReportService implements IReportService {
                 areaColor = first.getProjectArea().getColor();
             }
 
-            List<InvoiceReportSupplierGroupDTO> supplierGroups = buildSupplierGroups(areaDocs);
+            List<InvoiceReportSupplierGroupDTO> supplierGroups = buildSupplierGroups(areaDocs, areaName);
 
             BigDecimal subtotal = areaDocs.stream()
                     .map(TransactionalDocument::getTotal)
@@ -1529,7 +1530,7 @@ public class ReportService implements IReportService {
         return groups;
     }
 
-    private List<InvoiceReportSupplierGroupDTO> buildSupplierGroups(List<TransactionalDocument> areaDocs) {
+    private List<InvoiceReportSupplierGroupDTO> buildSupplierGroups(List<TransactionalDocument> areaDocs, String areaName) {
         Map<Long, List<TransactionalDocument>> bySupplier = new LinkedHashMap<>();
         for (TransactionalDocument td : areaDocs) {
             bySupplier.computeIfAbsent(td.getSupplier().getId(), k -> new ArrayList<>()).add(td);
@@ -1579,7 +1580,8 @@ public class ReportService implements IReportService {
                             td.getSupplier().getLegalName(),
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getId() : null,
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getName() : null,
-                            td.getPaid()
+                            td.getPaid(),
+                            areaName
                     ))
                     .toList();
 
@@ -1854,7 +1856,7 @@ public class ReportService implements IReportService {
                 areaColor = first.getProjectArea().getColor();
             }
 
-            List<ServicePaymentReportBuildingGroupDTO> buildingGroups = buildBuildingGroups(areaPayments);
+            List<ServicePaymentReportBuildingGroupDTO> buildingGroups = buildBuildingGroups(areaPayments, areaName);
 
             BigDecimal subtotal = areaPayments.stream()
                     .map(ServicePayment::getAmount)
@@ -1889,7 +1891,7 @@ public class ReportService implements IReportService {
      * Builds building groups within an area.
      * Building services group by building, vehicle services group under "Sin Edificio asignado".
      */
-    private List<ServicePaymentReportBuildingGroupDTO> buildBuildingGroups(List<ServicePayment> areaPayments) {
+    private List<ServicePaymentReportBuildingGroupDTO> buildBuildingGroups(List<ServicePayment> areaPayments, String areaName) {
         // Group by building, using -1L sentinel for payments without building (vehicle or unassigned)
         Map<Long, List<ServicePayment>> byBuilding = new LinkedHashMap<>();
         for (ServicePayment sp : areaPayments) {
@@ -1935,7 +1937,8 @@ public class ReportService implements IReportService {
                             sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getId() : null,
                             sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null,
                             buildingName,
-                            sp.getServiceAssignment().getSubjectType().name()
+                            sp.getServiceAssignment().getSubjectType().name(),
+                            areaName
                     ))
                     .toList();
 

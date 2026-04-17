@@ -21,5 +21,6 @@ public record InvoiceReportDocumentDTO(
     String supplierLegalName,
     Long projectAreaTaskId,
     String projectAreaTaskName,
-    Boolean paid
+    Boolean paid,
+    String projectAreaName
 ) {}

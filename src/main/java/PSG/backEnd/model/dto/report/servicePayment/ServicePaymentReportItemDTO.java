@@ -49,5 +49,8 @@ public record ServicePaymentReportItemDTO(
     String buildingName,
 
     @Schema(description = "Subject type: BUILDING or VEHICLE")
-    String subjectType
+    String subjectType,
+
+    @Schema(description = "Project area name")
+    String projectAreaName
 ) {}

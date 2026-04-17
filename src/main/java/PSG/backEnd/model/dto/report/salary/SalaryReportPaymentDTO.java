@@ -35,5 +35,8 @@ public record SalaryReportPaymentDTO(
     String employeeName,
 
     @Schema(description = "Employee last name (for flat view)", nullable = true)
-    String employeeLastName
+    String employeeLastName,
+
+    @Schema(description = "Project area name")
+    String projectAreaName
 ) {}
