@@ -6,7 +6,7 @@ public enum ServiceType {
     GAS("Gas"),
     INTERNET("Internet"),
     TELEFONIA("Telefonia"),
-    MUNICIPALES("Servicios Municipales"),
+    MUNICIPALES("Tasas Municipales"),
     PROVINCIALES("Servicios Provinciales"),
     NACIONALES("Servicios Nacionales"),
     OTRO("Otro");

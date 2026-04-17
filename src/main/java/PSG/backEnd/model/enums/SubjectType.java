@@ -2,7 +2,7 @@ package PSG.backEnd.model.enums;
 
 public enum SubjectType {
     BUILDING("Inmueble"),
-    VEHICLE("Vehículo");
+    VEHICLE("Rodado");
 
     private final String displayName;
 
