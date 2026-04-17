@@ -27,6 +27,9 @@ public record ServicePaymentReportDTO(
     @Schema(description = "Totals by service type")
     Map<String, BigDecimal> totalsByServiceType,
 
+    @Schema(description = "Totals by subject type (BUILDING, VEHICLE)")
+    Map<String, BigDecimal> totalsBySubjectType,
+
     @Schema(description = "Report generation timestamp")
     LocalDateTime generatedAt,
 

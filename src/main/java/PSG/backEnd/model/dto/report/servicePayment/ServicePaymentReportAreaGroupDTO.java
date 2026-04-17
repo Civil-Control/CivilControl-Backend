@@ -29,6 +29,9 @@ public record ServicePaymentReportAreaGroupDTO(
     @Schema(description = "Subtotals by service type")
     Map<String, BigDecimal> subtotalsByServiceType,
 
+    @Schema(description = "Subtotals by subject type (BUILDING, VEHICLE)")
+    Map<String, BigDecimal> subtotalsBySubjectType,
+
     @Schema(description = "Building groups within this area")
     List<ServicePaymentReportBuildingGroupDTO> buildingGroups
 ) {}

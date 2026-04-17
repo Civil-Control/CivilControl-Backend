@@ -1,6 +1,7 @@
 package PSG.backEnd.model.dto.report.servicePayment;
 
 import PSG.backEnd.model.enums.ServiceType;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -22,6 +23,9 @@ public record ServicePaymentReportFilterDTO(
 
     @Schema(description = "Filter by service type")
     ServiceType serviceType,
+
+    @Schema(description = "Filter by subject type (BUILDING or VEHICLE)")
+    SubjectType subjectType,
 
     @Schema(description = "Filter by payment method")
     PaymentMethod paymentMethod,

@@ -3,6 +3,7 @@ package PSG.backEnd.service.export;
 import PSG.backEnd.exception.report.ReportGenerationException;
 import PSG.backEnd.model.dto.report.servicePayment.*;
 import PSG.backEnd.model.enums.ServiceType;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,12 +61,17 @@ public class ServicePaymentReportExcelExporter {
                     .filter(st -> report.totalsByServiceType().containsKey(st.name()))
                     .toList();
 
-            createAreaSummarySheet(workbook, report, activeServiceTypes,
+            // Determine which subject types exist in the report
+            List<SubjectType> activeSubjectTypes = List.of(SubjectType.BUILDING, SubjectType.VEHICLE).stream()
+                    .filter(st -> report.totalsBySubjectType().containsKey(st.name()))
+                    .toList();
+
+            createAreaSummarySheet(workbook, report, activeServiceTypes, activeSubjectTypes,
                     headerStyle, currencyStyle, totalStyle, totalLabelStyle, titleCellStyle);
             createBuildingSummarySheet(workbook, report, activeServiceTypes,
                     headerStyle, currencyStyle, totalStyle, totalLabelStyle,
                     titleCellStyle, subtotalStyle, subtotalLabelStyle);
-            createPaymentDetailSheet(workbook, report,
+            createPaymentDetailSheet(workbook, report, activeSubjectTypes,
                     headerStyle, currencyStyle, totalStyle, totalLabelStyle, dateStyle,
                     titleCellStyle, subtotalStyle, subtotalLabelStyle);
 
@@ -87,6 +93,7 @@ public class ServicePaymentReportExcelExporter {
 
     private void createAreaSummarySheet(Workbook workbook, ServicePaymentReportDTO report,
                                          List<ServiceType> activeServiceTypes,
+                                         List<SubjectType> activeSubjectTypes,
                                          CellStyle headerStyle, CellStyle currencyStyle,
                                          CellStyle totalStyle, CellStyle totalLabelStyle,
                                          CellStyle titleCellStyle) {
@@ -94,14 +101,17 @@ public class ServicePaymentReportExcelExporter {
         int rowNum = 0;
 
         rowNum = addSheetHeader(sheet, "REPORTE DE PAGO DE SERVICIOS - RESUMEN POR ÁREA", report, titleCellStyle,
-                3 + activeServiceTypes.size());
+                3 + activeServiceTypes.size() + activeSubjectTypes.size());
         rowNum++;
 
-        // Headers: Área | Cant. Pagos | [service type columns...] | Total
+        // Headers: Área | Cant. Pagos | [subject type columns...] | [service type columns...] | Total
         Row headerRow = sheet.createRow(rowNum++);
         int col = 0;
         setCellWithStyle(headerRow, col++, "Área", headerStyle);
         setCellWithStyle(headerRow, col++, "Cant. Pagos", headerStyle);
+        for (SubjectType st : activeSubjectTypes) {
+            setCellWithStyle(headerRow, col++, "Total " + st.getDisplayName(), headerStyle);
+        }
         for (ServiceType st : activeServiceTypes) {
             setCellWithStyle(headerRow, col++, "Total " + st.getDisplayName(), headerStyle);
         }
@@ -113,6 +123,12 @@ public class ServicePaymentReportExcelExporter {
             int c = 0;
             row.createCell(c++).setCellValue(area.projectAreaName());
             row.createCell(c++).setCellValue(area.paymentCount());
+            for (SubjectType st : activeSubjectTypes) {
+                Cell cell = row.createCell(c++);
+                BigDecimal val = area.subtotalsBySubjectType().getOrDefault(st.name(), BigDecimal.ZERO);
+                cell.setCellValue(val.doubleValue());
+                cell.setCellStyle(currencyStyle);
+            }
             for (ServiceType st : activeServiceTypes) {
                 Cell cell = row.createCell(c++);
                 BigDecimal val = area.subtotalsByServiceType().getOrDefault(st.name(), BigDecimal.ZERO);
@@ -134,6 +150,12 @@ public class ServicePaymentReportExcelExporter {
         Cell totalCountCell = totalRow.createCell(tc++);
         totalCountCell.setCellValue(report.totalCount());
         totalCountCell.setCellStyle(totalStyle);
+        for (SubjectType st : activeSubjectTypes) {
+            Cell cell = totalRow.createCell(tc++);
+            BigDecimal val = report.totalsBySubjectType().getOrDefault(st.name(), BigDecimal.ZERO);
+            cell.setCellValue(val.doubleValue());
+            cell.setCellStyle(totalStyle);
+        }
         for (ServiceType st : activeServiceTypes) {
             Cell cell = totalRow.createCell(tc++);
             BigDecimal val = report.totalsByServiceType().getOrDefault(st.name(), BigDecimal.ZERO);
@@ -256,6 +278,7 @@ public class ServicePaymentReportExcelExporter {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void createPaymentDetailSheet(Workbook workbook, ServicePaymentReportDTO report,
+                                           List<SubjectType> activeSubjectTypes,
                                            CellStyle headerStyle, CellStyle currencyStyle,
                                            CellStyle totalStyle, CellStyle totalLabelStyle,
                                            CellStyle dateStyle,
@@ -264,7 +287,7 @@ public class ServicePaymentReportExcelExporter {
         Sheet sheet = workbook.createSheet("Detalle de Pagos");
         int rowNum = 0;
 
-        int detailCols = 9;
+        int detailCols = 10;
         rowNum = addSheetHeader(sheet, "REPORTE DE PAGO DE SERVICIOS - DETALLE DE PAGOS", report, titleCellStyle, detailCols);
         rowNum++;
 
@@ -272,13 +295,14 @@ public class ServicePaymentReportExcelExporter {
         Row headerRow = sheet.createRow(rowNum++);
         setCellWithStyle(headerRow, 0, "Área", headerStyle);
         setCellWithStyle(headerRow, 1, "Edificio", headerStyle);
-        setCellWithStyle(headerRow, 2, "Proveedor", headerStyle);
-        setCellWithStyle(headerRow, 3, "Fecha", headerStyle);
-        setCellWithStyle(headerRow, 4, "Tipo Servicio", headerStyle);
-        setCellWithStyle(headerRow, 5, "Año/Período", headerStyle);
-        setCellWithStyle(headerRow, 6, "Referencia", headerStyle);
-        setCellWithStyle(headerRow, 7, "Método Pago", headerStyle);
-        setCellWithStyle(headerRow, 8, "Monto", headerStyle);
+        setCellWithStyle(headerRow, 2, "Tipo", headerStyle);
+        setCellWithStyle(headerRow, 3, "Proveedor", headerStyle);
+        setCellWithStyle(headerRow, 4, "Fecha", headerStyle);
+        setCellWithStyle(headerRow, 5, "Tipo Servicio", headerStyle);
+        setCellWithStyle(headerRow, 6, "Año/Período", headerStyle);
+        setCellWithStyle(headerRow, 7, "Referencia", headerStyle);
+        setCellWithStyle(headerRow, 8, "Método Pago", headerStyle);
+        setCellWithStyle(headerRow, 9, "Monto", headerStyle);
 
         for (ServicePaymentReportAreaGroupDTO area : report.areaGroups()) {
             for (ServicePaymentReportBuildingGroupDTO building : area.buildingGroups()) {
@@ -290,19 +314,20 @@ public class ServicePaymentReportExcelExporter {
                     }
                     row.createCell(0).setCellValue(areaDisplay);
                     row.createCell(1).setCellValue(building.buildingName());
-                    row.createCell(2).setCellValue(payment.supplierName());
+                    row.createCell(2).setCellValue(getSubjectTypeDisplayName(payment.subjectType()));
+                    row.createCell(3).setCellValue(payment.supplierName());
 
-                    Cell dateCell = row.createCell(3);
+                    Cell dateCell = row.createCell(4);
                     dateCell.setCellValue(payment.paymentDate().format(DATE_FORMATTER));
                     dateCell.setCellStyle(dateStyle);
 
-                    row.createCell(4).setCellValue(getServiceTypeDisplayName(payment.serviceType()));
-                    row.createCell(5).setCellValue(formatYearPeriod(payment.year(), payment.period()));
-                    row.createCell(6).setCellValue(payment.referenceNumber() != null ? payment.referenceNumber() : "-");
-                    row.createCell(7).setCellValue(
+                    row.createCell(5).setCellValue(getServiceTypeDisplayName(payment.serviceType()));
+                    row.createCell(6).setCellValue(formatYearPeriod(payment.year(), payment.period()));
+                    row.createCell(7).setCellValue(payment.referenceNumber() != null ? payment.referenceNumber() : "-");
+                    row.createCell(8).setCellValue(
                             payment.paymentMethod() != null ? payment.paymentMethod().getDisplayName() : "-");
 
-                    Cell amountCell = row.createCell(8);
+                    Cell amountCell = row.createCell(9);
                     amountCell.setCellValue(payment.amount().doubleValue());
                     amountCell.setCellStyle(currencyStyle);
                 }
@@ -313,11 +338,11 @@ public class ServicePaymentReportExcelExporter {
                 Cell bLabel = bSubRow.createCell(0);
                 bLabel.setCellValue("Subtotal " + building.buildingName());
                 bLabel.setCellStyle(subtotalLabelStyle);
-                for (int i = 1; i <= 7; i++) {
+                for (int i = 1; i <= 8; i++) {
                     bSubRow.createCell(i).setCellStyle(subtotalLabelStyle);
                 }
-                sheet.addMergedRegion(new CellRangeAddress(bSubRowNum, bSubRowNum, 0, 7));
-                Cell bTotal = bSubRow.createCell(8);
+                sheet.addMergedRegion(new CellRangeAddress(bSubRowNum, bSubRowNum, 0, 8));
+                Cell bTotal = bSubRow.createCell(9);
                 bTotal.setCellValue(building.totalAmount().doubleValue());
                 bTotal.setCellStyle(subtotalStyle);
             }
@@ -328,11 +353,11 @@ public class ServicePaymentReportExcelExporter {
             Cell aLabel = aSubRow.createCell(0);
             aLabel.setCellValue("Subtotal " + area.projectAreaName() + " (" + area.paymentCount() + " pagos)");
             aLabel.setCellStyle(subtotalLabelStyle);
-            for (int i = 1; i <= 7; i++) {
+            for (int i = 1; i <= 8; i++) {
                 aSubRow.createCell(i).setCellStyle(subtotalLabelStyle);
             }
-            sheet.addMergedRegion(new CellRangeAddress(aSubRowNum, aSubRowNum, 0, 7));
-            Cell aTotal = aSubRow.createCell(8);
+            sheet.addMergedRegion(new CellRangeAddress(aSubRowNum, aSubRowNum, 0, 8));
+            Cell aTotal = aSubRow.createCell(9);
             aTotal.setCellValue(area.subtotalAmount().doubleValue());
             aTotal.setCellStyle(subtotalStyle);
 
@@ -345,11 +370,11 @@ public class ServicePaymentReportExcelExporter {
         Cell totalLabel = totalRow.createCell(0);
         totalLabel.setCellValue("TOTAL GENERAL (" + report.totalCount() + " pagos)");
         totalLabel.setCellStyle(totalLabelStyle);
-        for (int i = 1; i <= 7; i++) {
+        for (int i = 1; i <= 8; i++) {
             totalRow.createCell(i).setCellStyle(totalLabelStyle);
         }
-        sheet.addMergedRegion(new CellRangeAddress(gtRowNum, gtRowNum, 0, 7));
-        Cell grandTotal = totalRow.createCell(8);
+        sheet.addMergedRegion(new CellRangeAddress(gtRowNum, gtRowNum, 0, 8));
+        Cell grandTotal = totalRow.createCell(9);
         grandTotal.setCellValue(report.totalAmount().doubleValue());
         grandTotal.setCellStyle(totalStyle);
 
@@ -401,6 +426,14 @@ public class ServicePaymentReportExcelExporter {
             return ServiceType.valueOf(serviceType).getDisplayName();
         } catch (IllegalArgumentException e) {
             return serviceType;
+        }
+    }
+
+    private String getSubjectTypeDisplayName(String subjectType) {
+        try {
+            return SubjectType.valueOf(subjectType).getDisplayName();
+        } catch (IllegalArgumentException e) {
+            return subjectType;
         }
     }
 

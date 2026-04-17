@@ -3,6 +3,7 @@ package PSG.backEnd.service.export;
 import PSG.backEnd.exception.report.ReportGenerationException;
 import PSG.backEnd.model.dto.report.servicePayment.*;
 import PSG.backEnd.model.enums.ServiceType;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
@@ -204,11 +205,12 @@ public class ServicePaymentReportPdfExporter {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void addPaymentDetailTable(Document document, ServicePaymentReportDTO report) {
-        Table table = new Table(new float[]{2f, 2f, 2f, 1.2f, 1.2f, 1f, 1f, 1f, 1.5f});
+        Table table = new Table(new float[]{2f, 2f, 0.9f, 2f, 1.2f, 1.2f, 1f, 1f, 1f, 1.5f});
         table.setWidth(UnitValue.createPercentValue(100));
 
         table.addHeaderCell(headerCell("Área"));
         table.addHeaderCell(headerCell("Edificio"));
+        table.addHeaderCell(headerCell("Tipo"));
         table.addHeaderCell(headerCell("Proveedor"));
         table.addHeaderCell(headerCell("Fecha"));
         table.addHeaderCell(headerCell("Tipo Servicio"));
@@ -226,6 +228,9 @@ public class ServicePaymentReportPdfExporter {
                     }
                     table.addCell(new Cell().add(new Paragraph(areaDisplay).setFontSize(8)));
                     table.addCell(new Cell().add(new Paragraph(building.buildingName()).setFontSize(8)));
+                    table.addCell(new Cell().add(new Paragraph(
+                            getSubjectTypeDisplayName(payment.subjectType())).setFontSize(8))
+                            .setTextAlignment(TextAlignment.CENTER));
                     table.addCell(new Cell().add(new Paragraph(payment.supplierName()).setFontSize(8)));
                     table.addCell(new Cell().add(new Paragraph(
                             payment.paymentDate().format(DATE_FORMATTER)).setFontSize(8))
@@ -247,7 +252,7 @@ public class ServicePaymentReportPdfExporter {
                 }
 
                 // Building subtotal
-                table.addCell(new Cell(1, 8).add(new Paragraph(
+                table.addCell(new Cell(1, 9).add(new Paragraph(
                         "Subtotal " + building.buildingName())
                         .setFontSize(8).setBold().setItalic())
                         .setBackgroundColor(SUBTOTAL_COLOR).setPadding(3));
@@ -258,7 +263,7 @@ public class ServicePaymentReportPdfExporter {
             }
 
             // Area subtotal
-            table.addCell(new Cell(1, 8).add(new Paragraph(
+            table.addCell(new Cell(1, 9).add(new Paragraph(
                     "Subtotal " + area.projectAreaName() + " (" + area.paymentCount() + " pagos)")
                     .setFontSize(9).setBold())
                     .setBackgroundColor(SUBTOTAL_COLOR).setPadding(4));
@@ -269,7 +274,7 @@ public class ServicePaymentReportPdfExporter {
         }
 
         // Grand total
-        table.addCell(new Cell(1, 8).add(new Paragraph(
+        table.addCell(new Cell(1, 9).add(new Paragraph(
                 "TOTAL GENERAL (" + report.totalCount() + " pagos)").setBold().setFontSize(10))
                 .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE).setPadding(6));
         table.addCell(new Cell().add(new Paragraph(formatAmount(report.totalAmount())).setBold().setFontSize(10))
@@ -324,6 +329,14 @@ public class ServicePaymentReportPdfExporter {
             return ServiceType.valueOf(serviceType).getDisplayName();
         } catch (IllegalArgumentException e) {
             return serviceType;
+        }
+    }
+
+    private String getSubjectTypeDisplayName(String subjectType) {
+        try {
+            return SubjectType.valueOf(subjectType).getDisplayName();
+        } catch (IllegalArgumentException e) {
+            return subjectType;
         }
     }
 

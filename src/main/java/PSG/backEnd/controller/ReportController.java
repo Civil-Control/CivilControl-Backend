@@ -12,6 +12,7 @@ import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportFilterDTO
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.ServiceType;
+import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
@@ -563,6 +564,10 @@ public class ReportController {
             @RequestParam(required = false)
             ServiceType serviceType,
 
+            @Parameter(description = "Filter by subject type (BUILDING or VEHICLE)")
+            @RequestParam(required = false)
+            SubjectType subjectType,
+
             @Parameter(description = "Filter by payment method")
             @RequestParam(required = false)
             PaymentMethod paymentMethod,
@@ -586,7 +591,7 @@ public class ReportController {
         log.info("Generating service payment report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
 
         ServicePaymentReportFilterDTO filters = new ServicePaymentReportFilterDTO(
-                startDate, endDate, projectAreaIds, serviceType, paymentMethod, year, period, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, serviceType, subjectType, paymentMethod, year, period, minAmount, maxAmount
         );
 
         ServicePaymentReportDTO report = reportService.generateServicePaymentReport(filters);
@@ -629,6 +634,10 @@ public class ReportController {
             @RequestParam(required = false)
             ServiceType serviceType,
 
+            @Parameter(description = "Filter by subject type (BUILDING or VEHICLE)")
+            @RequestParam(required = false)
+            SubjectType subjectType,
+
             @Parameter(description = "Filter by payment method")
             @RequestParam(required = false)
             PaymentMethod paymentMethod,
@@ -652,7 +661,7 @@ public class ReportController {
         log.info("Downloading service payment report: format={}", format);
 
         ServicePaymentReportFilterDTO filters = new ServicePaymentReportFilterDTO(
-                startDate, endDate, projectAreaIds, serviceType, paymentMethod, year, period, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, serviceType, subjectType, paymentMethod, year, period, minAmount, maxAmount
         );
 
         return reportService.generateServicePaymentReportFile(filters, format);

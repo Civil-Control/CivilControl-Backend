@@ -1719,7 +1719,7 @@ public class ReportService implements IReportService {
             allPayments = new ArrayList<>();
             for (Long areaId : areaIds) {
                 allPayments.addAll(servicePaymentRepository.findAllWithFilters(
-                        null, null, null, null,
+                        filters.subjectType(), null, null, null,
                         areaId,
                         filters.serviceType(),
                         null,
@@ -1736,7 +1736,7 @@ public class ReportService implements IReportService {
         } else {
             Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
             allPayments = servicePaymentRepository.findAllWithFilters(
-                    null, null, null, null,
+                    filters.subjectType(), null, null, null,
                     effectiveAreaId,
                     filters.serviceType(),
                     null,
@@ -1767,6 +1767,7 @@ public class ReportService implements IReportService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Map<String, BigDecimal> totalsByServiceType = buildServiceTypeSubtotals(allPayments);
+        Map<String, BigDecimal> totalsBySubjectType = buildSubjectTypeSubtotals(allPayments);
 
         // Build period description
         String periodDesc = buildServicePaymentPeriodDescription(filters);
@@ -1777,6 +1778,7 @@ public class ReportService implements IReportService {
                 .totalAmount(totalAmount)
                 .totalCount(allPayments.size())
                 .totalsByServiceType(totalsByServiceType)
+                .totalsBySubjectType(totalsBySubjectType)
                 .generatedAt(LocalDateTime.now())
                 .reportName("Reporte de Pago de Servicios")
                 .periodDescription(periodDesc)
@@ -1848,6 +1850,7 @@ public class ReportService implements IReportService {
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             Map<String, BigDecimal> areaServiceTypeSubtotals = buildServiceTypeSubtotals(areaPayments);
+            Map<String, BigDecimal> areaSubjectTypeSubtotals = buildSubjectTypeSubtotals(areaPayments);
 
             groups.add(ServicePaymentReportAreaGroupDTO.builder()
                     .projectAreaId(areaIdDTO)
@@ -1856,6 +1859,7 @@ public class ReportService implements IReportService {
                     .subtotalAmount(subtotal)
                     .paymentCount(areaPayments.size())
                     .subtotalsByServiceType(areaServiceTypeSubtotals)
+                    .subtotalsBySubjectType(areaSubjectTypeSubtotals)
                     .buildingGroups(buildingGroups)
                     .build());
         }
@@ -1929,6 +1933,7 @@ public class ReportService implements IReportService {
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             Map<String, BigDecimal> serviceTypeSubtotals = buildServiceTypeSubtotals(buildingPayments);
+            Map<String, BigDecimal> subjectTypeSubtotals = buildSubjectTypeSubtotals(buildingPayments);
 
             groups.add(ServicePaymentReportBuildingGroupDTO.builder()
                     .buildingId(buildingIdDTO)
@@ -1936,6 +1941,7 @@ public class ReportService implements IReportService {
                     .totalAmount(total)
                     .paymentCount(buildingPayments.size())
                     .subtotalsByServiceType(serviceTypeSubtotals)
+                    .subtotalsBySubjectType(subjectTypeSubtotals)
                     .payments(paymentItems)
                     .build());
         }
@@ -1957,6 +1963,18 @@ public class ReportService implements IReportService {
         Map<String, BigDecimal> subtotals = new LinkedHashMap<>();
         for (ServicePayment sp : payments) {
             String key = sp.getServiceAssignment().getServiceType().name();
+            subtotals.merge(key, sp.getAmount(), BigDecimal::add);
+        }
+        return subtotals;
+    }
+
+    /**
+     * Builds a map of subtotals keyed by SubjectType name (BUILDING, VEHICLE).
+     */
+    private Map<String, BigDecimal> buildSubjectTypeSubtotals(List<ServicePayment> payments) {
+        Map<String, BigDecimal> subtotals = new LinkedHashMap<>();
+        for (ServicePayment sp : payments) {
+            String key = sp.getServiceAssignment().getSubjectType().name();
             subtotals.merge(key, sp.getAmount(), BigDecimal::add);
         }
         return subtotals;
