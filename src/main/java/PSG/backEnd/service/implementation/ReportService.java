@@ -9,6 +9,7 @@ import PSG.backEnd.model.dto.report.ReportItemDTO;
 import PSG.backEnd.model.dto.report.salary.*;
 import PSG.backEnd.model.dto.report.invoice.*;
 import PSG.backEnd.model.dto.report.servicePayment.*;
+import PSG.backEnd.model.dto.report.fuelLoad.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
@@ -34,6 +35,8 @@ import PSG.backEnd.service.export.InvoiceReportExcelExporter;
 import PSG.backEnd.service.export.InvoiceReportPdfExporter;
 import PSG.backEnd.service.export.ServicePaymentReportExcelExporter;
 import PSG.backEnd.service.export.ServicePaymentReportPdfExporter;
+import PSG.backEnd.service.export.FuelLoadReportExcelExporter;
+import PSG.backEnd.service.export.FuelLoadReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -79,6 +82,10 @@ public class ReportService implements IReportService {
     private final ServicePaymentReportExcelExporter servicePaymentExcelExporter;
     private final ServicePaymentReportPdfExporter servicePaymentPdfExporter;
 
+    // Fuel load report exporters
+    private final FuelLoadReportExcelExporter fuelLoadExcelExporter;
+    private final FuelLoadReportPdfExporter fuelLoadPdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -104,6 +111,8 @@ public class ReportService implements IReportService {
             InvoiceReportPdfExporter invoicePdfExporter,
             ServicePaymentReportExcelExporter servicePaymentExcelExporter,
             ServicePaymentReportPdfExporter servicePaymentPdfExporter,
+            FuelLoadReportExcelExporter fuelLoadExcelExporter,
+            FuelLoadReportPdfExporter fuelLoadPdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -128,6 +137,8 @@ public class ReportService implements IReportService {
         this.invoicePdfExporter = invoicePdfExporter;
         this.servicePaymentExcelExporter = servicePaymentExcelExporter;
         this.servicePaymentPdfExporter = servicePaymentPdfExporter;
+        this.fuelLoadExcelExporter = fuelLoadExcelExporter;
+        this.fuelLoadPdfExporter = fuelLoadPdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -1994,6 +2005,382 @@ public class ReportService implements IReportService {
     }
 
     private String buildServicePaymentPeriodDescription(ServicePaymentReportFilterDTO filters) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (filters.startDate() != null && filters.endDate() != null) {
+            if (filters.startDate().getDayOfMonth() == 1
+                    && filters.endDate().equals(filters.startDate().withDayOfMonth(
+                            filters.startDate().lengthOfMonth()))
+                    && filters.startDate().getMonth() == filters.endDate().getMonth()
+                    && filters.startDate().getYear() == filters.endDate().getYear()) {
+                String monthName = filters.startDate().getMonth()
+                        .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "AR"));
+                monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
+                return monthName + " " + filters.startDate().getYear();
+            }
+            return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
+        } else if (filters.startDate() != null) {
+            return "Desde: " + filters.startDate().format(fmt);
+        } else if (filters.endDate() != null) {
+            return "Hasta: " + filters.endDate().format(fmt);
+        }
+        return "Sin filtro de período";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FUEL LOAD REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional(readOnly = true)
+    public FuelLoadReportDTO generateFuelLoadReport(FuelLoadReportFilterDTO filters) {
+        log.info("Generating fuel load report with filters: {}", filters);
+
+        validateFuelLoadFilters(filters);
+
+        Pageable pageable = PageRequest.of(0, 10000);
+
+        List<Long> areaIds = filters.projectAreaIds();
+        String fuelTypeStr = filters.fuelType() != null ? filters.fuelType().name() : null;
+
+        List<FuelLoad> allLoads;
+        if (areaIds != null && areaIds.size() > 1) {
+            allLoads = new ArrayList<>();
+            for (Long areaId : areaIds) {
+                allLoads.addAll(fuelLoadRepository.findAllWithFilters(
+                        filters.startDate(), filters.endDate(),
+                        null, null, fuelTypeStr,
+                        filters.vehicleId(), null,
+                        areaId, null,
+                        filters.gasStationId(), null, null,
+                        filters.minAmount(), filters.maxAmount(),
+                        null, null,
+                        pageable
+                ).getContent());
+            }
+        } else {
+            Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
+            allLoads = fuelLoadRepository.findAllWithFilters(
+                    filters.startDate(), filters.endDate(),
+                    null, null, fuelTypeStr,
+                    filters.vehicleId(), null,
+                    effectiveAreaId, null,
+                    filters.gasStationId(), null, null,
+                    filters.minAmount(), filters.maxAmount(),
+                    null, null,
+                    pageable
+            ).getContent();
+        }
+
+        // Build area groups (without gas station grouping — frontend handles gas station toggle)
+        List<FuelLoadReportAreaGroupDTO> areaGroups = buildFuelLoadAreaGroups(allLoads);
+
+        // Build gas station groups
+        List<FuelLoadReportGasStationGroupDTO> gasStationGroups = buildFuelLoadGasStationGroups(allLoads);
+
+        // Calculate grand totals
+        BigDecimal totalAmount = allLoads.stream()
+                .map(FuelLoad::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalLiters = allLoads.stream()
+                .map(FuelLoad::getLiters)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Map<String, BigDecimal> totalsByFuelType = buildFuelTypeAmountSubtotals(allLoads);
+        Map<String, BigDecimal> litersByFuelType = buildFuelTypeLiterSubtotals(allLoads);
+        Map<String, BigDecimal> totalsByGasStation = buildGasStationSubtotals(allLoads);
+
+        String periodDesc = buildFuelLoadPeriodDescription(filters);
+
+        return FuelLoadReportDTO.builder()
+                .filters(filters)
+                .areaGroups(areaGroups)
+                .gasStationGroups(gasStationGroups)
+                .totalAmount(totalAmount)
+                .totalLiters(totalLiters)
+                .totalCount(allLoads.size())
+                .totalsByFuelType(totalsByFuelType)
+                .litersByFuelType(litersByFuelType)
+                .totalsByGasStation(totalsByGasStation)
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte de Combustible")
+                .periodDescription(periodDesc)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generateFuelLoadReportFile(FuelLoadReportFilterDTO filters, ReportFormat format) {
+        log.info("Generating fuel load report file: format={}", format);
+
+        FuelLoadReportDTO report = generateFuelLoadReport(filters);
+
+        byte[] content;
+        switch (format) {
+            case EXCEL -> content = fuelLoadExcelExporter.export(report);
+            case PDF -> content = fuelLoadPdfExporter.export(report);
+            default -> throw new InvalidReportFormatException(format.name());
+        }
+
+        String filename = "reporte_combustible_" +
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
+                .body(content);
+    }
+
+    private List<FuelLoadReportAreaGroupDTO> buildFuelLoadAreaGroups(List<FuelLoad> loads) {
+        Map<Long, List<FuelLoad>> byArea = new LinkedHashMap<>();
+
+        for (FuelLoad fl : loads) {
+            Long areaId = fl.getProjectArea() != null ? fl.getProjectArea().getId() : -1L;
+            byArea.computeIfAbsent(areaId, k -> new ArrayList<>()).add(fl);
+        }
+
+        List<FuelLoadReportAreaGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<FuelLoad>> entry : byArea.entrySet()) {
+            Long areaId = entry.getKey();
+            List<FuelLoad> areaLoads = entry.getValue();
+
+            String areaName;
+            String areaColor;
+            Long areaIdDTO;
+
+            if (areaId == -1L) {
+                areaIdDTO = null;
+                areaName = "Sin área asignada";
+                areaColor = null;
+            } else {
+                areaIdDTO = areaId;
+                FuelLoad first = areaLoads.get(0);
+                areaName = first.getProjectArea().getName();
+                areaColor = first.getProjectArea().getColor();
+            }
+
+            List<FuelLoadReportVehicleGroupDTO> vehicleGroups = buildFuelLoadVehicleGroups(areaLoads);
+
+            BigDecimal subtotal = areaLoads.stream()
+                    .map(FuelLoad::getTotalAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal subtotalLiters = areaLoads.stream()
+                    .map(FuelLoad::getLiters)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            groups.add(FuelLoadReportAreaGroupDTO.builder()
+                    .projectAreaId(areaIdDTO)
+                    .projectAreaName(areaName)
+                    .projectAreaColor(areaColor)
+                    .subtotalAmount(subtotal)
+                    .subtotalLiters(subtotalLiters)
+                    .loadCount(areaLoads.size())
+                    .subtotalsByFuelType(buildFuelTypeAmountSubtotals(areaLoads))
+                    .litersByFuelType(buildFuelTypeLiterSubtotals(areaLoads))
+                    .vehicleGroups(vehicleGroups)
+                    .build());
+        }
+
+        groups.sort((a, b) -> {
+            if (a.projectAreaId() == null) return 1;
+            if (b.projectAreaId() == null) return -1;
+            return a.projectAreaName().compareToIgnoreCase(b.projectAreaName());
+        });
+
+        return groups;
+    }
+
+    private List<FuelLoadReportVehicleGroupDTO> buildFuelLoadVehicleGroups(List<FuelLoad> areaLoads) {
+        Map<Long, List<FuelLoad>> byVehicle = new LinkedHashMap<>();
+        for (FuelLoad fl : areaLoads) {
+            Long vehicleId = fl.getVehicle() != null ? fl.getVehicle().getId() : -1L;
+            byVehicle.computeIfAbsent(vehicleId, k -> new ArrayList<>()).add(fl);
+        }
+
+        List<FuelLoadReportVehicleGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<FuelLoad>> entry : byVehicle.entrySet()) {
+            Long vehicleId = entry.getKey();
+            List<FuelLoad> vehicleLoads = entry.getValue();
+
+            String vehicleName;
+            String vehicleDescription;
+            Long vehicleIdDTO;
+
+            if (vehicleId == -1L) {
+                vehicleIdDTO = null;
+                vehicleName = "Bidón";
+                vehicleDescription = null;
+            } else {
+                vehicleIdDTO = vehicleId;
+                var vehicle = vehicleLoads.get(0).getVehicle();
+                vehicleName = vehicle.getLicensePlate();
+                vehicleDescription = buildVehicleDescription(vehicle);
+            }
+
+            List<FuelLoadReportItemDTO> items = vehicleLoads.stream()
+                    .sorted(Comparator.comparing(FuelLoad::getDate, Comparator.reverseOrder()))
+                    .map(fl -> new FuelLoadReportItemDTO(
+                            fl.getId(),
+                            fl.getDate(),
+                            fl.getFuelType().name(),
+                            fl.getLiters(),
+                            fl.getPricePerLiter(),
+                            fl.getTotalAmount(),
+                            fl.getVehicle() != null ? fl.getVehicle().getLicensePlate() : "Bidón",
+                            fl.getVehicle() != null ? buildVehicleDescription(fl.getVehicle()) : null,
+                            fl.getGasStation() != null && fl.getGasStation().getSupplier() != null
+                                    ? fl.getGasStation().getSupplier().getLegalName() : "Sin estación",
+                            fl.getBranchCode(),
+                            fl.getTicketNumber(),
+                            fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getId() : null,
+                            fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getName() : null
+                    ))
+                    .toList();
+
+            BigDecimal total = vehicleLoads.stream()
+                    .map(FuelLoad::getTotalAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal totalLiters = vehicleLoads.stream()
+                    .map(FuelLoad::getLiters)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            groups.add(FuelLoadReportVehicleGroupDTO.builder()
+                    .vehicleId(vehicleIdDTO)
+                    .vehicleName(vehicleName)
+                    .vehicleDescription(vehicleDescription)
+                    .totalAmount(total)
+                    .totalLiters(totalLiters)
+                    .loadCount(vehicleLoads.size())
+                    .subtotalsByFuelType(buildFuelTypeAmountSubtotals(vehicleLoads))
+                    .litersByFuelType(buildFuelTypeLiterSubtotals(vehicleLoads))
+                    .loads(items)
+                    .build());
+        }
+
+        groups.sort((a, b) -> {
+            if (a.vehicleId() == null) return 1;
+            if (b.vehicleId() == null) return -1;
+            return a.vehicleName().compareToIgnoreCase(b.vehicleName());
+        });
+
+        return groups;
+    }
+
+    private List<FuelLoadReportGasStationGroupDTO> buildFuelLoadGasStationGroups(List<FuelLoad> loads) {
+        Map<Long, List<FuelLoad>> byStation = new LinkedHashMap<>();
+
+        for (FuelLoad fl : loads) {
+            Long stationId = fl.getGasStation() != null ? fl.getGasStation().getId() : -1L;
+            byStation.computeIfAbsent(stationId, k -> new ArrayList<>()).add(fl);
+        }
+
+        List<FuelLoadReportGasStationGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<FuelLoad>> entry : byStation.entrySet()) {
+            Long stationId = entry.getKey();
+            List<FuelLoad> stationLoads = entry.getValue();
+
+            String stationName;
+            Long stationIdDTO;
+
+            if (stationId == -1L) {
+                stationIdDTO = null;
+                stationName = "Sin estación asignada";
+            } else {
+                stationIdDTO = stationId;
+                var gs = stationLoads.get(0).getGasStation();
+                stationName = gs.getSupplier() != null ? gs.getSupplier().getLegalName() : "Estación #" + stationId;
+            }
+
+            List<FuelLoadReportAreaGroupDTO> areaGroups = buildFuelLoadAreaGroups(stationLoads);
+
+            BigDecimal subtotal = stationLoads.stream()
+                    .map(FuelLoad::getTotalAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            BigDecimal subtotalLiters = stationLoads.stream()
+                    .map(FuelLoad::getLiters)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            groups.add(FuelLoadReportGasStationGroupDTO.builder()
+                    .gasStationId(stationIdDTO)
+                    .gasStationName(stationName)
+                    .subtotalAmount(subtotal)
+                    .subtotalLiters(subtotalLiters)
+                    .loadCount(stationLoads.size())
+                    .subtotalsByFuelType(buildFuelTypeAmountSubtotals(stationLoads))
+                    .litersByFuelType(buildFuelTypeLiterSubtotals(stationLoads))
+                    .areaGroups(areaGroups)
+                    .build());
+        }
+
+        groups.sort((a, b) -> {
+            if (a.gasStationId() == null) return 1;
+            if (b.gasStationId() == null) return -1;
+            return a.gasStationName().compareToIgnoreCase(b.gasStationName());
+        });
+
+        return groups;
+    }
+
+    private String buildVehicleDescription(PSG.backEnd.model.entity.vehicle.Vehicle vehicle) {
+        StringBuilder sb = new StringBuilder();
+        if (vehicle.getBrand() != null) sb.append(vehicle.getBrand());
+        if (vehicle.getModel() != null) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(vehicle.getModel());
+        }
+        return sb.length() > 0 ? sb.toString() : null;
+    }
+
+    private Map<String, BigDecimal> buildFuelTypeAmountSubtotals(List<FuelLoad> loads) {
+        Map<String, BigDecimal> subtotals = new LinkedHashMap<>();
+        for (FuelLoad fl : loads) {
+            String key = fl.getFuelType().name();
+            subtotals.merge(key, fl.getTotalAmount(), BigDecimal::add);
+        }
+        return subtotals;
+    }
+
+    private Map<String, BigDecimal> buildFuelTypeLiterSubtotals(List<FuelLoad> loads) {
+        Map<String, BigDecimal> subtotals = new LinkedHashMap<>();
+        for (FuelLoad fl : loads) {
+            String key = fl.getFuelType().name();
+            subtotals.merge(key, fl.getLiters(), BigDecimal::add);
+        }
+        return subtotals;
+    }
+
+    private Map<String, BigDecimal> buildGasStationSubtotals(List<FuelLoad> loads) {
+        Map<String, BigDecimal> subtotals = new LinkedHashMap<>();
+        for (FuelLoad fl : loads) {
+            String key = fl.getGasStation() != null && fl.getGasStation().getSupplier() != null
+                    ? fl.getGasStation().getSupplier().getLegalName()
+                    : "Sin estación";
+            subtotals.merge(key, fl.getTotalAmount(), BigDecimal::add);
+        }
+        return subtotals;
+    }
+
+    private void validateFuelLoadFilters(FuelLoadReportFilterDTO filters) {
+        if (filters.startDate() != null && filters.endDate() != null
+                && filters.startDate().isAfter(filters.endDate())) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.date.range.invalid"));
+        }
+        if (filters.minAmount() != null && filters.maxAmount() != null
+                && filters.minAmount().compareTo(filters.maxAmount()) > 0) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.amount.range.invalid"));
+        }
+    }
+
+    private String buildFuelLoadPeriodDescription(FuelLoadReportFilterDTO filters) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filters.startDate() != null && filters.endDate() != null) {
             if (filters.startDate().getDayOfMonth() == 1

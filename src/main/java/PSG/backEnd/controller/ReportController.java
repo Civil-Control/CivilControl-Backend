@@ -9,6 +9,8 @@ import PSG.backEnd.model.dto.report.invoice.InvoiceReportDTO;
 import PSG.backEnd.model.dto.report.invoice.InvoiceReportFilterDTO;
 import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportDTO;
 import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportFilterDTO;
+import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportDTO;
+import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportFilterDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.ServiceType;
@@ -16,6 +18,7 @@ import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
+import PSG.backEnd.model.enums.vehicle.FuelType;
 import PSG.backEnd.service.port.IReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -665,5 +668,126 @@ public class ReportController {
         );
 
         return reportService.generateServicePaymentReportFile(filters, format);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FUEL LOAD REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/fuel-loads")
+    @Operation(
+            summary = "Generate fuel load report data",
+            description = "Generates a hierarchical fuel load report grouped by gas station, project area and vehicle. " +
+                    "Includes subtotals per fuel type at each level."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<FuelLoadReportDTO> generateFuelLoadReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by fuel type")
+            @RequestParam(required = false)
+            FuelType fuelType,
+
+            @Parameter(description = "Filter by gas station ID")
+            @RequestParam(required = false)
+            Long gasStationId,
+
+            @Parameter(description = "Filter by vehicle ID")
+            @RequestParam(required = false)
+            Long vehicleId,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Generating fuel load report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
+
+        FuelLoadReportFilterDTO filters = new FuelLoadReportFilterDTO(
+                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, minAmount, maxAmount
+        );
+
+        FuelLoadReportDTO report = reportService.generateFuelLoadReport(filters);
+
+        log.info("Fuel load report generated: {} loads, total: ${}", report.totalCount(), report.totalAmount());
+
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/fuel-loads/download")
+    @Operation(
+            summary = "Download fuel load report file",
+            description = "Generates and downloads a fuel load report in the specified format (PDF or EXCEL)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadFuelLoadReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam
+            ReportFormat format,
+
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by fuel type")
+            @RequestParam(required = false)
+            FuelType fuelType,
+
+            @Parameter(description = "Filter by gas station ID")
+            @RequestParam(required = false)
+            Long gasStationId,
+
+            @Parameter(description = "Filter by vehicle ID")
+            @RequestParam(required = false)
+            Long vehicleId,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Downloading fuel load report: format={}", format);
+
+        FuelLoadReportFilterDTO filters = new FuelLoadReportFilterDTO(
+                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, minAmount, maxAmount
+        );
+
+        return reportService.generateFuelLoadReportFile(filters, format);
     }
 }

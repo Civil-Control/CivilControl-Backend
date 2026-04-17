@@ -10,6 +10,8 @@ import PSG.backEnd.model.dto.report.salary.SalaryReportDTO;
 import PSG.backEnd.model.dto.report.salary.SalaryReportFilterDTO;
 import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportDTO;
 import PSG.backEnd.model.dto.report.servicePayment.ServicePaymentReportFilterDTO;
+import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportDTO;
+import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportFilterDTO;
 import PSG.backEnd.model.enums.ReportFormat;
 import org.springframework.http.ResponseEntity;
 
@@ -83,5 +85,9 @@ public interface IReportService {
     ServicePaymentReportDTO generateServicePaymentReport(ServicePaymentReportFilterDTO filters);
 
     ResponseEntity<byte[]> generateServicePaymentReportFile(ServicePaymentReportFilterDTO filters, ReportFormat format);
+
+    FuelLoadReportDTO generateFuelLoadReport(FuelLoadReportFilterDTO filters);
+
+    ResponseEntity<byte[]> generateFuelLoadReportFile(FuelLoadReportFilterDTO filters, ReportFormat format);
 }
 
