@@ -13,6 +13,8 @@ import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportDTO;
 import PSG.backEnd.model.dto.report.fuelLoad.FuelLoadReportFilterDTO;
 import PSG.backEnd.model.dto.report.repair.RepairReportDTO;
 import PSG.backEnd.model.dto.report.repair.RepairReportFilterDTO;
+import PSG.backEnd.model.dto.report.stockPurchase.StockPurchaseReportDTO;
+import PSG.backEnd.model.dto.report.stockPurchase.StockPurchaseReportFilterDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.ServiceType;
@@ -912,5 +914,110 @@ public class ReportController {
         );
 
         return reportService.generateRepairReportFile(filters, format);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STOCK PURCHASE REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/stock-purchases")
+    @Operation(
+            summary = "Generate stock purchase report data",
+            description = "Generates a hierarchical stock purchase report grouped by category and stock item. " +
+                    "Includes quantity and amount subtotals at each level."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<StockPurchaseReportDTO> generateStockPurchaseReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Stock category enum names to include")
+            @RequestParam(required = false)
+            List<String> stockCategories,
+
+            @Parameter(description = "Filter by stock item ID")
+            @RequestParam(required = false)
+            Long stockId,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Generating stock purchase report: startDate={}, endDate={}, categories={}", startDate, endDate, stockCategories);
+
+        StockPurchaseReportFilterDTO filters = new StockPurchaseReportFilterDTO(
+                startDate, endDate, stockCategories, stockId, minAmount, maxAmount
+        );
+
+        StockPurchaseReportDTO report = reportService.generateStockPurchaseReport(filters);
+
+        log.info("Stock purchase report generated: {} purchases, total: ${}", report.totalCount(), report.totalAmount());
+
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/stock-purchases/download")
+    @Operation(
+            summary = "Download stock purchase report file",
+            description = "Generates and downloads a stock purchase report in the specified format (PDF or EXCEL)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadStockPurchaseReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam
+            ReportFormat format,
+
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Stock category enum names to include")
+            @RequestParam(required = false)
+            List<String> stockCategories,
+
+            @Parameter(description = "Filter by stock item ID")
+            @RequestParam(required = false)
+            Long stockId,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Downloading stock purchase report: format={}", format);
+
+        StockPurchaseReportFilterDTO filters = new StockPurchaseReportFilterDTO(
+                startDate, endDate, stockCategories, stockId, minAmount, maxAmount
+        );
+
+        return reportService.generateStockPurchaseReportFile(filters, format);
     }
 }

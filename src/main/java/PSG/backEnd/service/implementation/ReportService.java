@@ -11,6 +11,7 @@ import PSG.backEnd.model.dto.report.invoice.*;
 import PSG.backEnd.model.dto.report.servicePayment.*;
 import PSG.backEnd.model.dto.report.fuelLoad.*;
 import PSG.backEnd.model.dto.report.repair.*;
+import PSG.backEnd.model.dto.report.stockPurchase.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
@@ -40,6 +41,8 @@ import PSG.backEnd.service.export.FuelLoadReportExcelExporter;
 import PSG.backEnd.service.export.FuelLoadReportPdfExporter;
 import PSG.backEnd.service.export.RepairReportExcelExporter;
 import PSG.backEnd.service.export.RepairReportPdfExporter;
+import PSG.backEnd.service.export.StockPurchaseReportExcelExporter;
+import PSG.backEnd.service.export.StockPurchaseReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -93,6 +96,10 @@ public class ReportService implements IReportService {
     private final RepairReportExcelExporter repairExcelExporter;
     private final RepairReportPdfExporter repairPdfExporter;
 
+    // Stock purchase report exporters
+    private final StockPurchaseReportExcelExporter stockPurchaseExcelExporter;
+    private final StockPurchaseReportPdfExporter stockPurchasePdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -122,6 +129,8 @@ public class ReportService implements IReportService {
             FuelLoadReportPdfExporter fuelLoadPdfExporter,
             RepairReportExcelExporter repairExcelExporter,
             RepairReportPdfExporter repairPdfExporter,
+            StockPurchaseReportExcelExporter stockPurchaseExcelExporter,
+            StockPurchaseReportPdfExporter stockPurchasePdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -150,6 +159,8 @@ public class ReportService implements IReportService {
         this.fuelLoadPdfExporter = fuelLoadPdfExporter;
         this.repairExcelExporter = repairExcelExporter;
         this.repairPdfExporter = repairPdfExporter;
+        this.stockPurchaseExcelExporter = stockPurchaseExcelExporter;
+        this.stockPurchasePdfExporter = stockPurchasePdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -2710,6 +2721,238 @@ public class ReportService implements IReportService {
     }
 
     private String buildRepairPeriodDescription(RepairReportFilterDTO filters) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (filters.startDate() != null && filters.endDate() != null) {
+            if (filters.startDate().getDayOfMonth() == 1
+                    && filters.endDate().equals(filters.startDate().withDayOfMonth(
+                            filters.startDate().lengthOfMonth()))
+                    && filters.startDate().getMonth() == filters.endDate().getMonth()
+                    && filters.startDate().getYear() == filters.endDate().getYear()) {
+                String monthName = filters.startDate().getMonth()
+                        .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "AR"));
+                monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
+                return monthName + " " + filters.startDate().getYear();
+            }
+            return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
+        } else if (filters.startDate() != null) {
+            return "Desde: " + filters.startDate().format(fmt);
+        } else if (filters.endDate() != null) {
+            return "Hasta: " + filters.endDate().format(fmt);
+        }
+        return "Sin filtro de período";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STOCK PURCHASE REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional(readOnly = true)
+    public StockPurchaseReportDTO generateStockPurchaseReport(StockPurchaseReportFilterDTO filters) {
+        log.info("Generating stock purchase report with filters: {}", filters);
+
+        validateStockPurchaseFilters(filters);
+
+        Pageable pageable = PageRequest.of(0, 10000);
+
+        List<StockPurchase> allPurchases = stockPurchaseRepository.findAllWithFilters(
+                filters.startDate(), filters.endDate(),
+                filters.stockId(), null, null,
+                null, null,
+                filters.minAmount(), filters.maxAmount(),
+                null, null,
+                pageable
+        ).getContent();
+
+        // Filter by stock categories if specified
+        List<String> catFilter = filters.stockCategories();
+        if (catFilter != null && !catFilter.isEmpty()) {
+            Set<String> catSet = new HashSet<>(catFilter);
+            allPurchases = allPurchases.stream()
+                    .filter(sp -> {
+                        Stock stock = stockRepository.findById(sp.getStockId()).orElse(null);
+                        return stock != null && stock.getStockCategory() != null
+                                && catSet.contains(stock.getStockCategory().name());
+                    })
+                    .toList();
+        }
+
+        List<StockPurchaseReportCategoryGroupDTO> categoryGroups = buildStockPurchaseCategoryGroups(allPurchases);
+
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal totalQuantity = BigDecimal.ZERO;
+        Map<String, BigDecimal> totalsByCategory = new LinkedHashMap<>();
+
+        for (StockPurchaseReportCategoryGroupDTO group : categoryGroups) {
+            totalAmount = totalAmount.add(group.subtotalAmount());
+            totalQuantity = totalQuantity.add(group.subtotalQuantity());
+            totalsByCategory.put(group.categoryName(), group.subtotalAmount());
+        }
+
+        String periodDesc = buildStockPurchasePeriodDescription(filters);
+
+        return StockPurchaseReportDTO.builder()
+                .filters(filters)
+                .categoryGroups(categoryGroups)
+                .totalAmount(totalAmount)
+                .totalCount(allPurchases.size())
+                .totalQuantity(totalQuantity)
+                .totalsByCategory(totalsByCategory)
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte de Compras de Stock")
+                .periodDescription(periodDesc)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generateStockPurchaseReportFile(StockPurchaseReportFilterDTO filters, ReportFormat format) {
+        log.info("Generating stock purchase report file: format={}", format);
+
+        StockPurchaseReportDTO report = generateStockPurchaseReport(filters);
+
+        byte[] content;
+        switch (format) {
+            case EXCEL -> content = stockPurchaseExcelExporter.export(report);
+            case PDF -> content = stockPurchasePdfExporter.export(report);
+            default -> throw new InvalidReportFormatException(format.name());
+        }
+
+        String filename = "reporte_compras_stock_" +
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
+                .body(content);
+    }
+
+    private List<StockPurchaseReportCategoryGroupDTO> buildStockPurchaseCategoryGroups(List<StockPurchase> purchases) {
+        // Load all stocks needed (batch via stockId)
+        Map<Long, Stock> stockCache = new HashMap<>();
+        for (StockPurchase sp : purchases) {
+            stockCache.computeIfAbsent(sp.getStockId(),
+                    id -> stockRepository.findById(id).orElse(null));
+        }
+
+        // Group by category
+        Map<String, List<StockPurchase>> byCategory = new LinkedHashMap<>();
+        for (StockPurchase sp : purchases) {
+            Stock stock = stockCache.get(sp.getStockId());
+            String catKey = (stock != null && stock.getStockCategory() != null)
+                    ? stock.getStockCategory().name() : "OTROS";
+            byCategory.computeIfAbsent(catKey, k -> new ArrayList<>()).add(sp);
+        }
+
+        List<StockPurchaseReportCategoryGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<String, List<StockPurchase>> entry : byCategory.entrySet()) {
+            String catKey = entry.getKey();
+            List<StockPurchase> catPurchases = entry.getValue();
+
+            String catName;
+            try {
+                catName = PSG.backEnd.model.enums.StockCategory.valueOf(catKey).getDisplayName();
+            } catch (IllegalArgumentException e) {
+                catName = catKey;
+            }
+
+            List<StockPurchaseReportStockGroupDTO> stockGroups = buildStockPurchaseStockGroups(
+                    catPurchases, stockCache, catName);
+
+            BigDecimal subtotalAmount = BigDecimal.ZERO;
+            BigDecimal subtotalQuantity = BigDecimal.ZERO;
+            for (StockPurchase sp : catPurchases) {
+                subtotalAmount = subtotalAmount.add(
+                        sp.getTotalAmount() != null ? sp.getTotalAmount() : BigDecimal.ZERO);
+                subtotalQuantity = subtotalQuantity.add(
+                        sp.getQuantity() != null ? sp.getQuantity() : BigDecimal.ZERO);
+            }
+
+            groups.add(StockPurchaseReportCategoryGroupDTO.builder()
+                    .categoryName(catName)
+                    .categoryKey(catKey)
+                    .subtotalAmount(subtotalAmount)
+                    .purchaseCount(catPurchases.size())
+                    .subtotalQuantity(subtotalQuantity)
+                    .stockGroups(stockGroups)
+                    .build());
+        }
+
+        groups.sort((a, b) -> a.categoryName().compareToIgnoreCase(b.categoryName()));
+        return groups;
+    }
+
+    private List<StockPurchaseReportStockGroupDTO> buildStockPurchaseStockGroups(
+            List<StockPurchase> catPurchases, Map<Long, Stock> stockCache, String categoryName) {
+
+        Map<Long, List<StockPurchase>> byStock = new LinkedHashMap<>();
+        for (StockPurchase sp : catPurchases) {
+            byStock.computeIfAbsent(sp.getStockId(), k -> new ArrayList<>()).add(sp);
+        }
+
+        List<StockPurchaseReportStockGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<StockPurchase>> entry : byStock.entrySet()) {
+            Long stockId = entry.getKey();
+            List<StockPurchase> stockPurchases = entry.getValue();
+
+            Stock stock = stockCache.get(stockId);
+            String stockName = (stock != null) ? stock.getName() : "Item #" + stockId;
+
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            BigDecimal totalQuantity = BigDecimal.ZERO;
+            for (StockPurchase sp : stockPurchases) {
+                totalAmount = totalAmount.add(
+                        sp.getTotalAmount() != null ? sp.getTotalAmount() : BigDecimal.ZERO);
+                totalQuantity = totalQuantity.add(
+                        sp.getQuantity() != null ? sp.getQuantity() : BigDecimal.ZERO);
+            }
+
+            List<StockPurchaseReportItemDTO> items = stockPurchases.stream()
+                    .sorted(Comparator.comparing(StockPurchase::getDate, Comparator.reverseOrder()))
+                    .map(sp -> new StockPurchaseReportItemDTO(
+                            sp.getId(),
+                            sp.getDate(),
+                            stockName,
+                            categoryName,
+                            sp.getQuantity(),
+                            sp.getUnitPrice(),
+                            sp.getTotalAmount() != null ? sp.getTotalAmount() : BigDecimal.ZERO,
+                            sp.getNotes(),
+                            sp.getTransactionalDocumentId() != null
+                    ))
+                    .toList();
+
+            groups.add(StockPurchaseReportStockGroupDTO.builder()
+                    .stockId(stockId)
+                    .stockName(stockName)
+                    .totalAmount(totalAmount)
+                    .purchaseCount(stockPurchases.size())
+                    .totalQuantity(totalQuantity)
+                    .purchases(items)
+                    .build());
+        }
+
+        groups.sort((a, b) -> a.stockName().compareToIgnoreCase(b.stockName()));
+        return groups;
+    }
+
+    private void validateStockPurchaseFilters(StockPurchaseReportFilterDTO filters) {
+        if (filters.startDate() != null && filters.endDate() != null
+                && filters.startDate().isAfter(filters.endDate())) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.date.range.invalid"));
+        }
+        if (filters.minAmount() != null && filters.maxAmount() != null
+                && filters.minAmount().compareTo(filters.maxAmount()) > 0) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.amount.range.invalid"));
+        }
+    }
+
+    private String buildStockPurchasePeriodDescription(StockPurchaseReportFilterDTO filters) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filters.startDate() != null && filters.endDate() != null) {
             if (filters.startDate().getDayOfMonth() == 1
