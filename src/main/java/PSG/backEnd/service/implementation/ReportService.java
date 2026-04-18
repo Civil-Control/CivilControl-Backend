@@ -12,12 +12,16 @@ import PSG.backEnd.model.dto.report.servicePayment.*;
 import PSG.backEnd.model.dto.report.fuelLoad.*;
 import PSG.backEnd.model.dto.report.repair.*;
 import PSG.backEnd.model.dto.report.stockPurchase.*;
+import PSG.backEnd.model.dto.report.policyPayment.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
 import PSG.backEnd.model.entity.employee.SalaryPayment;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.entity.insurance.PolicyPayment;
+import PSG.backEnd.model.entity.insurance.InsurancePolicy;
+import PSG.backEnd.model.entity.insurance.PolicyVehicle;
+import PSG.backEnd.model.enums.vehicle.PolicyType;
 import PSG.backEnd.model.entity.serviceSupplier.ServicePayment;
 import PSG.backEnd.model.entity.vehicle.Repair;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
@@ -43,6 +47,8 @@ import PSG.backEnd.service.export.RepairReportExcelExporter;
 import PSG.backEnd.service.export.RepairReportPdfExporter;
 import PSG.backEnd.service.export.StockPurchaseReportExcelExporter;
 import PSG.backEnd.service.export.StockPurchaseReportPdfExporter;
+import PSG.backEnd.service.export.PolicyPaymentReportExcelExporter;
+import PSG.backEnd.service.export.PolicyPaymentReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -100,6 +106,10 @@ public class ReportService implements IReportService {
     private final StockPurchaseReportExcelExporter stockPurchaseExcelExporter;
     private final StockPurchaseReportPdfExporter stockPurchasePdfExporter;
 
+    // Policy payment report exporters
+    private final PolicyPaymentReportExcelExporter policyPaymentExcelExporter;
+    private final PolicyPaymentReportPdfExporter policyPaymentPdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -131,6 +141,8 @@ public class ReportService implements IReportService {
             RepairReportPdfExporter repairPdfExporter,
             StockPurchaseReportExcelExporter stockPurchaseExcelExporter,
             StockPurchaseReportPdfExporter stockPurchasePdfExporter,
+            PolicyPaymentReportExcelExporter policyPaymentExcelExporter,
+            PolicyPaymentReportPdfExporter policyPaymentPdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -161,6 +173,8 @@ public class ReportService implements IReportService {
         this.repairPdfExporter = repairPdfExporter;
         this.stockPurchaseExcelExporter = stockPurchaseExcelExporter;
         this.stockPurchasePdfExporter = stockPurchasePdfExporter;
+        this.policyPaymentExcelExporter = policyPaymentExcelExporter;
+        this.policyPaymentPdfExporter = policyPaymentPdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -2953,6 +2967,281 @@ public class ReportService implements IReportService {
     }
 
     private String buildStockPurchasePeriodDescription(StockPurchaseReportFilterDTO filters) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (filters.startDate() != null && filters.endDate() != null) {
+            if (filters.startDate().getDayOfMonth() == 1
+                    && filters.endDate().equals(filters.startDate().withDayOfMonth(
+                            filters.startDate().lengthOfMonth()))
+                    && filters.startDate().getMonth() == filters.endDate().getMonth()
+                    && filters.startDate().getYear() == filters.endDate().getYear()) {
+                String monthName = filters.startDate().getMonth()
+                        .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "AR"));
+                monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
+                return monthName + " " + filters.startDate().getYear();
+            }
+            return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
+        } else if (filters.startDate() != null) {
+            return "Desde: " + filters.startDate().format(fmt);
+        } else if (filters.endDate() != null) {
+            return "Hasta: " + filters.endDate().format(fmt);
+        }
+        return "Sin filtro de período";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // POLICY PAYMENT REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional(readOnly = true)
+    public PolicyPaymentReportDTO generatePolicyPaymentReport(PolicyPaymentReportFilterDTO filters) {
+        log.info("Generating policy payment report with filters: {}", filters);
+
+        validatePolicyPaymentFilters(filters);
+
+        Pageable pageable = PageRequest.of(0, 10000);
+
+        List<PolicyPayment> allPayments = policyPaymentRepository.findAllWithFilters(
+                filters.insurancePolicyId(),
+                filters.startDate(), filters.endDate(),
+                filters.minAmount(), filters.maxAmount(),
+                null,
+                pageable
+        ).getContent();
+
+        // Filter by policy types in memory (Option B from spec)
+        List<String> typeFilter = filters.policyTypes();
+        if (typeFilter != null && !typeFilter.isEmpty()) {
+            Set<String> typeSet = new HashSet<>(typeFilter);
+            allPayments = allPayments.stream()
+                    .filter(pp -> pp.getInsurancePolicy() != null
+                            && pp.getInsurancePolicy().getPolicyType() != null
+                            && typeSet.contains(pp.getInsurancePolicy().getPolicyType().name()))
+                    .toList();
+        }
+
+        List<PolicyPaymentReportTypeGroupDTO> typeGroups = buildPolicyPaymentTypeGroups(allPayments);
+
+        BigDecimal totalPaidAmount = BigDecimal.ZERO;
+        BigDecimal totalExpectedAmount = BigDecimal.ZERO;
+        int totalPaymentCount = 0;
+        Set<Long> distinctPolicies = new HashSet<>();
+
+        for (PolicyPaymentReportTypeGroupDTO tg : typeGroups) {
+            totalPaidAmount = totalPaidAmount.add(tg.subtotalPaid());
+            totalExpectedAmount = totalExpectedAmount.add(tg.subtotalExpected());
+            totalPaymentCount += tg.paymentCount();
+            for (PolicyPaymentReportPolicyGroupDTO pg : tg.policyGroups()) {
+                distinctPolicies.add(pg.insurancePolicyId());
+            }
+        }
+
+        BigDecimal totalDifference = totalPaidAmount.subtract(totalExpectedAmount);
+        String periodDesc = buildPolicyPaymentPeriodDescription(filters);
+
+        return PolicyPaymentReportDTO.builder()
+                .filters(filters)
+                .typeGroups(typeGroups)
+                .totalPaidAmount(totalPaidAmount)
+                .totalExpectedAmount(totalExpectedAmount)
+                .totalDifference(totalDifference)
+                .totalPaymentCount(totalPaymentCount)
+                .totalPolicyCount(distinctPolicies.size())
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte de Pagos de Póliza")
+                .periodDescription(periodDesc)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generatePolicyPaymentReportFile(PolicyPaymentReportFilterDTO filters, ReportFormat format) {
+        log.info("Generating policy payment report file: format={}", format);
+
+        PolicyPaymentReportDTO report = generatePolicyPaymentReport(filters);
+
+        byte[] content;
+        switch (format) {
+            case EXCEL -> content = policyPaymentExcelExporter.export(report);
+            case PDF -> content = policyPaymentPdfExporter.export(report);
+            default -> throw new InvalidReportFormatException(format.name());
+        }
+
+        String filename = "reporte_pagos_poliza_" +
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
+                .body(content);
+    }
+
+    private List<PolicyPaymentReportTypeGroupDTO> buildPolicyPaymentTypeGroups(List<PolicyPayment> payments) {
+        // Group by policy type
+        Map<String, List<PolicyPayment>> byType = new LinkedHashMap<>();
+        for (PolicyPayment pp : payments) {
+            InsurancePolicy policy = pp.getInsurancePolicy();
+            String typeKey = (policy != null && policy.getPolicyType() != null)
+                    ? policy.getPolicyType().name() : "OTROS";
+            byType.computeIfAbsent(typeKey, k -> new ArrayList<>()).add(pp);
+        }
+
+        List<PolicyPaymentReportTypeGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<String, List<PolicyPayment>> entry : byType.entrySet()) {
+            String typeKey = entry.getKey();
+            List<PolicyPayment> typePayments = entry.getValue();
+
+            String typeName;
+            try {
+                typeName = PolicyType.valueOf(typeKey).getDisplayName();
+            } catch (IllegalArgumentException e) {
+                typeName = typeKey;
+            }
+
+            List<PolicyPaymentReportPolicyGroupDTO> policyGroups = buildPolicyPaymentPolicyGroups(typePayments, typeName);
+
+            BigDecimal subtotalPaid = BigDecimal.ZERO;
+            BigDecimal subtotalExpected = BigDecimal.ZERO;
+            int paymentCount = 0;
+
+            for (PolicyPaymentReportPolicyGroupDTO pg : policyGroups) {
+                subtotalPaid = subtotalPaid.add(pg.totalPaid());
+                subtotalExpected = subtotalExpected.add(pg.expectedAmount());
+                paymentCount += pg.paymentCount();
+            }
+
+            groups.add(PolicyPaymentReportTypeGroupDTO.builder()
+                    .policyTypeName(typeName)
+                    .policyTypeKey(typeKey)
+                    .subtotalPaid(subtotalPaid)
+                    .subtotalExpected(subtotalExpected)
+                    .subtotalDifference(subtotalPaid.subtract(subtotalExpected))
+                    .paymentCount(paymentCount)
+                    .policyCount(policyGroups.size())
+                    .policyGroups(policyGroups)
+                    .build());
+        }
+
+        groups.sort((a, b) -> a.policyTypeName().compareToIgnoreCase(b.policyTypeName()));
+        return groups;
+    }
+
+    private List<PolicyPaymentReportPolicyGroupDTO> buildPolicyPaymentPolicyGroups(
+            List<PolicyPayment> typePayments, String typeName) {
+
+        // Group by insurance policy
+        Map<Long, List<PolicyPayment>> byPolicy = new LinkedHashMap<>();
+        for (PolicyPayment pp : typePayments) {
+            Long policyId = pp.getInsurancePolicy() != null ? pp.getInsurancePolicy().getId() : -1L;
+            byPolicy.computeIfAbsent(policyId, k -> new ArrayList<>()).add(pp);
+        }
+
+        List<PolicyPaymentReportPolicyGroupDTO> groups = new ArrayList<>();
+
+        for (Map.Entry<Long, List<PolicyPayment>> entry : byPolicy.entrySet()) {
+            Long policyId = entry.getKey();
+            List<PolicyPayment> policyPayments = entry.getValue();
+
+            InsurancePolicy policy = policyPayments.get(0).getInsurancePolicy();
+
+            String policyNumber = policy != null ? policy.getPolicyNumber() : "Sin póliza";
+            String termNumber = policy != null ? policy.getTermNumber() : null;
+            String policyStatus = (policy != null && policy.getPolicyStatus() != null)
+                    ? policy.getPolicyStatus().getDisplayName() : null;
+            String paymentFrequency = (policy != null && policy.getPaymentFrequency() != null)
+                    ? policy.getPaymentFrequency().getDisplayName() : null;
+            BigDecimal premioMensual = (policy != null && policy.getPremioMensual() != null)
+                    ? policy.getPremioMensual() : BigDecimal.ZERO;
+
+            BigDecimal totalPaid = BigDecimal.ZERO;
+            for (PolicyPayment pp : policyPayments) {
+                totalPaid = totalPaid.add(pp.getAmount() != null ? pp.getAmount() : BigDecimal.ZERO);
+            }
+
+            // Expected = premioMensual × number of payments
+            BigDecimal expectedAmount = premioMensual.multiply(BigDecimal.valueOf(policyPayments.size()));
+            BigDecimal difference = totalPaid.subtract(expectedAmount);
+
+            List<PolicyPaymentReportPaymentDTO> paymentDTOs = policyPayments.stream()
+                    .sorted(Comparator.comparing(PolicyPayment::getPaymentDate, Comparator.reverseOrder()))
+                    .map(pp -> new PolicyPaymentReportPaymentDTO(
+                            pp.getId(),
+                            pp.getPaymentDate(),
+                            pp.getAmount(),
+                            pp.getPeriodFrom(),
+                            pp.getPeriodTo(),
+                            pp.getNotes(),
+                            policyNumber,
+                            typeName,
+                            premioMensual,
+                            (pp.getAmount() != null ? pp.getAmount() : BigDecimal.ZERO).subtract(premioMensual)
+                    ))
+                    .toList();
+
+            // Build vehicle list for AUTOMOTOR policies
+            List<PolicyPaymentReportVehicleDTO> insuredVehicles = null;
+            if (policy != null && policy.getPolicyType() == PolicyType.AUTOMOTOR
+                    && policy.getAutoPolicy() != null
+                    && policy.getAutoPolicy().getPolicyVehicles() != null) {
+                insuredVehicles = policy.getAutoPolicy().getPolicyVehicles().stream()
+                        .filter(pv -> !Boolean.TRUE.equals(pv.getDeleted()))
+                        .map(pv -> {
+                            var vehicle = pv.getVehicle();
+                            return new PolicyPaymentReportVehicleDTO(
+                                    vehicle != null ? vehicle.getId() : null,
+                                    vehicle != null ? vehicle.getLicensePlate() : null,
+                                    vehicle != null ? vehicle.getBrand() : null,
+                                    vehicle != null ? vehicle.getModel() : null,
+                                    pv.getPremioMensual(),
+                                    pv.getSumInsured(),
+                                    (vehicle != null && vehicle.getProjectArea() != null)
+                                            ? vehicle.getProjectArea().getName() : null
+                            );
+                        })
+                        .toList();
+            }
+
+            groups.add(PolicyPaymentReportPolicyGroupDTO.builder()
+                    .insurancePolicyId(policyId == -1L ? null : policyId)
+                    .policyNumber(policyNumber)
+                    .termNumber(termNumber)
+                    .policyStatus(policyStatus)
+                    .paymentFrequency(paymentFrequency)
+                    .premioMensual(premioMensual)
+                    .totalPaid(totalPaid)
+                    .expectedAmount(expectedAmount)
+                    .difference(difference)
+                    .paymentCount(policyPayments.size())
+                    .payments(paymentDTOs)
+                    .insuredVehicles(insuredVehicles)
+                    .build());
+        }
+
+        groups.sort((a, b) -> {
+            if (a.policyNumber() == null) return 1;
+            if (b.policyNumber() == null) return -1;
+            return a.policyNumber().compareToIgnoreCase(b.policyNumber());
+        });
+
+        return groups;
+    }
+
+    private void validatePolicyPaymentFilters(PolicyPaymentReportFilterDTO filters) {
+        if (filters.startDate() != null && filters.endDate() != null
+                && filters.startDate().isAfter(filters.endDate())) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.date.range.invalid"));
+        }
+        if (filters.minAmount() != null && filters.maxAmount() != null
+                && filters.minAmount().compareTo(filters.maxAmount()) > 0) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.amount.range.invalid"));
+        }
+    }
+
+    private String buildPolicyPaymentPeriodDescription(PolicyPaymentReportFilterDTO filters) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filters.startDate() != null && filters.endDate() != null) {
             if (filters.startDate().getDayOfMonth() == 1

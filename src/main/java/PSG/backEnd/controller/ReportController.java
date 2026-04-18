@@ -15,6 +15,8 @@ import PSG.backEnd.model.dto.report.repair.RepairReportDTO;
 import PSG.backEnd.model.dto.report.repair.RepairReportFilterDTO;
 import PSG.backEnd.model.dto.report.stockPurchase.StockPurchaseReportDTO;
 import PSG.backEnd.model.dto.report.stockPurchase.StockPurchaseReportFilterDTO;
+import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportDTO;
+import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportFilterDTO;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.ServiceType;
@@ -1019,5 +1021,111 @@ public class ReportController {
         );
 
         return reportService.generateStockPurchaseReportFile(filters, format);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // POLICY PAYMENT REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/policy-payments")
+    @Operation(
+            summary = "Generate policy payment report data",
+            description = "Generates a hierarchical policy payment report grouped by policy type and policy. " +
+                    "Includes paid vs expected difference calculations and vehicle breakdown for AUTOMOTOR policies."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<PolicyPaymentReportDTO> generatePolicyPaymentReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Policy type enum names to include")
+            @RequestParam(required = false)
+            List<String> policyTypes,
+
+            @Parameter(description = "Filter by specific insurance policy ID")
+            @RequestParam(required = false)
+            Long insurancePolicyId,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Generating policy payment report: startDate={}, endDate={}, policyTypes={}", startDate, endDate, policyTypes);
+
+        PolicyPaymentReportFilterDTO filters = new PolicyPaymentReportFilterDTO(
+                startDate, endDate, policyTypes, insurancePolicyId, minAmount, maxAmount
+        );
+
+        PolicyPaymentReportDTO report = reportService.generatePolicyPaymentReport(filters);
+
+        log.info("Policy payment report generated: {} payments, {} policies, total paid: ${}",
+                report.totalPaymentCount(), report.totalPolicyCount(), report.totalPaidAmount());
+
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/policy-payments/download")
+    @Operation(
+            summary = "Download policy payment report file",
+            description = "Generates and downloads a policy payment report in the specified format (PDF or EXCEL)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadPolicyPaymentReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam
+            ReportFormat format,
+
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Policy type enum names to include")
+            @RequestParam(required = false)
+            List<String> policyTypes,
+
+            @Parameter(description = "Filter by specific insurance policy ID")
+            @RequestParam(required = false)
+            Long insurancePolicyId,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Downloading policy payment report: format={}", format);
+
+        PolicyPaymentReportFilterDTO filters = new PolicyPaymentReportFilterDTO(
+                startDate, endDate, policyTypes, insurancePolicyId, minAmount, maxAmount
+        );
+
+        return reportService.generatePolicyPaymentReportFile(filters, format);
     }
 }
