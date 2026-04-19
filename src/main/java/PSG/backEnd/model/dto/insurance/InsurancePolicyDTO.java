@@ -119,5 +119,10 @@ public record InsurancePolicyDTO(
                 nullable = true)
         @Min(value = 1, message = "{insurancePolicy.periodicDueDay.range}", groups = {OnCreate.class, OnUpdate.class})
         @Max(value = 28, message = "{insurancePolicy.periodicDueDay.range}", groups = {OnCreate.class, OnUpdate.class})
-        Integer periodicDueDay
+        Integer periodicDueDay,
+
+        @Schema(description = "Whether the payment due date falls at the start of the period (true) or at the end (false, default).",
+                example = "false",
+                nullable = true)
+        Boolean dueAtStartOfPeriod
 ) {}

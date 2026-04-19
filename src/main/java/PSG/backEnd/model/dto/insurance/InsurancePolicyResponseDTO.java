@@ -74,5 +74,8 @@ public record InsurancePolicyResponseDTO(
 
         @Schema(description = "Day of the month for periodic payment due date (1-28). Null for PAGO_UNICO.",
                 example = "20")
-        Integer periodicDueDay
+        Integer periodicDueDay,
+
+        @Schema(description = "Whether the payment due date falls at the start of the period (true) or at the end (false, default).")
+        Boolean dueAtStartOfPeriod
 ) {}
