@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.insurance;
 
+import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.vehicle.PaymentFrequency;
 import PSG.backEnd.model.enums.vehicle.PolicyStatus;
@@ -81,6 +82,10 @@ public class InsurancePolicy extends TenantEntity {
     @Builder.Default
     @Column(name = "deleted", nullable = false)
     private Boolean deleted = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
 
     @OneToOne(mappedBy = "insurancePolicy", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private AutoPolicy autoPolicy;

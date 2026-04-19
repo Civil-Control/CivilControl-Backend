@@ -77,5 +77,12 @@ public record InsurancePolicyResponseDTO(
         Integer periodicDueDay,
 
         @Schema(description = "Whether the payment due date falls at the start of the period (true) or at the end (false, default).")
-        Boolean dueAtStartOfPeriod
+        Boolean dueAtStartOfPeriod,
+
+        @Schema(description = "ID of the supplier (insurance company) associated with this policy.",
+                example = "5")
+        Long supplierId,
+
+        @Schema(description = "Name of the supplier (insurance company).")
+        String supplierName
 ) {}

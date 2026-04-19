@@ -18,9 +18,10 @@ import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
 import PSG.backEnd.model.entity.employee.SalaryPayment;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
-import PSG.backEnd.model.entity.insurance.PolicyPayment;
+import PSG.backEnd.model.entity.insurance.InsurancePolicyPaymentDetail;
 import PSG.backEnd.model.entity.insurance.InsurancePolicy;
 import PSG.backEnd.model.entity.insurance.PolicyVehicle;
+import PSG.backEnd.model.entity.payment.PaymentDetails;
 import PSG.backEnd.model.enums.vehicle.PolicyType;
 import PSG.backEnd.model.entity.serviceSupplier.ServicePayment;
 import PSG.backEnd.model.entity.vehicle.Repair;
@@ -115,7 +116,7 @@ public class ReportService implements IReportService {
     private final SalaryPaymentRepository salaryPaymentRepository;
     private final ServicePaymentRepository servicePaymentRepository;
     private final FuelLoadRepository fuelLoadRepository;
-    private final PolicyPaymentRepository policyPaymentRepository;
+    private final InsurancePolicyPaymentDetailRepository insurancePolicyPaymentDetailRepository;
     private final RepairRepository repairRepository;
     private final StockPurchaseRepository stockPurchaseRepository;
     private final StockRepository stockRepository;
@@ -147,7 +148,7 @@ public class ReportService implements IReportService {
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
             FuelLoadRepository fuelLoadRepository,
-            PolicyPaymentRepository policyPaymentRepository,
+            InsurancePolicyPaymentDetailRepository insurancePolicyPaymentDetailRepository,
             RepairRepository repairRepository,
             StockPurchaseRepository stockPurchaseRepository,
             StockRepository stockRepository,
@@ -179,7 +180,7 @@ public class ReportService implements IReportService {
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
         this.fuelLoadRepository = fuelLoadRepository;
-        this.policyPaymentRepository = policyPaymentRepository;
+        this.insurancePolicyPaymentDetailRepository = insurancePolicyPaymentDetailRepository;
         this.repairRepository = repairRepository;
         this.stockPurchaseRepository = stockPurchaseRepository;
         this.stockRepository = stockRepository;
@@ -848,13 +849,12 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        var policyPayments = policyPaymentRepository.findAllWithFilters(
+        var policyPaymentDetails = insurancePolicyPaymentDetailRepository.findAllWithFilters(
                 null, // insurancePolicyId
                 filters.startDate(),
                 filters.endDate(),
                 filters.minAmount(),
                 filters.maxAmount(),
-                null, // policyNumber
                 pageable
         ).getContent();
 
@@ -862,20 +862,21 @@ public class ReportService implements IReportService {
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        for (PolicyPayment pp : policyPayments) {
-            String policyNumber = pp.getInsurancePolicy().getPolicyNumber();
-            String periodDesc = pp.getPeriodFrom().format(formatter) + " - " + pp.getPeriodTo().format(formatter);
+        for (InsurancePolicyPaymentDetail ippd : policyPaymentDetails) {
+            PaymentDetails pd = ippd.getPaymentDetails();
+            String policyNumber = ippd.getInsurancePolicy().getPolicyNumber();
+            String periodDesc = ippd.getPeriodFrom().format(formatter) + " - " + ippd.getPeriodTo().format(formatter);
 
             items.add(ReportItemDTO.builder()
-                    .id(pp.getId())
-                    .date(pp.getPaymentDate())
+                    .id(ippd.getId())
+                    .date(pd.getPaymentDate())
                     .category(MoneyOutflowCategory.INSURANCE)
                     .description("Pago de póliza N° " + policyNumber + " - Período " + periodDesc)
-                    .amount(pp.getAmount())
+                    .amount(pd.getAmount())
                     .paymentMethod(null)
-                    .beneficiary("Aseguradora")
+                    .beneficiary(pd.getSupplier() != null ? pd.getSupplier().getLegalName() : "Aseguradora")
                     .reference(policyNumber)
-                    .comment(pp.getNotes())
+                    .comment(pd.getComment())
                     .projectAreaName(null)
                     .projectAreaTaskName(null)
                     .linkedDocumentId(null)
@@ -3001,11 +3002,10 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        List<PolicyPayment> allPayments = policyPaymentRepository.findAllWithFilters(
+        List<InsurancePolicyPaymentDetail> allPayments = insurancePolicyPaymentDetailRepository.findAllWithFilters(
                 filters.insurancePolicyId(),
                 filters.startDate(), filters.endDate(),
                 filters.minAmount(), filters.maxAmount(),
-                null,
                 pageable
         ).getContent();
 
@@ -3014,9 +3014,9 @@ public class ReportService implements IReportService {
         if (typeFilter != null && !typeFilter.isEmpty()) {
             Set<String> typeSet = new HashSet<>(typeFilter);
             allPayments = allPayments.stream()
-                    .filter(pp -> pp.getInsurancePolicy() != null
-                            && pp.getInsurancePolicy().getPolicyType() != null
-                            && typeSet.contains(pp.getInsurancePolicy().getPolicyType().name()))
+                    .filter(ippd -> ippd.getInsurancePolicy() != null
+                            && ippd.getInsurancePolicy().getPolicyType() != null
+                            && typeSet.contains(ippd.getInsurancePolicy().getPolicyType().name()))
                     .toList();
         }
 
@@ -3077,21 +3077,21 @@ public class ReportService implements IReportService {
                 .body(content);
     }
 
-    private List<PolicyPaymentReportTypeGroupDTO> buildPolicyPaymentTypeGroups(List<PolicyPayment> payments) {
+    private List<PolicyPaymentReportTypeGroupDTO> buildPolicyPaymentTypeGroups(List<InsurancePolicyPaymentDetail> payments) {
         // Group by policy type
-        Map<String, List<PolicyPayment>> byType = new LinkedHashMap<>();
-        for (PolicyPayment pp : payments) {
-            InsurancePolicy policy = pp.getInsurancePolicy();
+        Map<String, List<InsurancePolicyPaymentDetail>> byType = new LinkedHashMap<>();
+        for (InsurancePolicyPaymentDetail ippd : payments) {
+            InsurancePolicy policy = ippd.getInsurancePolicy();
             String typeKey = (policy != null && policy.getPolicyType() != null)
                     ? policy.getPolicyType().name() : "OTROS";
-            byType.computeIfAbsent(typeKey, k -> new ArrayList<>()).add(pp);
+            byType.computeIfAbsent(typeKey, k -> new ArrayList<>()).add(ippd);
         }
 
         List<PolicyPaymentReportTypeGroupDTO> groups = new ArrayList<>();
 
-        for (Map.Entry<String, List<PolicyPayment>> entry : byType.entrySet()) {
+        for (Map.Entry<String, List<InsurancePolicyPaymentDetail>> entry : byType.entrySet()) {
             String typeKey = entry.getKey();
-            List<PolicyPayment> typePayments = entry.getValue();
+            List<InsurancePolicyPaymentDetail> typePayments = entry.getValue();
 
             String typeName;
             try {
@@ -3129,20 +3129,20 @@ public class ReportService implements IReportService {
     }
 
     private List<PolicyPaymentReportPolicyGroupDTO> buildPolicyPaymentPolicyGroups(
-            List<PolicyPayment> typePayments, String typeName) {
+            List<InsurancePolicyPaymentDetail> typePayments, String typeName) {
 
         // Group by insurance policy
-        Map<Long, List<PolicyPayment>> byPolicy = new LinkedHashMap<>();
-        for (PolicyPayment pp : typePayments) {
-            Long policyId = pp.getInsurancePolicy() != null ? pp.getInsurancePolicy().getId() : -1L;
-            byPolicy.computeIfAbsent(policyId, k -> new ArrayList<>()).add(pp);
+        Map<Long, List<InsurancePolicyPaymentDetail>> byPolicy = new LinkedHashMap<>();
+        for (InsurancePolicyPaymentDetail ippd : typePayments) {
+            Long policyId = ippd.getInsurancePolicy() != null ? ippd.getInsurancePolicy().getId() : -1L;
+            byPolicy.computeIfAbsent(policyId, k -> new ArrayList<>()).add(ippd);
         }
 
         List<PolicyPaymentReportPolicyGroupDTO> groups = new ArrayList<>();
 
-        for (Map.Entry<Long, List<PolicyPayment>> entry : byPolicy.entrySet()) {
+        for (Map.Entry<Long, List<InsurancePolicyPaymentDetail>> entry : byPolicy.entrySet()) {
             Long policyId = entry.getKey();
-            List<PolicyPayment> policyPayments = entry.getValue();
+            List<InsurancePolicyPaymentDetail> policyPayments = entry.getValue();
 
             InsurancePolicy policy = policyPayments.get(0).getInsurancePolicy();
 
@@ -3156,8 +3156,9 @@ public class ReportService implements IReportService {
                     ? policy.getPremioMensual() : BigDecimal.ZERO;
 
             BigDecimal totalPaid = BigDecimal.ZERO;
-            for (PolicyPayment pp : policyPayments) {
-                totalPaid = totalPaid.add(pp.getAmount() != null ? pp.getAmount() : BigDecimal.ZERO);
+            for (InsurancePolicyPaymentDetail ippd : policyPayments) {
+                PaymentDetails pd = ippd.getPaymentDetails();
+                totalPaid = totalPaid.add(pd.getAmount() != null ? pd.getAmount() : BigDecimal.ZERO);
             }
 
             // Expected = premioMensual × number of payments
@@ -3165,19 +3166,22 @@ public class ReportService implements IReportService {
             BigDecimal difference = totalPaid.subtract(expectedAmount);
 
             List<PolicyPaymentReportPaymentDTO> paymentDTOs = policyPayments.stream()
-                    .sorted(Comparator.comparing(PolicyPayment::getPaymentDate, Comparator.reverseOrder()))
-                    .map(pp -> new PolicyPaymentReportPaymentDTO(
-                            pp.getId(),
-                            pp.getPaymentDate(),
-                            pp.getAmount(),
-                            pp.getPeriodFrom(),
-                            pp.getPeriodTo(),
-                            pp.getNotes(),
+                    .sorted(Comparator.comparing(ippd -> ippd.getPaymentDetails().getPaymentDate(), Comparator.reverseOrder()))
+                    .map(ippd -> {
+                        PaymentDetails pd = ippd.getPaymentDetails();
+                        return new PolicyPaymentReportPaymentDTO(
+                            ippd.getId(),
+                            pd.getPaymentDate(),
+                            pd.getAmount(),
+                            ippd.getPeriodFrom(),
+                            ippd.getPeriodTo(),
+                            pd.getComment(),
                             policyNumber,
                             typeName,
                             premioMensual,
-                            (pp.getAmount() != null ? pp.getAmount() : BigDecimal.ZERO).subtract(premioMensual)
-                    ))
+                            (pd.getAmount() != null ? pd.getAmount() : BigDecimal.ZERO).subtract(premioMensual)
+                        );
+                    })
                     .toList();
 
             // Build vehicle list for AUTOMOTOR policies

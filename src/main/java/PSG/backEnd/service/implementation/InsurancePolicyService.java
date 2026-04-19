@@ -112,6 +112,15 @@ public class InsurancePolicyService implements IInsurancePolicyService {
             existingPolicy.setNumberOfInstallments(insurancePolicyDTO.numberOfInstallments());
             existingPolicy.setPeriodicDueDay(insurancePolicyDTO.periodicDueDay());
 
+            // Handle supplier reference
+            if (insurancePolicyDTO.supplierId() != null) {
+                PSG.backEnd.model.entity.Supplier supplier = new PSG.backEnd.model.entity.Supplier();
+                supplier.setId(insurancePolicyDTO.supplierId());
+                existingPolicy.setSupplier(supplier);
+            } else {
+                existingPolicy.setSupplier(null);
+            }
+
             // Al reactivar (cambiar de CANCELADO a otro estado), limpiar la fecha de cancelación
             if (insurancePolicyDTO.policyStatus() != null
                     && insurancePolicyDTO.policyStatus() != PSG.backEnd.model.enums.vehicle.PolicyStatus.CANCELADO

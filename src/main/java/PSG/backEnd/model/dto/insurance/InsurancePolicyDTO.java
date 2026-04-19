@@ -124,5 +124,10 @@ public record InsurancePolicyDTO(
         @Schema(description = "Whether the payment due date falls at the start of the period (true) or at the end (false, default).",
                 example = "false",
                 nullable = true)
-        Boolean dueAtStartOfPeriod
+        Boolean dueAtStartOfPeriod,
+
+        @Schema(description = "ID of the supplier (insurance company) associated with this policy.",
+                example = "5",
+                nullable = true)
+        Long supplierId
 ) {}
