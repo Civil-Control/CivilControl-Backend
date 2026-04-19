@@ -75,6 +75,10 @@ public class InsurancePolicy extends TenantEntity {
     private Integer periodicDueDay;
 
     @Builder.Default
+    @Column(name = "due_at_start_of_period", nullable = false)
+    private Boolean dueAtStartOfPeriod = false;
+
+    @Builder.Default
     @Column(name = "deleted", nullable = false)
     private Boolean deleted = false;
 
