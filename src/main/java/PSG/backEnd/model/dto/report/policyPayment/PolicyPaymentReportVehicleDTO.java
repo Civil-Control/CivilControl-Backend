@@ -22,6 +22,9 @@ public record PolicyPaymentReportVehicleDTO(
     @Schema(description = "Monthly premium for this vehicle in the policy")
     BigDecimal premioMensual,
 
+    @Schema(description = "Total premium for this vehicle in the policy")
+    BigDecimal premioTotal,
+
     @Schema(description = "Sum insured for this vehicle")
     BigDecimal sumInsured,
 

@@ -409,7 +409,7 @@ public class PolicyPaymentReportExcelExporter {
         Sheet sheet = workbook.createSheet("Vehículos Asegurados");
         int rowNum = 0;
 
-        int totalCols = 6;
+        int totalCols = 7;
         rowNum = addSheetHeader(sheet, "REPORTE DE PAGOS DE PÓLIZA - VEHÍCULOS ASEGURADOS", report, titleCellStyle, totalCols);
         rowNum++;
 
@@ -419,7 +419,11 @@ public class PolicyPaymentReportExcelExporter {
         setCellWithStyle(headerRow, 2, "Marca/Modelo", headerStyle);
         setCellWithStyle(headerRow, 3, "Área", headerStyle);
         setCellWithStyle(headerRow, 4, "Suma Asegurada ($)", headerStyle);
-        setCellWithStyle(headerRow, 5, "Premio Mensual ($)", headerStyle);
+        setCellWithStyle(headerRow, 5, "Premio Total ($)", headerStyle);
+        setCellWithStyle(headerRow, 6, "Premio Mensual ($)", headerStyle);
+
+        double grandTotalPremioTotal = 0;
+        double grandTotalPremioMensual = 0;
 
         for (PolicyPaymentReportTypeGroupDTO typeGroup : report.typeGroups()) {
             for (PolicyPaymentReportPolicyGroupDTO pg : typeGroup.policyGroups()) {
@@ -444,12 +448,34 @@ public class PolicyPaymentReportExcelExporter {
                     sumCell.setCellValue(vehicle.sumInsured() != null ? vehicle.sumInsured().doubleValue() : 0);
                     sumCell.setCellStyle(currencyStyle);
 
-                    Cell premioCell = row.createCell(5);
-                    premioCell.setCellValue(vehicle.premioMensual() != null ? vehicle.premioMensual().doubleValue() : 0);
+                    Cell premioTotalCell = row.createCell(5);
+                    double pt = vehicle.premioTotal() != null ? vehicle.premioTotal().doubleValue() : 0;
+                    premioTotalCell.setCellValue(pt);
+                    premioTotalCell.setCellStyle(currencyStyle);
+                    grandTotalPremioTotal += pt;
+
+                    Cell premioCell = row.createCell(6);
+                    double pm = vehicle.premioMensual() != null ? vehicle.premioMensual().doubleValue() : 0;
+                    premioCell.setCellValue(pm);
                     premioCell.setCellStyle(currencyStyle);
+                    grandTotalPremioMensual += pm;
                 }
             }
         }
+
+        // Totals row
+        Row totalsRow = sheet.createRow(rowNum++);
+        Cell labelCell = totalsRow.createCell(0);
+        labelCell.setCellValue("TOTAL");
+        labelCell.setCellStyle(totalLabelStyle);
+
+        Cell totalPTCell = totalsRow.createCell(5);
+        totalPTCell.setCellValue(grandTotalPremioTotal);
+        totalPTCell.setCellStyle(totalStyle);
+
+        Cell totalPMCell = totalsRow.createCell(6);
+        totalPMCell.setCellValue(grandTotalPremioMensual);
+        totalPMCell.setCellStyle(totalStyle);
 
         for (int i = 0; i < totalCols; i++) {
             sheet.autoSizeColumn(i);

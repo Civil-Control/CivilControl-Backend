@@ -3195,6 +3195,7 @@ public class ReportService implements IReportService {
                                     vehicle != null ? vehicle.getBrand() : null,
                                     vehicle != null ? vehicle.getModel() : null,
                                     pv.getPremioMensual(),
+                                    pv.getPremioTotal(),
                                     pv.getSumInsured(),
                                     (vehicle != null && vehicle.getProjectArea() != null)
                                             ? vehicle.getProjectArea().getName() : null

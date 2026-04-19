@@ -296,7 +296,7 @@ public class PolicyPaymentReportPdfExporter {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void addVehiclesTable(Document document, PolicyPaymentReportDTO report) {
-        Table table = new Table(new float[]{2f, 1.5f, 2f, 1.5f, 1.5f, 1.5f});
+        Table table = new Table(new float[]{2f, 1.5f, 2f, 1.5f, 1.5f, 1.5f, 1.5f});
         table.setWidth(UnitValue.createPercentValue(100));
 
         table.addHeaderCell(headerCell("Póliza"));
@@ -304,7 +304,11 @@ public class PolicyPaymentReportPdfExporter {
         table.addHeaderCell(headerCell("Marca/Modelo"));
         table.addHeaderCell(headerCell("Área"));
         table.addHeaderCell(headerCell("Suma Asegurada ($)"));
+        table.addHeaderCell(headerCell("Premio Total ($)"));
         table.addHeaderCell(headerCell("Premio Mensual ($)"));
+
+        BigDecimal grandTotalPremioTotal = BigDecimal.ZERO;
+        BigDecimal grandTotalPremioMensual = BigDecimal.ZERO;
 
         for (PolicyPaymentReportTypeGroupDTO typeGroup : report.typeGroups()) {
             for (PolicyPaymentReportPolicyGroupDTO pg : typeGroup.policyGroups()) {
@@ -324,10 +328,23 @@ public class PolicyPaymentReportPdfExporter {
                     table.addCell(cell(brandModel));
                     table.addCell(cell(vehicle.projectAreaName() != null ? vehicle.projectAreaName() : ""));
                     table.addCell(cellAmount(vehicle.sumInsured()));
+                    table.addCell(cellAmount(vehicle.premioTotal()));
                     table.addCell(cellAmount(vehicle.premioMensual()));
+
+                    if (vehicle.premioTotal() != null) grandTotalPremioTotal = grandTotalPremioTotal.add(vehicle.premioTotal());
+                    if (vehicle.premioMensual() != null) grandTotalPremioMensual = grandTotalPremioMensual.add(vehicle.premioMensual());
                 }
             }
         }
+
+        // Totals row
+        table.addCell(totalCell("TOTAL"));
+        table.addCell(totalCell(""));
+        table.addCell(totalCell(""));
+        table.addCell(totalCell(""));
+        table.addCell(totalCell(""));
+        table.addCell(totalCellAmount(grandTotalPremioTotal));
+        table.addCell(totalCellAmount(grandTotalPremioMensual));
 
         document.add(table);
     }

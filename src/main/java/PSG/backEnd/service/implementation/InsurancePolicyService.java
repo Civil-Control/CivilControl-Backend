@@ -105,6 +105,13 @@ public class InsurancePolicyService implements IInsurancePolicyService {
         try {
             insurancePolicyMapper.partialUpdate(insurancePolicyDTO, existingPolicy);
 
+            // Explicitly apply nullable fields that NullValuePropertyMappingStrategy.IGNORE skips
+            existingPolicy.setPremioTotal(insurancePolicyDTO.premioTotal());
+            existingPolicy.setPremioMensual(insurancePolicyDTO.premioMensual());
+            existingPolicy.setSumInsured(insurancePolicyDTO.sumInsured());
+            existingPolicy.setNumberOfInstallments(insurancePolicyDTO.numberOfInstallments());
+            existingPolicy.setPeriodicDueDay(insurancePolicyDTO.periodicDueDay());
+
             // Al reactivar (cambiar de CANCELADO a otro estado), limpiar la fecha de cancelación
             if (insurancePolicyDTO.policyStatus() != null
                     && insurancePolicyDTO.policyStatus() != PSG.backEnd.model.enums.vehicle.PolicyStatus.CANCELADO
