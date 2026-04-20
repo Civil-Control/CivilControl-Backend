@@ -43,6 +43,7 @@ secrets/
 *.secret
 *.key
 *.pem
+**/application-local.properties
 
 # Compiled class file
 *.class
