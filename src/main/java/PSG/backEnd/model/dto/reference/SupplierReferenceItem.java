@@ -22,5 +22,7 @@ public record SupplierReferenceItem(
         @Schema(description = "Trade / commercial name", example = "Servicios Andes", nullable = true)
         String tradeName,
         @Schema(description = "Alias / short nickname", example = "SA", nullable = true)
-        String alias
+        String alias,
+        @Schema(description = "CUIT / fiscal identification number", example = "30-12345678-9", nullable = true)
+        String cuit
 ) {}

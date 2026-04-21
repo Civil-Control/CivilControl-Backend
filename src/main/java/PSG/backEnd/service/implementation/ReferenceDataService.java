@@ -88,7 +88,8 @@ public class ReferenceDataService implements IReferenceDataService {
                             label,
                             s.getLegalName(),
                             s.getTradeName(),
-                            s.getAlias()
+                            s.getAlias(),
+                            s.getCuit()
                     );
                 })
                 .collect(Collectors.toList());
