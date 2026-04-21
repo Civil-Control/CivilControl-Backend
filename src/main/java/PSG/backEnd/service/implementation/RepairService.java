@@ -156,10 +156,22 @@ public class RepairService implements IRepairService {
     @Override
     @Transactional
     public void linkItemToDocument(Long itemId, Long documentId) {
+        linkItemToDocument(itemId, documentId, null, null);
+    }
+
+    @Override
+    @Transactional
+    public void linkItemToDocument(Long itemId, Long documentId, java.math.BigDecimal ivaPercentage, Integer sortOrder) {
         RepairItem item = repairItemRepository.findById(itemId)
                 .orElseThrow(() -> new RepairNotFoundException(itemId));
         TransactionalDocument doc = resolveDocument(documentId);
         item.setTransactionalDocument(doc);
+        if (ivaPercentage != null) {
+            item.setIvaPercentage(ivaPercentage);
+        }
+        if (sortOrder != null) {
+            item.setSortOrder(sortOrder);
+        }
         repairItemRepository.save(item);
         documentTotalRecalculator.recalculateDocumentTotals(documentId);
     }

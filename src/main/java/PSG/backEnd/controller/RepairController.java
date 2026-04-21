@@ -157,8 +157,24 @@ public class RepairController {
     })
     public ResponseEntity<Void> linkItemToDocument(
             @PathVariable Long itemId,
-            @PathVariable Long documentId) {
-        repairService.linkItemToDocument(itemId, documentId);
+            @PathVariable Long documentId,
+            @RequestBody(required = false) java.util.Map<String, Object> body) {
+        java.math.BigDecimal ivaPercentage = null;
+        Integer sortOrder = null;
+        if (body != null) {
+            Object iva = body.get("ivaPercentage");
+            if (iva != null) {
+                ivaPercentage = new java.math.BigDecimal(iva.toString());
+            }
+            Object so = body.get("sortOrder");
+            if (so == null) {
+                so = body.get("documentSortOrder");
+            }
+            if (so != null) {
+                sortOrder = Integer.valueOf(so.toString());
+            }
+        }
+        repairService.linkItemToDocument(itemId, documentId, ivaPercentage, sortOrder);
         return ResponseEntity.noContent().build();
     }
 
