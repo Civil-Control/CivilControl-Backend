@@ -32,6 +32,12 @@ public interface IAuthService {
     void logout(String username);
 
     /**
+     * Token-aware logout: also revokes the supplied access/refresh tokens via the
+     * blacklist so they cannot be reused before their natural expiration.
+     */
+    void logout(String username, String bearerToken, String refreshToken);
+
+    /**
      * Returns the current user's profile including up-to-date roles and permissions.
      * @param username Authenticated username (from JWT)
      * @return User profile DTO

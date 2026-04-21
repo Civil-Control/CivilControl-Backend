@@ -15,6 +15,7 @@ import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -62,15 +63,23 @@ public class JwtService {
 
     /**
      * Generates a JWT token with custom claims.
+     * Every issued token gets a unique {@code jti} so it can be individually
+     * revoked by the {@link PSG.backEnd.service.security.JwtTokenBlacklist}.
      */
     private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails, Long expiration) {
         return Jwts.builder()
                 .claims(extraClaims)
+                .id(UUID.randomUUID().toString())
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSignInKey())
                 .compact();
+    }
+
+    /** Extracts the JWT id (jti) used for revocation tracking. May be null for legacy tokens. */
+    public String extractJti(String token) {
+        return extractClaim(token, Claims::getId);
     }
 
     /**

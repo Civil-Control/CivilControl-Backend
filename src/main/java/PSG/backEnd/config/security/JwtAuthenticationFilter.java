@@ -1,6 +1,7 @@
 package PSG.backEnd.config.security;
 
 import PSG.backEnd.service.implementation.JwtService;
+import PSG.backEnd.service.security.JwtTokenBlacklist;
 import PSG.backEnd.service.util.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -30,6 +31,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final JwtTokenBlacklist tokenBlacklist;
 
     @Override
     protected void doFilterInternal(
@@ -55,6 +57,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Extract username and tenantId from JWT
             username = jwtService.extractUsername(jwt);
             Long tenantId = jwtService.extractTenantId(jwt);
+
+            // Reject revoked tokens (logged-out users, rotated refresh tokens, etc.)
+            String jti = jwtService.extractJti(jwt);
+            if (jti != null && tokenBlacklist.isRevoked(jti)) {
+                log.warn("Rejected revoked JWT (jti={}, user={})", jti, username);
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             // Set tenant context
             TenantContext.setCurrentTenant(tenantId);

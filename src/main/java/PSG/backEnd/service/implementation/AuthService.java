@@ -14,6 +14,7 @@ import PSG.backEnd.model.mapper.UserLocationMapper;
 import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IAuthService;
 import PSG.backEnd.service.security.AuthRateLimiter;
+import PSG.backEnd.service.security.JwtTokenBlacklist;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class AuthService implements IAuthService {
     private final UserLocationMapper userLocationMapper;
     private final MessageSourceHelper messageSourceHelper;
     private final AuthRateLimiter rateLimiter;
+    private final JwtTokenBlacklist tokenBlacklist;
 
     @Override
     @Transactional(readOnly = true)
@@ -106,10 +108,18 @@ public class AuthService implements IAuthService {
     @Transactional(readOnly = true)
     public AuthResponseDTO refreshToken(RefreshTokenRequestDTO refreshTokenRequest) {
         log.info("Token refresh attempt");
+        String oldRefreshToken = refreshTokenRequest.refreshToken();
 
         try {
+            // Reject already-revoked / rotated refresh tokens up front
+            String oldJti = jwtService.extractJti(oldRefreshToken);
+            if (oldJti != null && tokenBlacklist.isRevoked(oldJti)) {
+                log.warn("Refresh attempt with revoked token (jti={})", oldJti);
+                throw new InvalidTokenException(messageSourceHelper.getMessage("auth.invalidOrExpiredRefreshToken"));
+            }
+
             // Extract username from refresh token
-            String username = jwtService.extractUsername(refreshTokenRequest.refreshToken());
+            String username = jwtService.extractUsername(oldRefreshToken);
 
             if (username == null) {
                 throw new InvalidTokenException(messageSourceHelper.getMessage("auth.invalidRefreshToken"));
@@ -119,13 +129,18 @@ public class AuthService implements IAuthService {
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             // Validate refresh token
-            if (!jwtService.isTokenValid(refreshTokenRequest.refreshToken(), userDetails)) {
+            if (!jwtService.isTokenValid(oldRefreshToken, userDetails)) {
                 throw new InvalidTokenException(messageSourceHelper.getMessage("auth.refreshTokenExpired"));
             }
 
             // Load full user entity
             User user = userRepository.findByCredentialsUsernameAndDeletedFalse(username)
                     .orElseThrow(() -> new InvalidTokenException(messageSourceHelper.getMessage("auth.userNotFound")));
+
+            // Rotate: revoke the old refresh token immediately so it cannot be reused
+            if (oldJti != null) {
+                tokenBlacklist.revoke(oldJti, jwtService.extractExpiration(oldRefreshToken).getTime());
+            }
 
             // Generate new tokens
             String newAccessToken = jwtService.generateAccessToken(user);
@@ -135,6 +150,8 @@ public class AuthService implements IAuthService {
 
             return buildAuthResponse(user, newAccessToken, newRefreshToken);
 
+        } catch (InvalidTokenException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error refreshing token: {}", e.getMessage());
             throw new InvalidTokenException(messageSourceHelper.getMessage("auth.invalidOrExpiredRefreshToken"));
@@ -144,15 +161,38 @@ public class AuthService implements IAuthService {
     @Override
     public void logout(String username) {
         log.info("Logout request for user: {}", username);
-
-        // Note: With JWT, tokens cannot be invalidated server-side unless we implement a blacklist
-        // For now, we just log the logout action
-        // In production, you might want to:
-        // 1. Store tokens in Redis with TTL
-        // 2. Maintain a blacklist of invalidated tokens
-        // 3. Use short-lived access tokens and rely on refresh token rotation
-
+        // Token-aware logout is performed by {@link #logout(String, String)}.
+        // This overload remains for backward-compat with the IAuthService contract.
         log.info("User logged out: {}", username);
+    }
+
+    /**
+     * Token-aware logout: revokes the presented access token (and, if supplied,
+     * the refresh token) so they cannot be reused before their natural expiration.
+     */
+    @Override
+    public void logout(String username, String bearerToken, String refreshToken) {
+        logout(username);
+        try {
+            if (bearerToken != null && !bearerToken.isBlank()) {
+                String jti = jwtService.extractJti(bearerToken);
+                if (jti != null) {
+                    tokenBlacklist.revoke(jti, jwtService.extractExpiration(bearerToken).getTime());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not revoke access token on logout: {}", e.getMessage());
+        }
+        try {
+            if (refreshToken != null && !refreshToken.isBlank()) {
+                String jti = jwtService.extractJti(refreshToken);
+                if (jti != null) {
+                    tokenBlacklist.revoke(jti, jwtService.extractExpiration(refreshToken).getTime());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not revoke refresh token on logout: {}", e.getMessage());
+        }
     }
 
     /**

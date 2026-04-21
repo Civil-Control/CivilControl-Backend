@@ -65,9 +65,15 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Logout successful"),
             @ApiResponse(responseCode = "401", description = "User not authenticated")
     })
-    public ResponseEntity<Void> logout(Authentication authentication) {
+    public ResponseEntity<Void> logout(
+            Authentication authentication,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestHeader(value = "X-Refresh-Token", required = false) String refreshHeader
+    ) {
         if (authentication != null && authentication.isAuthenticated()) {
-            authService.logout(authentication.getName());
+            String bearer = (authHeader != null && authHeader.startsWith("Bearer "))
+                    ? authHeader.substring(7) : null;
+            authService.logout(authentication.getName(), bearer, refreshHeader);
         }
         return ResponseEntity.ok().build();
     }
