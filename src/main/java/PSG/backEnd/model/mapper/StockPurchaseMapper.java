@@ -11,6 +11,7 @@ public interface StockPurchaseMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "documentSortOrder", defaultExpression = "java(0)")
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage", defaultExpression = "java(new java.math.BigDecimal(\"21.00\"))")
     StockPurchase toEntity(StockPurchaseDTO dto);
 
     @Mapping(target = "id", source = "purchase.id")
@@ -23,10 +24,12 @@ public interface StockPurchaseMapper {
     @Mapping(target = "totalAmount", source = "purchase.totalAmount")
     @Mapping(target = "notes", source = "purchase.notes")
     @Mapping(target = "transactionalDocumentId", source = "purchase.transactionalDocumentId")
+    @Mapping(target = "ivaPercentage", source = "purchase.ivaPercentage")
     StockPurchaseResponseDTO toResponseDto(StockPurchase purchase, Stock stock);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "transactionalDocumentId", ignore = true)
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage")
     void partialUpdate(StockPurchaseDTO dto, @MappingTarget StockPurchase purchase);
 }

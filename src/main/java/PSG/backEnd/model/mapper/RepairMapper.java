@@ -52,6 +52,7 @@ public interface RepairMapper {
                         item.getItemType() != null ? item.getItemType().name() : null,
                         item.getDescription(),
                         item.getAmount(),
+                        item.getIvaPercentage() != null ? item.getIvaPercentage() : new BigDecimal("21.00"),
                         documentToSummaryDto(item.getTransactionalDocument()),
                         item.getSortOrder()
                 ));

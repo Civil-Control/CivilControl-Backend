@@ -205,6 +205,9 @@ public class RepairService implements IRepairService {
                     .itemType(itemDTO.itemType())
                     .description(itemDTO.description())
                     .amount(itemDTO.amount())
+                    .ivaPercentage(itemDTO.ivaPercentage() != null
+                            ? itemDTO.ivaPercentage()
+                            : new java.math.BigDecimal("21.00"))
                     .transactionalDocument(resolveDocument(itemDTO.transactionalDocumentId()))
                     .sortOrder(sortOrder++)
                     .build();

@@ -34,6 +34,11 @@ public class StockPurchase extends TenantEntity {
     @Column(name = "total_amount", precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
+    /** IVA percentage applied to this stock purchase (default 21). */
+    @Column(name = "iva_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal ivaPercentage = new BigDecimal("21.00");
+
     @Column(length = 500)
     private String notes;
 

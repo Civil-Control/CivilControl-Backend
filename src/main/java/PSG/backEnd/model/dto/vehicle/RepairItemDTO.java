@@ -33,6 +33,12 @@ public record RepairItemDTO(
         @Digits(integer = 10, fraction = 2, message = "{validation.digits}", groups = {OnCreate.class, OnUpdate.class})
         BigDecimal amount,
 
+        @Schema(description = "IVA percentage (0-100). Defaults to 21 if omitted.", nullable = true, example = "21.00")
+        @DecimalMin(value = "0.00", inclusive = true, message = "{validation.positiveOrZero}", groups = {OnCreate.class, OnUpdate.class})
+        @DecimalMax(value = "100.00", inclusive = true, message = "{validation.max}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 3, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        BigDecimal ivaPercentage,
+
         @Schema(description = "ID of linked transactional document (purchase order). Optional.",
                 nullable = true)
         @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})

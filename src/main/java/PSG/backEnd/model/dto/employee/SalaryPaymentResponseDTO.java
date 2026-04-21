@@ -69,6 +69,9 @@ public record SalaryPaymentResponseDTO(
             nullable = true)
     TransactionalDocumentSummaryDTO transactionalDocument,
 
+    @Schema(description = "IVA percentage applied to this salary payment.", example = "21.00")
+    BigDecimal ivaPercentage,
+
     Integer documentSortOrder
 ) {}
 

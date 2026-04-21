@@ -20,6 +20,9 @@ public record RepairItemResponseDTO(
         @Schema(description = "Amount for this item.", nullable = true)
         BigDecimal amount,
 
+        @Schema(description = "IVA percentage applied to this item.", example = "21.00")
+        BigDecimal ivaPercentage,
+
         @Schema(description = "Linked transactional document summary, if any.", nullable = true)
         TransactionalDocumentSummaryDTO transactionalDocument,
 

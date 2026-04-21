@@ -77,5 +77,8 @@ public record FuelLoadResponseDTO(
         @Schema(description = "Linked transactional document summary, if any.", nullable = true)
         PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO transactionalDocument,
 
+        @Schema(description = "IVA percentage applied to this fuel load.", example = "21.00")
+        java.math.BigDecimal ivaPercentage,
+
         Integer documentSortOrder
 ) {}

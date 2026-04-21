@@ -24,6 +24,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "fuelType", source = "fuelType")
     @Mapping(target = "transactionalDocument", ignore = true)
     @Mapping(target = "documentSortOrder", defaultExpression = "java(0)")
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage", defaultExpression = "java(new java.math.BigDecimal(\"21.00\"))")
     FuelLoad toEntity(FuelLoadDTO fuelLoadDTO);
 
     @Mapping(target = "date", source = "date", dateFormat = "yyyy-MM-dd")
@@ -38,6 +39,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "gasStationId", source = "gasStation.id")
     @Mapping(target = "gasStationName", expression = "java(fuelLoad.getGasStation() != null ? fuelLoad.getGasStation().getSupplier().getLegalName() : null)")
     @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage")
     FuelLoadResponseDTO toResponseDto(FuelLoad fuelLoad);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -49,6 +51,7 @@ public interface FuelLoadMapper {
     @Mapping(target = "projectAreaTask", source = "projectAreaTaskId", qualifiedByName = "projectAreaTaskIdToEntity")
     @Mapping(target = "gasStation", source = "gasStationId", qualifiedByName = "gasStationIdToEntity")
     @Mapping(target = "transactionalDocument", ignore = true)
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage")
     void partialUpdate(FuelLoadDTO updateDTO, @MappingTarget FuelLoad fuelLoad);
 
     @Named("vehicleIdToEntity")

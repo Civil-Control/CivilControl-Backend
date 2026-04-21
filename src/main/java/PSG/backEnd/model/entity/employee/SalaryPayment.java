@@ -39,6 +39,11 @@ public class SalaryPayment extends TenantEntity {
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
+    /** IVA percentage applied to this salary payment (default 21). */
+    @Column(name = "iva_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal ivaPercentage = new BigDecimal("21.00");
+
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
     private PaymentMethod paymentMethod;

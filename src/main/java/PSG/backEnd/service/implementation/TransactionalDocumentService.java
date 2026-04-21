@@ -64,6 +64,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final SalaryPaymentRepository salaryPaymentRepository;
     private final StockPurchaseRepository stockPurchaseRepository;
     private final IStockPurchaseService iStockPurchaseService;
+    private final DocumentTotalRecalculator documentTotalRecalculator;
 
     @Override
     @Transactional
@@ -94,7 +95,11 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
         document = transactionalDocumentRepository.save(document);
 
-        return transactionalDocumentMapper.toResponseDto(document);
+        // Recompute totals from authoritative sources after create.
+        documentTotalRecalculator.recalculateDocumentTotals(document.getId());
+        TransactionalDocument refreshed = transactionalDocumentRepository.findByIdAndDeletedFalse(document.getId())
+                .orElse(document);
+        return transactionalDocumentMapper.toResponseDto(refreshed);
     }
 
     @Override
@@ -165,7 +170,12 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         }
 
         TransactionalDocument savedDocument = transactionalDocumentRepository.save(existingDocument);
-        return transactionalDocumentMapper.toResponseDto(savedDocument);
+
+        // Recompute totals from authoritative sources (items + linked records, per-record IVA).
+        documentTotalRecalculator.recalculateDocumentTotals(savedDocument.getId());
+        TransactionalDocument refreshed = transactionalDocumentRepository.findByIdAndDeletedFalse(savedDocument.getId())
+                .orElse(savedDocument);
+        return transactionalDocumentMapper.toResponseDto(refreshed);
     }
 
     /**

@@ -16,6 +16,7 @@ public interface SalaryPaymentMapper {
     @Mapping(target = "projectAreaTask", ignore = true)
     @Mapping(target = "transactionalDocument", ignore = true)
     @Mapping(target = "documentSortOrder", defaultExpression = "java(0)")
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage", defaultExpression = "java(new java.math.BigDecimal(\"21.00\"))")
     SalaryPayment toEntity(SalaryPaymentDTO salaryPaymentDTO);
 
     @Mapping(source = "employee.id", target = "employeeId")
@@ -27,6 +28,7 @@ public interface SalaryPaymentMapper {
     @Mapping(source = "projectAreaTask.id", target = "projectAreaTaskId")
     @Mapping(source = "projectAreaTask.name", target = "projectAreaTaskName")
     @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage")
     SalaryPaymentResponseDTO toResponseDto(SalaryPayment salaryPayment);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -35,6 +37,7 @@ public interface SalaryPaymentMapper {
     @Mapping(target = "projectArea", ignore = true)
     @Mapping(target = "projectAreaTask", ignore = true)
     @Mapping(target = "transactionalDocument", ignore = true)
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage")
     void partialUpdate(SalaryPaymentDTO updateDTO, @MappingTarget SalaryPayment salaryPayment);
 
     @Named("documentToSummaryDto")

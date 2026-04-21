@@ -36,6 +36,11 @@ public class RepairItem extends TenantEntity {
     @Column(precision = 12, scale = 2)
     private BigDecimal amount;
 
+    /** IVA percentage applied to this item (default 21). */
+    @Column(name = "iva_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal ivaPercentage = new BigDecimal("21.00");
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transactional_document_id")
     private TransactionalDocument transactionalDocument;

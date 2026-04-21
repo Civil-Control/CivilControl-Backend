@@ -106,7 +106,7 @@ public class ReferenceDataController {
         + "'" + AppPermissions.SERVICE_SUPPLIER_WRITE + "'"
         + ")"
     )
-    public ResponseEntity<List<ReferenceItem>> getSupplierReferences() {
+    public ResponseEntity<List<PSG.backEnd.model.dto.reference.SupplierReferenceItem>> getSupplierReferences() {
         return ResponseEntity.ok(referenceDataService.getSupplierReferences());
     }
 

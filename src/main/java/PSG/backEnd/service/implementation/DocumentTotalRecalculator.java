@@ -41,50 +41,58 @@ public class DocumentTotalRecalculator {
                 .orElse(null);
         if (document == null) return;
 
-        BigDecimal IVA_FACTOR = new BigDecimal("21")
-                .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+        // Running totals (per-record IVA, mirroring ItemDetail logic).
+        BigDecimal net = BigDecimal.ZERO;
+        BigDecimal iva = BigDecimal.ZERO;
+        BigDecimal exempt = BigDecimal.ZERO;
 
-        // --- Sum ItemDetails ---
-        BigDecimal itemsNet = BigDecimal.ZERO;
-        BigDecimal itemsIva = BigDecimal.ZERO;
-        BigDecimal itemsExempt = BigDecimal.ZERO;
-
+        // --- ItemDetails ---
         for (ItemDetail item : document.getItems()) {
+            if (item.getUnitAmount() == null || item.getQuantity() == null) continue;
             BigDecimal subtotal = item.getUnitAmount().multiply(BigDecimal.valueOf(item.getQuantity()));
-            if (item.getIvaPercentage() != null && item.getIvaPercentage().compareTo(BigDecimal.ZERO) > 0) {
-                itemsNet = itemsNet.add(subtotal);
-                BigDecimal iva = subtotal.multiply(
-                        item.getIvaPercentage().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
-                itemsIva = itemsIva.add(iva);
-            } else {
-                itemsExempt = itemsExempt.add(subtotal);
-            }
+            BigDecimal[] split = splitNetIva(subtotal, item.getIvaPercentage());
+            net    = net.add(split[0]);
+            iva    = iva.add(split[1]);
+            exempt = exempt.add(split[2]);
         }
 
-        // --- Sum linked records (all treated with 21% IVA) ---
-        BigDecimal linkedNet = BigDecimal.ZERO;
-
+        // --- FuelLoads ---
         for (FuelLoad fl : fuelLoadRepository.findByTransactionalDocumentId(documentId)) {
-            if (fl.getTotalAmount() != null) linkedNet = linkedNet.add(fl.getTotalAmount());
+            BigDecimal[] split = splitNetIva(fl.getTotalAmount(), fl.getIvaPercentage());
+            net    = net.add(split[0]);
+            iva    = iva.add(split[1]);
+            exempt = exempt.add(split[2]);
         }
+
+        // --- RepairItems ---
         for (RepairItem ri : repairItemRepository.findByTransactionalDocumentId(documentId)) {
-            if (ri.getAmount() != null) linkedNet = linkedNet.add(ri.getAmount());
+            BigDecimal[] split = splitNetIva(ri.getAmount(), ri.getIvaPercentage());
+            net    = net.add(split[0]);
+            iva    = iva.add(split[1]);
+            exempt = exempt.add(split[2]);
         }
+
+        // --- SalaryPayments ---
         for (SalaryPayment sp : salaryPaymentRepository.findByTransactionalDocumentId(documentId)) {
-            if (sp.getAmount() != null) linkedNet = linkedNet.add(sp.getAmount());
+            BigDecimal[] split = splitNetIva(sp.getAmount(), sp.getIvaPercentage());
+            net    = net.add(split[0]);
+            iva    = iva.add(split[1]);
+            exempt = exempt.add(split[2]);
         }
+
+        // --- StockPurchases ---
         for (StockPurchase stp : stockPurchaseRepository.findByTransactionalDocumentId(documentId)) {
-            if (stp.getTotalAmount() != null) linkedNet = linkedNet.add(stp.getTotalAmount());
+            BigDecimal[] split = splitNetIva(stp.getTotalAmount(), stp.getIvaPercentage());
+            net    = net.add(split[0]);
+            iva    = iva.add(split[1]);
+            exempt = exempt.add(split[2]);
         }
 
-        BigDecimal linkedIva = linkedNet.multiply(IVA_FACTOR);
-
-        // --- Compute final totals ---
-        BigDecimal netTotal = itemsNet.add(linkedNet).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal ivaTotal = itemsIva.add(linkedIva).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal ivaExemptTotal = itemsExempt.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal otherTaxes = document.getOtherTaxes() != null ? document.getOtherTaxes() : BigDecimal.ZERO;
-        BigDecimal total = netTotal.add(ivaTotal).add(ivaExemptTotal).add(otherTaxes)
+        BigDecimal netTotal        = net.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal ivaTotal        = iva.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal ivaExemptTotal  = exempt.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal otherTaxes      = document.getOtherTaxes() != null ? document.getOtherTaxes() : BigDecimal.ZERO;
+        BigDecimal total           = netTotal.add(ivaTotal).add(ivaExemptTotal).add(otherTaxes)
                 .setScale(2, RoundingMode.HALF_UP);
 
         document.setNetTotal(netTotal);
@@ -93,5 +101,23 @@ public class DocumentTotalRecalculator {
         document.setTotal(total);
 
         transactionalDocumentRepository.save(document);
+    }
+
+    /**
+     * Splits an amount into [net, iva, exempt] according to the IVA percentage.
+     * - If the amount is null, returns zeros.
+     * - If the IVA percentage is null or zero, the entire amount counts as exempt.
+     * - Otherwise the amount is treated as net and IVA is computed on top.
+     */
+    private static BigDecimal[] splitNetIva(BigDecimal amount, BigDecimal ivaPercentage) {
+        if (amount == null) {
+            return new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};
+        }
+        if (ivaPercentage == null || ivaPercentage.compareTo(BigDecimal.ZERO) <= 0) {
+            return new BigDecimal[]{BigDecimal.ZERO, BigDecimal.ZERO, amount};
+        }
+        BigDecimal factor = ivaPercentage.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP);
+        BigDecimal ivaPart = amount.multiply(factor);
+        return new BigDecimal[]{amount, ivaPart, BigDecimal.ZERO};
     }
 }

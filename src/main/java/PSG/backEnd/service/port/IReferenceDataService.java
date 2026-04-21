@@ -24,7 +24,7 @@ public interface IReferenceDataService {
 
     List<EmployeeReferenceItem> getEmployeeReferences();
 
-    List<ReferenceItem> getSupplierReferences();
+    List<PSG.backEnd.model.dto.reference.SupplierReferenceItem> getSupplierReferences();
 
     List<ReferenceItem> getBuildingReferences();
 

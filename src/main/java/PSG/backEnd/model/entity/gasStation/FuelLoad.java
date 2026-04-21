@@ -47,6 +47,11 @@ public class FuelLoad extends TenantEntity {
     @Column(nullable = false)
     private BigDecimal totalAmount;
 
+    /** IVA percentage applied to this fuel load (default 21). */
+    @Column(name = "iva_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal ivaPercentage = new BigDecimal("21.00");
+
     @ManyToOne(optional = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_id", nullable = true)
     private Vehicle vehicle;
