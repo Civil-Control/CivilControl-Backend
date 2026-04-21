@@ -1,9 +1,13 @@
 package PSG.backEnd.model.mapper;
 
+import PSG.backEnd.model.dto.transactionalDocument.CreditNoteApplicationResponseDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import org.mapstruct.*;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 @Mapper(
         componentModel = "spring",
@@ -18,6 +22,8 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "supplier", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
     @Mapping(target = "projectAreaTask", ignore = true)
+    @Mapping(target = "creditNoteApplications", ignore = true)
+    @Mapping(target = "appliedCredits", ignore = true)
     TransactionalDocument toEntity(TransactionalDocumentDTO dto);
 
     @Mapping(source = "supplier.id", target = "supplierId")
@@ -28,7 +34,37 @@ public interface TransactionalDocumentMapper {
     @Mapping(source = "projectAreaTask.id", target = "projectAreaTaskId")
     @Mapping(source = "projectAreaTask.name", target = "projectAreaTaskName")
     @Mapping(expression = "java(entity.getDocumentType().getDisplayName())", target = "documentType")
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "creditApplied", ignore = true)
+    @Mapping(target = "pendingAmount", ignore = true)
+    @Mapping(target = "creditApplications", ignore = true)
+    @Mapping(target = "appliedCredits", ignore = true)
     TransactionalDocumentResponseDTO toResponseDto(TransactionalDocument entity);
+
+    /**
+     * Builds a fully enriched response DTO including derived business state.
+     * The derived fields ({@code status}, {@code creditApplied}, {@code pendingAmount},
+     * {@code creditApplications}, {@code appliedCredits}) are computed in the service layer
+     * and passed in here.
+     */
+    default TransactionalDocumentResponseDTO toEnrichedResponseDto(
+            TransactionalDocument entity,
+            String status,
+            BigDecimal creditApplied,
+            BigDecimal pendingAmount,
+            List<CreditNoteApplicationResponseDTO> creditApplications,
+            List<CreditNoteApplicationResponseDTO> appliedCredits) {
+        TransactionalDocumentResponseDTO base = toResponseDto(entity);
+        return new TransactionalDocumentResponseDTO(
+                base.id(), base.date(), base.supplierId(), base.supplierName(),
+                base.documentType(), base.branchCode(), base.documentNumber(), base.items(),
+                base.otherTaxes(), base.netTotal(), base.ivaTotal(), base.ivaExemptTotal(),
+                base.total(), base.discountPercentage(),
+                base.projectAreaId(), base.projectAreaName(), base.projectAreaColor(),
+                base.projectAreaTaskId(), base.projectAreaTaskName(),
+                base.comment(), base.paid(), base.deleted(),
+                status, creditApplied, pendingAmount, creditApplications, appliedCredits);
+    }
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
@@ -38,6 +74,8 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "supplier", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
     @Mapping(target = "projectAreaTask", ignore = true)
+    @Mapping(target = "creditNoteApplications", ignore = true)
+    @Mapping(target = "appliedCredits", ignore = true)
     void partialUpdate(TransactionalDocumentDTO updateDTO, @MappingTarget TransactionalDocument entity);
 
     // Ya no necesitamos @AfterMapping porque los items se procesan manualmente

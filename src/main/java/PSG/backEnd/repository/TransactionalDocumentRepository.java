@@ -84,4 +84,53 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
     BigDecimal sumPaidBySupplierId(@Param("supplierId") Long supplierId,
                                    @Param("fromDate") LocalDate fromDate,
                                    @Param("toDate") LocalDate toDate);
+
+    /**
+     * Sums the total of all invoices and debit notes for a supplier (positive ledger entries).
+     * Used by the supplier stats: this is the "Facturado" figure that should not include credit notes.
+     */
+    @Query("SELECT COALESCE(SUM(td.total), 0) FROM TransactionalDocument td " +
+           "WHERE td.supplier.id = :supplierId AND td.deleted = false " +
+           "AND td.documentType IN (PSG.backEnd.model.enums.documents.DocumentType.BILL_A, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.BILL_B, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.BILL_C, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_A, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_B, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_C) " +
+           "AND (CAST(:fromDate AS date) IS NULL OR td.date >= :fromDate) " +
+           "AND (CAST(:toDate AS date) IS NULL OR td.date <= :toDate)")
+    BigDecimal sumInvoicedBySupplierId(@Param("supplierId") Long supplierId,
+                                       @Param("fromDate") LocalDate fromDate,
+                                       @Param("toDate") LocalDate toDate);
+
+    /**
+     * Sums the total of paid invoices/debit notes only. Excludes credit notes which never use the paid flag.
+     */
+    @Query("SELECT COALESCE(SUM(td.total), 0) FROM TransactionalDocument td " +
+           "WHERE td.supplier.id = :supplierId AND td.deleted = false AND td.paid = true " +
+           "AND td.documentType IN (PSG.backEnd.model.enums.documents.DocumentType.BILL_A, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.BILL_B, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.BILL_C, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_A, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_B, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_C) " +
+           "AND (CAST(:fromDate AS date) IS NULL OR td.date >= :fromDate) " +
+           "AND (CAST(:toDate AS date) IS NULL OR td.date <= :toDate)")
+    BigDecimal sumPaidInvoicedBySupplierId(@Param("supplierId") Long supplierId,
+                                           @Param("fromDate") LocalDate fromDate,
+                                           @Param("toDate") LocalDate toDate);
+
+    /**
+     * Sums the total of all credit notes for a supplier (positive figure representing money credited back).
+     */
+    @Query("SELECT COALESCE(SUM(td.total), 0) FROM TransactionalDocument td " +
+           "WHERE td.supplier.id = :supplierId AND td.deleted = false " +
+           "AND td.documentType IN (PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_A, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_B, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_C) " +
+           "AND (CAST(:fromDate AS date) IS NULL OR td.date >= :fromDate) " +
+           "AND (CAST(:toDate AS date) IS NULL OR td.date <= :toDate)")
+    BigDecimal sumCreditedBySupplierId(@Param("supplierId") Long supplierId,
+                                       @Param("fromDate") LocalDate fromDate,
+                                       @Param("toDate") LocalDate toDate);
 }

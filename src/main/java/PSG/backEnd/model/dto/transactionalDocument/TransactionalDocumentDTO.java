@@ -136,5 +136,14 @@ public record TransactionalDocumentDTO(
             nullable = true)
     @Valid
     @NotNull(groups = OnCreate.class, message = "{validation.notNull}")
-    List<ItemDetailDTO> items
+    List<ItemDetailDTO> items,
+
+    @Schema(description = "Only valid for Credit Notes (CREDIT_NOTE_*). " +
+            "List of invoice/debit-note ids this credit note applies to, with the amount applied to each. " +
+            "Optional: if omitted, the credit note is recorded as an unapplied credit that simply reduces the supplier's pending balance. " +
+            "Sum of amountApplied must not exceed this credit note's total. " +
+            "Each invoice must belong to the same supplier and be of type BILL_* or DEBIT_NOTE_*.",
+            nullable = true)
+    @Valid
+    List<CreditNoteApplicationInputDTO> creditApplications
 ) {}

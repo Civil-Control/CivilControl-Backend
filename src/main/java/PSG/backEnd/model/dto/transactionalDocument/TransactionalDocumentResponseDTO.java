@@ -28,5 +28,25 @@ public record TransactionalDocumentResponseDTO(
     String projectAreaTaskName,
     String comment,
     boolean paid,
-    boolean deleted
+    boolean deleted,
+
+    /**
+     * Derived business status. One of:
+     * PAID, PENDING, PARTIALLY_CREDITED, CREDITED (for invoices / debit notes);
+     * APPLIED, UNAPPLIED                          (for credit notes);
+     * NEUTRAL                                     (for OTHER_DOCUMENT).
+     */
+    String status,
+
+    /** Sum of credit-note amounts applied against this invoice/debit-note (0 for credit notes / others). */
+    BigDecimal creditApplied,
+
+    /** Outstanding amount = total - creditApplied for unpaid invoices/debit notes; 0 otherwise. */
+    BigDecimal pendingAmount,
+
+    /** Populated when this document IS a credit note: invoices/debit-notes it credits. */
+    List<CreditNoteApplicationResponseDTO> creditApplications,
+
+    /** Populated when this document IS an invoice/debit-note: the credit notes that have been applied to it. */
+    List<CreditNoteApplicationResponseDTO> appliedCredits
 ) {}

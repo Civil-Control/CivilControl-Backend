@@ -82,10 +82,12 @@ public class SupplierService implements ISupplierService {
     public SupplierStatsDTO getSupplierStats(Long id, LocalDate fromDate, LocalDate toDate) {
         supplierRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
-        BigDecimal totalInvoiced = transactionalDocumentRepository.sumTotalBySupplierId(id, fromDate, toDate);
-        BigDecimal totalPaid = transactionalDocumentRepository.sumPaidBySupplierId(id, fromDate, toDate);
-        BigDecimal totalPending = totalInvoiced.subtract(totalPaid);
-        return new SupplierStatsDTO(totalInvoiced, totalPaid, totalPending);
+        BigDecimal totalInvoiced = transactionalDocumentRepository.sumInvoicedBySupplierId(id, fromDate, toDate);
+        BigDecimal totalPaid = transactionalDocumentRepository.sumPaidInvoicedBySupplierId(id, fromDate, toDate);
+        BigDecimal totalCredited = transactionalDocumentRepository.sumCreditedBySupplierId(id, fromDate, toDate);
+        BigDecimal totalPending = totalInvoiced.subtract(totalPaid).subtract(totalCredited);
+        if (totalPending.signum() < 0) totalPending = BigDecimal.ZERO;
+        return new SupplierStatsDTO(totalInvoiced, totalPaid, totalCredited, totalPending);
     }
 
     @Override

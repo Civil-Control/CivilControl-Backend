@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 
 
 @Entity
@@ -74,6 +76,24 @@ public class TransactionalDocument extends TenantEntity {
     @OneToMany(mappedBy = "document", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = true)
     @Builder.Default
     private List<ItemDetail> items = new ArrayList<>();
+
+    /**
+     * Credit note applications where this document IS the credit note.
+     * Populated for documents of type CREDIT_NOTE_*; empty otherwise.
+     * Cascade ALL + orphanRemoval lets the service replace the entire set on update.
+     */
+    @OneToMany(mappedBy = "creditNote", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<CreditNoteApplication> creditNoteApplications = new HashSet<>();
+
+    /**
+     * Credit note applications where this document IS the invoice/debit note being credited.
+     * Populated for documents of type BILL_* or DEBIT_NOTE_* that have credits applied to them.
+     * Read-only from this side; managed via the credit note's {@link #creditNoteApplications}.
+     */
+    @OneToMany(mappedBy = "invoice", fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<CreditNoteApplication> appliedCredits = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "project_area_id")

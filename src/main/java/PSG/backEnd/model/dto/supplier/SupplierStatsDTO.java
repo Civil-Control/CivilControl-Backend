@@ -7,5 +7,6 @@ import java.math.BigDecimal;
 public record SupplierStatsDTO(
     BigDecimal totalInvoiced,
     BigDecimal totalPaid,
+    BigDecimal totalCredited,
     BigDecimal totalPending
 ) {}

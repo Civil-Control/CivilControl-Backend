@@ -5,6 +5,8 @@ import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentAlreadyActiveException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
 import PSG.backEnd.model.dto.item.ItemDetailDTO;
+import PSG.backEnd.model.dto.transactionalDocument.CreditNoteApplicationInputDTO;
+import PSG.backEnd.model.dto.transactionalDocument.CreditNoteApplicationResponseDTO;
 import PSG.backEnd.model.dto.transactionalDocument.LinkedRecordItemDTO;
 import PSG.backEnd.model.dto.transactionalDocument.LinkedRecordsSummaryDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
@@ -18,6 +20,7 @@ import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.mapper.ItemDetailMapper;
 import PSG.backEnd.model.mapper.TransactionalDocumentMapper;
+import PSG.backEnd.repository.CreditNoteApplicationRepository;
 import PSG.backEnd.repository.FuelLoadRepository;
 import PSG.backEnd.repository.ItemDetailRepository;
 import PSG.backEnd.repository.ItemRepository;
@@ -65,6 +68,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final StockPurchaseRepository stockPurchaseRepository;
     private final IStockPurchaseService iStockPurchaseService;
     private final DocumentTotalRecalculator documentTotalRecalculator;
+    private final CreditNoteApplicationRepository creditNoteApplicationRepository;
 
     @Override
     @Transactional
@@ -95,11 +99,17 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
         document = transactionalDocumentRepository.save(document);
 
+        // Sync credit-note applications (if any) AFTER initial save so the document has an id.
+        if (isCreditNote(document.getDocumentType())) {
+            syncCreditApplications(document, dto.creditApplications());
+            document = transactionalDocumentRepository.save(document);
+        }
+
         // Recompute totals from authoritative sources after create.
         documentTotalRecalculator.recalculateDocumentTotals(document.getId());
         TransactionalDocument refreshed = transactionalDocumentRepository.findByIdAndDeletedFalse(document.getId())
                 .orElse(document);
-        return transactionalDocumentMapper.toResponseDto(refreshed);
+        return enrichResponse(refreshed);
     }
 
     @Override
@@ -124,14 +134,14 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 filterDTO.paid(),
                 filterDTO.search(),
                 pageable
-        ).map(transactionalDocumentMapper::toResponseDto);
+        ).map(this::enrichResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public TransactionalDocumentResponseDTO getTransactionalDocumentById(Long id) {
         return transactionalDocumentRepository.findByIdAndDeletedFalse(id)
-                .map(transactionalDocumentMapper::toResponseDto)
+                .map(this::enrichResponse)
                 .orElseThrow(() -> new TransactionalDocumentNotFoundException(id));
     }
 
@@ -155,10 +165,9 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         // Update the document with new values (including items, supplier, etc.)
         updateDocumentFromDTO(existingDocument, dto);
 
-        // Credit notes are always considered "applied" (paid=true). Force it after partialUpdate
-        // in case the DTO sent paid=false.
+        // Credit notes never carry the paid flag: their state is derived from creditApplications.
         if (isCreditNote(existingDocument.getDocumentType())) {
-            existingDocument.setPaid(true);
+            existingDocument.setPaid(false);
         }
 
         Supplier newSupplier = existingDocument.getSupplier();
@@ -182,11 +191,18 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
         TransactionalDocument savedDocument = transactionalDocumentRepository.save(existingDocument);
 
+        // Re-sync credit-note applications when this is a credit note. Always re-sync (even if the
+        // client did not send the field) so removing all chips actually clears the relationship.
+        if (isCreditNote(savedDocument.getDocumentType())) {
+            syncCreditApplications(savedDocument, dto.creditApplications());
+            savedDocument = transactionalDocumentRepository.save(savedDocument);
+        }
+
         // Recompute totals from authoritative sources (items + linked records, per-record IVA).
         documentTotalRecalculator.recalculateDocumentTotals(savedDocument.getId());
         TransactionalDocument refreshed = transactionalDocumentRepository.findByIdAndDeletedFalse(savedDocument.getId())
                 .orElse(savedDocument);
-        return transactionalDocumentMapper.toResponseDto(refreshed);
+        return enrichResponse(refreshed);
     }
 
     /**
@@ -467,7 +483,10 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private void applyDocumentTypeSemanticsOnCreate(TransactionalDocument document, Supplier supplier) {
         DocumentType type = document.getDocumentType();
         if (isCreditNote(type)) {
-            document.setPaid(true);
+            // Credit notes never use the paid flag: their state (Aplicada / Crédito disponible)
+            // is derived from the presence of credit applications. They unconditionally reduce
+            // the supplier's pending balance by their full discounted total.
+            document.setPaid(false);
             BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
             applyToBalance(supplier, discountedAmount.negate());
         } else if (isInvoice(type) || isDebitNote(type)) {
@@ -667,7 +686,12 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     }
 
     private void validatePaymentAmount(TransactionalDocument document, BigDecimal amount) {
-        if (amount.compareTo(document.getTotal()) < 0) {
+        // For invoices/debit notes that already received credit applications, the user only
+        // owes the difference. Allow paying the outstanding (total - creditApplied) amount.
+        BigDecimal credit = creditNoteApplicationRepository.sumAppliedToInvoice(document.getId());
+        BigDecimal outstanding = document.getTotal().subtract(credit != null ? credit : BigDecimal.ZERO);
+        if (outstanding.signum() < 0) outstanding = BigDecimal.ZERO;
+        if (amount.compareTo(outstanding) < 0) {
             throw new IllegalArgumentException(messageSourceHelper.getMessage("document.paymentAmountInsufficient"));
         }
     }
@@ -711,5 +735,183 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         BigDecimal ivaFactor = BigDecimal.ONE.add(ivaPercentage.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
 
         return subtotal.multiply(ivaFactor).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    // ============================================================================================
+    // Credit-note applications: validation, sync, derived state.
+    // ============================================================================================
+
+    /** Status constants returned in the response DTO. */
+    private static final String STATUS_PAID = "PAID";
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_PARTIALLY_CREDITED = "PARTIALLY_CREDITED";
+    private static final String STATUS_CREDITED = "CREDITED";
+    private static final String STATUS_APPLIED = "APPLIED";
+    private static final String STATUS_UNAPPLIED = "UNAPPLIED";
+    private static final String STATUS_NEUTRAL = "NEUTRAL";
+
+    /**
+     * Replaces the set of credit-note applications attached to {@code creditNote} with
+     * the entries described by {@code dtos}. Validates business rules (positive amounts,
+     * same supplier, target is invoice/debit-note, sums do not exceed totals).
+     * If {@code dtos} is null or empty, all existing applications are removed.
+     */
+    private void syncCreditApplications(TransactionalDocument creditNote, List<CreditNoteApplicationInputDTO> dtos) {
+        if (!isCreditNote(creditNote.getDocumentType())) {
+            return;
+        }
+
+        // Empty / null payload: clear any existing applications.
+        if (dtos == null || dtos.isEmpty()) {
+            creditNote.getCreditNoteApplications().clear();
+            return;
+        }
+
+        // Fast validation: positive amounts, no duplicate target invoices.
+        BigDecimal totalApplied = BigDecimal.ZERO;
+        java.util.Set<Long> seenInvoiceIds = new java.util.HashSet<>();
+        for (CreditNoteApplicationInputDTO dto : dtos) {
+            if (dto.invoiceId() == null || dto.amountApplied() == null || dto.amountApplied().signum() <= 0) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage("document.creditApplication.invalidAmount"));
+            }
+            if (!seenInvoiceIds.add(dto.invoiceId())) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage("document.creditApplication.duplicateInvoice"));
+            }
+            totalApplied = totalApplied.add(dto.amountApplied());
+        }
+
+        // Cap the sum at the credit note total.
+        if (creditNote.getTotal() != null && totalApplied.compareTo(creditNote.getTotal()) > 0) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                    "document.creditApplication.exceedsCreditNoteTotal",
+                    totalApplied, creditNote.getTotal()));
+        }
+
+        Long supplierId = creditNote.getSupplier() != null ? creditNote.getSupplier().getId() : null;
+
+        // Validate each target invoice and build the new set.
+        java.util.Set<CreditNoteApplication> nextApplications = new java.util.HashSet<>();
+        for (CreditNoteApplicationInputDTO dto : dtos) {
+            TransactionalDocument invoice = transactionalDocumentRepository.findByIdAndDeletedFalse(dto.invoiceId())
+                    .orElseThrow(() -> new TransactionalDocumentNotFoundException(dto.invoiceId()));
+
+            if (!isInvoice(invoice.getDocumentType()) && !isDebitNote(invoice.getDocumentType())) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                        "document.creditApplication.targetMustBeInvoice", dto.invoiceId()));
+            }
+
+            if (supplierId == null
+                    || invoice.getSupplier() == null
+                    || !supplierId.equals(invoice.getSupplier().getId())) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                        "document.creditApplication.supplierMismatch", dto.invoiceId()));
+            }
+
+            // Existing applications from OTHER credit notes against this invoice.
+            BigDecimal alreadyAppliedFromOthers = BigDecimal.ZERO;
+            BigDecimal sumOnInvoice = creditNoteApplicationRepository.sumAppliedToInvoice(invoice.getId());
+            if (sumOnInvoice != null) {
+                alreadyAppliedFromOthers = sumOnInvoice;
+            }
+            // Subtract current credit-note's previous application against this invoice (if any),
+            // because we are about to replace the whole set.
+            for (CreditNoteApplication existing : creditNote.getCreditNoteApplications()) {
+                if (existing.getInvoice() != null && invoice.getId().equals(existing.getInvoice().getId())) {
+                    alreadyAppliedFromOthers = alreadyAppliedFromOthers.subtract(
+                            existing.getAmountApplied() != null ? existing.getAmountApplied() : BigDecimal.ZERO);
+                }
+            }
+            BigDecimal projectedTotal = alreadyAppliedFromOthers.add(dto.amountApplied());
+            if (invoice.getTotal() != null && projectedTotal.compareTo(invoice.getTotal()) > 0) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                        "document.creditApplication.exceedsInvoiceTotal",
+                        invoice.getId(), projectedTotal, invoice.getTotal()));
+            }
+
+            CreditNoteApplication app = CreditNoteApplication.builder()
+                    .creditNote(creditNote)
+                    .invoice(invoice)
+                    .amountApplied(dto.amountApplied())
+                    .build();
+            nextApplications.add(app);
+        }
+
+        // Replace the set in-place to honour orphanRemoval.
+        creditNote.getCreditNoteApplications().clear();
+        creditNote.getCreditNoteApplications().addAll(nextApplications);
+    }
+
+    /** Builds the enriched response DTO with derived business status. */
+    private TransactionalDocumentResponseDTO enrichResponse(TransactionalDocument doc) {
+        DocumentType type = doc.getDocumentType();
+        BigDecimal creditApplied = BigDecimal.ZERO;
+        BigDecimal pendingAmount = BigDecimal.ZERO;
+        List<CreditNoteApplicationResponseDTO> creditApplications = java.util.Collections.emptyList();
+        List<CreditNoteApplicationResponseDTO> appliedCredits = java.util.Collections.emptyList();
+        String status;
+
+        if (isCreditNote(type)) {
+            status = doc.getCreditNoteApplications() != null && !doc.getCreditNoteApplications().isEmpty()
+                    ? STATUS_APPLIED : STATUS_UNAPPLIED;
+            if (doc.getCreditNoteApplications() != null) {
+                creditApplications = doc.getCreditNoteApplications().stream()
+                        .map(this::toApplicationDto)
+                        .toList();
+            }
+        } else if (isInvoice(type) || isDebitNote(type)) {
+            BigDecimal sumApplied = creditNoteApplicationRepository.sumAppliedToInvoice(doc.getId());
+            creditApplied = sumApplied != null ? sumApplied : BigDecimal.ZERO;
+            BigDecimal total = doc.getTotal() != null ? doc.getTotal() : BigDecimal.ZERO;
+            BigDecimal outstanding = total.subtract(creditApplied);
+            if (outstanding.signum() < 0) outstanding = BigDecimal.ZERO;
+
+            if (Boolean.TRUE.equals(doc.getPaid())) {
+                status = STATUS_PAID;
+                pendingAmount = BigDecimal.ZERO;
+            } else if (creditApplied.signum() > 0 && outstanding.signum() == 0) {
+                status = STATUS_CREDITED;
+                pendingAmount = BigDecimal.ZERO;
+            } else if (creditApplied.signum() > 0) {
+                status = STATUS_PARTIALLY_CREDITED;
+                pendingAmount = outstanding;
+            } else {
+                status = STATUS_PENDING;
+                pendingAmount = outstanding;
+            }
+
+            if (doc.getAppliedCredits() != null) {
+                appliedCredits = doc.getAppliedCredits().stream()
+                        .filter(app -> app.getCreditNote() != null && !Boolean.TRUE.equals(app.getCreditNote().getDeleted()))
+                        .map(this::toApplicationDto)
+                        .toList();
+            }
+        } else {
+            status = STATUS_NEUTRAL;
+        }
+
+        return transactionalDocumentMapper.toEnrichedResponseDto(
+                doc, status, creditApplied, pendingAmount, creditApplications, appliedCredits);
+    }
+
+    private CreditNoteApplicationResponseDTO toApplicationDto(CreditNoteApplication app) {
+        TransactionalDocument cn = app.getCreditNote();
+        TransactionalDocument inv = app.getInvoice();
+        return new CreditNoteApplicationResponseDTO(
+                app.getId(),
+                cn != null ? cn.getId() : null,
+                cn != null ? formatDocumentLabel(cn) : null,
+                inv != null ? inv.getId() : null,
+                inv != null ? formatDocumentLabel(inv) : null,
+                inv != null ? inv.getTotal() : null,
+                app.getAmountApplied()
+        );
+    }
+
+    private String formatDocumentLabel(TransactionalDocument doc) {
+        String type = doc.getDocumentType() != null ? doc.getDocumentType().getDisplayName() : "";
+        String branch = doc.getBranchCode() != null ? doc.getBranchCode() : "";
+        String number = doc.getDocumentNumber() != null ? doc.getDocumentNumber() : "";
+        if (branch.isBlank() && number.isBlank()) return type;
+        return type + " " + branch + (branch.isBlank() || number.isBlank() ? "" : "-") + number;
     }
 }
