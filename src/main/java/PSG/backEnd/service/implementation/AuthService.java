@@ -13,6 +13,7 @@ import PSG.backEnd.model.mapper.RoleMapper;
 import PSG.backEnd.model.mapper.UserLocationMapper;
 import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IAuthService;
+import PSG.backEnd.service.security.AuthRateLimiter;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,40 +45,58 @@ public class AuthService implements IAuthService {
     private final RoleMapper roleMapper;
     private final UserLocationMapper userLocationMapper;
     private final MessageSourceHelper messageSourceHelper;
+    private final AuthRateLimiter rateLimiter;
 
     @Override
     @Transactional(readOnly = true)
     public AuthResponseDTO login(LoginRequestDTO loginRequest) {
-        log.info("Login attempt for user: {}", loginRequest.credentials().username());
+        String username = loginRequest.credentials().username();
+        log.info("Login attempt for user: {}", username);
+
+        // Account lockout check (per-username). Returns the SAME uniform error
+        // as wrong-password to avoid leaking which usernames exist.
+        if (rateLimiter.isLockedOut(username)) {
+            long secs = rateLimiter.lockoutRemainingSeconds(username);
+            log.warn("Login blocked: account in lockout window for {} ({}s remaining)", username, secs);
+            throw new InvalidCredentialsException(messageSourceHelper.getMessage("auth.invalidCredentials"));
+        }
 
         try {
             // Authenticate user
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginRequest.credentials().username(),
+                            username,
                             loginRequest.credentials().password()
                     )
             );
 
             // Load user details
-            User user = userRepository.findByCredentialsUsernameAndDeletedFalse(loginRequest.credentials().username())
-                    .orElseThrow(() -> new InvalidCredentialsException(messageSourceHelper.getMessage("auth.invalidCredentials")));
+            User user = userRepository.findByCredentialsUsernameAndDeletedFalse(username)
+                    .orElseThrow(() -> {
+                        rateLimiter.recordFailure(username);
+                        return new InvalidCredentialsException(messageSourceHelper.getMessage("auth.invalidCredentials"));
+                    });
 
-            // Verify user is enabled
+            // Verify user is enabled. We deliberately return the SAME uniform
+            // error message (no "account disabled" leak), but still log it.
             if (!user.isEnabled()) {
-                throw new InvalidCredentialsException(messageSourceHelper.getMessage("auth.accountDisabled"));
+                log.warn("Login attempt against disabled account: {}", username);
+                rateLimiter.recordFailure(username);
+                throw new InvalidCredentialsException(messageSourceHelper.getMessage("auth.invalidCredentials"));
             }
 
             // Generate tokens
             String accessToken = jwtService.generateAccessToken(user);
             String refreshToken = jwtService.generateRefreshToken(user);
 
-            log.info("User logged in successfully: {}", loginRequest.credentials().username());
+            rateLimiter.recordSuccess(username);
+            log.info("User logged in successfully: {}", username);
 
             return buildAuthResponse(user, accessToken, refreshToken);
 
         } catch (BadCredentialsException e) {
-            log.error("Invalid credentials for user: {}", loginRequest.credentials().username());
+            rateLimiter.recordFailure(username);
+            log.warn("Invalid credentials for user: {}", username);
             throw new InvalidCredentialsException(messageSourceHelper.getMessage("auth.invalidCredentials"));
         }
     }
