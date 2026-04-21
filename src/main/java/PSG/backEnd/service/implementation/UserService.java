@@ -18,6 +18,7 @@ import PSG.backEnd.repository.CredentialsRepository;
 import PSG.backEnd.repository.RoleRepository;
 import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IUserService;
+import PSG.backEnd.service.security.PasswordPolicyService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +51,7 @@ public class UserService implements IUserService {
     private final UserMapper userMapper;
     private final CredentialsMapper credentialsMapper;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordPolicyService passwordPolicyService;
     private final MessageSourceHelper messageSourceHelper;
     private final JwtService jwtService;
 
@@ -149,7 +151,9 @@ public class UserService implements IUserService {
 
             // Update password if provided
             if (requestDTO.credentials().password() != null && !requestDTO.credentials().password().trim().isEmpty()) {
-                validatePasswordComplexity(requestDTO.credentials().password());
+                String newUsername = credentials.getUsername();
+                String newEmail = existingUser.getEmail();
+                passwordPolicyService.validate(requestDTO.credentials().password(), newUsername, newEmail);
                 String encryptedPassword = passwordEncoder.encode(requestDTO.credentials().password());
                 credentials.setPassword(encryptedPassword);
             }
@@ -302,7 +306,11 @@ public class UserService implements IUserService {
         if (requestDTO.credentials().password() == null || requestDTO.credentials().password().trim().isEmpty()) {
             throw new UserNotValidException(messageSourceHelper.getMessage("user.password.empty"));
         }
-        validatePasswordComplexity(requestDTO.credentials().password());
+        passwordPolicyService.validate(
+                requestDTO.credentials().password(),
+                requestDTO.credentials().username(),
+                requestDTO.email()
+        );
 
         // Validate names
         if (requestDTO.firstName() == null || requestDTO.firstName().trim().isEmpty()) {
@@ -385,7 +393,11 @@ public class UserService implements IUserService {
             if (requestDTO.credentials().password().trim().isEmpty()) {
                 throw new UserNotValidException(messageSourceHelper.getMessage("user.password.empty"));
             }
-            validatePasswordComplexity(requestDTO.credentials().password());
+            passwordPolicyService.validate(
+                    requestDTO.credentials().password(),
+                    requestDTO.credentials().username(),
+                    requestDTO.email()
+            );
         }
 
         // Validate roles if provided
@@ -398,16 +410,12 @@ public class UserService implements IUserService {
     }
 
     /**
-     * Validates password complexity: at least 8 chars, one uppercase, one lowercase, one digit.
+     * Validates password complexity. Delegates to {@link PasswordPolicyService}
+     * which enforces length, character classes, denylist and HIBP breach lookup.
+     * Kept for callers that don't have user context handy.
      */
     private void validatePasswordComplexity(String password) {
-        if (password.length() < 8) {
-            throw new UserNotValidException(messageSourceHelper.getMessage("user.password.minLength"));
-        }
-        String pattern = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$";
-        if (!password.matches(pattern)) {
-            throw new UserNotValidException(messageSourceHelper.getMessage("user.password.complexity"));
-        }
+        passwordPolicyService.validate(password, null, null);
     }
 
     /**
