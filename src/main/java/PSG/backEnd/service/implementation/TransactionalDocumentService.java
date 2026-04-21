@@ -147,26 +147,37 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     public TransactionalDocumentResponseDTO updateTransactionalDocument(Long id, TransactionalDocumentDTO dto) {
         TransactionalDocument existingDocument = getEntityById(id);
 
-        // If the document is an unpaid invoice, we need to recalculate the supplier's balance
-        if (isInvoice(existingDocument.getDocumentType()) && !existingDocument.getPaid()) {
-            Supplier supplier = existingDocument.getSupplier();
+        // Capture the document's current impact on the supplier's pending balance BEFORE any change.
+        // This handles invoices, debit notes (positive impact when unpaid) and credit notes (always negative).
+        Supplier oldSupplier = existingDocument.getSupplier();
+        BigDecimal oldImpact = currentBalanceImpact(existingDocument, oldSupplier);
 
-            // Revert the previous amount with discounts
-            BigDecimal previousDiscountedAmount = calculateDiscountedAmount(existingDocument, supplier);
-            BigDecimal currentBalance = supplier.getPendingBalance() != null
-                ? supplier.getPendingBalance()
-                : BigDecimal.ZERO;
-            supplier.setPendingBalance(currentBalance.subtract(previousDiscountedAmount));
+        // Update the document with new values (including items, supplier, etc.)
+        updateDocumentFromDTO(existingDocument, dto);
 
-            // Update the document with new values (including items if provided)
-            updateDocumentFromDTO(existingDocument, dto);
+        // Credit notes are always considered "applied" (paid=true). Force it after partialUpdate
+        // in case the DTO sent paid=false.
+        if (isCreditNote(existingDocument.getDocumentType())) {
+            existingDocument.setPaid(true);
+        }
 
-            // Calculate and apply the new amount with discounts
-            BigDecimal newDiscountedAmount = calculateDiscountedAmount(existingDocument, supplier);
-            supplier.setPendingBalance(supplier.getPendingBalance().add(newDiscountedAmount));
+        Supplier newSupplier = existingDocument.getSupplier();
+        BigDecimal newImpact = currentBalanceImpact(existingDocument, newSupplier);
+
+        if (oldSupplier != null && newSupplier != null && oldSupplier.getId().equals(newSupplier.getId())) {
+            // Same supplier: apply only the delta
+            BigDecimal delta = newImpact.subtract(oldImpact);
+            if (delta.signum() != 0) {
+                applyToBalance(newSupplier, delta);
+            }
         } else {
-            // For paid documents or non-invoices, just update without affecting balance
-            updateDocumentFromDTO(existingDocument, dto);
+            // Supplier changed: revert old impact on old supplier, apply full new impact on new supplier
+            if (oldSupplier != null && oldImpact.signum() != 0) {
+                applyToBalance(oldSupplier, oldImpact.negate());
+            }
+            if (newSupplier != null && newImpact.signum() != 0) {
+                applyToBalance(newSupplier, newImpact);
+            }
         }
 
         TransactionalDocument savedDocument = transactionalDocumentRepository.save(existingDocument);
@@ -389,15 +400,12 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     public void deleteTransactionalDocument(Long id, boolean deleteLinkedRecords) {
         TransactionalDocument document = getEntityById(id);
 
-        // If the document is an unpaid invoice, we need to revert its impact on the balance
-        if (isInvoice(document.getDocumentType()) && !document.getPaid()) {
-            Supplier supplier = document.getSupplier();
-            BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
-
-            BigDecimal currentBalance = supplier.getPendingBalance() != null
-                ? supplier.getPendingBalance()
-                : BigDecimal.ZERO;
-            supplier.setPendingBalance(currentBalance.subtract(discountedAmount));
+        // Revert any impact this document has on the supplier's pending balance.
+        // Invoices/debit notes (when unpaid) added to the balance; credit notes subtracted from it.
+        Supplier supplier = document.getSupplier();
+        BigDecimal impact = currentBalanceImpact(document, supplier);
+        if (supplier != null && impact.signum() != 0) {
+            applyToBalance(supplier, impact.negate());
         }
 
         if (deleteLinkedRecords) {
@@ -441,7 +449,28 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             processItemDetails(document, dto.items());
         }
 
-        if (isInvoice(document.getDocumentType())) {
+        applyDocumentTypeSemanticsOnCreate(document, supplier);
+
+        return document;
+    }
+
+    /**
+     * Applies document-type-specific business rules when a document is created or reactivated:
+     * <ul>
+     *   <li>Invoices and Debit Notes: auto-paid only when supplier accepts CASH exclusively;
+     *       otherwise add the discounted amount to the supplier's pending balance.</li>
+     *   <li>Credit Notes: always marked as paid (semantically "applied");
+     *       subtract the discounted amount from the supplier's pending balance.</li>
+     *   <li>Other documents: marked as paid; no balance impact.</li>
+     * </ul>
+     */
+    private void applyDocumentTypeSemanticsOnCreate(TransactionalDocument document, Supplier supplier) {
+        DocumentType type = document.getDocumentType();
+        if (isCreditNote(type)) {
+            document.setPaid(true);
+            BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
+            applyToBalance(supplier, discountedAmount.negate());
+        } else if (isInvoice(type) || isDebitNote(type)) {
             List<PaymentMethod> methods = supplier.getAllowedPaymentMethods();
             boolean paid = methods != null
                     && methods.size() == 1
@@ -449,19 +478,44 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             document.setPaid(paid);
 
             if (!paid) {
-                // Calculate the amount with applied discounts
                 BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
-
-                BigDecimal pendingBalance = supplier.getPendingBalance() != null
-                        ? supplier.getPendingBalance()
-                        : BigDecimal.ZERO;
-                supplier.setPendingBalance(pendingBalance.add(discountedAmount));
+                applyToBalance(supplier, discountedAmount);
             }
         } else {
             document.setPaid(true);
         }
+    }
 
-        return document;
+    /**
+     * Adds {@code delta} (which may be negative) to the supplier's pending balance.
+     * Treats null balance as zero.
+     */
+    private void applyToBalance(Supplier supplier, BigDecimal delta) {
+        if (supplier == null || delta == null || delta.signum() == 0) return;
+        BigDecimal current = supplier.getPendingBalance() != null
+                ? supplier.getPendingBalance()
+                : BigDecimal.ZERO;
+        supplier.setPendingBalance(current.add(delta));
+    }
+
+    /**
+     * Returns the signed impact this document currently has on the supplier's pending balance:
+     * <ul>
+     *   <li>Credit Notes: always {@code -discountedAmount} (they reduce the supplier's balance).</li>
+     *   <li>Invoices / Debit Notes that are unpaid: {@code +discountedAmount}.</li>
+     *   <li>Anything else (paid invoice/debit, OTHER_DOCUMENT): {@code 0}.</li>
+     * </ul>
+     */
+    private BigDecimal currentBalanceImpact(TransactionalDocument document, Supplier supplier) {
+        if (supplier == null) return BigDecimal.ZERO;
+        DocumentType type = document.getDocumentType();
+        if (isCreditNote(type)) {
+            return calculateDiscountedAmount(document, supplier).negate();
+        }
+        if ((isInvoice(type) || isDebitNote(type)) && Boolean.FALSE.equals(document.getPaid())) {
+            return calculateDiscountedAmount(document, supplier);
+        }
+        return BigDecimal.ZERO;
     }
 
     /**
@@ -549,26 +603,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private TransactionalDocument reactivateExistingDocument(TransactionalDocument document, TransactionalDocumentDTO dto) {
         updateDocumentFromDTO(document, dto);
         document.setDeleted(false);
-
-        if (isInvoice(document.getDocumentType())) {
-            Supplier supplier = document.getSupplier();
-            List<PaymentMethod> methods = supplier.getAllowedPaymentMethods();
-            boolean paid = methods != null
-                    && methods.size() == 1
-                    && methods.contains(PaymentMethod.CASH);
-            document.setPaid(paid);
-
-            if (!paid) {
-                BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
-                BigDecimal pendingBalance = supplier.getPendingBalance() != null
-                        ? supplier.getPendingBalance()
-                        : BigDecimal.ZERO;
-                supplier.setPendingBalance(pendingBalance.add(discountedAmount));
-            }
-        } else {
-            document.setPaid(true);
-        }
-
+        applyDocumentTypeSemanticsOnCreate(document, document.getSupplier());
         return document;
     }
 
@@ -585,15 +620,36 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 || type == DocumentType.BILL_C;
     }
 
+    private boolean isDebitNote(DocumentType type) {
+        return type == DocumentType.DEBIT_NOTE_A
+                || type == DocumentType.DEBIT_NOTE_B
+                || type == DocumentType.DEBIT_NOTE_C;
+    }
+
+    private boolean isCreditNote(DocumentType type) {
+        return type == DocumentType.CREDIT_NOTE_A
+                || type == DocumentType.CREDIT_NOTE_B
+                || type == DocumentType.CREDIT_NOTE_C;
+    }
+
     private void validateDocumentForPayment(TransactionalDocument document, Long supplierId, BigDecimal amount) {
-        validateDocumentIsInvoice(document);
+        validateDocumentIsPayable(document);
         validateSupplierMatch(document, supplierId);
         validateDocumentNotAlreadyPaid(document);
         validatePaymentAmount(document, amount);
     }
 
-    private void validateDocumentIsInvoice(TransactionalDocument document) {
-        if (!isInvoice(document.getDocumentType())) {
+    /**
+     * Payable documents are those that represent a liability to the supplier:
+     * Invoices and Debit Notes. Credit Notes reduce the supplier's balance and
+     * cannot be paid; OTHER_DOCUMENT is informational only.
+     */
+    private void validateDocumentIsPayable(TransactionalDocument document) {
+        DocumentType type = document.getDocumentType();
+        if (isCreditNote(type)) {
+            throw new IllegalStateException(messageSourceHelper.getMessage("document.creditNoteCannotBePaid"));
+        }
+        if (!isInvoice(type) && !isDebitNote(type)) {
             throw new IllegalStateException(messageSourceHelper.getMessage("document.onlyInvoicesPaid"));
         }
     }
@@ -629,15 +685,14 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             return;
         }
 
-        // If it's an invoice, add the discounted amount back to the pending balance
-        if (isInvoice(document.getDocumentType())) {
+        // Only invoices and debit notes contribute to pendingBalance via the paid flag.
+        // Reverting them to unpaid means re-adding the discounted amount to the balance.
+        // Credit notes are not subject to revert (they cannot be "unpaid").
+        DocumentType type = document.getDocumentType();
+        if (isInvoice(type) || isDebitNote(type)) {
             Supplier supplier = document.getSupplier();
             BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
-
-            BigDecimal currentBalance = supplier.getPendingBalance() != null
-                ? supplier.getPendingBalance()
-                : BigDecimal.ZERO;
-            supplier.setPendingBalance(currentBalance.add(discountedAmount));
+            applyToBalance(supplier, discountedAmount);
         }
 
         document.setPaid(false);
