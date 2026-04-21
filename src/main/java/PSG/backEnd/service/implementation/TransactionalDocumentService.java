@@ -541,6 +541,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
      * Processes ItemDetails for a TransactionalDocument, validating items and calculating totals
      */
     private void processItemDetails(TransactionalDocument document, List<ItemDetailDTO> itemDetailDTOs) {
+        boolean forceExempt = isTypeC(document.getDocumentType());
         for (ItemDetailDTO itemDetailDTO : itemDetailDTOs) {
             // Load the complete Item from database (not just validate existence)
             Item item = itemRepository.findById(itemDetailDTO.itemId())
@@ -552,24 +553,27 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                         messageSourceHelper.getMessage("item.type.invalid.purchase", item.getName()));
             }
 
+            // Tipo C: forzar IVA a 0 (defensa server-side; el front ya lo bloquea).
+            BigDecimal effectiveIva = forceExempt ? BigDecimal.ZERO : itemDetailDTO.ivaPercentage();
+
             // Create ItemDetail manually instead of using mapper to ensure Item reference is complete
             ItemDetail itemDetail = ItemDetail.builder()
                     .item(item)  // Complete Item with all fields loaded
                     .unitAmount(itemDetailDTO.unitAmount())
                     .quantity(itemDetailDTO.quantity())
-                    .ivaPercentage(itemDetailDTO.ivaPercentage())
+                    .ivaPercentage(effectiveIva)
                     .build();
 
             // Handle total amount - use provided value or calculate it
-            if (itemDetailDTO.totalAmount() != null) {
+            if (itemDetailDTO.totalAmount() != null && !forceExempt) {
                 // Use the provided total amount
                 itemDetail.setTotalAmount(itemDetailDTO.totalAmount());
             } else {
-                // Calculate total amount
+                // Calculate total amount (recalculated when IVA was forced to 0)
                 itemDetail.setTotalAmount(computeTotal(
                     itemDetailDTO.unitAmount(),
                     itemDetailDTO.quantity(),
-                    itemDetailDTO.ivaPercentage()
+                    effectiveIva
                 ));
             }
 
@@ -648,6 +652,16 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private boolean isCreditNote(DocumentType type) {
         return type == DocumentType.CREDIT_NOTE_A
                 || type == DocumentType.CREDIT_NOTE_B
+                || type == DocumentType.CREDIT_NOTE_C;
+    }
+
+    /**
+     * Tipo C (BILL_C / DEBIT_NOTE_C / CREDIT_NOTE_C): emisor monotributista o exento.
+     * No discrimina IVA — la alícuota debe ser siempre 0% Exento.
+     */
+    private boolean isTypeC(DocumentType type) {
+        return type == DocumentType.BILL_C
+                || type == DocumentType.DEBIT_NOTE_C
                 || type == DocumentType.CREDIT_NOTE_C;
     }
 
