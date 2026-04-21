@@ -1422,24 +1422,25 @@ public class ReportService implements IReportService {
 
         List<InvoiceReportAreaGroupDTO> areaGroups = buildInvoiceAreaGroups(allDocuments);
 
+        // Credit notes are subtracted from totals because they reduce the supplier's liability.
         BigDecimal totalAmount = allDocuments.stream()
-                .map(TransactionalDocument::getTotal)
+                .map(td -> signed(td, td.getTotal()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalNet = allDocuments.stream()
-                .map(TransactionalDocument::getNetTotal)
+                .map(td -> signed(td, td.getNetTotal()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalIva = allDocuments.stream()
-                .map(TransactionalDocument::getIvaTotal)
+                .map(td -> signed(td, td.getIvaTotal()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalIvaExempt = allDocuments.stream()
-                .map(TransactionalDocument::getIvaExemptTotal)
+                .map(td -> signed(td, td.getIvaExemptTotal()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal totalOtherTaxes = allDocuments.stream()
-                .map(TransactionalDocument::getOtherTaxes)
+                .map(td -> signed(td, td.getOtherTaxes()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         Map<DocumentType, BigDecimal> totalsByDocType = buildDocumentTypeSubtotals(allDocuments);
@@ -1522,23 +1523,23 @@ public class ReportService implements IReportService {
             List<InvoiceReportSupplierGroupDTO> supplierGroups = buildSupplierGroups(areaDocs, areaName);
 
             BigDecimal subtotal = areaDocs.stream()
-                    .map(TransactionalDocument::getTotal)
+                    .map(td -> signed(td, td.getTotal()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal subtotalNet = areaDocs.stream()
-                    .map(TransactionalDocument::getNetTotal)
+                    .map(td -> signed(td, td.getNetTotal()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal subtotalIva = areaDocs.stream()
-                    .map(TransactionalDocument::getIvaTotal)
+                    .map(td -> signed(td, td.getIvaTotal()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal subtotalIvaExempt = areaDocs.stream()
-                    .map(TransactionalDocument::getIvaExemptTotal)
+                    .map(td -> signed(td, td.getIvaExemptTotal()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal subtotalOtherTaxes = areaDocs.stream()
-                    .map(TransactionalDocument::getOtherTaxes)
+                    .map(td -> signed(td, td.getOtherTaxes()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             Map<DocumentType, BigDecimal> areaDocTypeSubtotals = buildDocumentTypeSubtotals(areaDocs);
@@ -1580,23 +1581,23 @@ public class ReportService implements IReportService {
             TransactionalDocument first = supplierDocs.get(0);
 
             BigDecimal supplierTotal = supplierDocs.stream()
-                    .map(TransactionalDocument::getTotal)
+                    .map(td -> signed(td, td.getTotal()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal supplierNet = supplierDocs.stream()
-                    .map(TransactionalDocument::getNetTotal)
+                    .map(td -> signed(td, td.getNetTotal()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal supplierIva = supplierDocs.stream()
-                    .map(TransactionalDocument::getIvaTotal)
+                    .map(td -> signed(td, td.getIvaTotal()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal supplierIvaExempt = supplierDocs.stream()
-                    .map(TransactionalDocument::getIvaExemptTotal)
+                    .map(td -> signed(td, td.getIvaExemptTotal()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             BigDecimal supplierOtherTaxes = supplierDocs.stream()
-                    .map(TransactionalDocument::getOtherTaxes)
+                    .map(td -> signed(td, td.getOtherTaxes()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             Map<DocumentType, BigDecimal> supplierDocTypeSubtotals = buildDocumentTypeSubtotals(supplierDocs);
@@ -1652,6 +1653,22 @@ public class ReportService implements IReportService {
         }
 
         return subtotals;
+    }
+
+    /**
+     * Returns {@code value} negated when the document is a Credit Note (because credit notes
+     * reduce the supplier's liability and therefore subtract from invoicing totals),
+     * otherwise returns {@code value} unchanged. Null-safe.
+     */
+    private BigDecimal signed(TransactionalDocument td, BigDecimal value) {
+        if (value == null) return BigDecimal.ZERO;
+        DocumentType type = td.getDocumentType();
+        if (type == DocumentType.CREDIT_NOTE_A
+                || type == DocumentType.CREDIT_NOTE_B
+                || type == DocumentType.CREDIT_NOTE_C) {
+            return value.negate();
+        }
+        return value;
     }
 
     private Map<String, BigDecimal> buildIvaRateSubtotals(List<TransactionalDocument> documents) {
