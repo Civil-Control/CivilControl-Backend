@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.stockPurchase;
 
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -37,6 +38,9 @@ public record StockPurchaseResponseDTO(
 
         @Schema(description = "ID of the linked transactional document.", example = "42")
         Long transactionalDocumentId,
+
+        @Schema(description = "Summary of the linked transactional document, if any.")
+        TransactionalDocumentSummaryDTO transactionalDocument,
 
         @Schema(description = "IVA percentage applied to this stock purchase.", example = "21.00")
         BigDecimal ivaPercentage,

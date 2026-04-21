@@ -9,9 +9,11 @@ import PSG.backEnd.model.dto.stockPurchase.StockPurchaseFilterDTO;
 import PSG.backEnd.model.dto.stockPurchase.StockPurchaseResponseDTO;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
+import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.mapper.StockPurchaseMapper;
 import PSG.backEnd.repository.StockPurchaseRepository;
 import PSG.backEnd.repository.StockRepository;
+import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.IStockPurchaseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,8 +31,15 @@ public class StockPurchaseService implements IStockPurchaseService {
     private final StockPurchaseRepository stockPurchaseRepository;
     private final StockPurchaseMapper stockPurchaseMapper;
     private final StockRepository stockRepository;
+    private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final DocumentTotalRecalculator documentTotalRecalculator;
     private final BatchProcessor batchProcessor;
+
+    /** Loads the linked document (or null) for response enrichment. */
+    private TransactionalDocument loadLinkedDocument(Long id) {
+        if (id == null) return null;
+        return transactionalDocumentRepository.findByIdAndDeletedFalse(id).orElse(null);
+    }
 
     @Override
     @Transactional
@@ -52,7 +61,7 @@ public class StockPurchaseService implements IStockPurchaseService {
         stockRepository.save(stock);
 
         documentTotalRecalculator.recalculateDocumentTotals(dto.transactionalDocumentId());
-        return stockPurchaseMapper.toResponseDto(saved, stock);
+        return stockPurchaseMapper.toResponseDto(saved, stock, loadLinkedDocument(saved.getTransactionalDocumentId()));
     }
 
     @Override
@@ -80,7 +89,8 @@ public class StockPurchaseService implements IStockPurchaseService {
 
         return purchases.map(purchase -> {
             Stock stock = stockRepository.findById(purchase.getStockId()).orElse(null);
-            return stockPurchaseMapper.toResponseDto(purchase, stock);
+            TransactionalDocument doc = loadLinkedDocument(purchase.getTransactionalDocumentId());
+            return stockPurchaseMapper.toResponseDto(purchase, stock, doc);
         });
     }
 
@@ -93,7 +103,7 @@ public class StockPurchaseService implements IStockPurchaseService {
         Stock stock = stockRepository.findById(purchase.getStockId())
                 .orElseThrow(() -> new StockNotFoundException(purchase.getStockId()));
 
-        return stockPurchaseMapper.toResponseDto(purchase, stock);
+        return stockPurchaseMapper.toResponseDto(purchase, stock, loadLinkedDocument(purchase.getTransactionalDocumentId()));
     }
 
     @Override
@@ -139,7 +149,7 @@ public class StockPurchaseService implements IStockPurchaseService {
         documentTotalRecalculator.recalculateDocumentTotals(dto.transactionalDocumentId());
 
         Stock stock = stockRepository.findById(updated.getStockId()).orElse(null);
-        return stockPurchaseMapper.toResponseDto(updated, stock);
+        return stockPurchaseMapper.toResponseDto(updated, stock, loadLinkedDocument(updated.getTransactionalDocumentId()));
     }
 
     @Override
