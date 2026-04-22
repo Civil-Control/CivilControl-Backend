@@ -84,6 +84,7 @@ public class StockPurchaseService implements IStockPurchaseService {
                 filterDTO.maxAmount(),
                 filterDTO.transactionalDocumentId(),
                 filterDTO.search(),
+                Boolean.TRUE.equals(filterDTO.unlinked()),
                 pageable
         );
 

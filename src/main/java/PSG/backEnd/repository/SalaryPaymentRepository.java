@@ -36,7 +36,8 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND (:paymentMethod IS NULL OR sp.paymentMethod = :paymentMethod) " +
             "AND (:search IS NULL OR (LOWER(CAST(sp.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR LOWER(CAST(sp.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))) " +
-            "AND (CAST(:transactionalDocumentId AS long) IS NULL OR sp.transactionalDocument.id = :transactionalDocumentId)")
+            "AND (CAST(:transactionalDocumentId AS long) IS NULL OR sp.transactionalDocument.id = :transactionalDocumentId) " +
+            "AND (:unlinked = false OR sp.transactionalDocument IS NULL)")
     Page<SalaryPayment> findAllWithFilters(
             @Param("employeeId") Long employeeId,
             @Param("firstName") String firstName,
@@ -50,6 +51,7 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             @Param("paymentMethod") PaymentMethod paymentMethod,
             @Param("search") String search,
             @Param("transactionalDocumentId") Long transactionalDocumentId,
+            @Param("unlinked") boolean unlinked,
             Pageable pageable
     );
 

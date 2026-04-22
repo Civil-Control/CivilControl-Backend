@@ -89,6 +89,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
                 filterDTO.paymentMethod(),
                 filterDTO.search(),
                 filterDTO.transactionalDocumentId(),
+                Boolean.TRUE.equals(filterDTO.unlinked()),
                 pageable
         ).map(salaryPaymentMapper::toResponseDto);
     }

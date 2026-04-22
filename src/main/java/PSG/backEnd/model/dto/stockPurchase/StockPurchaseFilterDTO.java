@@ -14,5 +14,6 @@ public record StockPurchaseFilterDTO(
         BigDecimal minAmount,
         BigDecimal maxAmount,
         Long transactionalDocumentId,
-        String search
+        String search,
+        Boolean unlinked
 ) {}

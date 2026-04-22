@@ -46,6 +46,7 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             "AND (CAST(:totalAmountMin AS big_decimal) IS NULL OR fl.totalAmount >= :totalAmountMin) " +
             "AND (CAST(:totalAmountMax AS big_decimal) IS NULL OR fl.totalAmount <= :totalAmountMax) " +
             "AND (CAST(:transactionalDocumentId AS long) IS NULL OR fl.transactionalDocument.id = :transactionalDocumentId) " +
+            "AND (:unlinked = false OR fl.transactionalDocument IS NULL) " +
             "AND (:totalAmountLike IS NULL OR CAST(fl.totalAmount AS string) LIKE CONCAT('%', CAST(:totalAmountLike AS string), '%')) " +
             "AND (:search IS NULL OR (LOWER(CAST(v.licensePlate AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
             "     OR (fl.vehicle IS NULL AND (LOWER('bidon') LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER('bidón') LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))) " +
@@ -71,6 +72,7 @@ public interface FuelLoadRepository extends JpaRepository<FuelLoad, Long> {
             @Param("totalAmountMax") java.math.BigDecimal totalAmountMax,
             @Param("transactionalDocumentId") Long transactionalDocumentId,
             @Param("totalAmountLike") String totalAmountLike,
+            @Param("unlinked") boolean unlinked,
             Pageable pageable
     );
 }

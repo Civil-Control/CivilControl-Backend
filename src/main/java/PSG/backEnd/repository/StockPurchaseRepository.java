@@ -29,6 +29,7 @@ public interface StockPurchaseRepository extends JpaRepository<StockPurchase, Lo
             "AND (CAST(:minAmount AS BigDecimal) IS NULL OR sp.totalAmount >= :minAmount) " +
             "AND (CAST(:maxAmount AS BigDecimal) IS NULL OR sp.totalAmount <= :maxAmount) " +
             "AND (CAST(:transactionalDocumentId AS long) IS NULL OR sp.transactionalDocumentId = :transactionalDocumentId) " +
+            "AND (:unlinked = false OR sp.transactionalDocumentId IS NULL) " +
             "AND (:search IS NULL OR LOWER(CAST(s.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))")
     Page<StockPurchase> findAllWithFilters(
             @Param("dateFrom") LocalDate dateFrom,
@@ -42,6 +43,7 @@ public interface StockPurchaseRepository extends JpaRepository<StockPurchase, Lo
             @Param("maxAmount") BigDecimal maxAmount,
             @Param("transactionalDocumentId") Long transactionalDocumentId,
             @Param("search") String search,
+            @Param("unlinked") boolean unlinked,
             Pageable pageable
     );
 }

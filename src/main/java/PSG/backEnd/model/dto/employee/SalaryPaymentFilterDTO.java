@@ -63,6 +63,11 @@ public record SalaryPaymentFilterDTO(
     @Schema(description = "Generic search across employee name and last name (case-insensitive partial match).",
             nullable = true)
     String search,
-    Long transactionalDocumentId
+    Long transactionalDocumentId,
+
+    @Schema(description = "If true, only return salary payments not yet linked to any transactional document.",
+            example = "true",
+            nullable = true)
+    Boolean unlinked
 ) {}
 

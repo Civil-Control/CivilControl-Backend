@@ -87,5 +87,10 @@ public record FuelLoadFilterDTO(
         @Schema(description = "Filter by total amount (partial string match). Typing '50' matches 10050.00, 5000.00, etc.",
                 example = "50",
                 nullable = true)
-        String totalAmountLike
+        String totalAmountLike,
+
+        @Schema(description = "If true, only return fuel loads not yet linked to any transactional document.",
+                example = "true",
+                nullable = true)
+        Boolean unlinked
 ) {}
