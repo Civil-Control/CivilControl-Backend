@@ -1190,12 +1190,15 @@ public class ReportService implements IReportService {
      * Builds the hierarchical area groups from a flat list of salary payments.
      */
     private List<SalaryReportAreaGroupDTO> buildAreaGroups(List<SalaryPayment> payments) {
-        // Group payments by project area (employee's area)
+        // Group payments by the project area of each individual payment.
+        // This ensures that an employee with payments in multiple sectors is
+        // distributed across those sectors, instead of forcing all of their
+        // payments under the employee's primary assigned sector.
         Map<Long, List<SalaryPayment>> byArea = new LinkedHashMap<>();
 
         for (SalaryPayment sp : payments) {
-            Long areaId = sp.getEmployee().getProjectArea() != null
-                    ? sp.getEmployee().getProjectArea().getId()
+            Long areaId = sp.getProjectArea() != null
+                    ? sp.getProjectArea().getId()
                     : -1L; // sentinel for "no area"
             byArea.computeIfAbsent(areaId, k -> new ArrayList<>()).add(sp);
         }
@@ -1217,8 +1220,8 @@ public class ReportService implements IReportService {
             } else {
                 areaIdDTO = areaId;
                 SalaryPayment first = areaPayments.get(0);
-                areaName = first.getEmployee().getProjectArea().getName();
-                areaColor = first.getEmployee().getProjectArea().getColor();
+                areaName = first.getProjectArea().getName();
+                areaColor = first.getProjectArea().getColor();
             }
 
             List<SalaryReportEmployeeGroupDTO> employeeGroups = buildEmployeeGroups(areaPayments, areaName);
