@@ -41,12 +41,14 @@ import java.util.regex.Pattern;
 public class PasswordPolicyService {
 
     /**
-     * At least 12 characters, must contain lower-case, upper-case, digit and a symbol.
+     * At least 8 characters, must contain lower-case, upper-case and a digit.
+     * Symbols are NOT required (NIST SP 800-63B does not recommend forcing them);
+     * the real strength comes from length + the breach-list and denylist checks below.
      */
     private static final Pattern STRONG_PATTERN =
-            Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{12,}$");
+            Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,}$");
 
-    private static final int MIN_LENGTH = 12;
+    private static final int MIN_LENGTH = 8;
     private static final int MAX_LENGTH = 100;
 
     /**
