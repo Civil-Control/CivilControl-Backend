@@ -96,7 +96,7 @@ public class StockPurchaseController {
 
         StockPurchaseFilterDTO filterDTO = new StockPurchaseFilterDTO(
                 dateFrom, dateTo, stockId, stockName, stockCategory,
-                minQuantity, maxQuantity, minAmount, maxAmount, transactionalDocumentId, search
+                minQuantity, maxQuantity, minAmount, maxAmount, transactionalDocumentId, search, null
         );
 
         return ResponseEntity.ok(stockPurchaseService.getAllStockPurchases(filterDTO, pageable));

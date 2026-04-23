@@ -102,7 +102,7 @@ public class SalaryPaymentController {
 
         SalaryPaymentFilterDTO filterDTO = new SalaryPaymentFilterDTO(
                 employeeId, firstName, lastName, salaryFrequency, projectAreaId, paymentDateFrom, paymentDateTo,
-                minAmount, maxAmount, paymentMethod, search, transactionalDocumentId
+                minAmount, maxAmount, paymentMethod, search, transactionalDocumentId, null
         );
 
         return ResponseEntity.ok(iSalaryPaymentService.getAllSalaryPayments(filterDTO, pageable));

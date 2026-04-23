@@ -619,6 +619,7 @@ public class ReportService implements IReportService {
                 null, // paymentMethod - not filtered in reports
                 null, // search
                 null, // transactionalDocumentId
+                false, // unlinked
                 pageable
         ).getContent();
 
@@ -799,6 +800,7 @@ public class ReportService implements IReportService {
                 null, // totalAmountMax
                 null, // transactionalDocumentId
                 null, // totalAmountLike
+                false, // unlinked
                 pageable
         ).getContent();
 
@@ -1007,6 +1009,7 @@ public class ReportService implements IReportService {
                 filters.maxAmount(),
                 null, // transactionalDocumentId
                 null, // search
+                false, // unlinked
                 pageable
         ).getContent();
 
@@ -1119,6 +1122,7 @@ public class ReportService implements IReportService {
                         filters.maxAmount(),
                         filters.paymentMethod(),
                         null, null,
+                        false,
                         pageable
                 ).getContent());
             }
@@ -1133,6 +1137,7 @@ public class ReportService implements IReportService {
                     filters.maxAmount(),
                     filters.paymentMethod(),
                     null, null,
+                    false,
                     pageable
             ).getContent();
         }
@@ -2114,6 +2119,7 @@ public class ReportService implements IReportService {
                         filters.gasStationId(), null, null,
                         filters.minAmount(), filters.maxAmount(),
                         null, null,
+                        false,
                         pageable
                 ).getContent());
             }
@@ -2127,6 +2133,7 @@ public class ReportService implements IReportService {
                     filters.gasStationId(), null, null,
                     filters.minAmount(), filters.maxAmount(),
                     null, null,
+                    false,
                     pageable
             ).getContent();
         }
@@ -2796,6 +2803,7 @@ public class ReportService implements IReportService {
                 null, null,
                 filters.minAmount(), filters.maxAmount(),
                 null, null,
+                false,
                 pageable
         ).getContent();
 

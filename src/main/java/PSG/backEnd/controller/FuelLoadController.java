@@ -103,7 +103,7 @@ public class FuelLoadController {
 
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
-        FuelLoadFilterDTO filterDTO = new FuelLoadFilterDTO(dateFrom, dateTo, branchCode, ticketNumber, fuelType, vehicleId, vehicleLicensePlate, projectAreaId, projectAreaName, gasStationId, search, gasStationName, totalAmountMin, totalAmountMax, transactionalDocumentId, totalAmountLike);
+        FuelLoadFilterDTO filterDTO = new FuelLoadFilterDTO(dateFrom, dateTo, branchCode, ticketNumber, fuelType, vehicleId, vehicleLicensePlate, projectAreaId, projectAreaName, gasStationId, search, gasStationName, totalAmountMin, totalAmountMax, transactionalDocumentId, totalAmountLike, null);
         return ResponseEntity.ok(fuelLoadService.getAllFuelLoads(filterDTO, pageable));
     }
 
