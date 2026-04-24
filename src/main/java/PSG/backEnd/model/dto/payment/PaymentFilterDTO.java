@@ -29,5 +29,19 @@ public record PaymentFilterDTO(
         @Size(max = 255, message = "{validation.size}")
         String supplierName,
 
-        Long supplierId
+        Long supplierId,
+
+        /**
+         * Coincidence (substring) filter on the payment amount. The amount is compared
+         * as a string, so {@code "150"} matches {@code 150}, {@code 1500}, {@code 21500.00}, etc.
+         */
+        @Size(max = 20, message = "{validation.size}")
+        String amount,
+
+        /**
+         * Generic search applied across the supplier name (legal/trade) and the payment amount
+         * (substring match on either). Intended for the table's main search box.
+         */
+        @Size(max = 255, message = "{validation.size}")
+        String search
 ) {}

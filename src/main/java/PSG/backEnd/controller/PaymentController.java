@@ -112,9 +112,11 @@ public class PaymentController {
             @Parameter(description = "Filter by maximum payment date (inclusive). Format: yyyy-MM-dd", example = "2025-12-31") @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             @Parameter(description = "Filter by minimum payment amount", example = "1000.00") @RequestParam(required = false) BigDecimal minAmount,
             @Parameter(description = "Filter by maximum payment amount", example = "50000.00") @RequestParam(required = false) BigDecimal maxAmount,
-            @Parameter(description = "Filter by transaction number (check number or transfer number)", example = "TRF20250115") @RequestParam(required = false) String transactionNumber,
+            @Parameter(description = "Filter by transaction number (check number or transfer number). Substring/coincidence match.", example = "556") @RequestParam(required = false) String transactionNumber,
             @Parameter(description = "Filter by supplier name (partial match on legal or trade name)", example = "Proveedor SA") @RequestParam(required = false) String supplierName,
             @Parameter(description = "Filter by supplier ID who received the payment", example = "42") @RequestParam(required = false) Long supplierId,
+            @Parameter(description = "Filter by payment amount as a substring/coincidence (e.g. '150' matches 1500, 21500.00).", example = "150") @RequestParam(required = false) String amount,
+            @Parameter(description = "Generic search across supplier name and amount (substring on either).", example = "1500") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, paymentDate, amount, comment. " +
@@ -131,7 +133,7 @@ public class PaymentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         PaymentFilterDTO filter = new PaymentFilterDTO(
-                paymentMethod, startDate, endDate, minAmount, maxAmount, transactionNumber, supplierName, supplierId
+                paymentMethod, startDate, endDate, minAmount, maxAmount, transactionNumber, supplierName, supplierId, amount, search
         );
         return ResponseEntity.ok(paymentService.findAll(filter, pageable));
     }

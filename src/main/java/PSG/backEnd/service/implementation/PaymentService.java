@@ -233,8 +233,19 @@ public class PaymentService implements IPaymentService {
                 filter.transactionNumber(),
                 filter.supplierName(),
                 filter.supplierId(),
+                normalizeOptional(filter.amount()),
+                normalizeOptional(filter.search()),
                 pageable
         ).map(this::mapToPaymentResponse);
+    }
+
+    /**
+     * Treats blank/whitespace-only inputs as absent so that empty form fields don't accidentally
+     * filter to "matches everything that has the empty string" (which would still be every row,
+     * but normalizing keeps the SQL plan simple and intent explicit).
+     */
+    private static String normalizeOptional(String value) {
+        return (value == null || value.isBlank()) ? null : value.trim();
     }
 
     /**
