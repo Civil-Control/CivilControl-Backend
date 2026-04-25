@@ -17,6 +17,11 @@ import PSG.backEnd.model.dto.report.stockPurchase.StockPurchaseReportDTO;
 import PSG.backEnd.model.dto.report.stockPurchase.StockPurchaseReportFilterDTO;
 import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportDTO;
 import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportFilterDTO;
+import PSG.backEnd.model.dto.report.sales.SalesReportDTO;
+import PSG.backEnd.model.dto.report.sales.SalesReportFilterDTO;
+import PSG.backEnd.model.enums.IvaCondition;
+import PSG.backEnd.model.enums.contracts.CertificationStatus;
+import PSG.backEnd.model.enums.documents.SalesDocumentType;
 import PSG.backEnd.model.enums.MoneyOutflowCategory;
 import PSG.backEnd.model.enums.ReportFormat;
 import PSG.backEnd.model.enums.ServiceType;
@@ -1127,5 +1132,133 @@ public class ReportController {
         );
 
         return reportService.generatePolicyPaymentReportFile(filters, format);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SALES REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/sales")
+    @Operation(
+            summary = "Generate sales report data",
+            description = "Generates a hierarchical sales report grouped by project area and client. " +
+                    "Optionally includes orphan certifications (without sales document)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<SalesReportDTO> generateSalesReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate endDate,
+
+            @Parameter(description = "Project area IDs to include")
+            @RequestParam(required = false)
+            List<Long> projectAreaIds,
+
+            @Parameter(description = "Client IDs to include")
+            @RequestParam(required = false)
+            List<Long> clientIds,
+
+            @Parameter(description = "Filter by sales document type")
+            @RequestParam(required = false)
+            SalesDocumentType documentType,
+
+            @Parameter(description = "Filter by client IVA condition")
+            @RequestParam(required = false)
+            IvaCondition ivaCondition,
+
+            @Parameter(description = "Filter by paid status")
+            @RequestParam(required = false)
+            Boolean paid,
+
+            @Parameter(description = "Filter by work contract id (via linked certifications)")
+            @RequestParam(required = false)
+            Long workContractId,
+
+            @Parameter(description = "Only invoices linked to at least one certification")
+            @RequestParam(required = false)
+            Boolean onlyLinkedToCertifications,
+
+            @Parameter(description = "Include orphan certifications (without sales document)")
+            @RequestParam(required = false)
+            Boolean includeCertificationsOnly,
+
+            @Parameter(description = "Filter by certification status (applies to linked or orphan certs)")
+            @RequestParam(required = false)
+            CertificationStatus certificationStatus,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false)
+            BigDecimal maxAmount
+    ) {
+        log.info("Generating sales report: startDate={}, endDate={}, areas={}, clients={}",
+                startDate, endDate, projectAreaIds, clientIds);
+
+        SalesReportFilterDTO filters = new SalesReportFilterDTO(
+                startDate, endDate, projectAreaIds, clientIds, documentType, ivaCondition,
+                paid, workContractId, onlyLinkedToCertifications, includeCertificationsOnly,
+                certificationStatus, minAmount, maxAmount
+        );
+
+        SalesReportDTO report = reportService.generateSalesReport(filters);
+
+        log.info("Sales report generated: {} rows ({} invoices, {} cert-only), total: ${}",
+                report.totalCount(), report.invoiceCount(), report.certificationOnlyCount(),
+                report.totalAmount());
+
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/sales/download")
+    @Operation(
+            summary = "Download sales report file",
+            description = "Generates and downloads a sales report in the specified format (PDF or EXCEL)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadSalesReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam
+            ReportFormat format,
+
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @RequestParam(required = false) List<Long> projectAreaIds,
+            @RequestParam(required = false) List<Long> clientIds,
+            @RequestParam(required = false) SalesDocumentType documentType,
+            @RequestParam(required = false) IvaCondition ivaCondition,
+            @RequestParam(required = false) Boolean paid,
+            @RequestParam(required = false) Long workContractId,
+            @RequestParam(required = false) Boolean onlyLinkedToCertifications,
+            @RequestParam(required = false) Boolean includeCertificationsOnly,
+            @RequestParam(required = false) CertificationStatus certificationStatus,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount
+    ) {
+        log.info("Downloading sales report: format={}", format);
+
+        SalesReportFilterDTO filters = new SalesReportFilterDTO(
+                startDate, endDate, projectAreaIds, clientIds, documentType, ivaCondition,
+                paid, workContractId, onlyLinkedToCertifications, includeCertificationsOnly,
+                certificationStatus, minAmount, maxAmount
+        );
+
+        return reportService.generateSalesReportFile(filters, format);
     }
 }

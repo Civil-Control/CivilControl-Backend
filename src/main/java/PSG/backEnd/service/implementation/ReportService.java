@@ -13,6 +13,12 @@ import PSG.backEnd.model.dto.report.fuelLoad.*;
 import PSG.backEnd.model.dto.report.repair.*;
 import PSG.backEnd.model.dto.report.stockPurchase.*;
 import PSG.backEnd.model.dto.report.policyPayment.*;
+import PSG.backEnd.model.dto.report.sales.*;
+import PSG.backEnd.model.entity.contracts.Certification;
+import PSG.backEnd.model.entity.sales.SalesDocument;
+import PSG.backEnd.model.enums.IvaCondition;
+import PSG.backEnd.model.enums.contracts.CertificationStatus;
+import PSG.backEnd.model.enums.documents.SalesDocumentType;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.StockPurchase;
@@ -50,6 +56,8 @@ import PSG.backEnd.service.export.StockPurchaseReportExcelExporter;
 import PSG.backEnd.service.export.StockPurchaseReportPdfExporter;
 import PSG.backEnd.service.export.PolicyPaymentReportExcelExporter;
 import PSG.backEnd.service.export.PolicyPaymentReportPdfExporter;
+import PSG.backEnd.service.export.SalesReportExcelExporter;
+import PSG.backEnd.service.export.SalesReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -111,6 +119,10 @@ public class ReportService implements IReportService {
     private final PolicyPaymentReportExcelExporter policyPaymentExcelExporter;
     private final PolicyPaymentReportPdfExporter policyPaymentPdfExporter;
 
+    // Sales report exporters
+    private final SalesReportExcelExporter salesExcelExporter;
+    private final SalesReportPdfExporter salesPdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -122,6 +134,8 @@ public class ReportService implements IReportService {
     private final StockRepository stockRepository;
     private final ProjectAreaRepository projectAreaRepository;
     private final PaymentRepository paymentRepository;
+    private final SalesDocumentRepository salesDocumentRepository;
+    private final CertificationRepository certificationRepository;
     private final MessageSourceHelper messageSourceHelper;
 
     /**
@@ -144,6 +158,8 @@ public class ReportService implements IReportService {
             StockPurchaseReportPdfExporter stockPurchasePdfExporter,
             PolicyPaymentReportExcelExporter policyPaymentExcelExporter,
             PolicyPaymentReportPdfExporter policyPaymentPdfExporter,
+            SalesReportExcelExporter salesExcelExporter,
+            SalesReportPdfExporter salesPdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -154,6 +170,8 @@ public class ReportService implements IReportService {
             StockRepository stockRepository,
             ProjectAreaRepository projectAreaRepository,
             PaymentRepository paymentRepository,
+            SalesDocumentRepository salesDocumentRepository,
+            CertificationRepository certificationRepository,
             MessageSourceHelper messageSourceHelper) {
 
         this.exporters = exporterList.stream()
@@ -176,6 +194,8 @@ public class ReportService implements IReportService {
         this.stockPurchasePdfExporter = stockPurchasePdfExporter;
         this.policyPaymentExcelExporter = policyPaymentExcelExporter;
         this.policyPaymentPdfExporter = policyPaymentPdfExporter;
+        this.salesExcelExporter = salesExcelExporter;
+        this.salesPdfExporter = salesPdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -186,6 +206,8 @@ public class ReportService implements IReportService {
         this.stockRepository = stockRepository;
         this.projectAreaRepository = projectAreaRepository;
         this.paymentRepository = paymentRepository;
+        this.salesDocumentRepository = salesDocumentRepository;
+        this.certificationRepository = certificationRepository;
         this.messageSourceHelper = messageSourceHelper;
 
         log.info("ReportService initialized with {} exporters: {}",
@@ -3275,6 +3297,514 @@ public class ReportService implements IReportService {
     }
 
     private String buildPolicyPaymentPeriodDescription(PolicyPaymentReportFilterDTO filters) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (filters.startDate() != null && filters.endDate() != null) {
+            if (filters.startDate().getDayOfMonth() == 1
+                    && filters.endDate().equals(filters.startDate().withDayOfMonth(
+                            filters.startDate().lengthOfMonth()))
+                    && filters.startDate().getMonth() == filters.endDate().getMonth()
+                    && filters.startDate().getYear() == filters.endDate().getYear()) {
+                String monthName = filters.startDate().getMonth()
+                        .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "AR"));
+                monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
+                return monthName + " " + filters.startDate().getYear();
+            }
+            return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
+        } else if (filters.startDate() != null) {
+            return "Desde: " + filters.startDate().format(fmt);
+        } else if (filters.endDate() != null) {
+            return "Hasta: " + filters.endDate().format(fmt);
+        }
+        return "Sin filtro de período";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SALES REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private static final List<SalesDocumentType> SALES_DOC_TYPE_ORDER = List.of(
+            SalesDocumentType.FACTURA_A, SalesDocumentType.FACTURA_B, SalesDocumentType.FACTURA_C,
+            SalesDocumentType.NOTA_DEBITO_A, SalesDocumentType.NOTA_DEBITO_B, SalesDocumentType.NOTA_DEBITO_C,
+            SalesDocumentType.NOTA_CREDITO_A, SalesDocumentType.NOTA_CREDITO_B, SalesDocumentType.NOTA_CREDITO_C);
+
+    @Override
+    @Transactional(readOnly = true)
+    public SalesReportDTO generateSalesReport(SalesReportFilterDTO filters) {
+        log.info("Generating sales report with filters: {}", filters);
+
+        validateSalesFilters(filters);
+
+        // ── Fetch sales documents ──
+        boolean hasAreaFilter = filters.projectAreaIds() != null && !filters.projectAreaIds().isEmpty();
+        Collection<Long> areaIds = hasAreaFilter ? filters.projectAreaIds() : List.of(-1L);
+        boolean hasClientFilter = filters.clientIds() != null && !filters.clientIds().isEmpty();
+        Collection<Long> clientIds = hasClientFilter ? filters.clientIds() : List.of(-1L);
+
+        List<SalesDocument> allDocuments = salesDocumentRepository.findAllForReport(
+                filters.documentType(),
+                filters.startDate(),
+                filters.endDate(),
+                filters.minAmount(),
+                filters.maxAmount(),
+                filters.paid(),
+                hasAreaFilter,
+                areaIds,
+                hasClientFilter,
+                clientIds,
+                filters.ivaCondition()
+        );
+
+        // Filter by workContractId via linked certifications (if specified)
+        Map<Long, List<Certification>> certByDoc = new HashMap<>();
+        if (!allDocuments.isEmpty()) {
+            List<Long> docIds = allDocuments.stream().map(SalesDocument::getId).toList();
+            List<Certification> linked = certificationRepository.findBySalesDocumentIdInForReport(docIds);
+            for (Certification c : linked) {
+                if (c.getSalesDocument() != null) {
+                    certByDoc.computeIfAbsent(c.getSalesDocument().getId(), k -> new ArrayList<>()).add(c);
+                }
+            }
+        }
+
+        // workContractId filter on invoices: keep invoices that have at least one linked
+        // certification for that contract (only meaningful when filter is set)
+        if (filters.workContractId() != null) {
+            allDocuments = allDocuments.stream()
+                    .filter(sd -> {
+                        List<Certification> certs = certByDoc.get(sd.getId());
+                        return certs != null && certs.stream()
+                                .anyMatch(c -> c.getContract() != null
+                                        && filters.workContractId().equals(c.getContract().getId()));
+                    })
+                    .toList();
+        }
+
+        // certificationStatus filter on invoices: only keep those with at least one linked cert in that status
+        if (filters.certificationStatus() != null) {
+            allDocuments = allDocuments.stream()
+                    .filter(sd -> {
+                        List<Certification> certs = certByDoc.get(sd.getId());
+                        return certs != null && certs.stream()
+                                .anyMatch(c -> filters.certificationStatus().equals(c.getStatus()));
+                    })
+                    .toList();
+        }
+
+        // onlyLinkedToCertifications: keep only invoices with at least one linked cert
+        boolean onlyLinked = Boolean.TRUE.equals(filters.onlyLinkedToCertifications());
+        if (onlyLinked) {
+            allDocuments = allDocuments.stream()
+                    .filter(sd -> {
+                        List<Certification> certs = certByDoc.get(sd.getId());
+                        return certs != null && !certs.isEmpty();
+                    })
+                    .toList();
+        }
+
+        // ── Fetch orphan certifications if requested ──
+        boolean includeOrphans = Boolean.TRUE.equals(filters.includeCertificationsOnly()) && !onlyLinked;
+        List<Certification> orphans = Collections.emptyList();
+        if (includeOrphans) {
+            orphans = certificationRepository.findOrphansForReport(
+                    filters.startDate(),
+                    filters.endDate(),
+                    filters.certificationStatus(),
+                    filters.minAmount(),
+                    filters.maxAmount(),
+                    filters.workContractId(),
+                    hasAreaFilter,
+                    areaIds,
+                    hasClientFilter,
+                    clientIds
+            );
+        }
+
+        // ── Build rows (Area -> Client -> Rows) ──
+        List<SalesReportAreaGroupDTO> areaGroups = buildSalesAreaGroups(allDocuments, orphans, certByDoc);
+
+        // ── Aggregate top-level totals ──
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal totalNet = BigDecimal.ZERO;
+        BigDecimal totalIva = BigDecimal.ZERO;
+        BigDecimal totalIvaExempt = BigDecimal.ZERO;
+        BigDecimal totalOtherTaxes = BigDecimal.ZERO;
+        BigDecimal totalInvoiced = BigDecimal.ZERO;
+        BigDecimal totalCertifiedOnly = BigDecimal.ZERO;
+        BigDecimal totalPaidAmount = BigDecimal.ZERO;
+        BigDecimal totalUnpaidAmount = BigDecimal.ZERO;
+
+        for (SalesDocument sd : allDocuments) {
+            BigDecimal signedTotal = signedSales(sd, sd.getTotal());
+            totalAmount = totalAmount.add(signedTotal);
+            totalNet = totalNet.add(signedSales(sd, sd.getNetTotal()));
+            totalIva = totalIva.add(signedSales(sd, sd.getIvaTotal()));
+            totalIvaExempt = totalIvaExempt.add(signedSales(sd, sd.getIvaExemptTotal()));
+            totalOtherTaxes = totalOtherTaxes.add(signedSales(sd, sd.getOtherTaxes()));
+            totalInvoiced = totalInvoiced.add(signedTotal);
+            if (Boolean.TRUE.equals(sd.getPaid())) {
+                totalPaidAmount = totalPaidAmount.add(signedTotal);
+            } else {
+                totalUnpaidAmount = totalUnpaidAmount.add(signedTotal);
+            }
+        }
+
+        for (Certification c : orphans) {
+            BigDecimal amt = c.getCertifiedAmount() != null ? c.getCertifiedAmount() : BigDecimal.ZERO;
+            totalAmount = totalAmount.add(amt);
+            totalCertifiedOnly = totalCertifiedOnly.add(amt);
+        }
+
+        // Total certified linked = sum of linked certifications across all kept invoices
+        BigDecimal totalCertifiedLinked = BigDecimal.ZERO;
+        for (SalesDocument sd : allDocuments) {
+            List<Certification> certs = certByDoc.get(sd.getId());
+            if (certs != null) {
+                for (Certification c : certs) {
+                    if (c.getCertifiedAmount() != null) {
+                        totalCertifiedLinked = totalCertifiedLinked.add(c.getCertifiedAmount());
+                    }
+                }
+            }
+        }
+
+        Map<SalesDocumentType, BigDecimal> totalsByDocType = buildSalesTotalsByDocumentType(allDocuments);
+
+        String periodDesc = buildSalesPeriodDescription(filters);
+
+        return SalesReportDTO.builder()
+                .filters(filters)
+                .areaGroups(areaGroups)
+                .totalAmount(totalAmount)
+                .totalCount(allDocuments.size() + orphans.size())
+                .totalsByDocumentType(totalsByDocType)
+                .totalNet(totalNet)
+                .totalIva(totalIva)
+                .totalIvaExempt(totalIvaExempt)
+                .totalOtherTaxes(totalOtherTaxes)
+                .totalInvoiced(totalInvoiced)
+                .totalCertifiedOnly(totalCertifiedOnly)
+                .totalCertifiedLinked(totalCertifiedLinked)
+                .totalPaidAmount(totalPaidAmount)
+                .totalUnpaidAmount(totalUnpaidAmount)
+                .invoiceCount(allDocuments.size())
+                .certificationOnlyCount(orphans.size())
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte de Ventas")
+                .periodDescription(periodDesc)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generateSalesReportFile(SalesReportFilterDTO filters, ReportFormat format) {
+        log.info("Generating sales report file: format={}", format);
+
+        SalesReportDTO report = generateSalesReport(filters);
+
+        byte[] content;
+        switch (format) {
+            case EXCEL -> content = salesExcelExporter.export(report);
+            case PDF -> content = salesPdfExporter.export(report);
+            default -> throw new InvalidReportFormatException(format.name());
+        }
+
+        String filename = "reporte_ventas_" +
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
+                .body(content);
+    }
+
+    private List<SalesReportAreaGroupDTO> buildSalesAreaGroups(List<SalesDocument> documents,
+                                                                List<Certification> orphans,
+                                                                Map<Long, List<Certification>> certByDoc) {
+        // Group entries by area id
+        Map<Long, List<SalesDocument>> docsByArea = new LinkedHashMap<>();
+        Map<Long, String> areaNames = new HashMap<>();
+        Map<Long, String> areaColors = new HashMap<>();
+
+        for (SalesDocument sd : documents) {
+            Long areaId = sd.getProjectArea() != null ? sd.getProjectArea().getId() : -1L;
+            docsByArea.computeIfAbsent(areaId, k -> new ArrayList<>()).add(sd);
+            if (sd.getProjectArea() != null) {
+                areaNames.put(areaId, sd.getProjectArea().getName());
+                areaColors.put(areaId, sd.getProjectArea().getColor());
+            }
+        }
+
+        Map<Long, List<Certification>> orphansByArea = new LinkedHashMap<>();
+        for (Certification c : orphans) {
+            Long areaId = c.getContract() != null && c.getContract().getProjectArea() != null
+                    ? c.getContract().getProjectArea().getId() : -1L;
+            orphansByArea.computeIfAbsent(areaId, k -> new ArrayList<>()).add(c);
+            if (c.getContract() != null && c.getContract().getProjectArea() != null) {
+                areaNames.putIfAbsent(areaId, c.getContract().getProjectArea().getName());
+                areaColors.putIfAbsent(areaId, c.getContract().getProjectArea().getColor());
+            }
+        }
+
+        Set<Long> allAreaIds = new LinkedHashSet<>();
+        allAreaIds.addAll(docsByArea.keySet());
+        allAreaIds.addAll(orphansByArea.keySet());
+
+        List<SalesReportAreaGroupDTO> result = new ArrayList<>();
+
+        for (Long areaId : allAreaIds) {
+            List<SalesDocument> areaDocs = docsByArea.getOrDefault(areaId, Collections.emptyList());
+            List<Certification> areaOrphans = orphansByArea.getOrDefault(areaId, Collections.emptyList());
+
+            String name = areaId == -1L ? "Sin área asignada" : areaNames.getOrDefault(areaId, "(Área #" + areaId + ")");
+            String color = areaId == -1L ? null : areaColors.get(areaId);
+
+            List<SalesReportClientGroupDTO> clientGroups = buildSalesClientGroups(areaDocs, areaOrphans, certByDoc);
+
+            BigDecimal subtotal = BigDecimal.ZERO;
+            BigDecimal subtotalNet = BigDecimal.ZERO;
+            BigDecimal subtotalIva = BigDecimal.ZERO;
+            BigDecimal subtotalInvoiced = BigDecimal.ZERO;
+            for (SalesDocument sd : areaDocs) {
+                BigDecimal s = signedSales(sd, sd.getTotal());
+                subtotal = subtotal.add(s);
+                subtotalNet = subtotalNet.add(signedSales(sd, sd.getNetTotal()));
+                subtotalIva = subtotalIva.add(signedSales(sd, sd.getIvaTotal()));
+                subtotalInvoiced = subtotalInvoiced.add(s);
+            }
+            BigDecimal subtotalCertOnly = BigDecimal.ZERO;
+            for (Certification c : areaOrphans) {
+                BigDecimal amt = c.getCertifiedAmount() != null ? c.getCertifiedAmount() : BigDecimal.ZERO;
+                subtotal = subtotal.add(amt);
+                subtotalCertOnly = subtotalCertOnly.add(amt);
+            }
+
+            Map<SalesDocumentType, BigDecimal> areaTypeSubs = buildSalesTotalsByDocumentType(areaDocs);
+
+            result.add(SalesReportAreaGroupDTO.builder()
+                    .projectAreaId(areaId == -1L ? null : areaId)
+                    .projectAreaName(name)
+                    .projectAreaColor(color)
+                    .subtotalAmount(subtotal)
+                    .rowCount(areaDocs.size() + areaOrphans.size())
+                    .subtotalsByDocumentType(areaTypeSubs)
+                    .subtotalNet(subtotalNet)
+                    .subtotalIva(subtotalIva)
+                    .subtotalInvoiced(subtotalInvoiced)
+                    .subtotalCertifiedOnly(subtotalCertOnly)
+                    .clientGroups(clientGroups)
+                    .build());
+        }
+
+        result.sort((a, b) -> {
+            if (a.projectAreaId() == null) return 1;
+            if (b.projectAreaId() == null) return -1;
+            return a.projectAreaName().compareToIgnoreCase(b.projectAreaName());
+        });
+
+        return result;
+    }
+
+    private List<SalesReportClientGroupDTO> buildSalesClientGroups(List<SalesDocument> areaDocs,
+                                                                    List<Certification> areaOrphans,
+                                                                    Map<Long, List<Certification>> certByDoc) {
+        Map<Long, List<SalesDocument>> docsByClient = new LinkedHashMap<>();
+        for (SalesDocument sd : areaDocs) {
+            Long clientId = sd.getClient() != null ? sd.getClient().getId() : -1L;
+            docsByClient.computeIfAbsent(clientId, k -> new ArrayList<>()).add(sd);
+        }
+        Map<Long, List<Certification>> orphansByClient = new LinkedHashMap<>();
+        for (Certification c : areaOrphans) {
+            Long clientId = c.getContract() != null && c.getContract().getClient() != null
+                    ? c.getContract().getClient().getId() : -1L;
+            orphansByClient.computeIfAbsent(clientId, k -> new ArrayList<>()).add(c);
+        }
+
+        Set<Long> allClientIds = new LinkedHashSet<>();
+        allClientIds.addAll(docsByClient.keySet());
+        allClientIds.addAll(orphansByClient.keySet());
+
+        List<SalesReportClientGroupDTO> result = new ArrayList<>();
+
+        for (Long clientId : allClientIds) {
+            List<SalesDocument> docs = docsByClient.getOrDefault(clientId, Collections.emptyList());
+            List<Certification> ocs = orphansByClient.getOrDefault(clientId, Collections.emptyList());
+
+            String businessName = null;
+            String tradeName = null;
+            String cuit = null;
+            IvaCondition ivaCond = null;
+
+            if (!docs.isEmpty() && docs.get(0).getClient() != null) {
+                var cl = docs.get(0).getClient();
+                businessName = cl.getBusinessName();
+                tradeName = cl.getTradeName();
+                cuit = cl.getCuit();
+                ivaCond = cl.getIvaCondition();
+            } else if (!ocs.isEmpty() && ocs.get(0).getContract() != null && ocs.get(0).getContract().getClient() != null) {
+                var cl = ocs.get(0).getContract().getClient();
+                businessName = cl.getBusinessName();
+                tradeName = cl.getTradeName();
+                cuit = cl.getCuit();
+                ivaCond = cl.getIvaCondition();
+            }
+
+            // Build rows
+            List<SalesReportRowDTO> rows = new ArrayList<>();
+            for (SalesDocument sd : docs) {
+                rows.add(toInvoiceRow(sd, certByDoc.get(sd.getId())));
+            }
+            for (Certification c : ocs) {
+                rows.add(toCertificationOnlyRow(c));
+            }
+            // Sort rows by date desc
+            rows.sort((a, b) -> {
+                if (a.date() == null && b.date() == null) return 0;
+                if (a.date() == null) return 1;
+                if (b.date() == null) return -1;
+                return b.date().compareTo(a.date());
+            });
+
+            BigDecimal totalAmount = BigDecimal.ZERO;
+            BigDecimal subNet = BigDecimal.ZERO;
+            BigDecimal subIva = BigDecimal.ZERO;
+            BigDecimal subInvoiced = BigDecimal.ZERO;
+            for (SalesDocument sd : docs) {
+                BigDecimal s = signedSales(sd, sd.getTotal());
+                totalAmount = totalAmount.add(s);
+                subNet = subNet.add(signedSales(sd, sd.getNetTotal()));
+                subIva = subIva.add(signedSales(sd, sd.getIvaTotal()));
+                subInvoiced = subInvoiced.add(s);
+            }
+            BigDecimal subCertOnly = BigDecimal.ZERO;
+            for (Certification c : ocs) {
+                BigDecimal amt = c.getCertifiedAmount() != null ? c.getCertifiedAmount() : BigDecimal.ZERO;
+                totalAmount = totalAmount.add(amt);
+                subCertOnly = subCertOnly.add(amt);
+            }
+
+            Map<SalesDocumentType, BigDecimal> typeSubs = buildSalesTotalsByDocumentType(docs);
+
+            result.add(SalesReportClientGroupDTO.builder()
+                    .clientId(clientId == -1L ? null : clientId)
+                    .clientBusinessName(businessName)
+                    .clientTradeName(tradeName)
+                    .clientCuit(cuit)
+                    .clientIvaCondition(ivaCond)
+                    .totalAmount(totalAmount)
+                    .rowCount(rows.size())
+                    .subtotalsByDocumentType(typeSubs)
+                    .subtotalNet(subNet)
+                    .subtotalIva(subIva)
+                    .subtotalInvoiced(subInvoiced)
+                    .subtotalCertifiedOnly(subCertOnly)
+                    .rows(rows)
+                    .build());
+        }
+
+        result.sort(Comparator.comparing(
+                SalesReportClientGroupDTO::clientBusinessName,
+                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)));
+
+        return result;
+    }
+
+    private SalesReportRowDTO toInvoiceRow(SalesDocument sd, List<Certification> linked) {
+        List<SalesReportCertificationLinkDTO> certLinks = Collections.emptyList();
+        if (linked != null && !linked.isEmpty()) {
+            certLinks = linked.stream()
+                    .map(c -> new SalesReportCertificationLinkDTO(
+                            c.getId(),
+                            c.getCertificationNumber(),
+                            c.getCertifiedAmount(),
+                            c.getStatus(),
+                            c.getContract() != null ? c.getContract().getId() : null,
+                            c.getContract() != null ? c.getContract().getContractNumber() : null,
+                            c.getContract() != null ? c.getContract().getDescription() : null
+                    ))
+                    .toList();
+        }
+        return new SalesReportRowDTO(
+                SalesReportRowKind.INVOICE,
+                sd.getDate(),
+                sd.getTotal(),
+                sd.getPaid(),
+                sd.getId(),
+                sd.getDocumentType(),
+                sd.getBranchCode(),
+                sd.getDocumentNumber(),
+                sd.getNetTotal(),
+                sd.getIvaTotal(),
+                sd.getIvaExemptTotal(),
+                sd.getOtherTaxes(),
+                sd.getPurchaseOrderReference(),
+                sd.getProjectAreaTask() != null ? sd.getProjectAreaTask().getId() : null,
+                sd.getProjectAreaTask() != null ? sd.getProjectAreaTask().getName() : null,
+                certLinks,
+                null, null, null, null, null, null
+        );
+    }
+
+    private SalesReportRowDTO toCertificationOnlyRow(Certification c) {
+        boolean paid = c.getStatus() == CertificationStatus.COBRADO;
+        return new SalesReportRowDTO(
+                SalesReportRowKind.CERTIFICATION_ONLY,
+                c.getCertificationDate(),
+                c.getCertifiedAmount(),
+                paid,
+                null, null, null, null, null, null, null, null, null, null, null,
+                Collections.emptyList(),
+                c.getId(),
+                c.getCertificationNumber(),
+                c.getStatus(),
+                c.getContract() != null ? c.getContract().getId() : null,
+                c.getContract() != null ? c.getContract().getContractNumber() : null,
+                c.getContract() != null ? c.getContract().getDescription() : null
+        );
+    }
+
+    private Map<SalesDocumentType, BigDecimal> buildSalesTotalsByDocumentType(List<SalesDocument> documents) {
+        Map<SalesDocumentType, BigDecimal> subs = new EnumMap<>(SalesDocumentType.class);
+        for (SalesDocument sd : documents) {
+            BigDecimal v = sd.getTotal() != null ? sd.getTotal() : BigDecimal.ZERO;
+            subs.merge(sd.getDocumentType(), v, BigDecimal::add);
+        }
+        return subs;
+    }
+
+    /**
+     * Returns {@code value} negated for credit notes (which reduce sales).
+     */
+    private BigDecimal signedSales(SalesDocument sd, BigDecimal value) {
+        if (value == null) return BigDecimal.ZERO;
+        SalesDocumentType type = sd.getDocumentType();
+        if (type == SalesDocumentType.NOTA_CREDITO_A
+                || type == SalesDocumentType.NOTA_CREDITO_B
+                || type == SalesDocumentType.NOTA_CREDITO_C) {
+            return value.negate();
+        }
+        return value;
+    }
+
+    private void validateSalesFilters(SalesReportFilterDTO filters) {
+        if (filters.startDate() != null && filters.endDate() != null
+                && filters.startDate().isAfter(filters.endDate())) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.date.range.invalid"));
+        }
+        if (filters.minAmount() != null && filters.maxAmount() != null
+                && filters.minAmount().compareTo(filters.maxAmount()) > 0) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.filter.amount.range.invalid"));
+        }
+        if (Boolean.TRUE.equals(filters.onlyLinkedToCertifications())
+                && Boolean.TRUE.equals(filters.includeCertificationsOnly())) {
+            throw new InvalidReportFilterException(
+                    "Los filtros 'sólo vinculadas a certificación' e 'incluir certificaciones sin factura' son mutuamente excluyentes.");
+        }
+    }
+
+    private String buildSalesPeriodDescription(SalesReportFilterDTO filters) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         if (filters.startDate() != null && filters.endDate() != null) {
             if (filters.startDate().getDayOfMonth() == 1

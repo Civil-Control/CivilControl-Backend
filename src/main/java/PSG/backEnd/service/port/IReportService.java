@@ -18,6 +18,8 @@ import PSG.backEnd.model.dto.report.stockPurchase.StockPurchaseReportDTO;
 import PSG.backEnd.model.dto.report.stockPurchase.StockPurchaseReportFilterDTO;
 import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportDTO;
 import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportFilterDTO;
+import PSG.backEnd.model.dto.report.sales.SalesReportDTO;
+import PSG.backEnd.model.dto.report.sales.SalesReportFilterDTO;
 import PSG.backEnd.model.enums.ReportFormat;
 import org.springframework.http.ResponseEntity;
 
@@ -107,5 +109,13 @@ public interface IReportService {
     PolicyPaymentReportDTO generatePolicyPaymentReport(PolicyPaymentReportFilterDTO filters);
 
     ResponseEntity<byte[]> generatePolicyPaymentReportFile(PolicyPaymentReportFilterDTO filters, ReportFormat format);
+
+    /**
+     * Generates a hierarchical sales report (Area -> Client -> Rows) including
+     * SalesDocuments and (optionally) orphan certifications without sales document.
+     */
+    SalesReportDTO generateSalesReport(SalesReportFilterDTO filters);
+
+    ResponseEntity<byte[]> generateSalesReportFile(SalesReportFilterDTO filters, ReportFormat format);
 }
 
