@@ -8,14 +8,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Complete supplier current-account report. Two layers only:
- * Layer 1 = supplier groups, Layer 2 = chronological movements (inside each group).
+ * Complete supplier current-account report. Three layers:
+ * Layer 1 = status groups (PENDIENTE / CANCELADO),
+ * Layer 2 = supplier groups (inside each status),
+ * Layer 3 = chronological movements (inside each supplier group).
  */
 @Builder
 @Schema(description = "Complete supplier current-account report")
 public record SupplierAccountReportDTO(
         SupplierAccountReportFilterDTO filters,
-        List<SupplierAccountReportSupplierGroupDTO> supplierGroups,
+        List<SupplierAccountReportStatusGroupDTO> statusGroups,
         int supplierCount,
         int pendingSupplierCount,
         int settledSupplierCount,

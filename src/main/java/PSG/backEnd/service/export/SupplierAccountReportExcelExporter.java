@@ -3,6 +3,7 @@ package PSG.backEnd.service.export;
 import PSG.backEnd.exception.report.ReportGenerationException;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountMovementDTO;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportDTO;
+import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportStatusGroupDTO;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportSupplierGroupDTO;
 import PSG.backEnd.model.enums.report.SupplierAccountMovementType;
 import PSG.backEnd.model.enums.report.SupplierAccountStatus;
@@ -108,23 +109,59 @@ public class SupplierAccountReportExcelExporter {
         setCellWithStyle(headerRow, 7, "Estado", headerStyle);
         setCellWithStyle(headerRow, 8, "Cant. Mov.", headerStyle);
 
-        for (SupplierAccountReportSupplierGroupDTO group : report.supplierGroups()) {
-            Row row = sheet.createRow(rowNum++);
-            row.createCell(0).setCellValue(group.supplierLegalName());
-            row.createCell(1).setCellValue(group.supplierCuit() != null ? group.supplierCuit() : "-");
+        for (SupplierAccountReportStatusGroupDTO statusGroup : report.statusGroups()) {
+            if (statusGroup.supplierGroups().isEmpty()) continue;
 
-            createCurrencyCell(row, 2, group.previousBalance(), currencyStyle);
-            createCurrencyCell(row, 3, group.totalDebited(), currencyStyle);
-            createCurrencyCell(row, 4, group.totalPaid(), currencyStyle);
-            createCurrencyCell(row, 5, group.totalCreditNotes(), currencyStyle);
-            createCurrencyCell(row, 6, group.finalBalance(), currencyStyle);
+            // Status banner row
+            CellStyle bannerStyle = statusGroup.status() == SupplierAccountStatus.PENDIENTE
+                    ? pendingStatusStyle : settledStatusStyle;
+            int bannerRowIdx = rowNum;
+            Row bannerRow = sheet.createRow(rowNum++);
+            Cell bannerCell = bannerRow.createCell(0);
+            bannerCell.setCellValue(statusGroup.status() == SupplierAccountStatus.PENDIENTE
+                    ? "PROVEEDORES PENDIENTES (" + statusGroup.supplierCount() + ")"
+                    : "PROVEEDORES CANCELADOS (" + statusGroup.supplierCount() + ")");
+            bannerCell.setCellStyle(bannerStyle);
+            for (int i = 1; i < 9; i++) bannerRow.createCell(i).setCellStyle(bannerStyle);
+            sheet.addMergedRegion(new CellRangeAddress(bannerRowIdx, bannerRowIdx, 0, 8));
 
-            Cell statusCell = row.createCell(7);
-            statusCell.setCellValue(group.status() == SupplierAccountStatus.PENDIENTE ? "PENDIENTE" : "CANCELADO");
-            statusCell.setCellStyle(group.status() == SupplierAccountStatus.PENDIENTE
-                    ? pendingStatusStyle : settledStatusStyle);
+            for (SupplierAccountReportSupplierGroupDTO group : statusGroup.supplierGroups()) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(group.supplierLegalName());
+                row.createCell(1).setCellValue(group.supplierCuit() != null ? group.supplierCuit() : "-");
 
-            row.createCell(8).setCellValue(group.movementCount());
+                createCurrencyCell(row, 2, group.previousBalance(), currencyStyle);
+                createCurrencyCell(row, 3, group.totalDebited(), currencyStyle);
+                createCurrencyCell(row, 4, group.totalPaid(), currencyStyle);
+                createCurrencyCell(row, 5, group.totalCreditNotes(), currencyStyle);
+                createCurrencyCell(row, 6, group.finalBalance(), currencyStyle);
+
+                Cell statusCell = row.createCell(7);
+                statusCell.setCellValue(group.status() == SupplierAccountStatus.PENDIENTE ? "PENDIENTE" : "CANCELADO");
+                statusCell.setCellStyle(group.status() == SupplierAccountStatus.PENDIENTE
+                        ? pendingStatusStyle : settledStatusStyle);
+
+                row.createCell(8).setCellValue(group.movementCount());
+            }
+
+            // Status subtotal row
+            Row subRow = sheet.createRow(rowNum++);
+            Cell subLabel = subRow.createCell(0);
+            subLabel.setCellValue("Subtotal " + (statusGroup.status() == SupplierAccountStatus.PENDIENTE
+                    ? "Pendientes" : "Cancelados"));
+            subLabel.setCellStyle(totalLabelStyle);
+            subRow.createCell(1).setCellStyle(totalLabelStyle);
+            createCurrencyCell(subRow, 2, statusGroup.subtotalPreviousBalance(), totalStyle);
+            createCurrencyCell(subRow, 3, statusGroup.subtotalDebited(), totalStyle);
+            createCurrencyCell(subRow, 4, statusGroup.subtotalPaid(), totalStyle);
+            createCurrencyCell(subRow, 5, statusGroup.subtotalCreditNotes(), totalStyle);
+            createCurrencyCell(subRow, 6, statusGroup.subtotalFinalBalance(), totalStyle);
+            Cell subCount = subRow.createCell(7);
+            subCount.setCellValue(statusGroup.supplierCount() + " prov.");
+            subCount.setCellStyle(totalLabelStyle);
+            subRow.createCell(8).setCellStyle(totalLabelStyle);
+
+            rowNum++; // visual gap between status sections
         }
 
         // Grand total row
@@ -172,7 +209,23 @@ public class SupplierAccountReportExcelExporter {
         setCellWithStyle(headerRow, 6, "Saldo Acumulado", headerStyle);
         setCellWithStyle(headerRow, 7, "M. Pago", headerStyle);
 
-        for (SupplierAccountReportSupplierGroupDTO group : report.supplierGroups()) {
+        for (SupplierAccountReportStatusGroupDTO statusGroup : report.statusGroups()) {
+            if (statusGroup.supplierGroups().isEmpty()) continue;
+
+            // Status banner row (full-width)
+            CellStyle statusBannerStyle = statusGroup.status() == SupplierAccountStatus.PENDIENTE
+                    ? pendingStatusStyle : settledStatusStyle;
+            int statusBannerIdx = rowNum;
+            Row statusBannerRow = sheet.createRow(rowNum++);
+            Cell statusBannerCell = statusBannerRow.createCell(0);
+            statusBannerCell.setCellValue(statusGroup.status() == SupplierAccountStatus.PENDIENTE
+                    ? "── PROVEEDORES PENDIENTES (" + statusGroup.supplierCount() + ") ──"
+                    : "── PROVEEDORES CANCELADOS (" + statusGroup.supplierCount() + ") ──");
+            statusBannerCell.setCellStyle(statusBannerStyle);
+            for (int i = 1; i < 8; i++) statusBannerRow.createCell(i).setCellStyle(statusBannerStyle);
+            sheet.addMergedRegion(new CellRangeAddress(statusBannerIdx, statusBannerIdx, 0, 7));
+
+            for (SupplierAccountReportSupplierGroupDTO group : statusGroup.supplierGroups()) {
             // Supplier group banner row
             int groupRowNum = rowNum;
             Row groupRow = sheet.createRow(rowNum++);
@@ -226,6 +279,7 @@ public class SupplierAccountReportExcelExporter {
             statusTag.setCellStyle(statusStyle);
 
             rowNum++;
+            }
         }
 
         for (int i = 0; i < 8; i++) sheet.autoSizeColumn(i);
@@ -245,15 +299,21 @@ public class SupplierAccountReportExcelExporter {
     }
 
     private BigDecimal sumPayments(SupplierAccountReportDTO report) {
-        return report.supplierGroups().stream()
+        return allSupplierGroups(report).stream()
                 .map(g -> g.totalPaid() != null ? g.totalPaid() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal sumCreditNotes(SupplierAccountReportDTO report) {
-        return report.supplierGroups().stream()
+        return allSupplierGroups(report).stream()
                 .map(g -> g.totalCreditNotes() != null ? g.totalCreditNotes() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private java.util.List<SupplierAccountReportSupplierGroupDTO> allSupplierGroups(SupplierAccountReportDTO report) {
+        return report.statusGroups().stream()
+                .flatMap(sg -> sg.supplierGroups().stream())
+                .toList();
     }
 
     private BigDecimal nullSafe(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }

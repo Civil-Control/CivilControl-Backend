@@ -3,6 +3,7 @@ package PSG.backEnd.service.export;
 import PSG.backEnd.exception.report.ReportGenerationException;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountMovementDTO;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportDTO;
+import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportStatusGroupDTO;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportSupplierGroupDTO;
 import PSG.backEnd.model.enums.report.SupplierAccountMovementType;
 import PSG.backEnd.model.enums.report.SupplierAccountStatus;
@@ -101,15 +102,46 @@ public class SupplierAccountReportPdfExporter {
         table.addHeaderCell(headerCell("Saldo Final"));
         table.addHeaderCell(headerCell("Estado"));
 
-        for (SupplierAccountReportSupplierGroupDTO group : report.supplierGroups()) {
-            table.addCell(cell(group.supplierLegalName()));
-            table.addCell(cellCenter(group.supplierCuit() != null ? group.supplierCuit() : "-"));
-            table.addCell(cellAmount(group.previousBalance()));
-            table.addCell(cellAmount(group.totalDebited()));
-            table.addCell(cellAmount(group.totalPaid()));
-            table.addCell(cellAmount(group.totalCreditNotes()));
-            table.addCell(cellAmount(group.finalBalance()));
-            table.addCell(statusCell(group.status()));
+        for (SupplierAccountReportStatusGroupDTO statusGroup : report.statusGroups()) {
+            if (statusGroup.supplierGroups().isEmpty()) continue;
+
+            // Status banner row spanning all 8 columns
+            DeviceRgb statusBg = statusGroup.status() == SupplierAccountStatus.PENDIENTE
+                    ? PENDING_COLOR : SETTLED_COLOR;
+            String statusLabel = statusGroup.status() == SupplierAccountStatus.PENDIENTE
+                    ? "PROVEEDORES PENDIENTES (" + statusGroup.supplierCount() + ")"
+                    : "PROVEEDORES CANCELADOS (" + statusGroup.supplierCount() + ")";
+            Cell statusBanner = new Cell(1, 8).add(new Paragraph(statusLabel)
+                    .setBold().setFontSize(10).setFontColor(ColorConstants.WHITE))
+                    .setBackgroundColor(statusBg).setPadding(5);
+            table.addCell(statusBanner);
+
+            for (SupplierAccountReportSupplierGroupDTO group : statusGroup.supplierGroups()) {
+                table.addCell(cell(group.supplierLegalName()));
+                table.addCell(cellCenter(group.supplierCuit() != null ? group.supplierCuit() : "-"));
+                table.addCell(cellAmount(group.previousBalance()));
+                table.addCell(cellAmount(group.totalDebited()));
+                table.addCell(cellAmount(group.totalPaid()));
+                table.addCell(cellAmount(group.totalCreditNotes()));
+                table.addCell(cellAmount(group.finalBalance()));
+                table.addCell(statusCell(group.status()));
+            }
+
+            // Status subtotal row
+            Cell subLabel = new Cell(1, 2).add(new Paragraph("Subtotal "
+                    + (statusGroup.status() == SupplierAccountStatus.PENDIENTE ? "Pendientes" : "Cancelados"))
+                    .setBold().setFontSize(9))
+                    .setBackgroundColor(SUBTOTAL_COLOR).setPadding(4);
+            table.addCell(subLabel);
+            table.addCell(subtotalAmount(statusGroup.subtotalPreviousBalance()));
+            table.addCell(subtotalAmount(statusGroup.subtotalDebited()));
+            table.addCell(subtotalAmount(statusGroup.subtotalPaid()));
+            table.addCell(subtotalAmount(statusGroup.subtotalCreditNotes()));
+            table.addCell(subtotalAmount(statusGroup.subtotalFinalBalance()));
+            Cell subCount = new Cell().add(new Paragraph(statusGroup.supplierCount() + " prov.")
+                    .setBold().setFontSize(9))
+                    .setBackgroundColor(SUBTOTAL_COLOR).setTextAlignment(TextAlignment.CENTER).setPadding(4);
+            table.addCell(subCount);
         }
 
         // TOTAL row
@@ -141,11 +173,26 @@ public class SupplierAccountReportPdfExporter {
 
     private void addMovementDetail(Document document, SupplierAccountReportDTO report) {
         boolean first = true;
-        for (SupplierAccountReportSupplierGroupDTO group : report.supplierGroups()) {
-            if (!first) {
-                document.add(new Paragraph("\n"));
-            }
+        for (SupplierAccountReportStatusGroupDTO statusGroup : report.statusGroups()) {
+            if (statusGroup.supplierGroups().isEmpty()) continue;
+
+            // Status section banner
+            DeviceRgb statusBg0 = statusGroup.status() == SupplierAccountStatus.PENDIENTE
+                    ? PENDING_COLOR : SETTLED_COLOR;
+            String statusBannerLabel = statusGroup.status() == SupplierAccountStatus.PENDIENTE
+                    ? "── PROVEEDORES PENDIENTES (" + statusGroup.supplierCount() + ") ──"
+                    : "── PROVEEDORES CANCELADOS (" + statusGroup.supplierCount() + ") ──";
+            if (!first) document.add(new Paragraph("\n"));
+            Table statusBanner = new Table(UnitValue.createPercentArray(new float[]{1f}));
+            statusBanner.setWidth(UnitValue.createPercentValue(100));
+            statusBanner.addCell(new Cell().add(new Paragraph(statusBannerLabel)
+                    .setBold().setFontSize(12).setFontColor(ColorConstants.WHITE))
+                    .setBackgroundColor(statusBg0).setPadding(6).setTextAlignment(TextAlignment.CENTER));
+            document.add(statusBanner);
             first = false;
+
+            for (SupplierAccountReportSupplierGroupDTO group : statusGroup.supplierGroups()) {
+                document.add(new Paragraph("\n"));
 
             // Supplier banner
             Table banner = new Table(UnitValue.createPercentArray(new float[]{1f}));
@@ -210,6 +257,7 @@ public class SupplierAccountReportPdfExporter {
             movements.addCell(statusTag);
 
             document.add(movements);
+            }
         }
     }
 
@@ -227,13 +275,15 @@ public class SupplierAccountReportPdfExporter {
     }
 
     private BigDecimal sumPayments(SupplierAccountReportDTO report) {
-        return report.supplierGroups().stream()
+        return report.statusGroups().stream()
+                .flatMap(sg -> sg.supplierGroups().stream())
                 .map(g -> g.totalPaid() != null ? g.totalPaid() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal sumCreditNotes(SupplierAccountReportDTO report) {
-        return report.supplierGroups().stream()
+        return report.statusGroups().stream()
+                .flatMap(sg -> sg.supplierGroups().stream())
                 .map(g -> g.totalCreditNotes() != null ? g.totalCreditNotes() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }

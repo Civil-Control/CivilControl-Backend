@@ -3934,9 +3934,15 @@ public class ReportService implements IReportService {
             groups.add(group);
         }
 
-        // Sort suppliers alphabetically by legal name.
-        groups.sort(Comparator.comparing(g -> g.supplierLegalName(),
-                String.CASE_INSENSITIVE_ORDER));
+        // Order: PENDIENTE first, then CANCELADO. Inside each status, descending final balance,
+        // tie-break alphabetically by legal name.
+        Comparator<SupplierAccountReportSupplierGroupDTO> byBalanceDesc =
+                Comparator.comparing(SupplierAccountReportSupplierGroupDTO::finalBalance,
+                        Comparator.nullsLast(Comparator.reverseOrder()));
+        Comparator<SupplierAccountReportSupplierGroupDTO> byName =
+                Comparator.comparing(SupplierAccountReportSupplierGroupDTO::supplierLegalName,
+                        String.CASE_INSENSITIVE_ORDER);
+        Comparator<SupplierAccountReportSupplierGroupDTO> intraStatus = byBalanceDesc.thenComparing(byName);
 
         // Aggregate report-level totals.
         BigDecimal totalPrev = sumGroups(groups, SupplierAccountReportSupplierGroupDTO::previousBalance);
@@ -3950,9 +3956,30 @@ public class ReportService implements IReportService {
                 .filter(g -> g.status() == SupplierAccountStatus.PENDIENTE).count();
         int settledCount = groups.size() - pendingCount;
 
+        // Build status groups (always emit both PENDIENTE and CANCELADO sections, even when empty,
+        // so the UI can render consistent collapsible sections).
+        List<SupplierAccountReportStatusGroupDTO> statusGroups = new ArrayList<>();
+        for (SupplierAccountStatus status : new SupplierAccountStatus[]{
+                SupplierAccountStatus.PENDIENTE, SupplierAccountStatus.CANCELADO}) {
+            List<SupplierAccountReportSupplierGroupDTO> bucket = groups.stream()
+                    .filter(g -> g.status() == status)
+                    .sorted(intraStatus)
+                    .toList();
+            statusGroups.add(SupplierAccountReportStatusGroupDTO.builder()
+                    .status(status)
+                    .supplierCount(bucket.size())
+                    .subtotalPreviousBalance(sumGroups(bucket, SupplierAccountReportSupplierGroupDTO::previousBalance))
+                    .subtotalDebited(sumGroups(bucket, SupplierAccountReportSupplierGroupDTO::totalDebited))
+                    .subtotalPaid(sumGroups(bucket, SupplierAccountReportSupplierGroupDTO::totalPaid))
+                    .subtotalCreditNotes(sumGroups(bucket, SupplierAccountReportSupplierGroupDTO::totalCreditNotes))
+                    .subtotalFinalBalance(sumGroups(bucket, SupplierAccountReportSupplierGroupDTO::finalBalance))
+                    .supplierGroups(bucket)
+                    .build());
+        }
+
         return SupplierAccountReportDTO.builder()
                 .filters(filters)
-                .supplierGroups(groups)
+                .statusGroups(statusGroups)
                 .supplierCount(groups.size())
                 .pendingSupplierCount(pendingCount)
                 .settledSupplierCount(settledCount)
@@ -4093,9 +4120,12 @@ public class ReportService implements IReportService {
     }
 
     private SupplierAccountReportDTO emptySupplierAccountReport(SupplierAccountReportFilterDTO filters) {
+        List<SupplierAccountReportStatusGroupDTO> emptyStatusGroups = List.of(
+                emptyStatusGroup(SupplierAccountStatus.PENDIENTE),
+                emptyStatusGroup(SupplierAccountStatus.CANCELADO));
         return SupplierAccountReportDTO.builder()
                 .filters(filters)
-                .supplierGroups(List.of())
+                .statusGroups(emptyStatusGroups)
                 .supplierCount(0).pendingSupplierCount(0).settledSupplierCount(0)
                 .totalPreviousBalance(BigDecimal.ZERO)
                 .totalDebited(BigDecimal.ZERO)
@@ -4104,6 +4134,19 @@ public class ReportService implements IReportService {
                 .generatedAt(LocalDateTime.now())
                 .reportName("Reporte Cta. Cte. Proveedores")
                 .periodDescription(buildSupplierAccountPeriodDescription(filters))
+                .build();
+    }
+
+    private SupplierAccountReportStatusGroupDTO emptyStatusGroup(SupplierAccountStatus status) {
+        return SupplierAccountReportStatusGroupDTO.builder()
+                .status(status)
+                .supplierCount(0)
+                .subtotalPreviousBalance(BigDecimal.ZERO)
+                .subtotalDebited(BigDecimal.ZERO)
+                .subtotalPaid(BigDecimal.ZERO)
+                .subtotalCreditNotes(BigDecimal.ZERO)
+                .subtotalFinalBalance(BigDecimal.ZERO)
+                .supplierGroups(List.of())
                 .build();
     }
 
