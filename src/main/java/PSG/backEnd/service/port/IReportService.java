@@ -20,6 +20,8 @@ import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportDTO;
 import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportFilterDTO;
 import PSG.backEnd.model.dto.report.sales.SalesReportDTO;
 import PSG.backEnd.model.dto.report.sales.SalesReportFilterDTO;
+import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportDTO;
+import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportFilterDTO;
 import PSG.backEnd.model.enums.ReportFormat;
 import org.springframework.http.ResponseEntity;
 
@@ -117,5 +119,13 @@ public interface IReportService {
     SalesReportDTO generateSalesReport(SalesReportFilterDTO filters);
 
     ResponseEntity<byte[]> generateSalesReportFile(SalesReportFilterDTO filters, ReportFormat format);
+
+    /**
+     * Generates the supplier current-account report (Layer 1: supplier groups, Layer 2: chronological
+     * movements per supplier). Computes previous balance, period totals and final balance per supplier.
+     */
+    SupplierAccountReportDTO generateSupplierAccountReport(SupplierAccountReportFilterDTO filters);
+
+    ResponseEntity<byte[]> generateSupplierAccountReportFile(SupplierAccountReportFilterDTO filters, ReportFormat format);
 }
 

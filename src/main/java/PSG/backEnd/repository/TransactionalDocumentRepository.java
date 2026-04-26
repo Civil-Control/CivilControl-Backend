@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -133,4 +134,54 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
     BigDecimal sumCreditedBySupplierId(@Param("supplierId") Long supplierId,
                                        @Param("fromDate") LocalDate fromDate,
                                        @Param("toDate") LocalDate toDate);
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Supplier current-account report queries
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Returns all non-deleted documents for the given suppliers within the date range,
+     * fetching the supplier and projectArea eagerly for use in report aggregation.
+     * Used by the supplier current-account report to build the period movements timeline.
+     */
+    @Query("SELECT td FROM TransactionalDocument td " +
+           "JOIN FETCH td.supplier " +
+           "LEFT JOIN FETCH td.projectArea " +
+           "WHERE td.supplier.id IN :supplierIds " +
+           "AND td.deleted = false " +
+           "AND td.date >= :fromDate AND td.date <= :toDate")
+    List<TransactionalDocument> findAllBySupplierIdInAndDateBetween(
+            @Param("supplierIds") Collection<Long> supplierIds,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate);
+
+    /**
+     * Sums the total of all positive ledger entries (BILL_*, DEBIT_NOTE_*) for the given
+     * supplier strictly before the given date. Used to compute the previous balance
+     * (saldo anterior) as part of the supplier current-account report.
+     */
+    @Query("SELECT COALESCE(SUM(td.total), 0) FROM TransactionalDocument td " +
+           "WHERE td.supplier.id = :supplierId AND td.deleted = false " +
+           "AND td.date < :beforeDate " +
+           "AND td.documentType IN (PSG.backEnd.model.enums.documents.DocumentType.BILL_A, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.BILL_B, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.BILL_C, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_A, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_B, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_C)")
+    BigDecimal sumDebitBySupplierIdBeforeDate(@Param("supplierId") Long supplierId,
+                                              @Param("beforeDate") LocalDate beforeDate);
+
+    /**
+     * Sums the total of all credit notes (CREDIT_NOTE_*) for the given supplier strictly
+     * before the given date. Used to compute the previous balance (saldo anterior).
+     */
+    @Query("SELECT COALESCE(SUM(td.total), 0) FROM TransactionalDocument td " +
+           "WHERE td.supplier.id = :supplierId AND td.deleted = false " +
+           "AND td.date < :beforeDate " +
+           "AND td.documentType IN (PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_A, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_B, " +
+           "                        PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_C)")
+    BigDecimal sumCreditBySupplierIdBeforeDate(@Param("supplierId") Long supplierId,
+                                               @Param("beforeDate") LocalDate beforeDate);
 }

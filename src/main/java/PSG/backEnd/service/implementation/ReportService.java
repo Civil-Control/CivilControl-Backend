@@ -14,6 +14,14 @@ import PSG.backEnd.model.dto.report.repair.*;
 import PSG.backEnd.model.dto.report.stockPurchase.*;
 import PSG.backEnd.model.dto.report.policyPayment.*;
 import PSG.backEnd.model.dto.report.sales.*;
+import PSG.backEnd.model.dto.report.supplierAccount.*;
+import PSG.backEnd.model.enums.report.SupplierAccountMovementType;
+import PSG.backEnd.model.enums.report.SupplierAccountStatus;
+import PSG.backEnd.model.entity.payment.CashPayment;
+import PSG.backEnd.model.entity.payment.CheckPayment;
+import PSG.backEnd.model.entity.payment.TransferPayment;
+import PSG.backEnd.model.entity.Supplier;
+import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.entity.contracts.Certification;
 import PSG.backEnd.model.entity.sales.SalesDocument;
 import PSG.backEnd.model.enums.IvaCondition;
@@ -58,6 +66,8 @@ import PSG.backEnd.service.export.PolicyPaymentReportExcelExporter;
 import PSG.backEnd.service.export.PolicyPaymentReportPdfExporter;
 import PSG.backEnd.service.export.SalesReportExcelExporter;
 import PSG.backEnd.service.export.SalesReportPdfExporter;
+import PSG.backEnd.service.export.SupplierAccountReportExcelExporter;
+import PSG.backEnd.service.export.SupplierAccountReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -123,6 +133,10 @@ public class ReportService implements IReportService {
     private final SalesReportExcelExporter salesExcelExporter;
     private final SalesReportPdfExporter salesPdfExporter;
 
+    // Supplier current-account report exporters
+    private final SupplierAccountReportExcelExporter supplierAccountExcelExporter;
+    private final SupplierAccountReportPdfExporter supplierAccountPdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -136,6 +150,7 @@ public class ReportService implements IReportService {
     private final PaymentRepository paymentRepository;
     private final SalesDocumentRepository salesDocumentRepository;
     private final CertificationRepository certificationRepository;
+    private final SupplierRepository supplierRepository;
     private final MessageSourceHelper messageSourceHelper;
 
     /**
@@ -160,6 +175,8 @@ public class ReportService implements IReportService {
             PolicyPaymentReportPdfExporter policyPaymentPdfExporter,
             SalesReportExcelExporter salesExcelExporter,
             SalesReportPdfExporter salesPdfExporter,
+            SupplierAccountReportExcelExporter supplierAccountExcelExporter,
+            SupplierAccountReportPdfExporter supplierAccountPdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -172,6 +189,7 @@ public class ReportService implements IReportService {
             PaymentRepository paymentRepository,
             SalesDocumentRepository salesDocumentRepository,
             CertificationRepository certificationRepository,
+            SupplierRepository supplierRepository,
             MessageSourceHelper messageSourceHelper) {
 
         this.exporters = exporterList.stream()
@@ -196,6 +214,8 @@ public class ReportService implements IReportService {
         this.policyPaymentPdfExporter = policyPaymentPdfExporter;
         this.salesExcelExporter = salesExcelExporter;
         this.salesPdfExporter = salesPdfExporter;
+        this.supplierAccountExcelExporter = supplierAccountExcelExporter;
+        this.supplierAccountPdfExporter = supplierAccountPdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -208,6 +228,7 @@ public class ReportService implements IReportService {
         this.paymentRepository = paymentRepository;
         this.salesDocumentRepository = salesDocumentRepository;
         this.certificationRepository = certificationRepository;
+        this.supplierRepository = supplierRepository;
         this.messageSourceHelper = messageSourceHelper;
 
         log.info("ReportService initialized with {} exporters: {}",
@@ -3824,5 +3845,384 @@ public class ReportService implements IReportService {
             return "Hasta: " + filters.endDate().format(fmt);
         }
         return "Sin filtro de período";
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SUPPLIER CURRENT-ACCOUNT REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional(readOnly = true)
+    public SupplierAccountReportDTO generateSupplierAccountReport(SupplierAccountReportFilterDTO filters) {
+        log.info("Generating supplier-account report with filters: {}", filters);
+
+        validateSupplierAccountFilters(filters);
+
+        // Resolve target suppliers (explicit list or all active suppliers).
+        List<Supplier> targetSuppliers;
+        if (filters.supplierIds() != null && !filters.supplierIds().isEmpty()) {
+            targetSuppliers = supplierRepository.findAllById(filters.supplierIds()).stream()
+                    .filter(s -> !s.isDeleted())
+                    .toList();
+        } else {
+            targetSuppliers = supplierRepository.findByDeletedFalse();
+        }
+
+        if (targetSuppliers.isEmpty()) {
+            return emptySupplierAccountReport(filters);
+        }
+
+        List<Long> supplierIds = targetSuppliers.stream().map(Supplier::getId).toList();
+
+        // Fetch period documents and payments in bulk.
+        List<TransactionalDocument> periodDocs =
+                transactionalDocumentRepository.findAllBySupplierIdInAndDateBetween(
+                        supplierIds, filters.startDate(), filters.endDate());
+
+        // Optional document-type filter applies to the timeline only (not to opening balance).
+        if (filters.documentType() != null) {
+            periodDocs = periodDocs.stream()
+                    .filter(td -> td.getDocumentType() == filters.documentType())
+                    .toList();
+        }
+        // Project-area filter restricts which documents drive movements.
+        if (filters.projectAreaIds() != null && !filters.projectAreaIds().isEmpty()) {
+            Set<Long> areaIds = new HashSet<>(filters.projectAreaIds());
+            periodDocs = periodDocs.stream()
+                    .filter(td -> td.getProjectArea() != null && areaIds.contains(td.getProjectArea().getId()))
+                    .toList();
+        }
+
+        List<PaymentDetails> periodPayments =
+                paymentRepository.findAllBySupplierIdInAndPaymentDateBetween(
+                        supplierIds, filters.startDate(), filters.endDate());
+
+        if (filters.paymentMethod() != null) {
+            periodPayments = periodPayments.stream()
+                    .filter(p -> resolvePaymentMethod(p) == filters.paymentMethod())
+                    .toList();
+        }
+
+        // Group documents/payments by supplier for fast lookup.
+        Map<Long, List<TransactionalDocument>> docsBySupplier = periodDocs.stream()
+                .collect(Collectors.groupingBy(td -> td.getSupplier().getId()));
+        Map<Long, List<PaymentDetails>> paymentsBySupplier = periodPayments.stream()
+                .collect(Collectors.groupingBy(p -> p.getSupplier().getId()));
+
+        // Build supplier groups.
+        List<SupplierAccountReportSupplierGroupDTO> groups = new ArrayList<>();
+        for (Supplier supplier : targetSuppliers) {
+            List<TransactionalDocument> sDocs = docsBySupplier.getOrDefault(supplier.getId(), List.of());
+            List<PaymentDetails> sPayments = paymentsBySupplier.getOrDefault(supplier.getId(), List.of());
+
+            BigDecimal previousBalance = computePreviousBalance(supplier.getId(), filters.startDate());
+
+            // Skip suppliers with zero previous balance and no movements when requested.
+            if (Boolean.TRUE.equals(filters.onlyWithMovementsInPeriod())
+                    && sDocs.isEmpty() && sPayments.isEmpty()) {
+                continue;
+            }
+
+            SupplierAccountReportSupplierGroupDTO group =
+                    buildSupplierAccountGroup(supplier, previousBalance, sDocs, sPayments, filters);
+
+            // Apply final-balance range filter.
+            if (!matchesBalanceRange(group.finalBalance(), filters)) continue;
+            // Apply status filter.
+            if (filters.statusFilter() != null && group.status() != filters.statusFilter()) continue;
+
+            groups.add(group);
+        }
+
+        // Sort suppliers alphabetically by legal name.
+        groups.sort(Comparator.comparing(g -> g.supplierLegalName(),
+                String.CASE_INSENSITIVE_ORDER));
+
+        // Aggregate report-level totals.
+        BigDecimal totalPrev = sumGroups(groups, SupplierAccountReportSupplierGroupDTO::previousBalance);
+        BigDecimal totalDebit = sumGroups(groups, SupplierAccountReportSupplierGroupDTO::totalDebited);
+        BigDecimal totalPaid = sumGroups(groups, SupplierAccountReportSupplierGroupDTO::totalPaid);
+        BigDecimal totalCN = sumGroups(groups, SupplierAccountReportSupplierGroupDTO::totalCreditNotes);
+        BigDecimal totalCredit = totalPaid.add(totalCN);
+        BigDecimal totalPending = sumGroups(groups, SupplierAccountReportSupplierGroupDTO::finalBalance);
+
+        int pendingCount = (int) groups.stream()
+                .filter(g -> g.status() == SupplierAccountStatus.PENDIENTE).count();
+        int settledCount = groups.size() - pendingCount;
+
+        return SupplierAccountReportDTO.builder()
+                .filters(filters)
+                .supplierGroups(groups)
+                .supplierCount(groups.size())
+                .pendingSupplierCount(pendingCount)
+                .settledSupplierCount(settledCount)
+                .totalPreviousBalance(totalPrev)
+                .totalDebited(totalDebit)
+                .totalCredited(totalCredit)
+                .totalPendingBalance(totalPending)
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte Cta. Cte. Proveedores")
+                .periodDescription(buildSupplierAccountPeriodDescription(filters))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generateSupplierAccountReportFile(
+            SupplierAccountReportFilterDTO filters, ReportFormat format) {
+        log.info("Generating supplier-account report file: format={}", format);
+
+        SupplierAccountReportDTO report = generateSupplierAccountReport(filters);
+
+        byte[] content;
+        switch (format) {
+            case EXCEL -> content = supplierAccountExcelExporter.export(report);
+            case PDF -> content = supplierAccountPdfExporter.export(report);
+            default -> throw new InvalidReportFormatException(format.name());
+        }
+
+        String filename = "reporte_cta_cte_proveedores_" +
+                LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
+                .body(content);
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+
+    /**
+     * Computes the previous balance (saldo anterior) for a supplier strictly before
+     * the given date as: debit (invoices + debit notes) − credit notes − payments.
+     */
+    private BigDecimal computePreviousBalance(Long supplierId, LocalDate beforeDate) {
+        BigDecimal debit = nullSafe(transactionalDocumentRepository
+                .sumDebitBySupplierIdBeforeDate(supplierId, beforeDate));
+        BigDecimal creditNotes = nullSafe(transactionalDocumentRepository
+                .sumCreditBySupplierIdBeforeDate(supplierId, beforeDate));
+        BigDecimal payments = nullSafe(paymentRepository
+                .sumAmountBySupplierIdBeforeDate(supplierId, beforeDate));
+        return debit.subtract(creditNotes).subtract(payments);
+    }
+
+    /**
+     * Builds a per-supplier group with chronological movements and running balance.
+     * Movements are ordered by date (asc), then by source type (documents before payments)
+     * for deterministic results when same-day events occur.
+     */
+    private SupplierAccountReportSupplierGroupDTO buildSupplierAccountGroup(
+            Supplier supplier,
+            BigDecimal previousBalance,
+            List<TransactionalDocument> documents,
+            List<PaymentDetails> payments,
+            SupplierAccountReportFilterDTO filters) {
+
+        List<MovementCandidate> candidates = new ArrayList<>();
+        for (TransactionalDocument td : documents) {
+            candidates.add(MovementCandidate.fromDocument(td));
+        }
+        for (PaymentDetails pd : payments) {
+            candidates.add(MovementCandidate.fromPayment(pd, resolvePaymentMethod(pd)));
+        }
+        candidates.sort(Comparator
+                .comparing(MovementCandidate::date)
+                .thenComparing(MovementCandidate::orderHint));
+
+        List<SupplierAccountMovementDTO> movements = new ArrayList<>(candidates.size());
+        BigDecimal running = previousBalance;
+        BigDecimal totalDebit = BigDecimal.ZERO;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        BigDecimal totalCreditNotes = BigDecimal.ZERO;
+
+        for (MovementCandidate c : candidates) {
+            BigDecimal debit = c.debit();
+            BigDecimal credit = c.credit();
+            running = running.add(debit).subtract(credit);
+
+            totalDebit = totalDebit.add(debit);
+            if (c.type() == SupplierAccountMovementType.PAYMENT) {
+                totalPaid = totalPaid.add(credit);
+            } else if (c.type() == SupplierAccountMovementType.CREDIT_NOTE) {
+                totalCreditNotes = totalCreditNotes.add(credit);
+            }
+
+            movements.add(new SupplierAccountMovementDTO(
+                    c.date(), c.type(), c.reference(), c.description(),
+                    debit, credit, running,
+                    c.paymentMethod(), c.sourceId()
+            ));
+        }
+
+        BigDecimal finalBalance = running;
+        SupplierAccountStatus status = finalBalance.compareTo(BigDecimal.ZERO) <= 0
+                ? SupplierAccountStatus.CANCELADO
+                : SupplierAccountStatus.PENDIENTE;
+
+        return SupplierAccountReportSupplierGroupDTO.builder()
+                .supplierId(supplier.getId())
+                .supplierLegalName(supplier.getLegalName())
+                .supplierTradeName(supplier.getTradeName())
+                .supplierCuit(supplier.getCuit())
+                .previousBalance(previousBalance)
+                .totalDebited(totalDebit)
+                .totalPaid(totalPaid)
+                .totalCreditNotes(totalCreditNotes)
+                .finalBalance(finalBalance)
+                .status(status)
+                .movementCount(movements.size())
+                .movements(movements)
+                .build();
+    }
+
+    private boolean matchesBalanceRange(BigDecimal balance, SupplierAccountReportFilterDTO f) {
+        if (f.minFinalBalance() != null && balance.compareTo(f.minFinalBalance()) < 0) return false;
+        if (f.maxFinalBalance() != null && balance.compareTo(f.maxFinalBalance()) > 0) return false;
+        return true;
+    }
+
+    private PaymentMethod resolvePaymentMethod(PaymentDetails pd) {
+        CashPayment cash = pd.getCashPayment();
+        if (cash != null && !Boolean.TRUE.equals(cash.getDeleted())) return PaymentMethod.CASH;
+        TransferPayment t = pd.getTransferPayment();
+        if (t != null && !Boolean.TRUE.equals(t.getDeleted())) return PaymentMethod.TRANSFER;
+        CheckPayment c = pd.getCheckPayment();
+        if (c != null && !Boolean.TRUE.equals(c.getDeleted())) return PaymentMethod.CHECK;
+        return null;
+    }
+
+    private SupplierAccountReportDTO emptySupplierAccountReport(SupplierAccountReportFilterDTO filters) {
+        return SupplierAccountReportDTO.builder()
+                .filters(filters)
+                .supplierGroups(List.of())
+                .supplierCount(0).pendingSupplierCount(0).settledSupplierCount(0)
+                .totalPreviousBalance(BigDecimal.ZERO)
+                .totalDebited(BigDecimal.ZERO)
+                .totalCredited(BigDecimal.ZERO)
+                .totalPendingBalance(BigDecimal.ZERO)
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte Cta. Cte. Proveedores")
+                .periodDescription(buildSupplierAccountPeriodDescription(filters))
+                .build();
+    }
+
+    private void validateSupplierAccountFilters(SupplierAccountReportFilterDTO filters) {
+        if (filters == null) {
+            throw new InvalidReportFilterException(messageSourceHelper.getMessage("report.filters.null"));
+        }
+        if (filters.startDate() == null || filters.endDate() == null) {
+            throw new InvalidReportFilterException(
+                    "Las fechas de inicio y fin son obligatorias para el reporte de cuenta corriente.");
+        }
+        if (filters.startDate().isAfter(filters.endDate())) {
+            throw new InvalidReportFilterException(
+                    "La fecha de inicio no puede ser posterior a la fecha de fin");
+        }
+        if (filters.minFinalBalance() != null && filters.maxFinalBalance() != null
+                && filters.minFinalBalance().compareTo(filters.maxFinalBalance()) > 0) {
+            throw new InvalidReportFilterException(
+                    "El saldo mínimo no puede ser mayor al saldo máximo");
+        }
+    }
+
+    private String buildSupplierAccountPeriodDescription(SupplierAccountReportFilterDTO filters) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (filters.startDate() != null && filters.endDate() != null) {
+            if (filters.startDate().getDayOfMonth() == 1
+                    && filters.endDate().equals(filters.startDate().withDayOfMonth(
+                            filters.startDate().lengthOfMonth()))
+                    && filters.startDate().getMonth() == filters.endDate().getMonth()
+                    && filters.startDate().getYear() == filters.endDate().getYear()) {
+                String monthName = filters.startDate().getMonth()
+                        .getDisplayName(java.time.format.TextStyle.FULL, new java.util.Locale("es", "AR"));
+                monthName = monthName.substring(0, 1).toUpperCase() + monthName.substring(1);
+                return monthName + " " + filters.startDate().getYear();
+            }
+            return "Período: " + filters.startDate().format(fmt) + " - " + filters.endDate().format(fmt);
+        }
+        return "Sin filtro de período";
+    }
+
+    private BigDecimal sumGroups(List<SupplierAccountReportSupplierGroupDTO> groups,
+                                 java.util.function.Function<SupplierAccountReportSupplierGroupDTO, BigDecimal> mapper) {
+        return groups.stream().map(mapper).map(this::nullSafe)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal nullSafe(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
+    }
+
+    /**
+     * Internal candidate entry used while building the chronological supplier-account timeline.
+     * {@code orderHint} ensures deterministic ordering when several events share the same date
+     * (debit notes / invoices come first, then credit notes, then payments).
+     */
+    private record MovementCandidate(
+            LocalDate date,
+            int orderHint,
+            SupplierAccountMovementType type,
+            String reference,
+            String description,
+            BigDecimal debit,
+            BigDecimal credit,
+            String paymentMethod,
+            Long sourceId
+    ) {
+        static MovementCandidate fromDocument(TransactionalDocument td) {
+            DocumentType dt = td.getDocumentType();
+            BigDecimal total = td.getTotal() == null ? BigDecimal.ZERO : td.getTotal();
+            String ref = (td.getBranchCode() != null ? td.getBranchCode() : "")
+                    + (td.getDocumentNumber() != null ? "-" + td.getDocumentNumber() : "");
+            String desc = dt.getDisplayName()
+                    + (td.getProjectArea() != null ? " — " + td.getProjectArea().getName() : "");
+
+            boolean credit = dt == DocumentType.CREDIT_NOTE_A
+                    || dt == DocumentType.CREDIT_NOTE_B
+                    || dt == DocumentType.CREDIT_NOTE_C;
+            boolean debitNote = dt == DocumentType.DEBIT_NOTE_A
+                    || dt == DocumentType.DEBIT_NOTE_B
+                    || dt == DocumentType.DEBIT_NOTE_C;
+
+            SupplierAccountMovementType type;
+            BigDecimal debitAmt = BigDecimal.ZERO;
+            BigDecimal creditAmt = BigDecimal.ZERO;
+            int order;
+            if (credit) {
+                type = SupplierAccountMovementType.CREDIT_NOTE;
+                creditAmt = total;
+                order = 1;
+            } else if (debitNote) {
+                type = SupplierAccountMovementType.DEBIT_NOTE;
+                debitAmt = total;
+                order = 0;
+            } else {
+                type = SupplierAccountMovementType.INVOICE;
+                debitAmt = total;
+                order = 0;
+            }
+            return new MovementCandidate(
+                    td.getDate(), order, type, ref, desc, debitAmt, creditAmt, null, td.getId()
+            );
+        }
+
+        static MovementCandidate fromPayment(PaymentDetails pd, PaymentMethod method) {
+            String ref = "Pago #" + pd.getId();
+            String desc = pd.getComment() != null && !pd.getComment().isBlank()
+                    ? pd.getComment() : "Pago a proveedor";
+            String methodLabel = method != null ? method.getDisplayName() : "-";
+            return new MovementCandidate(
+                    pd.getPaymentDate(),
+                    2,
+                    SupplierAccountMovementType.PAYMENT,
+                    ref,
+                    desc,
+                    BigDecimal.ZERO,
+                    pd.getAmount() == null ? BigDecimal.ZERO : pd.getAmount(),
+                    methodLabel,
+                    pd.getId()
+            );
+        }
     }
 }

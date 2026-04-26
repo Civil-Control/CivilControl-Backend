@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -117,5 +119,43 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
     BigDecimal sumAmountBySupplierId(@Param("supplierId") Long supplierId,
                                      @Param("fromDate") LocalDate fromDate,
                                      @Param("toDate") LocalDate toDate);
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Supplier current-account report queries
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Sums the amount of all (non-deleted) payments registered for the given supplier
+     * strictly before the given date. Used to compute the previous balance
+     * (saldo anterior) of the supplier current-account report.
+     */
+    @Query("SELECT COALESCE(SUM(pd.amount), 0) FROM PaymentDetails pd " +
+            "WHERE pd.supplier.id = :supplierId " +
+            "AND pd.paymentDate < :beforeDate " +
+            "AND NOT EXISTS (SELECT 1 FROM CashPayment cp     WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM CheckPayment chp   WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true)")
+    BigDecimal sumAmountBySupplierIdBeforeDate(@Param("supplierId") Long supplierId,
+                                               @Param("beforeDate") LocalDate beforeDate);
+
+    /**
+     * Returns all non-deleted payments for the given suppliers within the date range,
+     * fetching supplier and payment-method subtypes eagerly for use in the
+     * supplier current-account report timeline construction.
+     */
+    @Query("SELECT DISTINCT pd FROM PaymentDetails pd " +
+            "LEFT JOIN FETCH pd.supplier " +
+            "LEFT JOIN FETCH pd.cashPayment " +
+            "LEFT JOIN FETCH pd.transferPayment " +
+            "LEFT JOIN FETCH pd.checkPayment " +
+            "WHERE pd.supplier.id IN :supplierIds " +
+            "AND pd.paymentDate >= :fromDate AND pd.paymentDate <= :toDate " +
+            "AND NOT EXISTS (SELECT 1 FROM CashPayment cp     WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM CheckPayment chp   WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true)")
+    List<PaymentDetails> findAllBySupplierIdInAndPaymentDateBetween(
+            @Param("supplierIds") Collection<Long> supplierIds,
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate);
 }
 

@@ -19,6 +19,9 @@ import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportDTO;
 import PSG.backEnd.model.dto.report.policyPayment.PolicyPaymentReportFilterDTO;
 import PSG.backEnd.model.dto.report.sales.SalesReportDTO;
 import PSG.backEnd.model.dto.report.sales.SalesReportFilterDTO;
+import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportDTO;
+import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportFilterDTO;
+import PSG.backEnd.model.enums.report.SupplierAccountStatus;
 import PSG.backEnd.model.enums.IvaCondition;
 import PSG.backEnd.model.enums.contracts.CertificationStatus;
 import PSG.backEnd.model.enums.documents.SalesDocumentType;
@@ -1260,5 +1263,104 @@ public class ReportController {
         );
 
         return reportService.generateSalesReportFile(filters, format);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SUPPLIER CURRENT-ACCOUNT REPORT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/supplier-accounts")
+    @Operation(
+            summary = "Generate supplier current-account report data",
+            description = "Generates the supplier current-account report (saldo anterior + movimientos del período + saldo final) " +
+                    "grouped by supplier."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<SupplierAccountReportDTO> generateSupplierAccountReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd", required = true)
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd", required = true)
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+
+            @Parameter(description = "Supplier IDs to include (empty = all active suppliers)")
+            @RequestParam(required = false) List<Long> supplierIds,
+
+            @Parameter(description = "Project area IDs to filter movements")
+            @RequestParam(required = false) List<Long> projectAreaIds,
+
+            @Parameter(description = "Filter by final-balance status (PENDIENTE, CANCELADO)")
+            @RequestParam(required = false) SupplierAccountStatus statusFilter,
+
+            @Parameter(description = "Restrict movements to a specific document type")
+            @RequestParam(required = false) DocumentType documentType,
+
+            @Parameter(description = "Restrict payment movements to a specific method")
+            @RequestParam(required = false) PaymentMethod paymentMethod,
+
+            @Parameter(description = "Minimum final balance (inclusive)")
+            @RequestParam(required = false) BigDecimal minFinalBalance,
+
+            @Parameter(description = "Maximum final balance (inclusive)")
+            @RequestParam(required = false) BigDecimal maxFinalBalance,
+
+            @Parameter(description = "If true, hide suppliers with no movements in the period")
+            @RequestParam(required = false) Boolean onlyWithMovementsInPeriod
+    ) {
+        log.info("Generating supplier-account report: startDate={}, endDate={}, suppliers={}",
+                startDate, endDate, supplierIds);
+
+        SupplierAccountReportFilterDTO filters = new SupplierAccountReportFilterDTO(
+                startDate, endDate, supplierIds, projectAreaIds, statusFilter,
+                documentType, paymentMethod, minFinalBalance, maxFinalBalance,
+                onlyWithMovementsInPeriod
+        );
+
+        SupplierAccountReportDTO report = reportService.generateSupplierAccountReport(filters);
+
+        log.info("Supplier-account report generated: {} suppliers, totalPending={}",
+                report.supplierCount(), report.totalPendingBalance());
+
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/supplier-accounts/download")
+    @Operation(
+            summary = "Download supplier current-account report file",
+            description = "Generates and downloads the supplier current-account report in PDF or EXCEL format."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadSupplierAccountReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam ReportFormat format,
+
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @RequestParam(required = false) List<Long> supplierIds,
+            @RequestParam(required = false) List<Long> projectAreaIds,
+            @RequestParam(required = false) SupplierAccountStatus statusFilter,
+            @RequestParam(required = false) DocumentType documentType,
+            @RequestParam(required = false) PaymentMethod paymentMethod,
+            @RequestParam(required = false) BigDecimal minFinalBalance,
+            @RequestParam(required = false) BigDecimal maxFinalBalance,
+            @RequestParam(required = false) Boolean onlyWithMovementsInPeriod
+    ) {
+        log.info("Downloading supplier-account report: format={}", format);
+
+        SupplierAccountReportFilterDTO filters = new SupplierAccountReportFilterDTO(
+                startDate, endDate, supplierIds, projectAreaIds, statusFilter,
+                documentType, paymentMethod, minFinalBalance, maxFinalBalance,
+                onlyWithMovementsInPeriod
+        );
+
+        return reportService.generateSupplierAccountReportFile(filters, format);
     }
 }
