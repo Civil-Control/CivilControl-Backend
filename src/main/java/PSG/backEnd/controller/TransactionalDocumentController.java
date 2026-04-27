@@ -259,4 +259,22 @@ public class TransactionalDocumentController {
             @PathVariable Long id) {
         return ResponseEntity.ok(iTransactionalDocumentService.markCreditNoteApplied(id, false));
     }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
+    @PostMapping("/{id}/mark-unpaid")
+    @Operation(summary = "Mark an invoice/debit-note as unpaid",
+            description = "Recovery endpoint that flips a document's paid flag to false and restores " +
+                    "its amount to the supplier's pending balance. Use only for legacy records that " +
+                    "ended up flagged as paid with no associated payment voucher; under normal usage " +
+                    "the unpaid state is reached by deleting the linked payment.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Document marked as unpaid"),
+            @ApiResponse(responseCode = "400", description = "Document is not an invoice or debit note"),
+            @ApiResponse(responseCode = "404", description = "Document not found")
+    })
+    public ResponseEntity<TransactionalDocumentResponseDTO> markDocumentUnpaid(
+            @Parameter(description = "Document unique identifier", required = true, example = "1")
+            @PathVariable Long id) {
+        return ResponseEntity.ok(iTransactionalDocumentService.markDocumentUnpaid(id));
+    }
 }

@@ -401,6 +401,37 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         return enrichResponse(saved);
     }
 
+    /**
+     * Manually flips an invoice or debit-note's {@code paid} flag to {@code false}, restoring the
+     * document's discounted amount to the supplier's pending balance. Intended as a recovery hook
+     * for legacy records that ended up flagged as paid without an associated payment voucher
+     * (those cases cannot be fixed by deleting the linked payment because none exists).
+     *
+     * <p>Idempotent: invoking it on an already-unpaid document is a no-op.
+     *
+     * @throws IllegalArgumentException when the document is a credit note or "other document" — those
+     *         types do not participate in the paid/unpaid lens.
+     */
+    @Override
+    @Transactional
+    public TransactionalDocumentResponseDTO markDocumentUnpaid(Long id) {
+        TransactionalDocument doc = getEntityById(id);
+        DocumentType type = doc.getDocumentType();
+        if (!isInvoice(type) && !isDebitNote(type)) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                    "document.markUnpaid.notInvoiceOrDebit", id));
+        }
+        if (Boolean.FALSE.equals(doc.getPaid())) {
+            return enrichResponse(doc);
+        }
+        Supplier supplier = doc.getSupplier();
+        BigDecimal discountedAmount = calculateDiscountedAmount(doc, supplier);
+        applyToBalance(supplier, discountedAmount);
+        doc.setPaid(false);
+        TransactionalDocument saved = transactionalDocumentRepository.save(doc);
+        return enrichResponse(saved);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public LinkedRecordsSummaryDTO getLinkedRecordsSummary(Long id) {
