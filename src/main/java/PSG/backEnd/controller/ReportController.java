@@ -21,6 +21,10 @@ import PSG.backEnd.model.dto.report.sales.SalesReportDTO;
 import PSG.backEnd.model.dto.report.sales.SalesReportFilterDTO;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportDTO;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportFilterDTO;
+import PSG.backEnd.model.dto.report.issuedPayment.IssuedPaymentReportDTO;
+import PSG.backEnd.model.dto.report.issuedPayment.IssuedPaymentReportFilterDTO;
+import PSG.backEnd.model.enums.payment.CheckStatus;
+import PSG.backEnd.model.enums.report.IssuedPaymentReportGroupBy;
 import PSG.backEnd.model.enums.report.SupplierAccountStatus;
 import PSG.backEnd.model.enums.IvaCondition;
 import PSG.backEnd.model.enums.contracts.CertificationStatus;
@@ -682,6 +686,111 @@ public class ReportController {
         );
 
         return reportService.generateServicePaymentReportFile(filters, format);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ISSUED PAYMENTS REPORT (Feature 16)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_FINANCIAL + "')")
+    @GetMapping("/issued-payments")
+    @Operation(
+            summary = "Generate issued payments report data",
+            description = "Generates a hierarchical report of issued payments grouped by payment method or supplier."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report generated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
+    })
+    public ResponseEntity<IssuedPaymentReportDTO> generateIssuedPaymentReport(
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+
+            @Parameter(description = "Payment methods filter")
+            @RequestParam(required = false) List<PaymentMethod> paymentMethods,
+
+            @Parameter(description = "Supplier IDs filter")
+            @RequestParam(required = false) List<Long> supplierIds,
+
+            @Parameter(description = "Project area IDs filter")
+            @RequestParam(required = false) List<Long> projectAreaIds,
+
+            @Parameter(description = "Check statuses filter (effective)")
+            @RequestParam(required = false) List<CheckStatus> checkStatuses,
+
+            @Parameter(description = "Bank account IDs filter")
+            @RequestParam(required = false) List<Long> bankAccountIds,
+
+            @Parameter(description = "Cash box IDs filter")
+            @RequestParam(required = false) List<Long> cashBoxIds,
+
+            @Parameter(description = "Checkbook IDs filter")
+            @RequestParam(required = false) List<Long> checkbookIds,
+
+            @Parameter(description = "Minimum amount (inclusive)")
+            @RequestParam(required = false) BigDecimal minAmount,
+
+            @Parameter(description = "Maximum amount (inclusive)")
+            @RequestParam(required = false) BigDecimal maxAmount,
+
+            @Parameter(description = "Restrict to overdue (VENCIDO) checks only")
+            @RequestParam(required = false) Boolean onlyOverdueChecks,
+
+            @Parameter(description = "Group-by strategy: METHOD or SUPPLIER")
+            @RequestParam(required = false) IssuedPaymentReportGroupBy groupBy
+    ) {
+        log.info("Generating issued payments report: {}..{} groupBy={}", startDate, endDate, groupBy);
+
+        IssuedPaymentReportFilterDTO filters = new IssuedPaymentReportFilterDTO(
+                startDate, endDate, paymentMethods, supplierIds, projectAreaIds, checkStatuses,
+                bankAccountIds, cashBoxIds, checkbookIds, minAmount, maxAmount, onlyOverdueChecks, groupBy
+        );
+
+        IssuedPaymentReportDTO report = reportService.generateIssuedPaymentReport(filters);
+        log.info("Issued payments report generated: {} payments, total: ${}",
+                report.totalCount(), report.totalAmount());
+        return ResponseEntity.ok(report);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPORT_EXPORT + "')")
+    @GetMapping("/issued-payments/download")
+    @Operation(
+            summary = "Download issued payments report file",
+            description = "Generates and downloads the issued payments report (PDF or EXCEL)."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Report file generated"),
+            @ApiResponse(responseCode = "400", description = "Invalid parameters")
+    })
+    public ResponseEntity<byte[]> downloadIssuedPaymentReport(
+            @Parameter(description = "Export format: PDF or EXCEL", required = true)
+            @RequestParam ReportFormat format,
+
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @RequestParam(required = false) List<PaymentMethod> paymentMethods,
+            @RequestParam(required = false) List<Long> supplierIds,
+            @RequestParam(required = false) List<Long> projectAreaIds,
+            @RequestParam(required = false) List<CheckStatus> checkStatuses,
+            @RequestParam(required = false) List<Long> bankAccountIds,
+            @RequestParam(required = false) List<Long> cashBoxIds,
+            @RequestParam(required = false) List<Long> checkbookIds,
+            @RequestParam(required = false) BigDecimal minAmount,
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) Boolean onlyOverdueChecks,
+            @RequestParam(required = false) IssuedPaymentReportGroupBy groupBy
+    ) {
+        log.info("Downloading issued payments report: format={}", format);
+
+        IssuedPaymentReportFilterDTO filters = new IssuedPaymentReportFilterDTO(
+                startDate, endDate, paymentMethods, supplierIds, projectAreaIds, checkStatuses,
+                bankAccountIds, cashBoxIds, checkbookIds, minAmount, maxAmount, onlyOverdueChecks, groupBy
+        );
+
+        return reportService.generateIssuedPaymentReportFile(filters, format);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

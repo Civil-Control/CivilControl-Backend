@@ -157,5 +157,29 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             @Param("supplierIds") Collection<Long> supplierIds,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate);
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Issued Payments Report (Feature 16)
+    // ════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Returns all non-deleted payments whose {@code paymentDate} falls within the inclusive range,
+     * eagerly loading supplier and the three subtype relations to avoid N+1.
+     * Treasury references ({@code bankAccount}/{@code cashBox}/{@code checkbook}) and the
+     * paid-document collection are intentionally left lazy and resolved per-row in the service
+     * (collections cannot be eagerly fetched together with multiple bag relations without
+     * triggering a Hibernate {@code MultipleBagFetchException}).
+     */
+    @Query("SELECT DISTINCT pd FROM PaymentDetails pd " +
+            "LEFT JOIN FETCH pd.supplier " +
+            "LEFT JOIN FETCH pd.cashPayment " +
+            "LEFT JOIN FETCH pd.transferPayment " +
+            "LEFT JOIN FETCH pd.checkPayment " +
+            "WHERE pd.paymentDate >= :fromDate AND pd.paymentDate <= :toDate " +
+            "AND NOT EXISTS (SELECT 1 FROM CashPayment     cp  WHERE cp.paymentDetails.id  = pd.id AND cp.deleted  = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM CheckPayment    chp WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp  WHERE tp.paymentDetails.id  = pd.id AND tp.deleted  = true)")
+    List<PaymentDetails> findAllForIssuedPaymentsReport(@Param("fromDate") LocalDate fromDate,
+                                                        @Param("toDate") LocalDate toDate);
 }
 

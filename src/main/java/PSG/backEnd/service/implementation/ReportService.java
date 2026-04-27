@@ -15,6 +15,9 @@ import PSG.backEnd.model.dto.report.stockPurchase.*;
 import PSG.backEnd.model.dto.report.policyPayment.*;
 import PSG.backEnd.model.dto.report.sales.*;
 import PSG.backEnd.model.dto.report.supplierAccount.*;
+import PSG.backEnd.model.dto.report.issuedPayment.*;
+import PSG.backEnd.model.enums.payment.CheckStatus;
+import PSG.backEnd.model.enums.report.IssuedPaymentReportGroupBy;
 import PSG.backEnd.model.enums.report.SupplierAccountMovementType;
 import PSG.backEnd.model.enums.report.SupplierAccountStatus;
 import PSG.backEnd.model.entity.payment.CashPayment;
@@ -68,6 +71,8 @@ import PSG.backEnd.service.export.SalesReportExcelExporter;
 import PSG.backEnd.service.export.SalesReportPdfExporter;
 import PSG.backEnd.service.export.SupplierAccountReportExcelExporter;
 import PSG.backEnd.service.export.SupplierAccountReportPdfExporter;
+import PSG.backEnd.service.export.IssuedPaymentReportExcelExporter;
+import PSG.backEnd.service.export.IssuedPaymentReportPdfExporter;
 import PSG.backEnd.service.port.IReportService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
@@ -137,6 +142,10 @@ public class ReportService implements IReportService {
     private final SupplierAccountReportExcelExporter supplierAccountExcelExporter;
     private final SupplierAccountReportPdfExporter supplierAccountPdfExporter;
 
+    // Issued payments report exporters (Feature 16)
+    private final IssuedPaymentReportExcelExporter issuedPaymentExcelExporter;
+    private final IssuedPaymentReportPdfExporter issuedPaymentPdfExporter;
+
     // Repositories for data collection
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
@@ -177,6 +186,8 @@ public class ReportService implements IReportService {
             SalesReportPdfExporter salesPdfExporter,
             SupplierAccountReportExcelExporter supplierAccountExcelExporter,
             SupplierAccountReportPdfExporter supplierAccountPdfExporter,
+            IssuedPaymentReportExcelExporter issuedPaymentExcelExporter,
+            IssuedPaymentReportPdfExporter issuedPaymentPdfExporter,
             TransactionalDocumentRepository transactionalDocumentRepository,
             SalaryPaymentRepository salaryPaymentRepository,
             ServicePaymentRepository servicePaymentRepository,
@@ -216,6 +227,8 @@ public class ReportService implements IReportService {
         this.salesPdfExporter = salesPdfExporter;
         this.supplierAccountExcelExporter = supplierAccountExcelExporter;
         this.supplierAccountPdfExporter = supplierAccountPdfExporter;
+        this.issuedPaymentExcelExporter = issuedPaymentExcelExporter;
+        this.issuedPaymentPdfExporter = issuedPaymentPdfExporter;
         this.transactionalDocumentRepository = transactionalDocumentRepository;
         this.salaryPaymentRepository = salaryPaymentRepository;
         this.servicePaymentRepository = servicePaymentRepository;
@@ -4267,5 +4280,473 @@ public class ReportService implements IReportService {
                     pd.getId()
             );
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ISSUED PAYMENTS REPORT (Feature 16)
+    // ═══════════════════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional(readOnly = true)
+    public IssuedPaymentReportDTO generateIssuedPaymentReport(IssuedPaymentReportFilterDTO filters) {
+        log.info("Generating Issued Payments report with filters: {}", filters);
+        validateIssuedPaymentFilters(filters);
+
+        // 1. Fetch payments in range with eager subtype + supplier
+        List<PaymentDetails> raw = paymentRepository.findAllForIssuedPaymentsReport(
+                filters.startDate(), filters.endDate());
+
+        // 2. Apply non-date, non-checkstatus filters at memory level (kept simple by spec)
+        List<PaymentDetails> filtered = applyIssuedPaymentBaseFilters(raw, filters);
+
+        // 3. Compute effective check status (PENDIENTE + dueDate < today => VENCIDO)
+        Map<Long, CheckStatus> effective = computeEffectiveCheckStatuses(filtered);
+
+        // 4. Apply check-status / overdue filter using the effective map
+        filtered = applyCheckStatusFilter(filtered, filters, effective);
+
+        // 5. Map to flat items
+        List<IssuedPaymentReportItemDTO> items = filtered.stream()
+                .map(p -> toIssuedPaymentItem(p, effective))
+                .toList();
+
+        // 6. Build groups according to groupBy
+        IssuedPaymentReportGroupBy gb = filters.groupBy() == null
+                ? IssuedPaymentReportGroupBy.METHOD : filters.groupBy();
+        List<IssuedPaymentReportPrimaryGroupDTO> primaryGroups = switch (gb) {
+            case METHOD   -> buildGroupsByMethodThenSupplier(items);
+            case SUPPLIER -> buildGroupsBySupplierThenMethod(items);
+        };
+
+        // 7. Aggregate totals
+        BigDecimal totalAmount = items.stream()
+                .map(IssuedPaymentReportItemDTO::amount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Map<PaymentMethod, BigDecimal> totalsByMethod = new EnumMap<>(PaymentMethod.class);
+        Map<PaymentMethod, Integer>    countsByMethod = new EnumMap<>(PaymentMethod.class);
+        for (PaymentMethod m : PaymentMethod.values()) {
+            totalsByMethod.put(m, BigDecimal.ZERO);
+            countsByMethod.put(m, 0);
+        }
+        for (IssuedPaymentReportItemDTO it : items) {
+            if (it.method() == null) continue;
+            totalsByMethod.merge(it.method(), it.amount() == null ? BigDecimal.ZERO : it.amount(), BigDecimal::add);
+            countsByMethod.merge(it.method(), 1, Integer::sum);
+        }
+
+        CheckSummaryDTO checkSummary = buildCheckSummary(items);
+
+        return IssuedPaymentReportDTO.builder()
+                .filters(filters)
+                .groupBy(gb)
+                .primaryGroups(primaryGroups)
+                .totalAmount(totalAmount)
+                .totalCount(items.size())
+                .totalsByMethod(totalsByMethod)
+                .countsByMethod(countsByMethod)
+                .checkSummary(checkSummary)
+                .generatedAt(LocalDateTime.now())
+                .reportName("Reporte de Pagos Emitidos")
+                .periodDescription(buildIssuedPaymentPeriodDescription(filters))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> generateIssuedPaymentReportFile(IssuedPaymentReportFilterDTO filters,
+                                                                   ReportFormat format) {
+        IssuedPaymentReportDTO report = generateIssuedPaymentReport(filters);
+        byte[] content = switch (format) {
+            case EXCEL -> issuedPaymentExcelExporter.export(report);
+            case PDF   -> issuedPaymentPdfExporter.export(report);
+            default    -> throw new InvalidReportFormatException(format.name());
+        };
+        String filename = "reporte_pagos_emitidos_"
+                + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + format.getFileExtension() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, format.getContentType())
+                .body(content);
+    }
+
+    // ─────────────── Helpers (Issued Payments) ───────────────
+
+    private void validateIssuedPaymentFilters(IssuedPaymentReportFilterDTO f) {
+        if (f == null) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.issuedPayment.startDate.required"));
+        }
+        if (f.startDate() == null) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.issuedPayment.startDate.required"));
+        }
+        if (f.endDate() == null) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.issuedPayment.endDate.required"));
+        }
+        if (f.startDate().isAfter(f.endDate())) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.issuedPayment.dateRange.invalid"));
+        }
+        if (f.minAmount() != null && f.maxAmount() != null
+                && f.minAmount().compareTo(f.maxAmount()) > 0) {
+            throw new InvalidReportFilterException(
+                    messageSourceHelper.getMessage("report.issuedPayment.amountRange.invalid"));
+        }
+    }
+
+    private static PaymentMethod resolveMethod(PaymentDetails pd) {
+        if (pd.getCheckPayment()    != null) return PaymentMethod.CHECK;
+        if (pd.getTransferPayment() != null) return PaymentMethod.TRANSFER;
+        if (pd.getCashPayment()     != null) return PaymentMethod.CASH;
+        return null;
+    }
+
+    private List<PaymentDetails> applyIssuedPaymentBaseFilters(List<PaymentDetails> raw,
+                                                                IssuedPaymentReportFilterDTO f) {
+        return raw.stream().filter(pd -> {
+            // amount range
+            if (f.minAmount() != null && (pd.getAmount() == null
+                    || pd.getAmount().compareTo(f.minAmount()) < 0)) return false;
+            if (f.maxAmount() != null && (pd.getAmount() == null
+                    || pd.getAmount().compareTo(f.maxAmount()) > 0)) return false;
+
+            // payment methods
+            PaymentMethod m = resolveMethod(pd);
+            if (m == null) return false;
+            if (f.paymentMethods() != null && !f.paymentMethods().isEmpty()
+                    && !f.paymentMethods().contains(m)) return false;
+
+            // suppliers
+            if (f.supplierIds() != null && !f.supplierIds().isEmpty()) {
+                Long sid = pd.getSupplier() != null ? pd.getSupplier().getId() : null;
+                if (sid == null || !f.supplierIds().contains(sid)) return false;
+            }
+
+            // project area: at least one paid document in selected areas
+            if (f.projectAreaIds() != null && !f.projectAreaIds().isEmpty()) {
+                boolean any = pd.getPaidDocuments() != null && pd.getPaidDocuments().stream().anyMatch(d ->
+                        d.getProjectArea() != null && f.projectAreaIds().contains(d.getProjectArea().getId()));
+                if (!any) return false;
+            }
+
+            // treasury filters
+            if (f.bankAccountIds() != null && !f.bankAccountIds().isEmpty()) {
+                Long baId = bankAccountIdOf(pd);
+                if (baId == null || !f.bankAccountIds().contains(baId)) return false;
+            }
+            if (f.cashBoxIds() != null && !f.cashBoxIds().isEmpty()) {
+                if (m != PaymentMethod.CASH) return false;
+                CashPayment cp = pd.getCashPayment();
+                Long cbId = (cp != null && cp.getCashBox() != null) ? cp.getCashBox().getId() : null;
+                if (cbId == null || !f.cashBoxIds().contains(cbId)) return false;
+            }
+            if (f.checkbookIds() != null && !f.checkbookIds().isEmpty()) {
+                if (m != PaymentMethod.CHECK) return false;
+                CheckPayment chp = pd.getCheckPayment();
+                Long bookId = (chp != null && chp.getCheckbook() != null) ? chp.getCheckbook().getId() : null;
+                if (bookId == null || !f.checkbookIds().contains(bookId)) return false;
+            }
+
+            return true;
+        }).collect(Collectors.toList());
+    }
+
+    private static Long bankAccountIdOf(PaymentDetails pd) {
+        if (pd.getTransferPayment() != null && pd.getTransferPayment().getBankAccount() != null) {
+            return pd.getTransferPayment().getBankAccount().getId();
+        }
+        if (pd.getCheckPayment() != null && pd.getCheckPayment().getBankAccount() != null) {
+            return pd.getCheckPayment().getBankAccount().getId();
+        }
+        return null;
+    }
+
+    private Map<Long, CheckStatus> computeEffectiveCheckStatuses(List<PaymentDetails> payments) {
+        Map<Long, CheckStatus> map = new HashMap<>();
+        LocalDate today = LocalDate.now();
+        for (PaymentDetails pd : payments) {
+            CheckPayment chp = pd.getCheckPayment();
+            if (chp == null) continue;
+            CheckStatus persisted = chp.getStatus();
+            CheckStatus effective = (persisted == CheckStatus.PENDIENTE
+                    && chp.getDueDate() != null && chp.getDueDate().isBefore(today))
+                    ? CheckStatus.VENCIDO : persisted;
+            map.put(chp.getId(), effective);
+        }
+        return map;
+    }
+
+    private List<PaymentDetails> applyCheckStatusFilter(List<PaymentDetails> payments,
+                                                         IssuedPaymentReportFilterDTO f,
+                                                         Map<Long, CheckStatus> effective) {
+        boolean onlyOverdue = Boolean.TRUE.equals(f.onlyOverdueChecks());
+        List<CheckStatus> statuses = f.checkStatuses();
+        boolean filterByStatus = statuses != null && !statuses.isEmpty();
+        if (!onlyOverdue && !filterByStatus) return payments;
+
+        return payments.stream().filter(pd -> {
+            CheckPayment chp = pd.getCheckPayment();
+            if (chp == null) {
+                // non-check payments: only included when no check-specific filter is active beyond the
+                // "onlyOverdueChecks" shortcut. If onlyOverdue is true, exclude non-checks.
+                return !onlyOverdue && !filterByStatus;
+            }
+            CheckStatus eff = effective.getOrDefault(chp.getId(), chp.getStatus());
+            if (onlyOverdue && eff != CheckStatus.VENCIDO) return false;
+            if (filterByStatus && !statuses.contains(eff)) return false;
+            return true;
+        }).collect(Collectors.toList());
+    }
+
+    private IssuedPaymentReportItemDTO toIssuedPaymentItem(PaymentDetails pd,
+                                                            Map<Long, CheckStatus> effective) {
+        PaymentMethod m = resolveMethod(pd);
+        Supplier s = pd.getSupplier();
+
+        Long bankAccountId = null;
+        String bankAccountName = null;
+        String bankName = null;
+        Long cashBoxId = null;
+        String cashBoxName = null;
+        String checkNumber = null;
+        LocalDate checkDueDate = null;
+        CheckStatus checkStatus = null;
+        CheckStatus checkPersisted = null;
+        LocalDate checkSettledDate = null;
+        String checkStatusComment = null;
+        Long checkbookId = null;
+        String checkbookName = null;
+        String checkbookNumber = null;
+        String transferTransactionNumber = null;
+
+        if (m == PaymentMethod.CHECK) {
+            CheckPayment chp = pd.getCheckPayment();
+            checkNumber = chp.getCheckNumber();
+            checkDueDate = chp.getDueDate();
+            checkPersisted = chp.getStatus();
+            checkStatus = effective.getOrDefault(chp.getId(), checkPersisted);
+            checkSettledDate = chp.getSettledDate();
+            checkStatusComment = chp.getStatusComment();
+            if (chp.getBankAccount() != null) {
+                bankAccountId = chp.getBankAccount().getId();
+                bankAccountName = chp.getBankAccount().getName();
+                bankName = chp.getBankAccount().getBankName();
+            }
+            if (chp.getCheckbook() != null) {
+                checkbookId = chp.getCheckbook().getId();
+                checkbookName = chp.getCheckbook().getName();
+                checkbookNumber = chp.getCheckbook().getCheckbookNumber();
+            }
+        } else if (m == PaymentMethod.TRANSFER) {
+            TransferPayment tp = pd.getTransferPayment();
+            transferTransactionNumber = tp.getTransactionNumber();
+            if (tp.getBankAccount() != null) {
+                bankAccountId = tp.getBankAccount().getId();
+                bankAccountName = tp.getBankAccount().getName();
+                bankName = tp.getBankAccount().getBankName();
+            }
+        } else if (m == PaymentMethod.CASH) {
+            CashPayment cp = pd.getCashPayment();
+            if (cp.getCashBox() != null) {
+                cashBoxId = cp.getCashBox().getId();
+                cashBoxName = cp.getCashBox().getName();
+            }
+        }
+
+        int linkedDocs = pd.getPaidDocuments() != null ? pd.getPaidDocuments().size() : 0;
+        String paymentMethodReference = buildIssuedPaymentReference(m, checkNumber, transferTransactionNumber, bankName);
+
+        return new IssuedPaymentReportItemDTO(
+                pd.getId(),
+                pd.getPaymentDate(),
+                m,
+                s != null ? s.getId() : null,
+                s != null ? s.getLegalName() : null,
+                s != null ? s.getTradeName() : null,
+                s != null ? s.getCuit() : null,
+                pd.getAmount(),
+                pd.getComment(),
+                linkedDocs,
+                paymentMethodReference,
+                bankAccountId, bankAccountName, bankName,
+                cashBoxId, cashBoxName,
+                checkNumber, checkDueDate, checkStatus, checkPersisted, checkSettledDate, checkStatusComment,
+                checkbookId, checkbookName, checkbookNumber,
+                transferTransactionNumber
+        );
+    }
+
+    private static String buildIssuedPaymentReference(PaymentMethod m, String checkNumber,
+                                                       String transferNumber, String bankName) {
+        if (m == null) return "";
+        return switch (m) {
+            case CHECK -> "Cheque " + (checkNumber != null ? "N° " + checkNumber : "")
+                    + (bankName != null ? " " + bankName : "");
+            case TRANSFER -> "Transf. " + (transferNumber != null ? transferNumber : "")
+                    + (bankName != null ? " " + bankName : "");
+            case CASH -> "Efectivo";
+        };
+    }
+
+    private List<IssuedPaymentReportPrimaryGroupDTO> buildGroupsByMethodThenSupplier(
+            List<IssuedPaymentReportItemDTO> items) {
+        // Layer 1: PaymentMethod (in stable order CASH/TRANSFER/CHECK)
+        Map<PaymentMethod, List<IssuedPaymentReportItemDTO>> byMethod = new EnumMap<>(PaymentMethod.class);
+        for (PaymentMethod m : PaymentMethod.values()) byMethod.put(m, new ArrayList<>());
+        for (IssuedPaymentReportItemDTO it : items) {
+            if (it.method() != null) byMethod.get(it.method()).add(it);
+        }
+
+        List<IssuedPaymentReportPrimaryGroupDTO> groups = new ArrayList<>();
+        for (Map.Entry<PaymentMethod, List<IssuedPaymentReportItemDTO>> e : byMethod.entrySet()) {
+            List<IssuedPaymentReportItemDTO> list = e.getValue();
+            if (list.isEmpty()) continue;
+
+            // Layer 2: supplier
+            Map<Long, List<IssuedPaymentReportItemDTO>> bySupplier = list.stream()
+                    .collect(Collectors.groupingBy(
+                            it -> it.supplierId() == null ? -1L : it.supplierId(),
+                            LinkedHashMap::new,
+                            Collectors.toList()));
+
+            List<IssuedPaymentReportSecondaryGroupDTO> secondary = new ArrayList<>();
+            for (Map.Entry<Long, List<IssuedPaymentReportItemDTO>> se : bySupplier.entrySet()) {
+                List<IssuedPaymentReportItemDTO> rows = se.getValue();
+                IssuedPaymentReportItemDTO sample = rows.get(0);
+                String label = sample.supplierLegalName() != null
+                        ? sample.supplierLegalName()
+                        : "(Sin proveedor)";
+                BigDecimal sub = sumAmounts(rows);
+                secondary.add(IssuedPaymentReportSecondaryGroupDTO.builder()
+                        .groupKey(String.valueOf(se.getKey()))
+                        .groupLabel(label)
+                        .groupSubLabel(sample.supplierCuit())
+                        .subtotalAmount(sub)
+                        .paymentCount(rows.size())
+                        .payments(rows)
+                        .build());
+            }
+            secondary.sort((a, b) -> a.groupLabel().compareToIgnoreCase(b.groupLabel()));
+
+            BigDecimal subtotal = sumAmounts(list);
+            groups.add(IssuedPaymentReportPrimaryGroupDTO.builder()
+                    .groupKey(e.getKey().name())
+                    .groupLabel(methodDisplayName(e.getKey()))
+                    .subtotalAmount(subtotal)
+                    .paymentCount(list.size())
+                    .secondaryGroups(secondary)
+                    .build());
+        }
+        return groups;
+    }
+
+    private List<IssuedPaymentReportPrimaryGroupDTO> buildGroupsBySupplierThenMethod(
+            List<IssuedPaymentReportItemDTO> items) {
+        // Layer 1: supplier (alphabetical)
+        Map<Long, List<IssuedPaymentReportItemDTO>> bySupplier = items.stream()
+                .collect(Collectors.groupingBy(
+                        it -> it.supplierId() == null ? -1L : it.supplierId(),
+                        LinkedHashMap::new,
+                        Collectors.toList()));
+
+        List<IssuedPaymentReportPrimaryGroupDTO> groups = new ArrayList<>();
+        for (Map.Entry<Long, List<IssuedPaymentReportItemDTO>> se : bySupplier.entrySet()) {
+            List<IssuedPaymentReportItemDTO> rows = se.getValue();
+            IssuedPaymentReportItemDTO sample = rows.get(0);
+
+            // Layer 2: payment method
+            Map<PaymentMethod, List<IssuedPaymentReportItemDTO>> byMethod = new EnumMap<>(PaymentMethod.class);
+            for (IssuedPaymentReportItemDTO r : rows) {
+                if (r.method() == null) continue;
+                byMethod.computeIfAbsent(r.method(), k -> new ArrayList<>()).add(r);
+            }
+
+            List<IssuedPaymentReportSecondaryGroupDTO> secondary = new ArrayList<>();
+            Map<PaymentMethod, BigDecimal> subtotalsByMethod = new EnumMap<>(PaymentMethod.class);
+            for (PaymentMethod m : List.of(PaymentMethod.CASH, PaymentMethod.TRANSFER, PaymentMethod.CHECK)) {
+                List<IssuedPaymentReportItemDTO> mr = byMethod.get(m);
+                if (mr == null || mr.isEmpty()) continue;
+                BigDecimal sub = sumAmounts(mr);
+                subtotalsByMethod.put(m, sub);
+                secondary.add(IssuedPaymentReportSecondaryGroupDTO.builder()
+                        .groupKey(m.name())
+                        .groupLabel(methodDisplayName(m))
+                        .subtotalAmount(sub)
+                        .paymentCount(mr.size())
+                        .payments(mr)
+                        .build());
+            }
+
+            String label = sample.supplierLegalName() != null
+                    ? sample.supplierLegalName() : "(Sin proveedor)";
+            groups.add(IssuedPaymentReportPrimaryGroupDTO.builder()
+                    .groupKey(String.valueOf(se.getKey()))
+                    .groupLabel(label)
+                    .groupSubLabel(sample.supplierCuit())
+                    .subtotalAmount(sumAmounts(rows))
+                    .paymentCount(rows.size())
+                    .subtotalsByMethod(subtotalsByMethod)
+                    .secondaryGroups(secondary)
+                    .build());
+        }
+        groups.sort((a, b) -> a.groupLabel().compareToIgnoreCase(b.groupLabel()));
+        return groups;
+    }
+
+    private static BigDecimal sumAmounts(List<IssuedPaymentReportItemDTO> items) {
+        return items.stream()
+                .map(IssuedPaymentReportItemDTO::amount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static String methodDisplayName(PaymentMethod m) {
+        return switch (m) {
+            case CASH     -> "Efectivo";
+            case TRANSFER -> "Transferencia";
+            case CHECK    -> "Cheque";
+        };
+    }
+
+    private CheckSummaryDTO buildCheckSummary(List<IssuedPaymentReportItemDTO> items) {
+        int totalCount = 0;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        int pCount = 0, oCount = 0, sCount = 0, rCount = 0, cCount = 0;
+        BigDecimal pAmt = BigDecimal.ZERO, oAmt = BigDecimal.ZERO, sAmt = BigDecimal.ZERO,
+                rAmt = BigDecimal.ZERO, cAmt = BigDecimal.ZERO;
+
+        for (IssuedPaymentReportItemDTO it : items) {
+            if (it.method() != PaymentMethod.CHECK) continue;
+            totalCount++;
+            BigDecimal amt = it.amount() == null ? BigDecimal.ZERO : it.amount();
+            totalAmount = totalAmount.add(amt);
+            CheckStatus st = it.checkStatus();
+            if (st == null) continue;
+            switch (st) {
+                case PENDIENTE -> { pCount++; pAmt = pAmt.add(amt); }
+                case VENCIDO   -> { oCount++; oAmt = oAmt.add(amt); }
+                case COBRADO   -> { sCount++; sAmt = sAmt.add(amt); }
+                case RECHAZADO -> { rCount++; rAmt = rAmt.add(amt); }
+                case CANCELADO -> { cCount++; cAmt = cAmt.add(amt); }
+            }
+        }
+
+        return CheckSummaryDTO.builder()
+                .totalChecks(totalCount).totalChecksAmount(totalAmount)
+                .pendingCount(pCount).pendingAmount(pAmt)
+                .overdueCount(oCount).overdueAmount(oAmt)
+                .settledCount(sCount).settledAmount(sAmt)
+                .rejectedCount(rCount).rejectedAmount(rAmt)
+                .cancelledCount(cCount).cancelledAmount(cAmt)
+                .build();
+    }
+
+    private String buildIssuedPaymentPeriodDescription(IssuedPaymentReportFilterDTO f) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        return f.startDate().format(fmt) + " — " + f.endDate().format(fmt);
     }
 }

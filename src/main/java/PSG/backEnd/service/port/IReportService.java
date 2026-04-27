@@ -22,6 +22,8 @@ import PSG.backEnd.model.dto.report.sales.SalesReportDTO;
 import PSG.backEnd.model.dto.report.sales.SalesReportFilterDTO;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportDTO;
 import PSG.backEnd.model.dto.report.supplierAccount.SupplierAccountReportFilterDTO;
+import PSG.backEnd.model.dto.report.issuedPayment.IssuedPaymentReportDTO;
+import PSG.backEnd.model.dto.report.issuedPayment.IssuedPaymentReportFilterDTO;
 import PSG.backEnd.model.enums.ReportFormat;
 import org.springframework.http.ResponseEntity;
 
@@ -127,5 +129,12 @@ public interface IReportService {
     SupplierAccountReportDTO generateSupplierAccountReport(SupplierAccountReportFilterDTO filters);
 
     ResponseEntity<byte[]> generateSupplierAccountReportFile(SupplierAccountReportFilterDTO filters, ReportFormat format);
-}
 
+    /**
+     * Generates the Issued Payments Report (Feature 16): emitted payments in a period
+     * grouped by method or supplier. Includes per-method totals and a check-status summary.
+     */
+    IssuedPaymentReportDTO generateIssuedPaymentReport(IssuedPaymentReportFilterDTO filters);
+
+    ResponseEntity<byte[]> generateIssuedPaymentReportFile(IssuedPaymentReportFilterDTO filters, ReportFormat format);
+}

@@ -760,4 +760,69 @@ public class PaymentService implements IPaymentService {
 
         return paymentOrderPdfService.generate(paymentDetails, tenant);
     }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Check status lifecycle (Feature 16, Part A)
+    // ════════════════════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional
+    public CheckPaymentResponseDTO updateCheckStatus(Long checkPaymentId, CheckStatusUpdateDTO dto) {
+        CheckPayment check = checkPaymentRepository.findById(checkPaymentId)
+                .filter(c -> !Boolean.TRUE.equals(c.getDeleted()))
+                .orElseThrow(() -> new PaymentNotFoundException(
+                        messageSourceHelper.getMessage("payment.checkNotFound", checkPaymentId)));
+
+        PSG.backEnd.model.enums.payment.CheckStatus next = dto.status();
+        if (next == PSG.backEnd.model.enums.payment.CheckStatus.VENCIDO) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("check.status.cannotSetDerived"));
+        }
+
+        PSG.backEnd.model.enums.payment.CheckStatus previous = check.getStatus();
+        if (previous != null && previous.isTerminal() && previous != next) {
+            throw new IllegalStateException(messageSourceHelper.getMessage("check.status.terminal"));
+        }
+
+        boolean requiresSettledDate = next == PSG.backEnd.model.enums.payment.CheckStatus.COBRADO
+                || next == PSG.backEnd.model.enums.payment.CheckStatus.RECHAZADO;
+        if (requiresSettledDate && dto.settledDate() == null) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("check.status.settledDate.required"));
+        }
+        if (dto.settledDate() != null) {
+            java.time.LocalDate paymentDate = check.getPaymentDetails() != null
+                    ? check.getPaymentDetails().getPaymentDate() : null;
+            if (paymentDate != null && dto.settledDate().isBefore(paymentDate)) {
+                throw new IllegalArgumentException(
+                        messageSourceHelper.getMessage("check.status.settledDate.beforePayment"));
+            }
+        }
+
+        // Mutate
+        check.setStatus(next);
+        check.setSettledDate(dto.settledDate());
+        check.setStatusComment(dto.statusComment());
+        check.setStatusChangedAt(java.time.LocalDateTime.now());
+        check.setStatusChangedByUserId(currentUserIdSafe());
+
+        CheckPayment saved = checkPaymentRepository.save(check);
+
+        // Treasury reflection (does nothing if previous == next or terminal target without movement)
+        treasuryHook.onCheckStatusChanged(saved, previous, next);
+
+        return checkPaymentMapper.toResponse(saved);
+    }
+
+    /** Returns the current authenticated user id, or {@code null} if not available. */
+    private static Long currentUserIdSafe() {
+        try {
+            var auth = org.springframework.security.core.context.SecurityContextHolder
+                    .getContext().getAuthentication();
+            if (auth == null) return null;
+            Object principal = auth.getPrincipal();
+            if (principal instanceof PSG.backEnd.model.entity.security.User u) return u.getId();
+            return null;
+        } catch (Exception ignore) {
+            return null;
+        }
+    }
 }

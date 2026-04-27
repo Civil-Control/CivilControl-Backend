@@ -21,6 +21,12 @@ public interface IPaymentService {
     TransferPaymentResponseDTO updateTransfer(Long id, TransferPaymentDTO dto);
     CheckPaymentResponseDTO updateCheck(Long id, CheckPaymentDTO dto);
 
+    /**
+     * Transitions the operational status of a check payment, registering the matching
+     * treasury movement and audit fields. See {@link CheckStatusUpdateDTO} for the rules.
+     */
+    CheckPaymentResponseDTO updateCheckStatus(Long checkPaymentId, CheckStatusUpdateDTO dto);
+
     void deleteCash(Long id);
     void deleteTransfer(Long id);
     void deleteCheck(Long id);

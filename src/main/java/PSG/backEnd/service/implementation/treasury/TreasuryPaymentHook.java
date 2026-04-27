@@ -203,6 +203,53 @@ public class TreasuryPaymentHook {
                 cp);
     }
 
+    // ───────── Check status lifecycle (Feature 16) ─────────
+
+    /**
+     * Translates a check status transition into the corresponding bank-account movement.
+     * <p>
+     * Behaviour:
+     * <ul>
+     *   <li>PENDIENTE → COBRADO: registers an informative {@code CHEQUE_COBRADO} (does not affect balance,
+     *       the amount was already reserved at issuance).</li>
+     *   <li>PENDIENTE → RECHAZADO: registers {@code CHEQUE_RECHAZADO} which releases the reservation
+     *       (positive impact on balance).</li>
+     *   <li>PENDIENTE → CANCELADO: registers {@code CHEQUE_CANCELADO} (releases reservation).</li>
+     *   <li>Any other transition: no-op.</li>
+     * </ul>
+     */
+    public void onCheckStatusChanged(CheckPayment cp,
+                                     PSG.backEnd.model.enums.payment.CheckStatus previous,
+                                     PSG.backEnd.model.enums.payment.CheckStatus next) {
+        if (cp.getBankAccount() == null || previous == next || next == null) return;
+        BankAccountMovementType type = switch (next) {
+            case COBRADO   -> BankAccountMovementType.CHEQUE_COBRADO;
+            case RECHAZADO -> BankAccountMovementType.CHEQUE_RECHAZADO;
+            case CANCELADO -> BankAccountMovementType.CHEQUE_CANCELADO;
+            default -> null;
+        };
+        if (type == null) return;
+        ((BankAccountService) bankAccountService).applyMovement(
+                cp.getBankAccount(),
+                type,
+                cp.getPaymentDetails().getAmount(),
+                cp.getSettledDate() != null ? cp.getSettledDate() : LocalDate.now(),
+                buildStatusComment(cp, next),
+                cp,
+                null);
+    }
+
+    private String buildStatusComment(CheckPayment cp,
+                                      PSG.backEnd.model.enums.payment.CheckStatus next) {
+        StringBuilder sb = new StringBuilder("Cheque");
+        if (cp.getCheckNumber() != null) sb.append(" ").append(cp.getCheckNumber());
+        sb.append(" — ").append(next.name().toLowerCase());
+        if (cp.getStatusComment() != null && !cp.getStatusComment().isBlank()) {
+            sb.append(": ").append(cp.getStatusComment());
+        }
+        return sb.toString();
+    }
+
     // ───────── Snapshot-based reversals (for update flows) ─────────
     // These accept the ORIGINAL bankAccount/cashBox id + amount captured before mutating
     // the entity, so the reversal hits the original target even if the new bank account

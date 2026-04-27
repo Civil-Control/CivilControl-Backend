@@ -303,6 +303,23 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_WRITE + "')")
+    @PatchMapping("/check/{id}/status")
+    @Operation(summary = "Update check operational status",
+            description = "Transitions the operational lifecycle status of a check (PENDIENTE, COBRADO, " +
+                    "RECHAZADO, CANCELADO). The derived VENCIDO state cannot be set manually. " +
+                    "Registers the matching bank-account treasury movement.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Status updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid transition or settled date"),
+            @ApiResponse(responseCode = "404", description = "Check payment not found")
+    })
+    public ResponseEntity<CheckPaymentResponseDTO> updateCheckStatus(
+            @Parameter(description = "Check payment ID", required = true) @PathVariable Long id,
+            @org.springframework.web.bind.annotation.RequestBody @jakarta.validation.Valid CheckStatusUpdateDTO dto) {
+        return ResponseEntity.ok(paymentService.updateCheckStatus(id, dto));
+    }
+
     @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete payment by ID",
