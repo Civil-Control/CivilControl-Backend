@@ -212,10 +212,12 @@ ALTER TABLE cash_payments ADD CONSTRAINT fk_cash_payments_cash_box FOREIGN KEY (
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 8. Movement FKs to payments (added after payment columns are stable).
+--    The check/transfer/cash payment tables use joined-table inheritance with
+--    @MapsId, so the PK column is payment_details_id (not id).
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE bank_account_movements
-    ADD CONSTRAINT fk_bam_check_payment    FOREIGN KEY (check_payment_id)    REFERENCES check_payments(id),
-    ADD CONSTRAINT fk_bam_transfer_payment FOREIGN KEY (transfer_payment_id) REFERENCES transfer_payments(id);
+    ADD CONSTRAINT fk_bam_check_payment    FOREIGN KEY (check_payment_id)    REFERENCES check_payments(payment_details_id),
+    ADD CONSTRAINT fk_bam_transfer_payment FOREIGN KEY (transfer_payment_id) REFERENCES transfer_payments(payment_details_id);
 
 ALTER TABLE cash_box_movements
-    ADD CONSTRAINT fk_cbm_cash_payment FOREIGN KEY (cash_payment_id) REFERENCES cash_payments(id);
+    ADD CONSTRAINT fk_cbm_cash_payment FOREIGN KEY (cash_payment_id) REFERENCES cash_payments(payment_details_id);
