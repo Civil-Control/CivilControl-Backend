@@ -23,6 +23,11 @@ public record RepairItemResponseDTO(
         @Schema(description = "IVA percentage applied to this item.", example = "21.00")
         BigDecimal ivaPercentage,
 
+        @Schema(description = "IVA amount applied to this item. Only populated when the item is linked " +
+                "to a transactional document (the IVA reflects what was actually invoiced); null otherwise.",
+                nullable = true)
+        BigDecimal ivaAmount,
+
         @Schema(description = "Linked transactional document summary, if any.", nullable = true)
         TransactionalDocumentSummaryDTO transactionalDocument,
 

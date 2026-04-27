@@ -40,6 +40,7 @@ public interface RepairMapper {
         List<RepairItemResponseDTO> itemDtos = new ArrayList<>();
         BigDecimal materialSubtotal = BigDecimal.ZERO;
         BigDecimal laborSubtotal = BigDecimal.ZERO;
+        BigDecimal totalIva = BigDecimal.ZERO;
 
         if (repair.getItems() != null) {
             List<RepairItem> sorted = repair.getItems().stream()
@@ -47,12 +48,26 @@ public interface RepairMapper {
                     .toList();
 
             for (RepairItem item : sorted) {
+                BigDecimal ivaPercentage = item.getIvaPercentage() != null
+                        ? item.getIvaPercentage()
+                        : new BigDecimal("21.00");
+                // IVA only counts when the item is linked to a transactional document:
+                // for unlinked items the IVA is just an estimate placeholder, so we
+                // expose null and exclude it from the repair total to avoid inflating it.
+                BigDecimal ivaAmount = null;
+                if (item.getTransactionalDocument() != null && item.getAmount() != null) {
+                    ivaAmount = item.getAmount()
+                            .multiply(ivaPercentage)
+                            .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+                    totalIva = totalIva.add(ivaAmount);
+                }
                 itemDtos.add(new RepairItemResponseDTO(
                         item.getId(),
                         item.getItemType() != null ? item.getItemType().name() : null,
                         item.getDescription(),
                         item.getAmount(),
-                        item.getIvaPercentage() != null ? item.getIvaPercentage() : new BigDecimal("21.00"),
+                        ivaPercentage,
+                        ivaAmount,
                         documentToSummaryDto(item.getTransactionalDocument()),
                         item.getSortOrder()
                 ));
@@ -67,6 +82,7 @@ public interface RepairMapper {
         }
 
         BigDecimal totalCost = materialSubtotal.add(laborSubtotal);
+        BigDecimal totalWithIva = totalCost.add(totalIva);
 
         return new RepairResponseDTO(
                 repair.getId(),
@@ -82,6 +98,8 @@ public interface RepairMapper {
                 materialSubtotal,
                 laborSubtotal,
                 totalCost,
+                totalIva,
+                totalWithIva,
                 mapRepairOrderToDto(repair.getRepairOrder())
         );
     }
