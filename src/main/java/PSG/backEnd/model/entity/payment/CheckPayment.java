@@ -1,6 +1,8 @@
 package PSG.backEnd.model.entity.payment;
 
 import PSG.backEnd.model.entity.TenantEntity;
+import PSG.backEnd.model.entity.treasury.BankAccount;
+import PSG.backEnd.model.entity.treasury.Checkbook;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -25,8 +27,15 @@ public class CheckPayment extends TenantEntity {
     @Column(name = "check_number", length = 50, columnDefinition = "VARCHAR(50)")
     private String checkNumber;
 
-    @Column(name = "bank_name", length = 100, columnDefinition = "VARCHAR(100)")
-    private String bankName;
+    /** Issuing bank account — replaces the legacy free-form bankName field. */
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "bank_account_id", nullable = false)
+    private BankAccount bankAccount;
+
+    /** Optional checkbook that restricts the allowed check numbers. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "checkbook_id")
+    private Checkbook checkbook;
 
     @Column(name = "issue_date")
     private LocalDate issueDate;

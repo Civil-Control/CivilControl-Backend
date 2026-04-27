@@ -1,6 +1,7 @@
 package PSG.backEnd.model.entity.payment;
 
 import PSG.backEnd.model.entity.TenantEntity;
+import PSG.backEnd.model.entity.treasury.CashBox;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,6 +21,14 @@ public class CashPayment extends TenantEntity {
     @JoinColumn(name = "payment_details_id", nullable = false, unique = true)
     @MapsId
     private PaymentDetails paymentDetails;
+
+    /**
+     * Optional source cash box — required when the tenant has at least one active cash box,
+     * otherwise the field is ignored.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cash_box_id")
+    private CashBox cashBox;
 
     @Column(nullable = false)
     @Builder.Default

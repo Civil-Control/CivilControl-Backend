@@ -5,6 +5,8 @@ public record TransferPaymentResponseDTO(
         PaymentDetailsResponseDTO paymentDetails,
         String type,
         String transactionNumber,
+        Long bankAccountId,
+        String bankAccountName,
         String bankName
 ) implements PaymentResponseDTO {
 }

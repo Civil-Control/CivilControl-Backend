@@ -48,11 +48,11 @@ public class InsurancePolicyPaymentService {
 
         PaymentResponseDTO paymentResponse = switch (dto.paymentMethod().toUpperCase()) {
             case "CASH" -> paymentService.createCash(
-                    new CashPaymentDTO(paymentDetailsDTO, false));
+                    new CashPaymentDTO(paymentDetailsDTO, dto.cashBoxId(), false));
             case "TRANSFER" -> paymentService.createTransfer(
-                    new TransferPaymentDTO(paymentDetailsDTO, dto.transactionNumber(), dto.bankName(), false));
+                    new TransferPaymentDTO(paymentDetailsDTO, dto.transactionNumber(), dto.bankAccountId(), false));
             case "CHECK" -> paymentService.createCheck(
-                    new CheckPaymentDTO(paymentDetailsDTO, dto.checkDueDate(), dto.checkNumber(), dto.bankName(), false));
+                    new CheckPaymentDTO(paymentDetailsDTO, dto.checkDueDate(), dto.checkNumber(), dto.bankAccountId(), dto.checkbookId(), false));
             default -> throw new IllegalArgumentException("Método de pago no válido: " + dto.paymentMethod());
         };
 
@@ -107,11 +107,11 @@ public class InsurancePolicyPaymentService {
         Long paymentId = pd.getId();
 
         switch (method) {
-            case "CASH" -> paymentService.updateCash(paymentId, new CashPaymentDTO(paymentDetailsDTO, false));
+            case "CASH" -> paymentService.updateCash(paymentId, new CashPaymentDTO(paymentDetailsDTO, dto.cashBoxId(), false));
             case "TRANSFER" -> paymentService.updateTransfer(paymentId,
-                    new TransferPaymentDTO(paymentDetailsDTO, dto.transactionNumber(), dto.bankName(), false));
+                    new TransferPaymentDTO(paymentDetailsDTO, dto.transactionNumber(), dto.bankAccountId(), false));
             case "CHECK" -> paymentService.updateCheck(paymentId,
-                    new CheckPaymentDTO(paymentDetailsDTO, dto.checkDueDate(), dto.checkNumber(), dto.bankName(), false));
+                    new CheckPaymentDTO(paymentDetailsDTO, dto.checkDueDate(), dto.checkNumber(), dto.bankAccountId(), dto.checkbookId(), false));
             default -> throw new IllegalArgumentException("Método de pago no válido: " + method);
         }
 
@@ -153,11 +153,11 @@ public class InsurancePolicyPaymentService {
             paymentMethod = "CASH";
         } else if (pd.getTransferPayment() != null) {
             paymentMethod = "TRANSFER";
-            bankName = pd.getTransferPayment().getBankName();
+            bankName = pd.getTransferPayment().getBankAccount() != null ? pd.getTransferPayment().getBankAccount().getBankName() : null;
             transactionNumber = pd.getTransferPayment().getTransactionNumber();
         } else if (pd.getCheckPayment() != null) {
             paymentMethod = "CHECK";
-            bankName = pd.getCheckPayment().getBankName();
+            bankName = pd.getCheckPayment().getBankAccount() != null ? pd.getCheckPayment().getBankAccount().getBankName() : null;
             checkNumber = pd.getCheckPayment().getCheckNumber();
             checkDueDate = pd.getCheckPayment().getDueDate();
         } else {

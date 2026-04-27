@@ -6,12 +6,15 @@ import PSG.backEnd.model.dto.payment.*;
 import PSG.backEnd.model.entity.payment.*;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Supplier;
+import PSG.backEnd.model.entity.treasury.BankAccount;
+import PSG.backEnd.model.entity.treasury.Checkbook;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.mapper.*;
 import PSG.backEnd.repository.PaymentRepository.CashPaymentRepository;
 import PSG.backEnd.repository.PaymentRepository.CheckPaymentRepository;
 import PSG.backEnd.repository.PaymentRepository.PaymentRepository;
 import PSG.backEnd.repository.PaymentRepository.TransferPaymentRepository;
+import PSG.backEnd.service.implementation.treasury.TreasuryPaymentHook;
 import PSG.backEnd.service.port.IPaymentService;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITenantService;
@@ -47,41 +50,56 @@ public class PaymentService implements IPaymentService {
     private final ITenantService iTenantService;
     private final PaymentOrderPdfService paymentOrderPdfService;
     private final MessageSourceHelper messageSourceHelper;
+    private final TreasuryPaymentHook treasuryHook;
 
     @Override
     @Transactional
     public CashPaymentResponseDTO createCash(CashPaymentDTO dto) {
-        return createPayment(
-            dto.paymentDetails(),
-            cashPaymentMapper::toEntityOnCreate,
-            cashPaymentRepository::save,
-            cashPaymentMapper::toResponse,
-            dto
-        );
+        treasuryHook.validateCashPaymentCashBox(dto.cashBoxId());
+        validatePaymentMethodAllowed(dto.paymentDetails().supplierId(), PaymentMethod.CASH);
+        CashPayment entity = cashPaymentMapper.toEntityOnCreate(dto);
+        if (dto.cashBoxId() != null) {
+            entity.setCashBox(treasuryHook.resolveCashBox(dto.cashBoxId()));
+        }
+        executePaymentBusinessLogic(dto.paymentDetails());
+        CashPayment saved = cashPaymentRepository.save(entity);
+        treasuryHook.onCashCreated(saved);
+        return cashPaymentMapper.toResponse(saved);
     }
 
     @Override
     @Transactional
     public TransferPaymentResponseDTO createTransfer(TransferPaymentDTO dto) {
-        return createPayment(
-            dto.paymentDetails(),
-            transferPaymentMapper::toEntityOnCreate,
-            transferPaymentRepository::save,
-            transferPaymentMapper::toResponse,
-            dto
-        );
+        validatePaymentMethodAllowed(dto.paymentDetails().supplierId(), PaymentMethod.TRANSFER);
+        BankAccount acc = treasuryHook.resolveBankAccount(dto.bankAccountId());
+        TransferPayment entity = transferPaymentMapper.toEntityOnCreate(dto);
+        entity.setBankAccount(acc);
+        executePaymentBusinessLogic(dto.paymentDetails());
+        TransferPayment saved = transferPaymentRepository.save(entity);
+        treasuryHook.onTransferCreated(saved);
+        return transferPaymentMapper.toResponse(saved);
     }
 
     @Override
     @Transactional
     public CheckPaymentResponseDTO createCheck(CheckPaymentDTO dto) {
-        return createPayment(
-            dto.paymentDetails(),
-            checkPaymentMapper::toEntityOnCreate,
-            checkPaymentRepository::save,
-            checkPaymentMapper::toResponse,
-            dto
-        );
+        validatePaymentMethodAllowed(dto.paymentDetails().supplierId(), PaymentMethod.CHECK);
+        Checkbook checkbook = treasuryHook.resolveCheckbook(dto.checkbookId());
+        BankAccount acc;
+        if (checkbook != null) {
+            acc = checkbook.getBankAccount();
+        } else {
+            acc = treasuryHook.resolveBankAccount(dto.bankAccountId());
+        }
+        treasuryHook.validateCheckbookConsistency(checkbook, acc, dto.checkNumber());
+
+        CheckPayment entity = checkPaymentMapper.toEntityOnCreate(dto);
+        entity.setBankAccount(acc);
+        entity.setCheckbook(checkbook);
+        executePaymentBusinessLogic(dto.paymentDetails());
+        CheckPayment saved = checkPaymentRepository.save(entity);
+        treasuryHook.onCheckCreated(saved);
+        return checkPaymentMapper.toResponse(saved);
     }
 
     /**
@@ -274,11 +292,20 @@ public class PaymentService implements IPaymentService {
             entity -> {
                 // Get original data before update
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
+                // Revert treasury effect of the original payment before mutating
+                treasuryHook.revertCashMovement(entity);
                 // Update the entity
                 cashPaymentMapper.updateEntityFromDto(dto, entity);
+                if (dto.cashBoxId() != null) {
+                    treasuryHook.validateCashPaymentCashBox(dto.cashBoxId());
+                    entity.setCashBox(treasuryHook.resolveCashBox(dto.cashBoxId()));
+                }
                 return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails());
             },
-            cashPaymentMapper::toResponse
+            saved -> {
+                treasuryHook.onCashCreated(saved);
+                return cashPaymentMapper.toResponse(saved);
+            }
         );
     }
 
@@ -291,10 +318,17 @@ public class PaymentService implements IPaymentService {
             messageSourceHelper.getMessage("payment.transferNotFound", id),
             entity -> {
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
+                treasuryHook.revertTransferMovement(entity);
                 transferPaymentMapper.updateEntityFromDto(dto, entity);
+                if (dto.bankAccountId() != null) {
+                    entity.setBankAccount(treasuryHook.resolveBankAccount(dto.bankAccountId()));
+                }
                 return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails());
             },
-            transferPaymentMapper::toResponse
+            saved -> {
+                treasuryHook.onTransferCreated(saved);
+                return transferPaymentMapper.toResponse(saved);
+            }
         );
     }
 
@@ -307,10 +341,26 @@ public class PaymentService implements IPaymentService {
             messageSourceHelper.getMessage("payment.checkNotFound", id),
             entity -> {
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
+                treasuryHook.revertCheckMovement(entity);
                 checkPaymentMapper.updateEntityFromDto(dto, entity);
+                Checkbook checkbook = treasuryHook.resolveCheckbook(dto.checkbookId());
+                BankAccount acc;
+                if (checkbook != null) {
+                    acc = checkbook.getBankAccount();
+                } else if (dto.bankAccountId() != null) {
+                    acc = treasuryHook.resolveBankAccount(dto.bankAccountId());
+                } else {
+                    acc = entity.getBankAccount();
+                }
+                treasuryHook.validateCheckbookConsistency(checkbook, acc, dto.checkNumber() != null ? dto.checkNumber() : entity.getCheckNumber());
+                entity.setBankAccount(acc);
+                entity.setCheckbook(checkbook);
                 return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails());
             },
-            checkPaymentMapper::toResponse
+            saved -> {
+                treasuryHook.onCheckCreated(saved);
+                return checkPaymentMapper.toResponse(saved);
+            }
         );
     }
 
@@ -476,6 +526,15 @@ public class PaymentService implements IPaymentService {
 
         // 2. Revert all payment effects in the system
         revertPaymentBusinessLogic(paymentDetails);
+
+        // 2b. Revert treasury effects (bank account / cash box movements)
+        if (existing instanceof CheckPayment cp) {
+            treasuryHook.revertCheckMovement(cp);
+        } else if (existing instanceof TransferPayment tp) {
+            treasuryHook.revertTransferMovement(tp);
+        } else if (existing instanceof CashPayment csp) {
+            treasuryHook.revertCashMovement(csp);
+        }
 
         // 3. Mark as deleted
         try {

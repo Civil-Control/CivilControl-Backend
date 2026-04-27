@@ -272,7 +272,8 @@ public class PaymentOrderPdfService {
                 .setPaddingBottom(2));
 
         t.addCell(dataCell(transfer.getTransactionNumber() != null ? transfer.getTransactionNumber() : "-", TextAlignment.LEFT));
-        t.addCell(dataCell(transfer.getBankName() != null ? transfer.getBankName() : "-", TextAlignment.CENTER));
+        String bankName = transfer.getBankAccount() != null ? transfer.getBankAccount().getBankName() : null;
+        t.addCell(dataCell(bankName != null ? bankName : "-", TextAlignment.CENTER));
         t.addCell(dataCell(fmt(amount), TextAlignment.RIGHT));
 
         t.addCell(noBorderCell(1, 3).setMinHeight(30));

@@ -585,5 +585,31 @@ public final class AppPermissions {
      * Allows managing exception logs (cleanup, deletion).
      */
     public static final String EXCEPTION_LOG_WRITE = "EXCEPTION_LOG_WRITE";
+
+    // ==================== MODULE: TREASURY ====================
+
+    /**
+     * Module: Treasury
+     * Allows viewing cash boxes, bank accounts and checkbooks (and their movements).
+     */
+    public static final String TREASURY_READ = "TREASURY_READ";
+
+    /**
+     * Module: Treasury
+     * Allows creating, editing and registering manual movements on treasury entities.
+     */
+    public static final String TREASURY_WRITE = "TREASURY_WRITE";
+
+    /**
+     * Module: Treasury
+     * Allows deleting (soft-deleting) cash boxes, bank accounts and checkbooks.
+     */
+    public static final String TREASURY_DELETE = "TREASURY_DELETE";
+
+    /**
+     * Module: Treasury
+     * Allows performing balance adjustments (AJUSTE) on cash boxes and bank accounts.
+     */
+    public static final String TREASURY_BALANCE_ADJUST = "TREASURY_BALANCE_ADJUST";
 }
 

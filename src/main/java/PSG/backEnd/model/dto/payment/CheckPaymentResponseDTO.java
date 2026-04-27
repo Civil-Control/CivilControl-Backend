@@ -8,6 +8,11 @@ public record CheckPaymentResponseDTO(
         String type,
         LocalDate dueDate,
         String checkNumber,
-        String bankName
+        Long bankAccountId,
+        String bankAccountName,
+        String bankName,
+        Long checkbookId,
+        String checkbookName,
+        String checkbookNumber
 ) implements PaymentResponseDTO {
 }

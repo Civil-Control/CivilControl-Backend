@@ -42,9 +42,14 @@ public record InsurancePolicyPaymentCreateDTO(
         @NotBlank(message = "{validation.required}", groups = OnCreate.class)
         String paymentMethod,
 
-        @Schema(description = "Bank name (required for TRANSFER and CHECK).", nullable = true)
-        @Size(max = 100, message = "{validation.maxLength}", groups = {OnCreate.class, OnUpdate.class})
-        String bankName,
+        @Schema(description = "Bank account id (required for TRANSFER and CHECK).", nullable = true)
+        Long bankAccountId,
+
+        @Schema(description = "Checkbook id (optional, CHECK only).", nullable = true)
+        Long checkbookId,
+
+        @Schema(description = "Cash box id (CASH only; required when the tenant has any active cash box).", nullable = true)
+        Long cashBoxId,
 
         @Schema(description = "Transaction number (TRANSFER only).", nullable = true)
         @Size(max = 100, message = "{validation.maxLength}", groups = {OnCreate.class, OnUpdate.class})

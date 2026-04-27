@@ -76,10 +76,10 @@ public interface PaymentDetailsMapper {
 
     @Named("extractBankName")
     default String extractBankName(PaymentDetails payment) {
-        if (payment.getTransferPayment() != null) {
-            return payment.getTransferPayment().getBankName();
-        } else if (payment.getCheckPayment() != null) {
-            return payment.getCheckPayment().getBankName();
+        if (payment.getTransferPayment() != null && payment.getTransferPayment().getBankAccount() != null) {
+            return payment.getTransferPayment().getBankAccount().getBankName();
+        } else if (payment.getCheckPayment() != null && payment.getCheckPayment().getBankAccount() != null) {
+            return payment.getCheckPayment().getBankAccount().getBankName();
         }
         return null;
     }
