@@ -21,8 +21,8 @@ public interface CheckbookRepository extends JpaRepository<Checkbook, Long> {
     @Query("SELECT c FROM Checkbook c WHERE c.deleted = false " +
             "AND (:bankAccountId IS NULL OR c.bankAccount.id = :bankAccountId) " +
             "AND (:active IS NULL OR c.active = :active) " +
-            "AND (:search IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "                    OR LOWER(c.checkbookNumber) LIKE LOWER(CONCAT('%', :search, '%')))")
+            "AND (:search IS NULL OR LOWER(CAST(c.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "                    OR LOWER(CAST(c.checkbookNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))")
     Page<Checkbook> findAllWithFilters(@Param("bankAccountId") Long bankAccountId,
                                        @Param("active") Boolean active,
                                        @Param("search") String search,

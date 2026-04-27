@@ -17,9 +17,9 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
 
     @Query("SELECT b FROM BankAccount b WHERE b.deleted = false " +
             "AND (:active IS NULL OR b.active = :active) " +
-            "AND (:search IS NULL OR LOWER(b.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "                    OR LOWER(b.bankName) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "                    OR LOWER(b.accountNumber) LIKE LOWER(CONCAT('%', :search, '%')))")
+            "AND (:search IS NULL OR LOWER(CAST(b.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "                    OR LOWER(CAST(b.bankName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "                    OR LOWER(CAST(b.accountNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))")
     Page<BankAccount> findAllWithFilters(@Param("active") Boolean active,
                                          @Param("search") String search,
                                          Pageable pageable);

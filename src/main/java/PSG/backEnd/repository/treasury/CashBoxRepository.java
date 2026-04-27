@@ -19,8 +19,8 @@ public interface CashBoxRepository extends JpaRepository<CashBox, Long> {
 
     @Query("SELECT cb FROM CashBox cb WHERE cb.deleted = false " +
             "AND (:active IS NULL OR cb.active = :active) " +
-            "AND (:search IS NULL OR LOWER(cb.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "                    OR LOWER(COALESCE(cb.description, '')) LIKE LOWER(CONCAT('%', :search, '%')))")
+            "AND (:search IS NULL OR LOWER(CAST(cb.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+            "                    OR LOWER(CAST(COALESCE(cb.description, '') AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))")
     Page<CashBox> findAllWithFilters(@Param("active") Boolean active,
                                      @Param("search") String search,
                                      Pageable pageable);
