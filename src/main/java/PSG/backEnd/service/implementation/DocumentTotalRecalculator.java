@@ -66,7 +66,9 @@ public class DocumentTotalRecalculator {
 
         // --- RepairItems ---
         for (RepairItem ri : repairItemRepository.findByTransactionalDocumentId(documentId)) {
-            BigDecimal[] split = splitNetIva(ri.getAmount(), ri.getIvaPercentage());
+            BigDecimal qty = ri.getQuantity() != null ? ri.getQuantity() : BigDecimal.ONE;
+            BigDecimal lineAmount = ri.getAmount() != null ? ri.getAmount().multiply(qty) : null;
+            BigDecimal[] split = splitNetIva(lineAmount, ri.getIvaPercentage());
             net    = net.add(split[0]);
             iva    = iva.add(split[1]);
             exempt = exempt.add(split[2]);

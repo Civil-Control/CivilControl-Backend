@@ -36,6 +36,11 @@ public class RepairItem extends TenantEntity {
     @Column(precision = 12, scale = 2)
     private BigDecimal amount;
 
+    /** Number of units of this item. Defaults to 1 for backwards compatibility. */
+    @Column(nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal quantity = BigDecimal.ONE;
+
     /** IVA percentage applied to this item (default 21). */
     @Column(name = "iva_percentage", nullable = false, precision = 5, scale = 2)
     @Builder.Default

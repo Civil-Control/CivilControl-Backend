@@ -170,6 +170,9 @@ public class RepairOrderService implements IRepairOrderService {
                         .itemType(itemDTO.itemType())
                         .description(itemDTO.description())
                         .amount(itemDTO.amount())
+                        .quantity(itemDTO.quantity() != null
+                                ? itemDTO.quantity()
+                                : java.math.BigDecimal.ONE)
                         .sortOrder(sortOrder++)
                         .build();
                 repair.getItems().add(item);

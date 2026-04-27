@@ -17,8 +17,14 @@ public record RepairItemResponseDTO(
         @Schema(description = "Description of the item.")
         String description,
 
-        @Schema(description = "Amount for this item.", nullable = true)
+        @Schema(description = "Unit amount (price per unit) for this item.", nullable = true)
         BigDecimal amount,
+
+        @Schema(description = "Quantity of units. Defaults to 1 for legacy rows.", example = "1.00")
+        BigDecimal quantity,
+
+        @Schema(description = "Net subtotal for this line: amount * quantity. Null when amount is null.", nullable = true)
+        BigDecimal subtotal,
 
         @Schema(description = "IVA percentage applied to this item.", example = "21.00")
         BigDecimal ivaPercentage,
@@ -27,6 +33,10 @@ public record RepairItemResponseDTO(
                 "to a transactional document (the IVA reflects what was actually invoiced); null otherwise.",
                 nullable = true)
         BigDecimal ivaAmount,
+
+        @Schema(description = "Subtotal including IVA: subtotal + ivaAmount. Equals subtotal when ivaAmount is null.",
+                nullable = true)
+        BigDecimal subtotalWithIva,
 
         @Schema(description = "Linked transactional document summary, if any.", nullable = true)
         TransactionalDocumentSummaryDTO transactionalDocument,

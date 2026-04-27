@@ -27,11 +27,17 @@ public record RepairItemDTO(
         @Size(max = 500, message = "{repairItem.description.size}", groups = {OnCreate.class, OnUpdate.class})
         String description,
 
-        @Schema(description = "Amount for this item. Optional, must be >= 0.01 if provided.",
+        @Schema(description = "Unit amount (price per unit) for this item. Optional, must be >= 0.01 if provided.",
                 nullable = true)
         @DecimalMin(value = "0.01", message = "{repairItem.amount.min}", groups = {OnCreate.class, OnUpdate.class})
         @Digits(integer = 10, fraction = 2, message = "{validation.digits}", groups = {OnCreate.class, OnUpdate.class})
         BigDecimal amount,
+
+        @Schema(description = "Quantity of units for this item. Defaults to 1 if omitted. Must be > 0.",
+                nullable = true, example = "1.00")
+        @DecimalMin(value = "0.01", message = "{repairItem.quantity.min}", groups = {OnCreate.class, OnUpdate.class})
+        @Digits(integer = 10, fraction = 2, message = "{validation.digits}", groups = {OnCreate.class, OnUpdate.class})
+        BigDecimal quantity,
 
         @Schema(description = "IVA percentage (0-100). Defaults to 21 if omitted.", nullable = true, example = "21.00")
         @DecimalMin(value = "0.00", inclusive = true, message = "{validation.positiveOrZero}", groups = {OnCreate.class, OnUpdate.class})

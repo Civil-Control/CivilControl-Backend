@@ -51,31 +51,43 @@ public interface RepairMapper {
                 BigDecimal ivaPercentage = item.getIvaPercentage() != null
                         ? item.getIvaPercentage()
                         : new BigDecimal("21.00");
+                BigDecimal quantity = item.getQuantity() != null
+                        ? item.getQuantity()
+                        : BigDecimal.ONE;
+                BigDecimal subtotal = item.getAmount() != null
+                        ? item.getAmount().multiply(quantity).setScale(2, java.math.RoundingMode.HALF_UP)
+                        : null;
                 // IVA only counts when the item is linked to a transactional document:
                 // for unlinked items the IVA is just an estimate placeholder, so we
                 // expose null and exclude it from the repair total to avoid inflating it.
                 BigDecimal ivaAmount = null;
-                if (item.getTransactionalDocument() != null && item.getAmount() != null) {
-                    ivaAmount = item.getAmount()
+                if (item.getTransactionalDocument() != null && subtotal != null) {
+                    ivaAmount = subtotal
                             .multiply(ivaPercentage)
                             .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
                     totalIva = totalIva.add(ivaAmount);
                 }
+                BigDecimal subtotalWithIva = subtotal != null
+                        ? subtotal.add(ivaAmount != null ? ivaAmount : BigDecimal.ZERO)
+                        : null;
                 itemDtos.add(new RepairItemResponseDTO(
                         item.getId(),
                         item.getItemType() != null ? item.getItemType().name() : null,
                         item.getDescription(),
                         item.getAmount(),
+                        quantity,
+                        subtotal,
                         ivaPercentage,
                         ivaAmount,
+                        subtotalWithIva,
                         documentToSummaryDto(item.getTransactionalDocument()),
                         item.getSortOrder()
                 ));
-                if (item.getAmount() != null) {
+                if (subtotal != null) {
                     if (item.getItemType() == RepairItemType.MATERIAL) {
-                        materialSubtotal = materialSubtotal.add(item.getAmount());
+                        materialSubtotal = materialSubtotal.add(subtotal);
                     } else if (item.getItemType() == RepairItemType.MANO_DE_OBRA) {
-                        laborSubtotal = laborSubtotal.add(item.getAmount());
+                        laborSubtotal = laborSubtotal.add(subtotal);
                     }
                 }
             }
