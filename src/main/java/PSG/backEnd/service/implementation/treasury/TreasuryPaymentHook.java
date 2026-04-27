@@ -205,6 +205,52 @@ public class TreasuryPaymentHook {
                 cp);
     }
 
+    // ───────── Snapshot-based reversals (for update flows) ─────────
+    // These accept the ORIGINAL bankAccount/cashBox id + amount captured before mutating
+    // the entity, so the reversal hits the original target even if the new bank account
+    // has already been re-assigned on the entity.
+
+    public void revertCheckMovementSnapshot(Long originalBankAccountId, java.math.BigDecimal originalAmount) {
+        if (originalBankAccountId == null || originalAmount == null) return;
+        BankAccount acc = ((BankAccountService) bankAccountService).getEntityById(originalBankAccountId);
+        ((BankAccountService) bankAccountService).applyMovement(
+                acc,
+                BankAccountMovementType.CHEQUE_CANCELADO,
+                originalAmount,
+                LocalDate.now(),
+                messages.getMessageOrDefault("treasury.bankAccount.movement.revertCheck",
+                        "Reversa de cheque emitido (pago modificado/eliminado)"),
+                null,
+                null);
+    }
+
+    public void revertTransferMovementSnapshot(Long originalBankAccountId, java.math.BigDecimal originalAmount) {
+        if (originalBankAccountId == null || originalAmount == null) return;
+        BankAccount acc = ((BankAccountService) bankAccountService).getEntityById(originalBankAccountId);
+        ((BankAccountService) bankAccountService).applyMovement(
+                acc,
+                BankAccountMovementType.INCREMENTO_MANUAL,
+                originalAmount,
+                LocalDate.now(),
+                messages.getMessageOrDefault("treasury.bankAccount.movement.revertTransfer",
+                        "Reversa de transferencia (pago modificado/eliminado)"),
+                null,
+                null);
+    }
+
+    public void revertCashMovementSnapshot(Long originalCashBoxId, java.math.BigDecimal originalAmount) {
+        if (originalCashBoxId == null || originalAmount == null) return;
+        var box = ((CashBoxService) cashBoxService).getEntityById(originalCashBoxId);
+        ((CashBoxService) cashBoxService).applyMovement(
+                box,
+                CashBoxMovementType.INCREMENTO_MANUAL,
+                originalAmount,
+                LocalDate.now(),
+                messages.getMessageOrDefault("treasury.cashBox.movement.revertCash",
+                        "Reversa de pago en efectivo (modificado/eliminado)"),
+                null);
+    }
+
     private String buildCheckComment(CheckPayment cp) {
         StringBuilder sb = new StringBuilder("Cheque emitido");
         if (cp.getCheckNumber() != null) sb.append(" ").append(cp.getCheckNumber());

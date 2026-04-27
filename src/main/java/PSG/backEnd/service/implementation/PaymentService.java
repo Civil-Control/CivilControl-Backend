@@ -290,20 +290,38 @@ public class PaymentService implements IPaymentService {
             cashPaymentRepository,
             messageSourceHelper.getMessage("payment.cashNotFound", id),
             entity -> {
-                // Get original data before update
+                // Snapshot original data BEFORE mutating the entity so we can decide
+                // whether the treasury movement actually has to be reverted + re-emitted.
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
-                // Revert treasury effect of the original payment before mutating
-                treasuryHook.revertCashMovement(entity);
-                // Update the entity
+                Long originalCashBoxId = entity.getCashBox() != null ? entity.getCashBox().getId() : null;
+                java.math.BigDecimal originalAmount = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getAmount() : null;
+                java.time.LocalDate originalDate = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getPaymentDate() : null;
+
+                // Mutate the entity
                 cashPaymentMapper.updateEntityFromDto(dto, entity);
                 if (dto.cashBoxId() != null) {
                     treasuryHook.validateCashPaymentCashBox(dto.cashBoxId());
                     entity.setCashBox(treasuryHook.resolveCashBox(dto.cashBoxId()));
                 }
-                return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails());
+
+                Long newCashBoxId = entity.getCashBox() != null ? entity.getCashBox().getId() : null;
+                java.math.BigDecimal newAmount = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getAmount() : null;
+                java.time.LocalDate newDate = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getPaymentDate() : null;
+
+                boolean treasuryDirty = !java.util.Objects.equals(originalCashBoxId, newCashBoxId)
+                        || !equalsAmount(originalAmount, newAmount)
+                        || !java.util.Objects.equals(originalDate, newDate);
+
+                if (treasuryDirty && originalCashBoxId != null) {
+                    // Revert against the ORIGINAL cash box / amount, then re-emit (in saved -> ...).
+                    treasuryHook.revertCashMovementSnapshot(originalCashBoxId, originalAmount);
+                }
+                return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails(), treasuryDirty);
             },
-            saved -> {
-                treasuryHook.onCashCreated(saved);
+            (saved, info) -> {
+                if (info.treasuryDirty) {
+                    treasuryHook.onCashCreated(saved);
+                }
                 return cashPaymentMapper.toResponse(saved);
             }
         );
@@ -318,15 +336,32 @@ public class PaymentService implements IPaymentService {
             messageSourceHelper.getMessage("payment.transferNotFound", id),
             entity -> {
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
-                treasuryHook.revertTransferMovement(entity);
+                Long originalBankAccountId = entity.getBankAccount() != null ? entity.getBankAccount().getId() : null;
+                java.math.BigDecimal originalAmount = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getAmount() : null;
+                java.time.LocalDate originalDate = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getPaymentDate() : null;
+
                 transferPaymentMapper.updateEntityFromDto(dto, entity);
                 if (dto.bankAccountId() != null) {
                     entity.setBankAccount(treasuryHook.resolveBankAccount(dto.bankAccountId()));
                 }
-                return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails());
+
+                Long newBankAccountId = entity.getBankAccount() != null ? entity.getBankAccount().getId() : null;
+                java.math.BigDecimal newAmount = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getAmount() : null;
+                java.time.LocalDate newDate = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getPaymentDate() : null;
+
+                boolean treasuryDirty = !java.util.Objects.equals(originalBankAccountId, newBankAccountId)
+                        || !equalsAmount(originalAmount, newAmount)
+                        || !java.util.Objects.equals(originalDate, newDate);
+
+                if (treasuryDirty && originalBankAccountId != null) {
+                    treasuryHook.revertTransferMovementSnapshot(originalBankAccountId, originalAmount);
+                }
+                return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails(), treasuryDirty);
             },
-            saved -> {
-                treasuryHook.onTransferCreated(saved);
+            (saved, info) -> {
+                if (info.treasuryDirty) {
+                    treasuryHook.onTransferCreated(saved);
+                }
                 return transferPaymentMapper.toResponse(saved);
             }
         );
@@ -341,7 +376,10 @@ public class PaymentService implements IPaymentService {
             messageSourceHelper.getMessage("payment.checkNotFound", id),
             entity -> {
                 PaymentDetailsDTO originalDetails = extractPaymentDetails(entity);
-                treasuryHook.revertCheckMovement(entity);
+                Long originalBankAccountId = entity.getBankAccount() != null ? entity.getBankAccount().getId() : null;
+                java.math.BigDecimal originalAmount = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getAmount() : null;
+                java.time.LocalDate originalDate = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getPaymentDate() : null;
+
                 checkPaymentMapper.updateEntityFromDto(dto, entity);
                 Checkbook checkbook = treasuryHook.resolveCheckbook(dto.checkbookId());
                 BankAccount acc;
@@ -355,13 +393,34 @@ public class PaymentService implements IPaymentService {
                 treasuryHook.validateCheckbookConsistency(checkbook, acc, dto.checkNumber() != null ? dto.checkNumber() : entity.getCheckNumber());
                 entity.setBankAccount(acc);
                 entity.setCheckbook(checkbook);
-                return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails());
+
+                Long newBankAccountId = entity.getBankAccount() != null ? entity.getBankAccount().getId() : null;
+                java.math.BigDecimal newAmount = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getAmount() : null;
+                java.time.LocalDate newDate = entity.getPaymentDetails() != null ? entity.getPaymentDetails().getPaymentDate() : null;
+
+                boolean treasuryDirty = !java.util.Objects.equals(originalBankAccountId, newBankAccountId)
+                        || !equalsAmount(originalAmount, newAmount)
+                        || !java.util.Objects.equals(originalDate, newDate);
+
+                if (treasuryDirty && originalBankAccountId != null) {
+                    treasuryHook.revertCheckMovementSnapshot(originalBankAccountId, originalAmount);
+                }
+                return new PaymentUpdateInfo<>(entity, originalDetails, dto.paymentDetails(), treasuryDirty);
             },
-            saved -> {
-                treasuryHook.onCheckCreated(saved);
+            (saved, info) -> {
+                if (info.treasuryDirty) {
+                    treasuryHook.onCheckCreated(saved);
+                }
                 return checkPaymentMapper.toResponse(saved);
             }
         );
+    }
+
+    /** Treats null and zero as equal; uses compareTo so 100.00 and 100 match. */
+    private static boolean equalsAmount(java.math.BigDecimal a, java.math.BigDecimal b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.compareTo(b) == 0;
     }
 
     /**
@@ -371,11 +430,17 @@ public class PaymentService implements IPaymentService {
         final T entity;
         final PaymentDetailsDTO originalDetails;
         final PaymentDetailsDTO newDetails;
+        final boolean treasuryDirty;
 
         PaymentUpdateInfo(T entity, PaymentDetailsDTO originalDetails, PaymentDetailsDTO newDetails) {
+            this(entity, originalDetails, newDetails, true);
+        }
+
+        PaymentUpdateInfo(T entity, PaymentDetailsDTO originalDetails, PaymentDetailsDTO newDetails, boolean treasuryDirty) {
             this.entity = entity;
             this.originalDetails = originalDetails;
             this.newDetails = newDetails;
+            this.treasuryDirty = treasuryDirty;
         }
     }
 
@@ -387,7 +452,7 @@ public class PaymentService implements IPaymentService {
         JpaRepository<T, Long> repository,
         String errorMessage,
         Function<T, PaymentUpdateInfo<T>> updateFunction,
-        Function<T, R> responseMapper
+        java.util.function.BiFunction<T, PaymentUpdateInfo<T>, R> responseMapper
     ) {
         T existing = repository.findById(id)
             .filter(entity -> {
@@ -423,7 +488,7 @@ public class PaymentService implements IPaymentService {
         }
 
         T savedEntity = repository.save(updateInfo.entity);
-        return responseMapper.apply(savedEntity);
+        return responseMapper.apply(savedEntity, updateInfo);
     }
 
     /**
