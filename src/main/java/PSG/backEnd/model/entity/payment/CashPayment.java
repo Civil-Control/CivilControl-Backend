@@ -23,8 +23,8 @@ public class CashPayment extends TenantEntity {
     private PaymentDetails paymentDetails;
 
     /**
-     * Optional source cash box — required when the tenant has at least one active cash box,
-     * otherwise the field is ignored.
+     * Optional source cash box. When {@code null} no cash box movement is registered for this payment.
+     * When provided, it must reference an active cash box.
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cash_box_id")

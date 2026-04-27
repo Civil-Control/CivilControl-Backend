@@ -63,17 +63,15 @@ public class TreasuryPaymentHook {
     }
 
     /**
-     * Validates the cash payment cash box rules: if the tenant has any active cash box,
-     * the payment must reference one of them.
+     * Validates the cash payment cash box rules. The cash box is fully optional:
+     * when {@code cashBoxId} is {@code null} no cash box movement will be registered.
+     * If a cash box is provided it must be active.
      */
     public void validateCashPaymentCashBox(Long cashBoxId) {
-        if (cashBoxId != null) {
-            CashBox b = cashBoxService.getEntityById(cashBoxId);
-            if (Boolean.FALSE.equals(b.getActive())) {
-                throw new IllegalStateException(messages.getMessage("treasury.cashBox.inactive", b.getName()));
-            }
-        } else if (cashBoxService.tenantHasActiveCashBox()) {
-            throw new IllegalArgumentException(messages.getMessage("treasury.cashBox.required"));
+        if (cashBoxId == null) return;
+        CashBox b = cashBoxService.getEntityById(cashBoxId);
+        if (Boolean.FALSE.equals(b.getActive())) {
+            throw new IllegalStateException(messages.getMessage("treasury.cashBox.inactive", b.getName()));
         }
     }
 
