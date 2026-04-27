@@ -4538,6 +4538,7 @@ public class ReportService implements IReportService {
         String bankName = null;
         Long cashBoxId = null;
         String cashBoxName = null;
+        Long checkPaymentId = null;
         String checkNumber = null;
         LocalDate checkDueDate = null;
         CheckStatus checkStatus = null;
@@ -4551,6 +4552,7 @@ public class ReportService implements IReportService {
 
         if (m == PaymentMethod.CHECK) {
             CheckPayment chp = pd.getCheckPayment();
+            checkPaymentId = chp.getId();
             checkNumber = chp.getCheckNumber();
             checkDueDate = chp.getDueDate();
             checkPersisted = chp.getStatus();
@@ -4600,6 +4602,7 @@ public class ReportService implements IReportService {
                 paymentMethodReference,
                 bankAccountId, bankAccountName, bankName,
                 cashBoxId, cashBoxName,
+                checkPaymentId,
                 checkNumber, checkDueDate, checkStatus, checkPersisted, checkSettledDate, checkStatusComment,
                 checkbookId, checkbookName, checkbookNumber,
                 transferTransactionNumber

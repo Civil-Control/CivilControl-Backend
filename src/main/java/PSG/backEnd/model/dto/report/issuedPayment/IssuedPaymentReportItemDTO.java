@@ -34,6 +34,10 @@ public record IssuedPaymentReportItemDTO(
     String cashBoxName,
 
     // Check-specific
+    /** Identifier of the underlying CheckPayment row — used by the frontend to call
+     *  {@code PATCH /api/v1/payments/check/{id}/status} from the report. {@code null}
+     *  for non-check methods. */
+    Long checkPaymentId,
     String checkNumber,
     LocalDate checkDueDate,
     CheckStatus checkStatus,
