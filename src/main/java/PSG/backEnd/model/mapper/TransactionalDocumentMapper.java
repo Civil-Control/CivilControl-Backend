@@ -18,6 +18,7 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "paid", ignore = true)
+    @Mapping(target = "manuallyApplied", ignore = true)
     @Mapping(target = "items", ignore = true)  // Ignora items - se procesan manualmente en el service
     @Mapping(target = "supplier", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
@@ -63,13 +64,15 @@ public interface TransactionalDocumentMapper {
                 base.projectAreaId(), base.projectAreaName(), base.projectAreaColor(),
                 base.projectAreaTaskId(), base.projectAreaTaskName(),
                 base.comment(), base.paid(), base.deleted(),
-                status, creditApplied, pendingAmount, creditApplications, appliedCredits);
+                status, creditApplied, pendingAmount, creditApplications, appliedCredits,
+                Boolean.TRUE.equals(entity.getManuallyApplied()));
     }
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "paid", ignore = true)
+    @Mapping(target = "manuallyApplied", ignore = true)
     @Mapping(target = "items", ignore = true)  // Ignora items - se procesan manualmente en el service
     @Mapping(target = "supplier", ignore = true)
     @Mapping(target = "projectArea", ignore = true)

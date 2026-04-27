@@ -48,5 +48,8 @@ public record TransactionalDocumentResponseDTO(
     List<CreditNoteApplicationResponseDTO> creditApplications,
 
     /** Populated when this document IS an invoice/debit-note: the credit notes that have been applied to it. */
-    List<CreditNoteApplicationResponseDTO> appliedCredits
+    List<CreditNoteApplicationResponseDTO> appliedCredits,
+
+    /** True when a credit note was manually marked as applied (no invoice/debit-note links required). False otherwise. */
+    boolean manuallyApplied
 ) {}

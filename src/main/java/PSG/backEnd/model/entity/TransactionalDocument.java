@@ -70,6 +70,15 @@ public class TransactionalDocument extends TenantEntity {
     @Column(nullable = false)
     private Boolean paid;
 
+    /**
+     * Manual "applied" flag for credit notes. When true, the credit note is treated as
+     * fully applied (status APPLIED) even if it has no {@link CreditNoteApplication} rows,
+     * so it stops appearing as "available credit". Always false for non credit-note types.
+     */
+    @Column(name = "manually_applied", nullable = false)
+    @Builder.Default
+    private Boolean manuallyApplied = false;
+
     @Column(nullable = false)
     private Boolean deleted = false;
 

@@ -18,6 +18,7 @@ public interface ITransactionalDocumentService {
     TransactionalDocumentResponseDTO updateTransactionalDocument(Long id, TransactionalDocumentDTO transactionalDocumentDTO);
     void updateTransactionalDocumentStatus(Long documentId, Long supplierId, BigDecimal amount);
     void revertTransactionalDocumentStatusIfExists(Long documentId, Long supplierId);
+    TransactionalDocumentResponseDTO markCreditNoteApplied(Long id, boolean applied);
     LinkedRecordsSummaryDTO getLinkedRecordsSummary(Long id);
     void deleteTransactionalDocument(Long id, boolean deleteLinkedRecords);
     TransactionalDocument getEntityById(Long id);

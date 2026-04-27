@@ -45,7 +45,23 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             AND (CAST(:totalAmount AS BigDecimal) IS NULL OR td.total = :totalAmount)
             AND (CAST(:fromDate AS date) IS NULL OR td.date >= :fromDate)
             AND (CAST(:toDate AS date) IS NULL OR td.date <= :toDate)
-            AND (:paid IS NULL OR td.paid = :paid)
+            AND (:paid IS NULL OR (
+                td.documentType IN (PSG.backEnd.model.enums.documents.DocumentType.BILL_A,
+                                    PSG.backEnd.model.enums.documents.DocumentType.BILL_B,
+                                    PSG.backEnd.model.enums.documents.DocumentType.BILL_C,
+                                    PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_A,
+                                    PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_B,
+                                    PSG.backEnd.model.enums.documents.DocumentType.DEBIT_NOTE_C)
+                AND (
+                    (:paid = true AND (td.paid = true OR td.total <= COALESCE(
+                        (SELECT SUM(a.amountApplied) FROM CreditNoteApplication a
+                         WHERE a.invoice = td AND a.creditNote.deleted = false), 0)))
+                    OR
+                    (:paid = false AND td.paid = false AND td.total > COALESCE(
+                        (SELECT SUM(a.amountApplied) FROM CreditNoteApplication a
+                         WHERE a.invoice = td AND a.creditNote.deleted = false), 0))
+                )
+            ))
             AND (:search IS NULL OR (
                 LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
                 LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR

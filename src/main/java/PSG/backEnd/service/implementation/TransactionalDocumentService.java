@@ -375,6 +375,32 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         });
     }
 
+    /**
+     * Marks a credit note as manually applied. The credit note's supplier-balance impact
+     * was already subtracted at creation time, so the supplier balance is not touched here.
+     * Only the {@code manuallyApplied} flag flips, which moves its status to APPLIED and
+     * removes it from "available credit" listings.
+     *
+     * @throws IllegalArgumentException if the document is not a credit note or already has applications
+     */
+    @Override
+    @Transactional
+    public TransactionalDocumentResponseDTO markCreditNoteApplied(Long id, boolean applied) {
+        TransactionalDocument doc = getEntityById(id);
+        if (!isCreditNote(doc.getDocumentType())) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                    "document.markApplied.notCreditNote", id));
+        }
+        if (applied && doc.getCreditNoteApplications() != null && !doc.getCreditNoteApplications().isEmpty()) {
+            // Already APPLIED via real applications; manual flag is meaningless and would be misleading.
+            throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                    "document.markApplied.hasApplications", id));
+        }
+        doc.setManuallyApplied(applied);
+        TransactionalDocument saved = transactionalDocumentRepository.save(doc);
+        return enrichResponse(saved);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public LinkedRecordsSummaryDTO getLinkedRecordsSummary(Long id) {
@@ -865,8 +891,9 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         String status;
 
         if (isCreditNote(type)) {
-            status = doc.getCreditNoteApplications() != null && !doc.getCreditNoteApplications().isEmpty()
-                    ? STATUS_APPLIED : STATUS_UNAPPLIED;
+            boolean hasApplications = doc.getCreditNoteApplications() != null && !doc.getCreditNoteApplications().isEmpty();
+            boolean manuallyApplied = Boolean.TRUE.equals(doc.getManuallyApplied());
+            status = (hasApplications || manuallyApplied) ? STATUS_APPLIED : STATUS_UNAPPLIED;
             if (doc.getCreditNoteApplications() != null) {
                 creditApplications = doc.getCreditNoteApplications().stream()
                         .map(this::toApplicationDto)
