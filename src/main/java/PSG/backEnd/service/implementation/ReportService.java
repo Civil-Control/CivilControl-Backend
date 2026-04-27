@@ -4290,6 +4290,8 @@ public class ReportService implements IReportService {
     @Transactional(readOnly = true)
     public IssuedPaymentReportDTO generateIssuedPaymentReport(IssuedPaymentReportFilterDTO filters) {
         log.info("Generating Issued Payments report with filters: {}", filters);
+        // Apply defaults for missing dates (current month from day 1 .. today).
+        filters = applyIssuedPaymentDefaults(filters);
         validateIssuedPaymentFilters(filters);
 
         // 1. Fetch payments in range with eager subtype + supplier
@@ -4316,6 +4318,7 @@ public class ReportService implements IReportService {
         List<IssuedPaymentReportPrimaryGroupDTO> primaryGroups = switch (gb) {
             case METHOD   -> buildGroupsByMethodThenSupplier(items);
             case SUPPLIER -> buildGroupsBySupplierThenMethod(items);
+            case NONE     -> buildFlatSingleGroup(items);
         };
 
         // 7. Aggregate totals
@@ -4396,6 +4399,29 @@ public class ReportService implements IReportService {
             throw new InvalidReportFilterException(
                     messageSourceHelper.getMessage("report.issuedPayment.amountRange.invalid"));
         }
+    }
+
+    /**
+     * Defaults missing dates so the report can always be generated. Start date defaults
+     * to the first day of the current month and end date defaults to today. Future end
+     * dates are accepted on purpose (e.g. to forecast post-dated checks).
+     */
+    private IssuedPaymentReportFilterDTO applyIssuedPaymentDefaults(IssuedPaymentReportFilterDTO f) {
+        if (f == null) return f;
+        LocalDate start = f.startDate();
+        LocalDate end   = f.endDate();
+        if (start == null) {
+            start = LocalDate.now().withDayOfMonth(1);
+        }
+        if (end == null) {
+            end = LocalDate.now();
+        }
+        if (start == f.startDate() && end == f.endDate()) return f;
+        return new IssuedPaymentReportFilterDTO(
+                start, end, f.paymentMethods(), f.supplierIds(), f.projectAreaIds(),
+                f.checkStatuses(), f.bankAccountIds(), f.cashBoxIds(), f.checkbookIds(),
+                f.minAmount(), f.maxAmount(), f.onlyOverdueChecks(), f.groupBy()
+        );
     }
 
     private static PaymentMethod resolveMethod(PaymentDetails pd) {
@@ -4695,6 +4721,31 @@ public class ReportService implements IReportService {
         }
         groups.sort((a, b) -> a.groupLabel().compareToIgnoreCase(b.groupLabel()));
         return groups;
+    }
+
+    /**
+     * Builds a single flat group containing all items as one secondary group, used when
+     * the user picks "Sin agrupación". The frontend renders the secondary group's table
+     * directly, so all rows appear in a single list.
+     */
+    private List<IssuedPaymentReportPrimaryGroupDTO> buildFlatSingleGroup(
+            List<IssuedPaymentReportItemDTO> items) {
+        if (items.isEmpty()) return List.of();
+        BigDecimal subtotal = sumAmounts(items);
+        IssuedPaymentReportSecondaryGroupDTO inner = IssuedPaymentReportSecondaryGroupDTO.builder()
+                .groupKey("ALL")
+                .groupLabel("Todos los pagos")
+                .subtotalAmount(subtotal)
+                .paymentCount(items.size())
+                .payments(items)
+                .build();
+        return List.of(IssuedPaymentReportPrimaryGroupDTO.builder()
+                .groupKey("ALL")
+                .groupLabel("Todos los pagos")
+                .subtotalAmount(subtotal)
+                .paymentCount(items.size())
+                .secondaryGroups(List.of(inner))
+                .build());
     }
 
     private static BigDecimal sumAmounts(List<IssuedPaymentReportItemDTO> items) {

@@ -703,11 +703,11 @@ public class ReportController {
             @ApiResponse(responseCode = "400", description = "Invalid filter parameters")
     })
     public ResponseEntity<IssuedPaymentReportDTO> generateIssuedPaymentReport(
-            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd")
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @Parameter(description = "Start date (inclusive). Format: yyyy-MM-dd. Defaults to first day of current month.")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
 
-            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd")
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @Parameter(description = "End date (inclusive). Format: yyyy-MM-dd. Defaults to today.")
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
 
             @Parameter(description = "Payment methods filter")
             @RequestParam(required = false) List<PaymentMethod> paymentMethods,
@@ -769,8 +769,8 @@ public class ReportController {
             @Parameter(description = "Export format: PDF or EXCEL", required = true)
             @RequestParam ReportFormat format,
 
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             @RequestParam(required = false) List<PaymentMethod> paymentMethods,
             @RequestParam(required = false) List<Long> supplierIds,
             @RequestParam(required = false) List<Long> projectAreaIds,
