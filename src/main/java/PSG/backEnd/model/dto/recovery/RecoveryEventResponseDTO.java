@@ -1,5 +1,6 @@
 package PSG.backEnd.model.dto.recovery;
 
+import PSG.backEnd.model.enums.recovery.RecoveryBase;
 import PSG.backEnd.model.enums.recovery.RecoveryEventType;
 
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ public record RecoveryEventResponseDTO(
     Long supplierId,
     String supplierName,
     BigDecimal snapshotPercentage,
+    RecoveryBase snapshotBase,
     Long snapshotCashBoxId,
     String snapshotCashBoxName,
     BigDecimal documentNet,

@@ -38,6 +38,7 @@ public class RecoveryAssembler {
                 config.getSupplier() != null ? config.getSupplier().getLegalName() : null,
                 config.getSupplier() != null ? config.getSupplier().getCuit() : null,
                 config.getRecoveryPercentage(),
+                config.getRecoveryBase(),
                 config.getCashBox() != null ? config.getCashBox().getId() : null,
                 config.getCashBox() != null ? config.getCashBox().getName() : null,
                 config.getCashBox() != null ? config.getCashBox().getBalance() : null,
@@ -64,6 +65,7 @@ public class RecoveryAssembler {
                 event.getSupplierConfig() != null && event.getSupplierConfig().getSupplier() != null
                         ? event.getSupplierConfig().getSupplier().getLegalName() : null,
                 event.getSnapshotPercentage(),
+                event.getSnapshotBase(),
                 event.getSnapshotCashBox() != null ? event.getSnapshotCashBox().getId() : null,
                 event.getSnapshotCashBox() != null ? event.getSnapshotCashBox().getName() : null,
                 event.getDocumentNet(),

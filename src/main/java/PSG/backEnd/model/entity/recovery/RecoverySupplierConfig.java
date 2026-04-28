@@ -4,6 +4,7 @@ import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.treasury.CashBox;
+import PSG.backEnd.model.enums.recovery.RecoveryBase;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -51,9 +52,21 @@ public class RecoverySupplierConfig extends TenantEntity {
     @JoinColumn(name = "cash_box_id", nullable = false)
     private CashBox cashBox;
 
-    /** Percentage of the invoice's net amount to recover. Range [0.00, 100.00]. */
+    /** Percentage to recover, applied over {@link #recoveryBase}. Range [0.00, 100.00]. */
     @Column(name = "recovery_percentage", nullable = false, precision = 5, scale = 2)
     private BigDecimal recoveryPercentage;
+
+    /**
+     * Calculation base the {@link #recoveryPercentage} applies to. Defaults to
+     * {@link RecoveryBase#NET} (legacy formula: {@code (net * %) + iva}). Switching to
+     * {@link RecoveryBase#TOTAL} produces a flat {@code (net + iva) * %} computation.
+     * The chosen base is snapshotted on each generated event so historic recoveries are
+     * never affected by later edits to this config.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "recovery_base", nullable = false, length = 10)
+    @Builder.Default
+    private RecoveryBase recoveryBase = RecoveryBase.NET;
 
     @Column(nullable = false)
     @Builder.Default

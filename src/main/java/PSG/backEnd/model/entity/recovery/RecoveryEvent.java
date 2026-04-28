@@ -4,6 +4,7 @@ import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.treasury.CashBox;
 import PSG.backEnd.model.entity.treasury.CashBoxMovement;
+import PSG.backEnd.model.enums.recovery.RecoveryBase;
 import PSG.backEnd.model.enums.recovery.RecoveryEventType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -61,6 +62,12 @@ public class RecoveryEvent extends TenantEntity {
 
     @Column(name = "snapshot_percentage", nullable = false, precision = 5, scale = 2)
     private BigDecimal snapshotPercentage;
+
+    /** Calculation base used when this event was generated. Frozen at event creation time. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "snapshot_base", nullable = false, length = 10)
+    @Builder.Default
+    private RecoveryBase snapshotBase = RecoveryBase.NET;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "snapshot_cash_box_id", nullable = false)

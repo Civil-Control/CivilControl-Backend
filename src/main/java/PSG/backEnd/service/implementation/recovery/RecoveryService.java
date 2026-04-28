@@ -14,6 +14,7 @@ import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.model.entity.treasury.CashBox;
 import PSG.backEnd.model.entity.treasury.CashBoxMovement;
 import PSG.backEnd.model.enums.documents.DocumentType;
+import PSG.backEnd.model.enums.recovery.RecoveryBase;
 import PSG.backEnd.model.enums.recovery.RecoveryEventType;
 import PSG.backEnd.model.enums.treasury.CashBoxMovementType;
 import PSG.backEnd.repository.ProjectAreaRepository;
@@ -96,7 +97,8 @@ public class RecoveryService implements IRecoveryService {
 
         BigDecimal net = nullToZero(document.getNetTotal());
         BigDecimal iva = nullToZero(document.getIvaTotal());
-        BigDecimal recovered = computeRecoveredAmount(net, iva, config.getRecoveryPercentage());
+        RecoveryBase base = config.getRecoveryBase() != null ? config.getRecoveryBase() : RecoveryBase.NET;
+        BigDecimal recovered = computeRecoveredAmount(net, iva, config.getRecoveryPercentage(), base);
 
         if (recovered.signum() == 0) {
             // Edge case: zero-value invoice. Skip movement to avoid noise.
@@ -121,6 +123,7 @@ public class RecoveryService implements IRecoveryService {
                 .reversesEvent(null)
                 .supplierConfig(config)
                 .snapshotPercentage(config.getRecoveryPercentage())
+                .snapshotBase(base)
                 .snapshotCashBox(box)
                 .documentNet(net)
                 .documentIva(iva)
@@ -185,7 +188,10 @@ public class RecoveryService implements IRecoveryService {
                     .divide(cnTotal, 10, RoundingMode.HALF_UP);
             BigDecimal portionNet = cnNet.multiply(fraction);
             BigDecimal portionIva = cnIva.multiply(fraction);
-            BigDecimal adjustment = computeRecoveredAmount(portionNet, portionIva, original.getSnapshotPercentage())
+            // Use the snapshot base of the original event so the adjustment mirrors how the
+            // recovery was originally computed — even if the config base has changed since.
+            BigDecimal adjustment = computeRecoveredAmount(
+                    portionNet, portionIva, original.getSnapshotPercentage(), original.getSnapshotBase())
                     .negate();
             if (adjustment.signum() == 0) continue;
 
@@ -206,6 +212,7 @@ public class RecoveryService implements IRecoveryService {
                     .reversesEvent(original)
                     .supplierConfig(original.getSupplierConfig())
                     .snapshotPercentage(original.getSnapshotPercentage())
+                    .snapshotBase(original.getSnapshotBase())
                     .snapshotCashBox(original.getSnapshotCashBox())
                     .documentNet(portionNet.setScale(2, RoundingMode.HALF_UP))
                     .documentIva(portionIva.setScale(2, RoundingMode.HALF_UP))
@@ -241,6 +248,7 @@ public class RecoveryService implements IRecoveryService {
                 .reversesEvent(original)
                 .supplierConfig(original.getSupplierConfig())
                 .snapshotPercentage(original.getSnapshotPercentage())
+                .snapshotBase(original.getSnapshotBase())
                 .snapshotCashBox(original.getSnapshotCashBox())
                 .documentNet(original.getDocumentNet())
                 .documentIva(original.getDocumentIva())
@@ -265,15 +273,25 @@ public class RecoveryService implements IRecoveryService {
     }
 
     /**
-     * Recovery formula: {@code recovered = (net * percentage / 100) + iva}.
+     * Recovery formula:
+     * <ul>
+     *   <li>{@link RecoveryBase#NET} — {@code (net * percentage / 100) + iva}.
+     *       Applies the percentage to the net only and recovers the IVA at 100 %.</li>
+     *   <li>{@link RecoveryBase#TOTAL} — {@code (net + iva) * percentage / 100}.
+     *       Flat percentage of the full invoice total.</li>
+     * </ul>
      * Result is rounded HALF_UP to 2 decimals to match cash-box scale.
      */
-    private static BigDecimal computeRecoveredAmount(BigDecimal net, BigDecimal iva, BigDecimal percentage) {
+    private static BigDecimal computeRecoveredAmount(BigDecimal net, BigDecimal iva,
+                                                     BigDecimal percentage, RecoveryBase base) {
         BigDecimal pct = nullToZero(percentage)
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
-        return nullToZero(net).multiply(pct)
-                .add(nullToZero(iva))
-                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal n = nullToZero(net);
+        BigDecimal i = nullToZero(iva);
+        BigDecimal raw = (base == RecoveryBase.TOTAL)
+                ? n.add(i).multiply(pct)
+                : n.multiply(pct).add(i);
+        return raw.setScale(2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal nullToZero(BigDecimal v) {
@@ -347,6 +365,7 @@ public class RecoveryService implements IRecoveryService {
                 .supplier(supplier)
                 .cashBox(cashBox)
                 .recoveryPercentage(dto.recoveryPercentage())
+                .recoveryBase(dto.recoveryBase() == null ? RecoveryBase.NET : dto.recoveryBase())
                 .active(dto.active() == null ? Boolean.TRUE : dto.active())
                 .deleted(false)
                 .createdAt(LocalDateTime.now())
@@ -365,6 +384,9 @@ public class RecoveryService implements IRecoveryService {
         if (dto.recoveryPercentage() != null) {
             validatePercentage(dto.recoveryPercentage());
             config.setRecoveryPercentage(dto.recoveryPercentage());
+        }
+        if (dto.recoveryBase() != null) {
+            config.setRecoveryBase(dto.recoveryBase());
         }
         if (dto.cashBoxId() != null) {
             config.setCashBox(requireActiveCashBox(dto.cashBoxId()));
