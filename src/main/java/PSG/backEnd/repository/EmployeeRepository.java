@@ -21,6 +21,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findByIdAndDeletedFalse(Long id);
     Optional<Employee> findByDniAndDeletedTrue(String dni);
     Optional<Employee> findByCuilAndDeletedTrue(String cuil);
+    Optional<Employee> findByCuilAndDeletedFalse(String cuil);
     boolean existsByDniAndDeletedFalse(String dni);
     boolean existsByCuilAndDeletedFalse(String cuil);
     boolean existsByIdAndDeletedFalse(Long id);

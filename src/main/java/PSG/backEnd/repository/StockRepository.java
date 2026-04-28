@@ -19,6 +19,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     Optional<Stock> findByIdAndDeletedFalse(Long id);
 
     Optional<Stock> findByNameAndDeletedTrue(String name);
+    Optional<Stock> findByNameAndDeletedFalse(String name);
     boolean existsByNameAndDeletedFalse(String name);
     boolean existsByIdAndDeletedFalse(Long id);
 

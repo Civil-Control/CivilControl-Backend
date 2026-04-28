@@ -611,5 +611,40 @@ public final class AppPermissions {
      * Allows performing balance adjustments (AJUSTE) on cash boxes and bank accounts.
      */
     public static final String TREASURY_BALANCE_ADJUST = "TREASURY_BALANCE_ADJUST";
+
+    // ==================== MODULE: BUDGET FORECASTS ====================
+
+    /** Module: Budget Forecasts. Allows viewing budget forecasts and items. */
+    public static final String BUDGET_FORECAST_VIEW = "BUDGET_FORECAST_VIEW";
+
+    /** Module: Budget Forecasts. Allows creating new budget forecasts. */
+    public static final String BUDGET_FORECAST_CREATE = "BUDGET_FORECAST_CREATE";
+
+    /** Module: Budget Forecasts. Allows editing draft budget forecasts and their items. */
+    public static final String BUDGET_FORECAST_UPDATE = "BUDGET_FORECAST_UPDATE";
+
+    /** Module: Budget Forecasts. Allows soft-deleting budget forecasts. */
+    public static final String BUDGET_FORECAST_DELETE = "BUDGET_FORECAST_DELETE";
+
+    /** Module: Budget Forecasts. Allows confirming a draft forecast (BORRADOR -> CONFIRMADA). */
+    public static final String BUDGET_FORECAST_CONFIRM = "BUDGET_FORECAST_CONFIRM";
+
+    /** Module: Budget Forecasts. Allows reopening a confirmed forecast (CONFIRMADA -> BORRADOR). */
+    public static final String BUDGET_FORECAST_REOPEN = "BUDGET_FORECAST_REOPEN";
+
+    /** Module: Budget Forecasts. Allows applying items (materializing them as real records) and reverting/skipping. */
+    public static final String BUDGET_FORECAST_APPLY = "BUDGET_FORECAST_APPLY";
+
+    /** Module: Budget Forecast Templates. Allows viewing templates. */
+    public static final String BUDGET_FORECAST_TEMPLATE_VIEW = "BUDGET_FORECAST_TEMPLATE_VIEW";
+
+    /** Module: Budget Forecast Templates. Allows creating templates. */
+    public static final String BUDGET_FORECAST_TEMPLATE_CREATE = "BUDGET_FORECAST_TEMPLATE_CREATE";
+
+    /** Module: Budget Forecast Templates. Allows updating templates. */
+    public static final String BUDGET_FORECAST_TEMPLATE_UPDATE = "BUDGET_FORECAST_TEMPLATE_UPDATE";
+
+    /** Module: Budget Forecast Templates. Allows deleting templates. */
+    public static final String BUDGET_FORECAST_TEMPLATE_DELETE = "BUDGET_FORECAST_TEMPLATE_DELETE";
 }
 

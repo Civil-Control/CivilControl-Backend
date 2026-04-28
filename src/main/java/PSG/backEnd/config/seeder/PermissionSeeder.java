@@ -98,6 +98,9 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("AUDIT_", "System");
         MODULE_MAP.put("EXCEPTION_LOG_", "System");
         MODULE_MAP.put("TREASURY_", "Treasury");
+        // Longest-prefix-first: TEMPLATE before generic BUDGET_FORECAST_
+        MODULE_MAP.put("BUDGET_FORECAST_TEMPLATE_", "Budget Forecast Templates");
+        MODULE_MAP.put("BUDGET_FORECAST_", "Budget Forecasts");
 
         // Spanish translations for modules
         MODULE_SPANISH_MAP.put("EMPLOYEE_VACATION_", "Vacaciones de Empleados");
@@ -137,6 +140,8 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("AUDIT_", "Sistema");
         MODULE_SPANISH_MAP.put("EXCEPTION_LOG_", "Sistema");
         MODULE_SPANISH_MAP.put("TREASURY_", "Tesorería");
+        MODULE_SPANISH_MAP.put("BUDGET_FORECAST_TEMPLATE_", "Plantillas de Previsiones");
+        MODULE_SPANISH_MAP.put("BUDGET_FORECAST_", "Previsiones de Gastos");
 
         // Spanish translations for actions
         ACTION_SPANISH_MAP.put("READ", "Lectura");
@@ -152,6 +157,10 @@ public class PermissionSeeder implements CommandLineRunner {
         ACTION_SPANISH_MAP.put("ASSIGN", "Asignación");
         ACTION_SPANISH_MAP.put("CERTIFY", "Certificación");
         ACTION_SPANISH_MAP.put("FINANCIAL", "Financiero");
+        ACTION_SPANISH_MAP.put("UPDATE", "Actualización");
+        ACTION_SPANISH_MAP.put("CONFIRM", "Confirmación");
+        ACTION_SPANISH_MAP.put("REOPEN", "Reapertura");
+        ACTION_SPANISH_MAP.put("APPLY", "Aplicación");
         ACTION_SPANISH_MAP.put("CONFIG", "Configuración");
         ACTION_SPANISH_MAP.put("BALANCE_ADJUST", "Ajuste de Saldo");
 
@@ -208,6 +217,9 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_MAP.put("USER_", "administration");
         WORK_MODULE_MAP.put("ROLE_", "administration");
         WORK_MODULE_MAP.put("DATA_", "administration");
+        // forecasts: budget forecasts and templates
+        WORK_MODULE_MAP.put("BUDGET_FORECAST_TEMPLATE_", "forecasts");
+        WORK_MODULE_MAP.put("BUDGET_FORECAST_", "forecasts");
         WORK_MODULE_MAP.put("SYSTEM_", "administration");
         WORK_MODULE_MAP.put("AUDIT_", "administration");
         WORK_MODULE_MAP.put("EXCEPTION_LOG_", "administration");
@@ -219,6 +231,7 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_SPANISH_MAP.put("services", "Servicios");
         WORK_MODULE_SPANISH_MAP.put("documents", "Documentos");
         WORK_MODULE_SPANISH_MAP.put("vehicles", "Vehículos");
+        WORK_MODULE_SPANISH_MAP.put("forecasts", "Previsiones");
         WORK_MODULE_SPANISH_MAP.put("personal", "Personal");
         WORK_MODULE_SPANISH_MAP.put("mechanic", "Mecánica");
         WORK_MODULE_SPANISH_MAP.put("report", "Reportes");
@@ -542,6 +555,8 @@ public class PermissionSeeder implements CommandLineRunner {
         adjustmentMap.put("Pagos", "pagos");
         adjustmentMap.put("Documentos Transaccionales", "documentos transaccionales");
         adjustmentMap.put("Edificios", "edificios");
+        adjustmentMap.put("Previsiones de Gastos", "previsiones de gastos");
+        adjustmentMap.put("Plantillas de Previsiones", "plantillas de previsiones");
         adjustmentMap.put("Áreas de Proyecto", "áreas de proyecto");
         adjustmentMap.put("Reportes", "reportes");
         adjustmentMap.put("Sistema", "sistema");

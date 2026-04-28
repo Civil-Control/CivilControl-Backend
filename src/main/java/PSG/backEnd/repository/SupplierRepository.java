@@ -17,6 +17,7 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
     List<Supplier> findByDeletedFalse();
     Optional<Supplier> findByIdAndDeletedFalse(Long id);
     Optional<Supplier> findByCuitAndDeletedTrue(String cuit);
+    Optional<Supplier> findByCuitAndDeletedFalse(String cuit);
     Optional<Supplier> findByLegalNameAndDeletedTrue(String legalName);
     boolean existsByCuitAndDeletedFalse(String cuit);
     boolean existsByLegalNameAndDeletedFalse(String legalName);

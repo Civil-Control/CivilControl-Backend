@@ -17,6 +17,7 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
     List<Vehicle> findByDeletedFalse();
     Optional<Vehicle> findByIdAndDeletedFalse(Long id);
     Optional<Vehicle> findByLicensePlateAndDeletedTrue(String licensePlate);
+    Optional<Vehicle> findByLicensePlateAndDeletedFalse(String licensePlate);
     boolean existsByLicensePlateAndDeletedFalse(String licensePlate);
     boolean existsByIdAndDeletedFalse(Long id);
 
