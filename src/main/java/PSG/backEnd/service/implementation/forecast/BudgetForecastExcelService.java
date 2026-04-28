@@ -317,6 +317,100 @@ public class BudgetForecastExcelService {
         return cs;
     }
 
+    // ─────────────────────────── Plantilla en blanco ───────────────────────────
+
+    /**
+     * Genera una plantilla Excel vacía con encabezados, filas de ejemplo y una hoja de
+     * instrucciones para que el usuario complete y luego importe.
+     */
+    public byte[] generateImportTemplate() {
+        try (Workbook wb = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            // ── Hoja principal ──
+            Sheet sheet = wb.createSheet(SHEET_NAME);
+            CellStyle headerStyle = headerStyle(wb);
+
+            CellStyle exampleStyle = wb.createCellStyle();
+            Font exampleFont = wb.createFont();
+            exampleFont.setItalic(true);
+            exampleFont.setColor(IndexedColors.GREY_50_PERCENT.getIndex());
+            exampleStyle.setFont(exampleFont);
+
+            Row header = sheet.createRow(0);
+            for (int i = 0; i < HEADERS.length; i++) {
+                Cell c = header.createCell(i);
+                c.setCellValue(HEADERS[i]);
+                c.setCellStyle(headerStyle);
+            }
+
+            String today = LocalDate.now().format(DATE_FMT);
+            String[][] examples = {
+                    {"SALARIO",      "Pago mensual operario",      today, "150000",  "20123456789", "",            "",  "",       "",                ""},
+                    {"SERVICIO",     "Edenor — oficina central",   today, "85000",   "",            "",            "5", "",       "",                ""},
+                    {"PATENTE",      "Patente camión utilitario",  today, "42000",   "",            "",            "7", "",       "",                ""},
+                    {"REPARACION",   "Cambio de frenos",           today, "60000",   "",            "30711122223", "",  "AB123CD", "",               ""},
+                    {"COMPRA_STOCK", "Reposición tornillos M8",    today, "12500",   "",            "30711122223", "",  "",       "Tornillo M8x40",  "100"},
+                    {"OTRO",         "Imprevisto del mes",         today, "20000",   "",            "",            "",  "",       "",                ""},
+            };
+            for (int i = 0; i < examples.length; i++) {
+                Row row = sheet.createRow(i + 1);
+                String[] vals = examples[i];
+                for (int j = 0; j < vals.length; j++) {
+                    Cell c = row.createCell(j);
+                    c.setCellValue(vals[j]);
+                    c.setCellStyle(exampleStyle);
+                }
+            }
+
+            for (int i = 0; i < HEADERS.length; i++) sheet.autoSizeColumn(i);
+
+            // ── Hoja de instrucciones ──
+            Sheet instr = wb.createSheet("Instrucciones");
+            CellStyle instrHeader = wb.createCellStyle();
+            Font ihf = wb.createFont();
+            ihf.setBold(true);
+            ihf.setFontHeightInPoints((short) 12);
+            instrHeader.setFont(ihf);
+            CellStyle instrStyle = wb.createCellStyle();
+            instrStyle.setWrapText(true);
+
+            int r = 0;
+            addInstr(instr, r++, instrHeader, "Plantilla de importación de Items de Previsión");
+            r++;
+            addInstr(instr, r++, instrStyle, "1. Tipo (obligatorio): SALARIO, SERVICIO, PATENTE, REPARACION, COMPRA_STOCK u OTRO.");
+            addInstr(instr, r++, instrStyle, "2. Descripción (obligatoria): texto libre, máximo 500 caracteres.");
+            addInstr(instr, r++, instrStyle, "3. Fecha (obligatoria): formato DD/MM/YYYY. Debe estar dentro del período de la previsión.");
+            addInstr(instr, r++, instrStyle, "4. Monto (obligatorio): número mayor a 0. Acepta coma o punto decimal.");
+            addInstr(instr, r++, instrStyle, "5. Empleado(CUIL): requerido para SALARIO. Debe coincidir con un empleado activo.");
+            addInstr(instr, r++, instrStyle, "6. Proveedor(CUIT): opcional para REPARACION y COMPRA_STOCK.");
+            addInstr(instr, r++, instrStyle, "7. AsignaciónId: requerido para SERVICIO y PATENTE (id de la asignación de servicio).");
+            addInstr(instr, r++, instrStyle, "8. Vehículo(Patente): requerido para REPARACION.");
+            addInstr(instr, r++, instrStyle, "9. Stock(Nombre): requerido para COMPRA_STOCK.");
+            addInstr(instr, r++, instrStyle, "10. Cantidad: requerida para COMPRA_STOCK (mayor a 0).");
+            r++;
+            addInstr(instr, r++, instrHeader, "Notas importantes:");
+            addInstr(instr, r++, instrStyle, "- Las primeras filas son ejemplos. Elimínelas antes de importar.");
+            addInstr(instr, r++, instrStyle, "- El máximo de filas por importación es 1000.");
+            addInstr(instr, r++, instrStyle, "- El sistema valida todos los datos antes de persistir; las filas con error se reportan y se ignoran.");
+
+            instr.setColumnWidth(0, 90 * 256);
+
+            wb.write(baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Error generando plantilla de importación de previsión", e);
+            throw new BudgetForecastNotValidException("Error generando la plantilla: " + e.getMessage());
+        }
+    }
+
+    private void addInstr(Sheet sheet, int rowIdx, CellStyle style, String text) {
+        Row row = sheet.createRow(rowIdx);
+        Cell c = row.createCell(0);
+        c.setCellValue(text);
+        c.setCellStyle(style);
+    }
+
     // ─────────────────────────── Helpers cell ───────────────────────────
 
     private String getStringCell(Cell cell) {

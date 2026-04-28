@@ -196,6 +196,18 @@ public class BudgetForecastController {
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.BUDGET_FORECAST_VIEW + "')")
+    @GetMapping(value = "/items/import/template",
+            produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @Operation(summary = "Descargar plantilla Excel en blanco para importar items de previsión.")
+    public ResponseEntity<byte[]> downloadImportTemplate() {
+        byte[] data = service.generateImportTemplate();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"plantilla_items_prevision.xlsx\"")
+                .body(data);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.BUDGET_FORECAST_VIEW + "')")
     @GetMapping(value = "/{id}/export/excel", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @Operation(summary = "Exportar la previsión a Excel.")
     public ResponseEntity<byte[]> exportExcel(@PathVariable Long id) {

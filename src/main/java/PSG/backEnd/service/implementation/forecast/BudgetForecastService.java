@@ -395,6 +395,11 @@ public class BudgetForecastService implements IBudgetForecastService {
     }
 
     @Override
+    public byte[] generateImportTemplate() {
+        return excelService.generateImportTemplate();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public byte[] exportToExcel(Long forecastId) {
         return excelService.export(loadActive(forecastId));
