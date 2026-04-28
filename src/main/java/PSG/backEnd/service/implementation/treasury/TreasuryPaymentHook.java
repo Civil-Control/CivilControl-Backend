@@ -300,7 +300,10 @@ public class TreasuryPaymentHook {
         StringBuilder sb = new StringBuilder("Cheque emitido");
         if (cp.getCheckNumber() != null) sb.append(" ").append(cp.getCheckNumber());
         if (cp.getPaymentDetails() != null && cp.getPaymentDetails().getSupplier() != null) {
-            sb.append(" — ").append(cp.getPaymentDetails().getSupplier().getLegalName());
+            String legalName = cp.getPaymentDetails().getSupplier().getLegalName();
+            if (legalName != null && !legalName.isBlank()) {
+                sb.append(" — ").append(legalName);
+            }
         }
         return sb.toString();
     }
@@ -309,7 +312,10 @@ public class TreasuryPaymentHook {
         StringBuilder sb = new StringBuilder("Transferencia emitida");
         if (tp.getTransactionNumber() != null) sb.append(" ").append(tp.getTransactionNumber());
         if (tp.getPaymentDetails() != null && tp.getPaymentDetails().getSupplier() != null) {
-            sb.append(" — ").append(tp.getPaymentDetails().getSupplier().getLegalName());
+            String legalName = tp.getPaymentDetails().getSupplier().getLegalName();
+            if (legalName != null && !legalName.isBlank()) {
+                sb.append(" — ").append(legalName);
+            }
         }
         return sb.toString();
     }
@@ -317,7 +323,10 @@ public class TreasuryPaymentHook {
     private String buildCashComment(CashPayment cp) {
         StringBuilder sb = new StringBuilder("Pago en efectivo");
         if (cp.getPaymentDetails() != null && cp.getPaymentDetails().getSupplier() != null) {
-            sb.append(" — ").append(cp.getPaymentDetails().getSupplier().getLegalName());
+            String legalName = cp.getPaymentDetails().getSupplier().getLegalName();
+            if (legalName != null && !legalName.isBlank()) {
+                sb.append(" — ").append(legalName);
+            }
         }
         return sb.toString();
     }
