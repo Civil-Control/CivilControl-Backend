@@ -44,7 +44,7 @@ public class FuelLoadService implements IFuelLoadService {
         fuelLoad.setTransactionalDocument(resolveDocument(fuelLoadDTO.transactionalDocumentId()));
         FuelLoad savedFuelLoad = fuelLoadRepository.save(fuelLoad);
         entityManager.refresh(savedFuelLoad);
-        documentTotalRecalculator.recalculateDocumentTotals(fuelLoadDTO.transactionalDocumentId());
+        documentTotalRecalculator.recalculateAndRecover(fuelLoadDTO.transactionalDocumentId());
         return fuelLoadMapper.toResponseDto(savedFuelLoad);
     }
 
@@ -98,9 +98,9 @@ public class FuelLoadService implements IFuelLoadService {
         entityManager.refresh(updatedFuelLoad);
         // Recalculate old document if the link changed
         if (oldDocumentId != null && !oldDocumentId.equals(fuelLoadDTO.transactionalDocumentId())) {
-            documentTotalRecalculator.recalculateDocumentTotals(oldDocumentId);
+            documentTotalRecalculator.recalculateAndRecover(oldDocumentId);
         }
-        documentTotalRecalculator.recalculateDocumentTotals(fuelLoadDTO.transactionalDocumentId());
+        documentTotalRecalculator.recalculateAndRecover(fuelLoadDTO.transactionalDocumentId());
         return fuelLoadMapper.toResponseDto(updatedFuelLoad);
     }
 
@@ -110,7 +110,7 @@ public class FuelLoadService implements IFuelLoadService {
         Long docId = fuelLoad.getTransactionalDocument() != null
                 ? fuelLoad.getTransactionalDocument().getId() : null;
         fuelLoadRepository.delete(fuelLoad);
-        documentTotalRecalculator.recalculateDocumentTotals(docId);
+        documentTotalRecalculator.recalculateAndRecover(docId);
     }
 
     /**

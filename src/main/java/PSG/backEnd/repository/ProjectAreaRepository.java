@@ -16,6 +16,12 @@ public interface ProjectAreaRepository extends JpaRepository<ProjectArea, Long> 
     Optional<ProjectArea> findByIdAndDeletedFalse(Long id);
     Optional<ProjectArea> findByNameAndDeletedTrue(String name);
 
+    /** Feature 18 — used to enforce the at-most-one recovery sector per tenant. */
+    boolean existsByIsRecoverySectorTrueAndDeletedFalse();
+
+    /** Feature 18 — convenience lookup for the tenant's recovery sector (if any). */
+    Optional<ProjectArea> findFirstByIsRecoverySectorTrueAndDeletedFalse();
+
     @Query("SELECT p FROM ProjectArea p " +
            "WHERE p.deleted = false " +
            "AND (:name IS NULL OR LOWER(CAST(p.name AS string)) LIKE LOWER(CONCAT('%', CAST(:name AS string), '%'))) " +

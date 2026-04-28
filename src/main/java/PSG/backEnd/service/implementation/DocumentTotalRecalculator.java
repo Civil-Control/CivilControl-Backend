@@ -11,7 +11,10 @@ import PSG.backEnd.repository.RepairItemRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
 import PSG.backEnd.repository.StockPurchaseRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
+import PSG.backEnd.service.port.IRecoveryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,19 @@ public class DocumentTotalRecalculator {
     private final RepairItemRepository repairItemRepository;
     private final SalaryPaymentRepository salaryPaymentRepository;
     private final StockPurchaseRepository stockPurchaseRepository;
+
+    /**
+     * Feature 18 (Value Recovery) — lazily injected to break a potential cycle
+     * (RecoveryService depends on CashBoxService which has no dependency back here,
+     * but lazy keeps the wiring future-proof) and to allow opt-in usage via
+     * {@link #recalculateAndRecover(Long)} from linked-record services.
+     */
+    private IRecoveryService recoveryService;
+
+    @Autowired
+    public void setRecoveryService(@Lazy IRecoveryService recoveryService) {
+        this.recoveryService = recoveryService;
+    }
 
     @Transactional
     public void recalculateDocumentTotals(Long documentId) {
@@ -103,6 +119,24 @@ public class DocumentTotalRecalculator {
         document.setTotal(total);
 
         transactionalDocumentRepository.save(document);
+    }
+
+    /**
+     * Recalculates totals AND re-evaluates the Value Recovery event chain for the document.
+     * Used by linked-record services (Repair / FuelLoad / SalaryPayment / StockPurchase) so
+     * that editing/linking/unlinking a child record propagates the new net/IVA into a fresh
+     * recovery snapshot. Skips quietly when the document is not eligible (non-recovery sector,
+     * non-Factura A, deconfigured supplier, etc.).
+     */
+    @Transactional
+    public void recalculateAndRecover(Long documentId) {
+        if (documentId == null) return;
+        recalculateDocumentTotals(documentId);
+        if (recoveryService == null) return;
+        TransactionalDocument refreshed = transactionalDocumentRepository
+                .findByIdAndDeletedFalse(documentId).orElse(null);
+        if (refreshed == null) return;
+        recoveryService.regenerateIfNeeded(refreshed);
     }
 
     /**

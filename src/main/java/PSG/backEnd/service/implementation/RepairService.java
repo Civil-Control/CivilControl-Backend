@@ -132,7 +132,7 @@ public class RepairService implements IRepairService {
                 .collect(Collectors.toSet());
         oldDocIds.stream()
                 .filter(docId -> !newDocIds.contains(docId))
-                .forEach(documentTotalRecalculator::recalculateDocumentTotals);
+                .forEach(documentTotalRecalculator::recalculateAndRecover);
         recalculateItemDocuments(updatedRepair);
 
         return repairMapper.toResponseDto(updatedRepair);
@@ -150,7 +150,7 @@ public class RepairService implements IRepairService {
                 .collect(Collectors.toSet());
 
         repairRepository.delete(repair);
-        docIds.forEach(documentTotalRecalculator::recalculateDocumentTotals);
+        docIds.forEach(documentTotalRecalculator::recalculateAndRecover);
     }
 
     @Override
@@ -173,7 +173,7 @@ public class RepairService implements IRepairService {
             item.setSortOrder(sortOrder);
         }
         repairItemRepository.save(item);
-        documentTotalRecalculator.recalculateDocumentTotals(documentId);
+        documentTotalRecalculator.recalculateAndRecover(documentId);
     }
 
     @Override
@@ -186,7 +186,7 @@ public class RepairService implements IRepairService {
         item.setTransactionalDocument(null);
         repairItemRepository.save(item);
         if (oldDocId != null) {
-            documentTotalRecalculator.recalculateDocumentTotals(oldDocId);
+            documentTotalRecalculator.recalculateAndRecover(oldDocId);
         }
     }
 
@@ -198,7 +198,7 @@ public class RepairService implements IRepairService {
         item.setAmount(amount);
         repairItemRepository.save(item);
         if (item.getTransactionalDocument() != null) {
-            documentTotalRecalculator.recalculateDocumentTotals(item.getTransactionalDocument().getId());
+            documentTotalRecalculator.recalculateAndRecover(item.getTransactionalDocument().getId());
         }
     }
 
@@ -235,7 +235,7 @@ public class RepairService implements IRepairService {
                 .filter(i -> i.getTransactionalDocument() != null)
                 .map(i -> i.getTransactionalDocument().getId())
                 .distinct()
-                .forEach(documentTotalRecalculator::recalculateDocumentTotals);
+                .forEach(documentTotalRecalculator::recalculateAndRecover);
     }
 
     private void validateVehicleExists(Long vehicleId) {

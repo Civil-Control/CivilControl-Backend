@@ -112,6 +112,7 @@ public class ProjectAreaService implements IProjectAreaService {
 
     private ProjectAreaResponseDTO createNewProjectArea(ProjectAreaDTO projectAreaDTO) {
         ProjectArea projectArea = projectAreaMapper.toEntity(projectAreaDTO);
+        applyHiddenRecoveryFlag(projectArea);
         ProjectArea savedProjectArea = projectAreaRepository.save(projectArea);
         return projectAreaMapper.toResponseDto(savedProjectArea);
     }
@@ -121,9 +122,28 @@ public class ProjectAreaService implements IProjectAreaService {
         deletedProjectArea.setActive(projectAreaDTO.active() != null ? projectAreaDTO.active() : true);
         deletedProjectArea.setDescription(projectAreaDTO.description());
         deletedProjectArea.setColor(projectAreaDTO.color());
+        // Reactivating preserves the historical recovery flag if set; otherwise re-evaluate
+        // the magic name rule so a deleted-then-recreated "Recupero" area still works.
+        if (!Boolean.TRUE.equals(deletedProjectArea.getIsRecoverySector())) {
+            applyHiddenRecoveryFlag(deletedProjectArea);
+        }
 
         ProjectArea reactivatedProjectArea = projectAreaRepository.save(deletedProjectArea);
         return projectAreaMapper.toResponseDto(reactivatedProjectArea);
+    }
+
+    /**
+     * Hidden Feature 18 — auto-marks the new project area as the tenant's recovery sector
+     * when its name (case-insensitive, trimmed) is exactly {@code "recupero"} and no other
+     * active recovery sector exists for the tenant. Subsequent areas with the same name
+     * stay as ordinary sectors. The persistent flag survives later renames.
+     */
+    private void applyHiddenRecoveryFlag(ProjectArea area) {
+        String name = area.getName();
+        if (name == null) return;
+        if (!"recupero".equals(name.trim().toLowerCase())) return;
+        if (projectAreaRepository.existsByIsRecoverySectorTrueAndDeletedFalse()) return;
+        area.setIsRecoverySector(true);
     }
 
     private void validateUniqueFieldsForUpdate(ProjectAreaDTO projectAreaDTO, ProjectArea existingProjectArea) {

@@ -38,6 +38,18 @@ public class ProjectArea extends TenantEntity {
     @Column(columnDefinition = "VARCHAR(20)")
     private String color;
 
+    /**
+     * Hidden Feature 18 (Value Recovery) flag.
+     * Set automatically by {@code ProjectAreaService.create()} when the area name is
+     * exactly "Recupero" (case-insensitive, trimmed) and the tenant does not yet have
+     * a recovery sector. Persistent: once set, renaming the area does not clear it.
+     * Database guarantees at most one active recovery sector per tenant
+     * (partial unique index {@code uk_project_areas_recovery_per_tenant}).
+     */
+    @Column(name = "is_recovery_sector", nullable = false)
+    @Builder.Default
+    private Boolean isRecoverySector = false;
+
     @OneToMany(mappedBy = "projectArea", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<TransactionalDocument> transactionalDocuments = new ArrayList<>();

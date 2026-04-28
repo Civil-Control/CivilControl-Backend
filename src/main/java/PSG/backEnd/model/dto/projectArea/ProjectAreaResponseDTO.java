@@ -6,5 +6,7 @@ public record ProjectAreaResponseDTO(
     String description,
     Boolean active,
     Boolean deleted,
-    String color
+    String color,
+    /** True when this area is the tenant's hidden Value Recovery sector (Feature 18). */
+    Boolean isRecoverySector
 ) {}

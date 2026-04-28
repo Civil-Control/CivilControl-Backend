@@ -612,6 +612,20 @@ public final class AppPermissions {
      */
     public static final String TREASURY_BALANCE_ADJUST = "TREASURY_BALANCE_ADJUST";
 
+    // ==================== MODULE: VALUE RECOVERY (Feature 18, hidden) ====================
+
+    /**
+     * Module: Value Recovery (hidden Feature 18).
+     * Allows viewing recovery supplier configurations and the recovery events history.
+     */
+    public static final String RECOVERY_VIEW = "RECOVERY_VIEW";
+
+    /**
+     * Module: Value Recovery (hidden Feature 18).
+     * Allows creating, editing and (soft-)deleting per-supplier recovery configurations.
+     */
+    public static final String RECOVERY_MANAGE = "RECOVERY_MANAGE";
+
     // ==================== MODULE: BUDGET FORECASTS ====================
 
     /** Module: Budget Forecasts. Allows viewing budget forecasts and items. */

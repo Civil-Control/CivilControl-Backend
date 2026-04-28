@@ -30,6 +30,7 @@ import PSG.backEnd.repository.StockPurchaseRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.service.port.IProjectAreaService;
 import PSG.backEnd.service.port.IProjectAreaTaskService;
+import PSG.backEnd.service.port.IRecoveryService;
 import PSG.backEnd.service.port.IStockPurchaseService;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
@@ -69,6 +70,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final IStockPurchaseService iStockPurchaseService;
     private final DocumentTotalRecalculator documentTotalRecalculator;
     private final CreditNoteApplicationRepository creditNoteApplicationRepository;
+    private final IRecoveryService recoveryService;
 
     @Override
     @Transactional
@@ -109,6 +111,15 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         documentTotalRecalculator.recalculateDocumentTotals(document.getId());
         TransactionalDocument refreshed = transactionalDocumentRepository.findByIdAndDeletedFalse(document.getId())
                 .orElse(document);
+
+        // Feature 18 (Value Recovery) — eligibility is validated inside the service.
+        // For Facturas A in the recovery sector → generate the positive cash-box movement.
+        // For credit notes → adjust each linked invoice that already produced a recovery.
+        if (isCreditNote(refreshed.getDocumentType())) {
+            recoveryService.adjustForCreditNote(refreshed);
+        } else {
+            recoveryService.generateForDocument(refreshed);
+        }
         return enrichResponse(refreshed);
     }
 
@@ -202,6 +213,17 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         documentTotalRecalculator.recalculateDocumentTotals(savedDocument.getId());
         TransactionalDocument refreshed = transactionalDocumentRepository.findByIdAndDeletedFalse(savedDocument.getId())
                 .orElse(savedDocument);
+
+        // Feature 18 (Value Recovery) — re-evaluate after edits. For credit notes, also
+        // re-issue the proportional adjustment using the current set of credit applications.
+        if (isCreditNote(refreshed.getDocumentType())) {
+            // The previous adjustment is left in place (it referenced the prior credit apps).
+            // A future iteration may want to fully reverse + re-adjust; for now we only
+            // adjust against any newly added recovery-eligible invoices.
+            recoveryService.adjustForCreditNote(refreshed);
+        } else {
+            recoveryService.regenerateIfNeeded(refreshed);
+        }
         return enrichResponse(refreshed);
     }
 
@@ -495,6 +517,10 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
         document.setDeleted(true);
         transactionalDocumentRepository.save(document);
+
+        // Feature 18 — releasing the recovered amount when the originating Factura A is
+        // soft-deleted. No-op for documents that never produced a recovery event.
+        recoveryService.reverseForDocument(document);
     }
 
     /// Private auxiliary methods

@@ -64,7 +64,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         salaryPayment.setTransactionalDocument(resolveDocument(salaryPaymentDTO.transactionalDocumentId()));
 
         SalaryPayment savedSalaryPayment = salaryPaymentRepository.save(salaryPayment);
-        documentTotalRecalculator.recalculateDocumentTotals(salaryPaymentDTO.transactionalDocumentId());
+        documentTotalRecalculator.recalculateAndRecover(salaryPaymentDTO.transactionalDocumentId());
         return salaryPaymentMapper.toResponseDto(savedSalaryPayment);
     }
 
@@ -136,9 +136,9 @@ public class SalaryPaymentService implements ISalaryPaymentService {
 
         // Recalculate old document if the link changed
         if (oldDocumentId != null && !oldDocumentId.equals(salaryPaymentDTO.transactionalDocumentId())) {
-            documentTotalRecalculator.recalculateDocumentTotals(oldDocumentId);
+            documentTotalRecalculator.recalculateAndRecover(oldDocumentId);
         }
-        documentTotalRecalculator.recalculateDocumentTotals(salaryPaymentDTO.transactionalDocumentId());
+        documentTotalRecalculator.recalculateAndRecover(salaryPaymentDTO.transactionalDocumentId());
 
         return salaryPaymentMapper.toResponseDto(updatedSalaryPayment);
     }
@@ -152,7 +152,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
         Long docId = salaryPayment.getTransactionalDocument() != null
                 ? salaryPayment.getTransactionalDocument().getId() : null;
         salaryPaymentRepository.delete(salaryPayment);
-        documentTotalRecalculator.recalculateDocumentTotals(docId);
+        documentTotalRecalculator.recalculateAndRecover(docId);
     }
 
     private void validateEmployeeExists(Long employeeId) {

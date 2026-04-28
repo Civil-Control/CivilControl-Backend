@@ -60,7 +60,7 @@ public class StockPurchaseService implements IStockPurchaseService {
         stock.setQuantity(stock.getQuantity().add(dto.quantity()));
         stockRepository.save(stock);
 
-        documentTotalRecalculator.recalculateDocumentTotals(dto.transactionalDocumentId());
+        documentTotalRecalculator.recalculateAndRecover(dto.transactionalDocumentId());
         return stockPurchaseMapper.toResponseDto(saved, stock, loadLinkedDocument(saved.getTransactionalDocumentId()));
     }
 
@@ -145,9 +145,9 @@ public class StockPurchaseService implements IStockPurchaseService {
 
         // Recalculate old document if the link changed
         if (oldDocumentId != null && !oldDocumentId.equals(dto.transactionalDocumentId())) {
-            documentTotalRecalculator.recalculateDocumentTotals(oldDocumentId);
+            documentTotalRecalculator.recalculateAndRecover(oldDocumentId);
         }
-        documentTotalRecalculator.recalculateDocumentTotals(dto.transactionalDocumentId());
+        documentTotalRecalculator.recalculateAndRecover(dto.transactionalDocumentId());
 
         Stock stock = stockRepository.findById(updated.getStockId()).orElse(null);
         return stockPurchaseMapper.toResponseDto(updated, stock, loadLinkedDocument(updated.getTransactionalDocumentId()));
@@ -169,6 +169,6 @@ public class StockPurchaseService implements IStockPurchaseService {
         });
 
         stockPurchaseRepository.delete(purchase);
-        documentTotalRecalculator.recalculateDocumentTotals(docId);
+        documentTotalRecalculator.recalculateAndRecover(docId);
     }
 }

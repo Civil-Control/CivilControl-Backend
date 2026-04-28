@@ -185,6 +185,38 @@ public class CashBoxService implements ICashBoxService {
         return m;
     }
 
+    /**
+     * Helper for the Value Recovery feature (Feature 18) — registers a movement with an
+     * explicit signed delta, bypassing the enum's {@code applySign}. The {@code amount}
+     * column stores the absolute value; {@code signedAmount} stores the actual delta.
+     * Used for both the positive automatic recovery and the negative reverse / adjustment.
+     */
+    public CashBoxMovement applySignedMovement(CashBox box,
+                                               CashBoxMovementType type,
+                                               BigDecimal signedAmount,
+                                               LocalDate movementDate,
+                                               String comment) {
+        BigDecimal signed = signedAmount != null ? signedAmount : BigDecimal.ZERO;
+        BigDecimal newBalance = box.getBalance().add(signed);
+
+        CashBoxMovement m = CashBoxMovement.builder()
+                .cashBox(box)
+                .type(type)
+                .amount(signed.abs())
+                .signedAmount(signed)
+                .balanceAfter(newBalance)
+                .movementDate(movementDate != null ? movementDate : LocalDate.now())
+                .comment(comment)
+                .createdAt(LocalDateTime.now())
+                .createdByUserId(currentUserId())
+                .cashPayment(null)
+                .build();
+        m = movementRepository.save(m);
+        box.setBalance(newBalance);
+        cashBoxRepository.save(box);
+        return m;
+    }
+
     private CashBoxMovement applyAdjustment(CashBox box,
                                             BigDecimal absoluteDelta,
                                             BigDecimal signedDelta,
