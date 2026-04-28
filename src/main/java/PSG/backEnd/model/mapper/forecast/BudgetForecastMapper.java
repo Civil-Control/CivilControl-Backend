@@ -84,7 +84,7 @@ public interface BudgetForecastMapper {
                 item.getExpectedDate(),
                 item.getExpectedAmount(),
                 item.getEmployee() != null ? item.getEmployee().getId() : null,
-                item.getEmployee() != null ? (item.getEmployee().getName() + " " + item.getEmployee().getLastName()) : null,
+                item.getEmployee() != null ? (item.getEmployee().getLastName() + " " + item.getEmployee().getName()) : null,
                 item.getSupplier() != null ? item.getSupplier().getId() : null,
                 item.getSupplier() != null ? item.getSupplier().getLegalName() : null,
                 item.getServiceAssignment() != null ? item.getServiceAssignment().getId() : null,
