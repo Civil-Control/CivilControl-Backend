@@ -37,7 +37,7 @@ public interface IBudgetForecastService {
 
     // ── Import / Export ──
     BudgetForecastImportResultDTO importItemsFromExcel(Long forecastId, MultipartFile file, boolean dryRun);
-    byte[] generateImportTemplate();
+    byte[] generateImportTemplate(Long forecastId);
     byte[] exportToExcel(Long forecastId);
     byte[] exportToPdf(Long forecastId);
 }

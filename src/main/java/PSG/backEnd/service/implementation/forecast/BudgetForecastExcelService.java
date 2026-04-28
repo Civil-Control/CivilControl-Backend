@@ -31,27 +31,52 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Importador y exportador de items de previsión en formato Excel (.xlsx).
  *
- * <h3>Esquema del archivo</h3>
- * Hoja: <i>Items Previsión</i>. Encabezados (orden estricto):
- * Tipo | Descripción | Fecha (dd/MM/yyyy) | Monto | Empleado(CUIL) | Proveedor(CUIT) |
- * AsignaciónId | Vehículo(Patente) | Stock(Nombre) | Cantidad
+ * <h3>Layout matricial (espejo de la tabla del frontend)</h3>
+ * <pre>
+ *  Tipo │ Identificador │ &lt;día 1&gt; │ &lt;día 2&gt; │ … │ &lt;día N&gt; │ Monto │ Cantidad │ Proveedor (CUIT) │ Estado
+ * </pre>
+ * <ul>
+ *   <li>Hay una columna por cada día del período de la previsión.</li>
+ *   <li>Cada fila representa un item; la celda del día correspondiente contiene la
+ *       <b>descripción</b> del item (las restantes celdas de día se dejan vacías).</li>
+ *   <li>El <b>Identificador</b> es la clave canónica según el tipo:
+ *     <ul>
+ *       <li>SALARIO → CUIL del empleado</li>
+ *       <li>SERVICIO / PATENTE → ID de la asignación de servicio</li>
+ *       <li>REPARACION → patente del vehículo</li>
+ *       <li>COMPRA_STOCK → nombre del stock</li>
+ *       <li>OTRO → vacío</li>
+ *     </ul>
+ *   </li>
+ *   <li><b>Cantidad</b> aplica únicamente a COMPRA_STOCK.</li>
+ *   <li><b>Proveedor (CUIT)</b> es opcional para REPARACION y COMPRA_STOCK.</li>
+ *   <li><b>Estado</b> se exporta como informativo y se ignora en la importación
+ *       (los items importados quedan siempre en PENDIENTE).</li>
+ * </ul>
  *
  * <h3>Códigos de error/advertencia</h3>
  * <ul>
  *   <li>E1: tipo desconocido</li>
- *   <li>E2: descripción vacía</li>
- *   <li>E3: fecha inválida o vacía</li>
- *   <li>E4: monto inválido o &lt;=0</li>
- *   <li>E5: referencia obligatoria faltante para el tipo</li>
- *   <li>E6: referencia no encontrada</li>
+ *   <li>E2: descripción/celda de día no encontrada</li>
+ *   <li>E3: fecha fuera del período de la previsión</li>
+ *   <li>E4: monto inválido o &lt;= 0</li>
+ *   <li>E5: identificador obligatorio faltante o cantidad inválida</li>
+ *   <li>E6: referencia (empleado, vehículo, etc.) no encontrada</li>
  *   <li>W1: cantidad de stock omitida (asume 1)</li>
+ *   <li>W2: descripción presente en más de una celda de día (se usa la primera)</li>
  * </ul>
  */
 @Component
@@ -61,12 +86,24 @@ public class BudgetForecastExcelService {
 
     private static final String SHEET_NAME = "Items Previsión";
     private static final int MAX_ROWS = 1000;
+    private static final int MAX_DAYS = 366;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final String[] HEADERS = {
-            "Tipo", "Descripción", "Fecha", "Monto",
-            "Empleado(CUIL)", "Proveedor(CUIT)", "AsignaciónId",
-            "Vehículo(Patente)", "Stock(Nombre)", "Cantidad"
-    };
+    private static final DateTimeFormatter ISO_FMT = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final Locale ES_AR = new Locale("es", "AR");
+    private static final Pattern HEADER_DATE_PATTERN = Pattern.compile("(\\d{2}/\\d{2}/\\d{4})");
+
+    // Posición de las columnas fijas del lado izquierdo. Las del lado derecho se calculan
+    // dinámicamente en función del rango de días (que es variable por previsión).
+    private static final int COL_TYPE = 0;
+    private static final int COL_IDENTIFIER = 1;
+    private static final int FIXED_LEFT_COLS = 2;        // Tipo + Identificador
+    private static final int FIXED_RIGHT_COLS = 4;       // Monto + Cantidad + Proveedor + Estado
+    private static final String HEADER_TYPE = "Tipo";
+    private static final String HEADER_IDENTIFIER = "Identificador";
+    private static final String HEADER_AMOUNT = "Monto";
+    private static final String HEADER_QUANTITY = "Cantidad";
+    private static final String HEADER_SUPPLIER = "Proveedor (CUIT)";
+    private static final String HEADER_STATUS = "Estado";
 
     private final EmployeeRepository employeeRepository;
     private final SupplierRepository supplierRepository;
@@ -81,12 +118,17 @@ public class BudgetForecastExcelService {
         if (file == null || file.isEmpty()) {
             throw new BudgetForecastNotValidException("El archivo está vacío.");
         }
+        if (forecast.getPeriodFrom() == null || forecast.getPeriodTo() == null) {
+            throw new BudgetForecastNotValidException("La previsión no tiene un período definido.");
+        }
+
         try (InputStream is = file.getInputStream();
              Workbook workbook = new XSSFWorkbook(is)) {
 
             Sheet sheet = workbook.getSheet(SHEET_NAME);
             if (sheet == null) sheet = workbook.getSheetAt(0);
-            validateHeaders(sheet);
+
+            HeaderLayout layout = parseHeaders(sheet, forecast);
 
             int lastRow = sheet.getLastRowNum();
             if (lastRow < 1) {
@@ -108,11 +150,11 @@ public class BudgetForecastExcelService {
 
             for (int r = 1; r <= lastRow; r++) {
                 Row row = sheet.getRow(r);
-                if (isRowEmpty(row)) continue;
+                if (isRowEmpty(row, layout)) continue;
                 totalRows++;
                 int displayRow = r + 1;
                 try {
-                    BudgetForecastItem item = parseRow(row, displayRow, forecast, warnings);
+                    BudgetForecastItem item = parseRow(row, displayRow, forecast, layout, warnings);
                     item.setRowOrder(baseOrder++);
                     toAdd.add(item);
                 } catch (RowParseException ex) {
@@ -143,41 +185,123 @@ public class BudgetForecastExcelService {
         }
     }
 
-    private void validateHeaders(Sheet sheet) {
+    /**
+     * Lee la fila de encabezados y reconstruye el layout matricial: detecta las columnas
+     * fijas (Tipo/Identificador a la izquierda; Monto/Cantidad/Proveedor/Estado a la derecha)
+     * y mapea cada columna intermedia a la fecha que representa.
+     * <p>
+     * Esto permite que el archivo importado tenga un período distinto al exportado siempre
+     * que las fechas estén dentro del período de la previsión.
+     */
+    private HeaderLayout parseHeaders(Sheet sheet, BudgetForecast forecast) {
         Row header = sheet.getRow(0);
         if (header == null) {
             throw new BudgetForecastNotValidException("La hoja no tiene encabezados.");
         }
-        for (int i = 0; i < HEADERS.length; i++) {
-            String actual = getStringCell(header.getCell(i));
-            if (actual == null || !actual.trim().equalsIgnoreCase(HEADERS[i])) {
+
+        if (!equalsIgnoreCaseTrim(getStringCell(header.getCell(COL_TYPE)), HEADER_TYPE)) {
+            throw new BudgetForecastNotValidException(
+                    "Encabezado inválido en columna 1. Esperado: \"" + HEADER_TYPE + "\".");
+        }
+        if (!equalsIgnoreCaseTrim(getStringCell(header.getCell(COL_IDENTIFIER)), HEADER_IDENTIFIER)) {
+            throw new BudgetForecastNotValidException(
+                    "Encabezado inválido en columna 2. Esperado: \"" + HEADER_IDENTIFIER + "\".");
+        }
+
+        int lastCol = header.getLastCellNum() - 1;
+        if (lastCol < FIXED_LEFT_COLS + FIXED_RIGHT_COLS) {
+            throw new BudgetForecastNotValidException("La hoja no tiene la cantidad mínima de columnas esperadas.");
+        }
+
+        int amountCol = lastCol - 3;
+        int quantityCol = lastCol - 2;
+        int supplierCol = lastCol - 1;
+        int statusCol = lastCol;
+        if (!equalsIgnoreCaseTrim(getStringCell(header.getCell(amountCol)), HEADER_AMOUNT)
+                || !equalsIgnoreCaseTrim(getStringCell(header.getCell(quantityCol)), HEADER_QUANTITY)
+                || !equalsIgnoreCaseTrim(getStringCell(header.getCell(supplierCol)), HEADER_SUPPLIER)
+                || !equalsIgnoreCaseTrim(getStringCell(header.getCell(statusCol)), HEADER_STATUS)) {
+            throw new BudgetForecastNotValidException(
+                    "Las últimas 4 columnas deben ser, en orden: \"" + HEADER_AMOUNT + "\", \""
+                            + HEADER_QUANTITY + "\", \"" + HEADER_SUPPLIER + "\", \"" + HEADER_STATUS + "\".");
+        }
+
+        Map<Integer, LocalDate> dateColumns = new HashMap<>();
+        for (int c = FIXED_LEFT_COLS; c < amountCol; c++) {
+            String text = getStringCell(header.getCell(c));
+            LocalDate d = extractHeaderDate(text);
+            if (d == null) {
                 throw new BudgetForecastNotValidException(
-                        "Encabezado inválido en columna " + (i + 1) + ". Esperado: \"" + HEADERS[i] + "\".");
+                        "Encabezado de día inválido en columna " + (c + 1)
+                                + ". Se esperaba una fecha en formato dd/MM/yyyy.");
             }
+            if (d.isBefore(forecast.getPeriodFrom()) || d.isAfter(forecast.getPeriodTo())) {
+                throw new BudgetForecastNotValidException(
+                        "La columna " + (c + 1) + " (" + text + ") está fuera del período de la previsión ("
+                                + forecast.getPeriodFrom().format(DATE_FMT) + " — "
+                                + forecast.getPeriodTo().format(DATE_FMT) + ").");
+            }
+            dateColumns.put(c, d);
+        }
+        if (dateColumns.isEmpty()) {
+            throw new BudgetForecastNotValidException("La hoja no contiene columnas de día.");
+        }
+
+        return new HeaderLayout(amountCol, quantityCol, supplierCol, statusCol, dateColumns);
+    }
+
+    private LocalDate extractHeaderDate(String text) {
+        if (text == null) return null;
+        Matcher m = HEADER_DATE_PATTERN.matcher(text);
+        if (!m.find()) return null;
+        try {
+            return LocalDate.parse(m.group(1), DATE_FMT);
+        } catch (Exception e) {
+            return null;
         }
     }
 
     private BudgetForecastItem parseRow(Row row, int displayRow, BudgetForecast forecast,
+                                        HeaderLayout layout,
                                         List<BudgetForecastImportRowWarningDTO> warnings) {
-        // Col 0: Tipo
-        String typeRaw = getStringCell(row.getCell(0));
+        // Tipo
+        String typeRaw = getStringCell(row.getCell(COL_TYPE));
         if (typeRaw == null || typeRaw.isBlank()) throw new RowParseException("E1", "Tipo vacío.");
         BudgetForecastItemType itemType;
         try { itemType = BudgetForecastItemType.valueOf(typeRaw.trim().toUpperCase()); }
         catch (Exception e) { throw new RowParseException("E1", "Tipo desconocido: " + typeRaw); }
 
-        // Col 1: Descripción
-        String description = getStringCell(row.getCell(1));
-        if (description == null || description.isBlank()) {
-            throw new RowParseException("E2", "Descripción obligatoria.");
+        // Localizar la celda de día con descripción.
+        LocalDate date = null;
+        String description = null;
+        boolean duplicate = false;
+        for (Map.Entry<Integer, LocalDate> e : layout.dateColumns.entrySet()) {
+            String txt = getStringCell(row.getCell(e.getKey()));
+            if (txt != null && !txt.isBlank()) {
+                if (date == null) {
+                    date = e.getValue();
+                    description = txt.trim();
+                } else {
+                    duplicate = true;
+                }
+            }
+        }
+        if (date == null || description == null) {
+            throw new RowParseException("E2",
+                    "No se encontró una celda de día con descripción para esta fila.");
+        }
+        if (duplicate) {
+            warnings.add(new BudgetForecastImportRowWarningDTO(displayRow, "W2",
+                    "La fila tiene descripción en más de una celda de día; se usó la primera ("
+                            + date.format(DATE_FMT) + ")."));
+        }
+        // Cobertura defensiva (los encabezados ya fueron validados).
+        if (date.isBefore(forecast.getPeriodFrom()) || date.isAfter(forecast.getPeriodTo())) {
+            throw new RowParseException("E3", "Fecha fuera del período de la previsión: " + date.format(DATE_FMT));
         }
 
-        // Col 2: Fecha
-        LocalDate date = parseDate(row.getCell(2));
-        if (date == null) throw new RowParseException("E3", "Fecha inválida o vacía.");
-
-        // Col 3: Monto
-        BigDecimal amount = parseAmount(row.getCell(3));
+        // Monto
+        BigDecimal amount = parseAmount(row.getCell(layout.amountCol));
         if (amount == null || amount.signum() <= 0) {
             throw new RowParseException("E4", "Monto inválido. Debe ser > 0.");
         }
@@ -185,74 +309,87 @@ public class BudgetForecastExcelService {
         BudgetForecastItem item = BudgetForecastItem.builder()
                 .budgetForecast(forecast)
                 .itemType(itemType)
-                .description(description.trim())
+                .description(description)
                 .expectedDate(date)
                 .expectedAmount(amount)
                 .applicationStatus(BudgetForecastItemApplicationStatus.PENDIENTE)
                 .build();
 
-        // Refs
-        String cuil = getStringCell(row.getCell(4));
-        String cuit = getStringCell(row.getCell(5));
-        Long assignmentId = parseLong(row.getCell(6));
-        String plate = getStringCell(row.getCell(7));
-        String stockName = getStringCell(row.getCell(8));
-        BigDecimal qty = parseAmount(row.getCell(9));
+        String identifier = trimToNull(getStringCell(row.getCell(COL_IDENTIFIER)));
+        BigDecimal quantity = parseAmount(row.getCell(layout.quantityCol));
+        String supplierCuit = trimToNull(getStringCell(row.getCell(layout.supplierCol)));
 
-        if (cuil != null && !cuil.isBlank()) {
-            Employee e = employeeRepository.findByCuilAndDeletedFalse(cuil.trim())
-                    .orElseThrow(() -> new RowParseException("E6", "Empleado no encontrado por CUIL: " + cuil));
-            item.setEmployee(e);
-        }
-        if (cuit != null && !cuit.isBlank()) {
-            Supplier s = supplierRepository.findByCuitAndDeletedFalse(cuit.trim())
-                    .orElseThrow(() -> new RowParseException("E6", "Proveedor no encontrado por CUIT: " + cuit));
-            item.setSupplier(s);
-        }
-        if (assignmentId != null) {
-            ServiceAssignment sa = serviceAssignmentRepository.findByIdAndDeletedFalse(assignmentId)
-                    .orElseThrow(() -> new RowParseException("E6", "Asignación no encontrada: " + assignmentId));
-            item.setServiceAssignment(sa);
-        }
-        if (plate != null && !plate.isBlank()) {
-            Vehicle v = vehicleRepository.findByLicensePlateAndDeletedFalse(plate.trim().toUpperCase())
-                    .orElseThrow(() -> new RowParseException("E6", "Vehículo no encontrado por patente: " + plate));
-            item.setVehicle(v);
-        }
-        if (stockName != null && !stockName.isBlank()) {
-            Stock st = stockRepository.findByNameAndDeletedFalse(stockName.trim())
-                    .orElseThrow(() -> new RowParseException("E6", "Stock no encontrado: " + stockName));
-            item.setStock(st);
-            if (qty == null) {
-                warnings.add(new BudgetForecastImportRowWarningDTO(displayRow, "W1", "Cantidad omitida; se asume 1."));
-                qty = BigDecimal.ONE;
-            }
-            item.setStockQuantity(qty);
-        }
+        resolveIdentifier(itemType, identifier, quantity, item, displayRow, warnings);
+        resolveOptionalSupplier(itemType, supplierCuit, item);
 
-        // Validación cruzada por tipo
-        validateTypeReferences(itemType, item);
         return item;
     }
 
-    private void validateTypeReferences(BudgetForecastItemType type, BudgetForecastItem item) {
+    /**
+     * Resuelve el identificador contra la entidad correspondiente y aplica
+     * las validaciones de obligatoriedad por tipo.
+     */
+    private void resolveIdentifier(BudgetForecastItemType type, String identifier, BigDecimal quantity,
+                                   BudgetForecastItem item, int displayRow,
+                                   List<BudgetForecastImportRowWarningDTO> warnings) {
         switch (type) {
-            case SALARIO -> requireRef(item.getEmployee(), "SALARIO requiere Empleado(CUIL).");
-            case SERVICIO, PATENTE -> requireRef(item.getServiceAssignment(),
-                    type + " requiere AsignaciónId.");
-            case REPARACION -> requireRef(item.getVehicle(), "REPARACION requiere Vehículo(Patente).");
-            case COMPRA_STOCK -> {
-                requireRef(item.getStock(), "COMPRA_STOCK requiere Stock(Nombre).");
-                if (item.getStockQuantity() == null || item.getStockQuantity().signum() <= 0) {
-                    throw new RowParseException("E5", "COMPRA_STOCK requiere Cantidad > 0.");
+            case SALARIO -> {
+                if (identifier == null) {
+                    throw new RowParseException("E5", "SALARIO requiere CUIL del empleado en \"Identificador\".");
                 }
+                Employee e = employeeRepository.findByCuilAndDeletedFalse(identifier)
+                        .orElseThrow(() -> new RowParseException("E6", "Empleado no encontrado por CUIL: " + identifier));
+                item.setEmployee(e);
+            }
+            case SERVICIO, PATENTE -> {
+                if (identifier == null) {
+                    throw new RowParseException("E5", type + " requiere ID de asignación en \"Identificador\".");
+                }
+                long assignmentId;
+                try { assignmentId = Long.parseLong(identifier); }
+                catch (NumberFormatException ex) {
+                    throw new RowParseException("E5", "Identificador de asignación inválido: " + identifier);
+                }
+                ServiceAssignment sa = serviceAssignmentRepository.findByIdAndDeletedFalse(assignmentId)
+                        .orElseThrow(() -> new RowParseException("E6", "Asignación no encontrada: " + assignmentId));
+                item.setServiceAssignment(sa);
+            }
+            case REPARACION -> {
+                if (identifier == null) {
+                    throw new RowParseException("E5", "REPARACION requiere patente del vehículo en \"Identificador\".");
+                }
+                Vehicle v = vehicleRepository.findByLicensePlateAndDeletedFalse(identifier.toUpperCase())
+                        .orElseThrow(() -> new RowParseException("E6", "Vehículo no encontrado por patente: " + identifier));
+                item.setVehicle(v);
+            }
+            case COMPRA_STOCK -> {
+                if (identifier == null) {
+                    throw new RowParseException("E5", "COMPRA_STOCK requiere nombre del stock en \"Identificador\".");
+                }
+                Stock st = stockRepository.findByNameAndDeletedFalse(identifier)
+                        .orElseThrow(() -> new RowParseException("E6", "Stock no encontrado: " + identifier));
+                item.setStock(st);
+                if (quantity == null) {
+                    warnings.add(new BudgetForecastImportRowWarningDTO(displayRow, "W1", "Cantidad omitida; se asume 1."));
+                    quantity = BigDecimal.ONE;
+                }
+                if (quantity.signum() <= 0) {
+                    throw new RowParseException("E5", "Cantidad de stock debe ser > 0.");
+                }
+                item.setStockQuantity(quantity);
             }
             case OTRO -> { /* sin requisitos */ }
         }
     }
 
-    private void requireRef(Object ref, String msg) {
-        if (ref == null) throw new RowParseException("E5", msg);
+    private void resolveOptionalSupplier(BudgetForecastItemType type, String cuit, BudgetForecastItem item) {
+        if (cuit == null) return;
+        if (type != BudgetForecastItemType.REPARACION && type != BudgetForecastItemType.COMPRA_STOCK) {
+            return; // ignoramos el proveedor en tipos donde no aplica.
+        }
+        Supplier s = supplierRepository.findByCuitAndDeletedFalse(cuit)
+                .orElseThrow(() -> new RowParseException("E6", "Proveedor no encontrado por CUIT: " + cuit));
+        item.setSupplier(s);
     }
 
     // ─────────────────────────── Export ───────────────────────────
@@ -261,42 +398,55 @@ public class BudgetForecastExcelService {
         try (Workbook wb = new XSSFWorkbook();
              ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
+            List<LocalDate> dateRange = buildDateRange(forecast);
             Sheet sheet = wb.createSheet(SHEET_NAME);
             CellStyle headerStyle = headerStyle(wb);
+            CellStyle dayHeaderStyle = dayHeaderStyle(wb);
+            CellStyle dayCellStyle = dayCellStyle(wb);
+            CellStyle moneyStyle = moneyStyle(wb);
 
-            Row header = sheet.createRow(0);
-            for (int i = 0; i < HEADERS.length; i++) {
-                Cell c = header.createCell(i);
-                c.setCellValue(HEADERS[i]);
-                c.setCellStyle(headerStyle);
-            }
+            writeHeaderRow(sheet, dateRange, headerStyle, dayHeaderStyle);
 
-            int r = 1;
+            int amountCol = FIXED_LEFT_COLS + dateRange.size();
+            int quantityCol = amountCol + 1;
+            int supplierCol = amountCol + 2;
+            int statusCol = amountCol + 3;
+            int colCount = statusCol + 1;
+
             List<BudgetForecastItem> items = new ArrayList<>(forecast.getItems());
             items.sort(Comparator.comparing(i -> i.getRowOrder() == null ? 0 : i.getRowOrder()));
+
+            int r = 1;
             for (BudgetForecastItem item : items) {
                 Row row = sheet.createRow(r++);
-                row.createCell(0).setCellValue(item.getItemType().name());
-                row.createCell(1).setCellValue(nullSafe(item.getDescription()));
-                row.createCell(2).setCellValue(item.getExpectedDate() != null
-                        ? item.getExpectedDate().format(DATE_FMT) : "");
-                if (item.getExpectedAmount() != null)
-                    row.createCell(3).setCellValue(item.getExpectedAmount().doubleValue());
-                row.createCell(4).setCellValue(item.getEmployee() != null
-                        ? nullSafe(item.getEmployee().getCuil()) : "");
-                row.createCell(5).setCellValue(item.getSupplier() != null
-                        ? nullSafe(item.getSupplier().getCuit()) : "");
-                if (item.getServiceAssignment() != null)
-                    row.createCell(6).setCellValue(item.getServiceAssignment().getId());
-                row.createCell(7).setCellValue(item.getVehicle() != null
-                        ? nullSafe(item.getVehicle().getLicensePlate()) : "");
-                row.createCell(8).setCellValue(item.getStock() != null
-                        ? nullSafe(item.getStock().getName()) : "");
-                if (item.getStockQuantity() != null)
-                    row.createCell(9).setCellValue(item.getStockQuantity().doubleValue());
+                row.createCell(COL_TYPE).setCellValue(item.getItemType().name());
+                row.createCell(COL_IDENTIFIER).setCellValue(buildIdentifier(item));
+
+                for (int i = 0; i < dateRange.size(); i++) {
+                    Cell c = row.createCell(FIXED_LEFT_COLS + i);
+                    c.setCellStyle(dayCellStyle);
+                    if (item.getExpectedDate() != null && item.getExpectedDate().equals(dateRange.get(i))) {
+                        c.setCellValue(nullSafe(item.getDescription()));
+                    }
+                }
+
+                if (item.getExpectedAmount() != null) {
+                    Cell ca = row.createCell(amountCol);
+                    ca.setCellValue(item.getExpectedAmount().doubleValue());
+                    ca.setCellStyle(moneyStyle);
+                }
+                if (item.getStockQuantity() != null) {
+                    row.createCell(quantityCol).setCellValue(item.getStockQuantity().doubleValue());
+                }
+                row.createCell(supplierCol).setCellValue(
+                        item.getSupplier() != null ? nullSafe(item.getSupplier().getCuit()) : "");
+                row.createCell(statusCol).setCellValue(
+                        item.getApplicationStatus() != null ? item.getApplicationStatus().name() : "");
             }
 
-            for (int i = 0; i < HEADERS.length; i++) sheet.autoSizeColumn(i);
+            applyColumnWidths(sheet, dateRange.size(), colCount);
+            sheet.createFreezePane(FIXED_LEFT_COLS, 1);
+
             wb.write(baos);
             return baos.toByteArray();
         } catch (Exception e) {
@@ -304,6 +454,210 @@ public class BudgetForecastExcelService {
             throw new BudgetForecastNotValidException("Error exportando a Excel: " + e.getMessage());
         }
     }
+
+    // ─────────────────────────── Plantilla ───────────────────────────
+
+    /**
+     * Genera una plantilla Excel para la previsión indicada: misma matriz que el export,
+     * con una fila de ejemplo por cada tipo y una hoja de instrucciones.
+     */
+    public byte[] generateImportTemplate(BudgetForecast forecast) {
+        if (forecast.getPeriodFrom() == null || forecast.getPeriodTo() == null) {
+            throw new BudgetForecastNotValidException("La previsión no tiene un período definido.");
+        }
+        try (Workbook wb = new XSSFWorkbook();
+             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            List<LocalDate> dateRange = buildDateRange(forecast);
+            Sheet sheet = wb.createSheet(SHEET_NAME);
+
+            CellStyle headerStyle = headerStyle(wb);
+            CellStyle dayHeaderStyle = dayHeaderStyle(wb);
+            CellStyle dayCellStyle = dayCellStyle(wb);
+            CellStyle moneyStyle = moneyStyle(wb);
+
+            Font exampleFont = wb.createFont();
+            exampleFont.setItalic(true);
+            exampleFont.setColor(IndexedColors.GREY_50_PERCENT.getIndex());
+            CellStyle exampleStyle = wb.createCellStyle();
+            exampleStyle.setFont(exampleFont);
+            CellStyle exampleDayStyle = mergeStyles(wb, dayCellStyle, exampleFont);
+            CellStyle exampleMoneyStyle = mergeStyles(wb, moneyStyle, exampleFont);
+
+            writeHeaderRow(sheet, dateRange, headerStyle, dayHeaderStyle);
+
+            int amountCol = FIXED_LEFT_COLS + dateRange.size();
+            int quantityCol = amountCol + 1;
+            int supplierCol = amountCol + 2;
+            int statusCol = amountCol + 3;
+            int colCount = statusCol + 1;
+            int sampleDayCol = FIXED_LEFT_COLS; // primer día del período
+
+            String[][] examples = {
+                    {"SALARIO",      "20-12345678-9",  "Pago mensual operario",     "150000",  "",     ""},
+                    {"SERVICIO",     "5",              "Edenor — oficina central",  "85000",   "",     ""},
+                    {"PATENTE",      "7",              "Patente camión utilitario", "42000",   "",     ""},
+                    {"REPARACION",   "AB123CD",        "Cambio de frenos",          "60000",   "",     "30-71112222-3"},
+                    {"COMPRA_STOCK", "Tornillo M8x40", "Reposición tornillos",      "12500",   "100",  "30-71112222-3"},
+                    {"OTRO",         "",               "Imprevisto del mes",        "20000",   "",     ""},
+            };
+            for (int i = 0; i < examples.length; i++) {
+                String[] vals = examples[i];
+                Row row = sheet.createRow(i + 1);
+                writeCell(row, COL_TYPE, vals[0], exampleStyle);
+                writeCell(row, COL_IDENTIFIER, vals[1], exampleStyle);
+
+                for (int d = 0; d < dateRange.size(); d++) {
+                    Cell c = row.createCell(FIXED_LEFT_COLS + d);
+                    c.setCellStyle(dayCellStyle);
+                }
+                Cell descCell = row.getCell(sampleDayCol);
+                descCell.setCellValue(vals[2]);
+                descCell.setCellStyle(exampleDayStyle);
+
+                Cell amountCell = row.createCell(amountCol);
+                amountCell.setCellValue(Double.parseDouble(vals[3]));
+                amountCell.setCellStyle(exampleMoneyStyle);
+                if (!vals[4].isEmpty()) writeCell(row, quantityCol, vals[4], exampleStyle);
+                if (!vals[5].isEmpty()) writeCell(row, supplierCol, vals[5], exampleStyle);
+                writeCell(row, statusCol, "PENDIENTE", exampleStyle);
+            }
+
+            applyColumnWidths(sheet, dateRange.size(), colCount);
+            sheet.createFreezePane(FIXED_LEFT_COLS, 1);
+
+            buildInstructionsSheet(wb, forecast);
+
+            wb.write(baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            log.error("Error generando plantilla de importación de previsión", e);
+            throw new BudgetForecastNotValidException("Error generando la plantilla: " + e.getMessage());
+        }
+    }
+
+    private void buildInstructionsSheet(Workbook wb, BudgetForecast forecast) {
+        Sheet instr = wb.createSheet("Instrucciones");
+        CellStyle instrHeader = wb.createCellStyle();
+        Font ihf = wb.createFont();
+        ihf.setBold(true);
+        ihf.setFontHeightInPoints((short) 12);
+        instrHeader.setFont(ihf);
+        CellStyle instrStyle = wb.createCellStyle();
+        instrStyle.setWrapText(true);
+
+        int r = 0;
+        addInstr(instr, r++, instrHeader, "Plantilla de importación — Previsión \"" + nullSafe(forecast.getName()) + "\"");
+        addInstr(instr, r++, instrStyle, "Período: " + forecast.getPeriodFrom().format(DATE_FMT)
+                + " — " + forecast.getPeriodTo().format(DATE_FMT));
+        r++;
+        addInstr(instr, r++, instrHeader, "Cómo completar la plantilla");
+        addInstr(instr, r++, instrStyle, "1. Cada fila = un item de previsión.");
+        addInstr(instr, r++, instrStyle,
+                "2. Una sola celda de día por fila debe contener la DESCRIPCIÓN del item; "
+                        + "el resto se deja vacío. Esa celda define la fecha del item.");
+        addInstr(instr, r++, instrStyle, "3. \"Identificador\" depende del Tipo:");
+        addInstr(instr, r++, instrStyle, "    • SALARIO → CUIL del empleado");
+        addInstr(instr, r++, instrStyle, "    • SERVICIO / PATENTE → ID de la asignación de servicio");
+        addInstr(instr, r++, instrStyle, "    • REPARACION → patente del vehículo");
+        addInstr(instr, r++, instrStyle, "    • COMPRA_STOCK → nombre exacto del stock (y \"Cantidad\" > 0)");
+        addInstr(instr, r++, instrStyle, "    • OTRO → dejar vacío");
+        addInstr(instr, r++, instrStyle, "4. \"Monto\" obligatorio (> 0).");
+        addInstr(instr, r++, instrStyle,
+                "5. \"Proveedor (CUIT)\" es opcional y solo se considera para REPARACION y COMPRA_STOCK.");
+        addInstr(instr, r++, instrStyle, "6. \"Estado\" se ignora en la importación: los items quedan en PENDIENTE.");
+        r++;
+        addInstr(instr, r++, instrHeader, "Notas importantes");
+        addInstr(instr, r++, instrStyle, "- Las primeras filas son ejemplos. Elimínelas antes de importar.");
+        addInstr(instr, r++, instrStyle, "- Máximo " + MAX_ROWS + " filas por importación.");
+        addInstr(instr, r++, instrStyle,
+                "- No agregue ni elimine columnas: el orden y nombre de las columnas debe respetarse.");
+        addInstr(instr, r++, instrStyle,
+                "- Las fechas (encabezados de día) deben coincidir con días dentro del período de la previsión.");
+        instr.setColumnWidth(0, 110 * 256);
+    }
+
+    private void addInstr(Sheet sheet, int rowIdx, CellStyle style, String text) {
+        Row row = sheet.createRow(rowIdx);
+        Cell c = row.createCell(0);
+        c.setCellValue(text);
+        c.setCellStyle(style);
+    }
+
+    // ─────────────────────────── Layout helpers ───────────────────────────
+
+    private List<LocalDate> buildDateRange(BudgetForecast forecast) {
+        List<LocalDate> out = new ArrayList<>();
+        LocalDate cur = forecast.getPeriodFrom();
+        LocalDate end = forecast.getPeriodTo();
+        for (int i = 0; i < MAX_DAYS && !cur.isAfter(end); i++) {
+            out.add(cur);
+            cur = cur.plusDays(1);
+        }
+        return out;
+    }
+
+    private void writeHeaderRow(Sheet sheet, List<LocalDate> dateRange,
+                                CellStyle headerStyle, CellStyle dayHeaderStyle) {
+        Row header = sheet.createRow(0);
+        writeHeaderCell(header, COL_TYPE, HEADER_TYPE, headerStyle);
+        writeHeaderCell(header, COL_IDENTIFIER, HEADER_IDENTIFIER, headerStyle);
+        for (int i = 0; i < dateRange.size(); i++) {
+            LocalDate d = dateRange.get(i);
+            String weekday = capitalize(d.getDayOfWeek()
+                    .getDisplayName(TextStyle.SHORT, ES_AR).replace(".", ""));
+            writeHeaderCell(header, FIXED_LEFT_COLS + i, weekday + " " + d.format(DATE_FMT), dayHeaderStyle);
+        }
+        int amountCol = FIXED_LEFT_COLS + dateRange.size();
+        writeHeaderCell(header, amountCol,     HEADER_AMOUNT,     headerStyle);
+        writeHeaderCell(header, amountCol + 1, HEADER_QUANTITY,   headerStyle);
+        writeHeaderCell(header, amountCol + 2, HEADER_SUPPLIER,   headerStyle);
+        writeHeaderCell(header, amountCol + 3, HEADER_STATUS,     headerStyle);
+        header.setHeightInPoints(28);
+    }
+
+    private void writeHeaderCell(Row row, int col, String text, CellStyle style) {
+        Cell c = row.createCell(col);
+        c.setCellValue(text);
+        c.setCellStyle(style);
+    }
+
+    private void writeCell(Row row, int col, String text, CellStyle style) {
+        Cell c = row.createCell(col);
+        c.setCellValue(text);
+        if (style != null) c.setCellStyle(style);
+    }
+
+    private void applyColumnWidths(Sheet sheet, int dayCount, int colCount) {
+        sheet.setColumnWidth(COL_TYPE, 16 * 256);
+        sheet.setColumnWidth(COL_IDENTIFIER, 28 * 256);
+        for (int i = 0; i < dayCount; i++) sheet.setColumnWidth(FIXED_LEFT_COLS + i, 18 * 256);
+        int rightStart = FIXED_LEFT_COLS + dayCount;
+        sheet.setColumnWidth(rightStart,     14 * 256); // Monto
+        sheet.setColumnWidth(rightStart + 1, 12 * 256); // Cantidad
+        sheet.setColumnWidth(rightStart + 2, 22 * 256); // Proveedor
+        sheet.setColumnWidth(rightStart + 3, 14 * 256); // Estado
+        // colCount es informativo; se mantiene en la firma para reflejar el ancho total.
+        if (colCount < rightStart + FIXED_RIGHT_COLS) {
+            log.debug("colCount={} no cubre todas las columnas esperadas", colCount);
+        }
+    }
+
+    /**
+     * Construye el identificador canónico por tipo, espejando el getter del frontend.
+     */
+    private String buildIdentifier(BudgetForecastItem item) {
+        return switch (item.getItemType()) {
+            case SALARIO -> item.getEmployee() != null ? nullSafe(item.getEmployee().getCuil()) : "";
+            case SERVICIO, PATENTE -> item.getServiceAssignment() != null
+                    ? String.valueOf(item.getServiceAssignment().getId()) : "";
+            case REPARACION -> item.getVehicle() != null ? nullSafe(item.getVehicle().getLicensePlate()) : "";
+            case COMPRA_STOCK -> item.getStock() != null ? nullSafe(item.getStock().getName()) : "";
+            case OTRO -> "";
+        };
+    }
+
+    // ─────────────────────────── Estilos ───────────────────────────
 
     private CellStyle headerStyle(Workbook wb) {
         CellStyle cs = wb.createCellStyle();
@@ -314,101 +668,48 @@ public class BudgetForecastExcelService {
         cs.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
         cs.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         cs.setAlignment(HorizontalAlignment.CENTER);
+        cs.setVerticalAlignment(VerticalAlignment.CENTER);
+        cs.setBorderBottom(BorderStyle.THIN);
         return cs;
     }
 
-    // ─────────────────────────── Plantilla en blanco ───────────────────────────
-
-    /**
-     * Genera una plantilla Excel vacía con encabezados, filas de ejemplo y una hoja de
-     * instrucciones para que el usuario complete y luego importe.
-     */
-    public byte[] generateImportTemplate() {
-        try (Workbook wb = new XSSFWorkbook();
-             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-
-            // ── Hoja principal ──
-            Sheet sheet = wb.createSheet(SHEET_NAME);
-            CellStyle headerStyle = headerStyle(wb);
-
-            CellStyle exampleStyle = wb.createCellStyle();
-            Font exampleFont = wb.createFont();
-            exampleFont.setItalic(true);
-            exampleFont.setColor(IndexedColors.GREY_50_PERCENT.getIndex());
-            exampleStyle.setFont(exampleFont);
-
-            Row header = sheet.createRow(0);
-            for (int i = 0; i < HEADERS.length; i++) {
-                Cell c = header.createCell(i);
-                c.setCellValue(HEADERS[i]);
-                c.setCellStyle(headerStyle);
-            }
-
-            String today = LocalDate.now().format(DATE_FMT);
-            String[][] examples = {
-                    {"SALARIO",      "Pago mensual operario",      today, "150000",  "20123456789", "",            "",  "",       "",                ""},
-                    {"SERVICIO",     "Edenor — oficina central",   today, "85000",   "",            "",            "5", "",       "",                ""},
-                    {"PATENTE",      "Patente camión utilitario",  today, "42000",   "",            "",            "7", "",       "",                ""},
-                    {"REPARACION",   "Cambio de frenos",           today, "60000",   "",            "30711122223", "",  "AB123CD", "",               ""},
-                    {"COMPRA_STOCK", "Reposición tornillos M8",    today, "12500",   "",            "30711122223", "",  "",       "Tornillo M8x40",  "100"},
-                    {"OTRO",         "Imprevisto del mes",         today, "20000",   "",            "",            "",  "",       "",                ""},
-            };
-            for (int i = 0; i < examples.length; i++) {
-                Row row = sheet.createRow(i + 1);
-                String[] vals = examples[i];
-                for (int j = 0; j < vals.length; j++) {
-                    Cell c = row.createCell(j);
-                    c.setCellValue(vals[j]);
-                    c.setCellStyle(exampleStyle);
-                }
-            }
-
-            for (int i = 0; i < HEADERS.length; i++) sheet.autoSizeColumn(i);
-
-            // ── Hoja de instrucciones ──
-            Sheet instr = wb.createSheet("Instrucciones");
-            CellStyle instrHeader = wb.createCellStyle();
-            Font ihf = wb.createFont();
-            ihf.setBold(true);
-            ihf.setFontHeightInPoints((short) 12);
-            instrHeader.setFont(ihf);
-            CellStyle instrStyle = wb.createCellStyle();
-            instrStyle.setWrapText(true);
-
-            int r = 0;
-            addInstr(instr, r++, instrHeader, "Plantilla de importación de Items de Previsión");
-            r++;
-            addInstr(instr, r++, instrStyle, "1. Tipo (obligatorio): SALARIO, SERVICIO, PATENTE, REPARACION, COMPRA_STOCK u OTRO.");
-            addInstr(instr, r++, instrStyle, "2. Descripción (obligatoria): texto libre, máximo 500 caracteres.");
-            addInstr(instr, r++, instrStyle, "3. Fecha (obligatoria): formato DD/MM/YYYY. Debe estar dentro del período de la previsión.");
-            addInstr(instr, r++, instrStyle, "4. Monto (obligatorio): número mayor a 0. Acepta coma o punto decimal.");
-            addInstr(instr, r++, instrStyle, "5. Empleado(CUIL): requerido para SALARIO. Debe coincidir con un empleado activo.");
-            addInstr(instr, r++, instrStyle, "6. Proveedor(CUIT): opcional para REPARACION y COMPRA_STOCK.");
-            addInstr(instr, r++, instrStyle, "7. AsignaciónId: requerido para SERVICIO y PATENTE (id de la asignación de servicio).");
-            addInstr(instr, r++, instrStyle, "8. Vehículo(Patente): requerido para REPARACION.");
-            addInstr(instr, r++, instrStyle, "9. Stock(Nombre): requerido para COMPRA_STOCK.");
-            addInstr(instr, r++, instrStyle, "10. Cantidad: requerida para COMPRA_STOCK (mayor a 0).");
-            r++;
-            addInstr(instr, r++, instrHeader, "Notas importantes:");
-            addInstr(instr, r++, instrStyle, "- Las primeras filas son ejemplos. Elimínelas antes de importar.");
-            addInstr(instr, r++, instrStyle, "- El máximo de filas por importación es 1000.");
-            addInstr(instr, r++, instrStyle, "- El sistema valida todos los datos antes de persistir; las filas con error se reportan y se ignoran.");
-
-            instr.setColumnWidth(0, 90 * 256);
-
-            wb.write(baos);
-            return baos.toByteArray();
-        } catch (Exception e) {
-            log.error("Error generando plantilla de importación de previsión", e);
-            throw new BudgetForecastNotValidException("Error generando la plantilla: " + e.getMessage());
-        }
+    private CellStyle dayHeaderStyle(Workbook wb) {
+        CellStyle cs = wb.createCellStyle();
+        Font f = wb.createFont();
+        f.setBold(true);
+        f.setFontHeightInPoints((short) 9);
+        cs.setFont(f);
+        cs.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        cs.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        cs.setAlignment(HorizontalAlignment.CENTER);
+        cs.setVerticalAlignment(VerticalAlignment.CENTER);
+        cs.setBorderBottom(BorderStyle.THIN);
+        return cs;
     }
 
-    private void addInstr(Sheet sheet, int rowIdx, CellStyle style, String text) {
-        Row row = sheet.createRow(rowIdx);
-        Cell c = row.createCell(0);
-        c.setCellValue(text);
-        c.setCellStyle(style);
+    private CellStyle dayCellStyle(Workbook wb) {
+        CellStyle cs = wb.createCellStyle();
+        cs.setBorderLeft(BorderStyle.HAIR);
+        cs.setBorderRight(BorderStyle.HAIR);
+        cs.setAlignment(HorizontalAlignment.CENTER);
+        cs.setVerticalAlignment(VerticalAlignment.CENTER);
+        cs.setWrapText(true);
+        return cs;
+    }
+
+    private CellStyle moneyStyle(Workbook wb) {
+        CellStyle cs = wb.createCellStyle();
+        DataFormat df = wb.createDataFormat();
+        cs.setDataFormat(df.getFormat("#,##0.00"));
+        cs.setAlignment(HorizontalAlignment.RIGHT);
+        return cs;
+    }
+
+    private CellStyle mergeStyles(Workbook wb, CellStyle base, Font font) {
+        CellStyle cs = wb.createCellStyle();
+        cs.cloneStyleFrom(base);
+        cs.setFont(font);
+        return cs;
     }
 
     // ─────────────────────────── Helpers cell ───────────────────────────
@@ -419,26 +720,16 @@ public class BudgetForecastExcelService {
             case STRING -> cell.getStringCellValue();
             case NUMERIC -> {
                 if (DateUtil.isCellDateFormatted(cell))
-                    yield cell.getDateCellValue().toInstant().toString();
+                    yield cell.getDateCellValue().toInstant()
+                            .atZone(java.time.ZoneId.systemDefault()).toLocalDate().format(ISO_FMT);
                 double v = cell.getNumericCellValue();
-                if (v == Math.floor(v)) yield String.valueOf((long) v);
+                if (v == Math.floor(v) && !Double.isInfinite(v)) yield String.valueOf((long) v);
                 yield String.valueOf(v);
             }
             case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
             case FORMULA -> cell.getCellFormula();
             default -> null;
         };
-    }
-
-    private LocalDate parseDate(Cell cell) {
-        if (cell == null) return null;
-        if (cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
-            return cell.getDateCellValue().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-        }
-        String s = getStringCell(cell);
-        if (s == null || s.isBlank()) return null;
-        try { return LocalDate.parse(s.trim(), DATE_FMT); }
-        catch (Exception e) { return null; }
     }
 
     private BigDecimal parseAmount(Cell cell) {
@@ -453,29 +744,42 @@ public class BudgetForecastExcelService {
         } catch (Exception e) { return null; }
     }
 
-    private Long parseLong(Cell cell) {
-        if (cell == null) return null;
-        try {
-            if (cell.getCellType() == CellType.NUMERIC) return (long) cell.getNumericCellValue();
-            String s = getStringCell(cell);
-            if (s == null || s.isBlank()) return null;
-            return Long.parseLong(s.trim());
-        } catch (Exception e) { return null; }
-    }
-
-    private boolean isRowEmpty(Row row) {
+    private boolean isRowEmpty(Row row, HeaderLayout layout) {
         if (row == null) return true;
-        for (int c = 0; c < HEADERS.length; c++) {
-            Cell cell = row.getCell(c);
-            if (cell != null && cell.getCellType() != CellType.BLANK) {
-                String s = getStringCell(cell);
-                if (s != null && !s.isBlank()) return false;
-            }
+        if (!isCellBlank(row.getCell(COL_TYPE))) return false;
+        if (!isCellBlank(row.getCell(layout.amountCol))) return false;
+        for (Integer c : layout.dateColumns.keySet()) {
+            if (!isCellBlank(row.getCell(c))) return false;
         }
         return true;
     }
 
+    private boolean isCellBlank(Cell cell) {
+        if (cell == null || cell.getCellType() == CellType.BLANK) return true;
+        String s = getStringCell(cell);
+        return s == null || s.isBlank();
+    }
+
+    private boolean equalsIgnoreCaseTrim(String a, String b) {
+        return a != null && a.trim().equalsIgnoreCase(b);
+    }
+
+    private String trimToNull(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        return t.isEmpty() ? null : t;
+    }
+
+    private String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return s.substring(0, 1).toUpperCase(ES_AR) + s.substring(1);
+    }
+
     private String nullSafe(String s) { return s == null ? "" : s; }
+
+    /** Layout descubierto al leer los encabezados del Excel a importar. */
+    private record HeaderLayout(int amountCol, int quantityCol, int supplierCol, int statusCol,
+                                Map<Integer, LocalDate> dateColumns) { }
 
     /** Excepción interna para parseo fila a fila. No escapa al cliente. */
     private static class RowParseException extends RuntimeException {
