@@ -92,7 +92,7 @@ public class ReferenceDataController {
 
     // ── Suppliers ─────────────────────────────────────────────────
     // Needed by: TransactionalDocument, Payment, GasStation, RepairOrder (complete),
-    //            ServiceSupplier
+    //            ServiceSupplier, Recovery (config supplier picker)
     @GetMapping("/suppliers")
     @Operation(summary = "Supplier references for form dropdowns")
     @ApiResponse(responseCode = "200", description = "List of suppliers (id + label)")
@@ -103,7 +103,8 @@ public class ReferenceDataController {
         + "'" + AppPermissions.PAYMENT_WRITE + "',"
         + "'" + AppPermissions.GAS_STATION_WRITE + "',"
         + "'" + AppPermissions.REPAIR_ORDER_WRITE + "',"
-        + "'" + AppPermissions.SERVICE_SUPPLIER_WRITE + "'"
+        + "'" + AppPermissions.SERVICE_SUPPLIER_WRITE + "',"
+        + "'" + AppPermissions.RECOVERY_MANAGE + "'"
         + ")"
     )
     public ResponseEntity<List<PSG.backEnd.model.dto.reference.SupplierReferenceItem>> getSupplierReferences() {
