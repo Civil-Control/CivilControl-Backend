@@ -20,7 +20,7 @@ public interface BudgetForecastTemplateRepository extends JpaRepository<BudgetFo
     @Query("SELECT t FROM BudgetForecastTemplate t " +
            "WHERE t.deleted = false " +
            "AND (:active IS NULL OR t.active = :active) " +
-           "AND (:search IS NULL OR LOWER(t.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+           "AND (:search IS NULL OR LOWER(CAST(t.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))")
     Page<BudgetForecastTemplate> findAllWithFilters(
             @Param("active") Boolean active,
             @Param("search") String search,

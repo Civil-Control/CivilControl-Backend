@@ -23,8 +23,8 @@ public interface BudgetForecastRepository extends JpaRepository<BudgetForecast, 
            "AND (CAST(:periodFromGte AS date) IS NULL OR bf.periodTo   >= :periodFromGte) " +
            "AND (CAST(:periodToLte   AS date) IS NULL OR bf.periodFrom <= :periodToLte) " +
            "AND (:statuses IS NULL OR bf.status IN :statuses) " +
-           "AND (:search IS NULL OR LOWER(bf.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
-           "     OR LOWER(COALESCE(bf.description, '')) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "AND (:search IS NULL OR LOWER(CAST(bf.name AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +
+           "     OR LOWER(CAST(COALESCE(bf.description, '') AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) " +
            "AND (:hasAppliedItems IS NULL OR " +
            "     (:hasAppliedItems = true  AND bf.appliedAmount > 0) OR " +
            "     (:hasAppliedItems = false AND bf.appliedAmount = 0))")
