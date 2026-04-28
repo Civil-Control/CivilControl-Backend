@@ -80,8 +80,8 @@ public class BudgetForecastPdfService {
             info.addCell(label("Total aplicado")).addCell(value(money(forecast.getAppliedAmount())));
             if (forecast.getDescription() != null && !forecast.getDescription().isBlank()) {
                 info.addCell(label("Descripción"));
-                Cell descCell = value(forecast.getDescription());
-                descCell.setColspan(3);
+                Cell descCell = new Cell(1, 3)
+                        .add(new Paragraph(forecast.getDescription()).setFontSize(9));
                 info.addCell(descCell);
             }
             doc.add(info);
@@ -180,13 +180,12 @@ public class BudgetForecastPdfService {
         // ── Totales sólo en el último bloque ──
         if (isLastChunk) {
             int spanLeft = 2 + dayCount; // Tipo + Identificador + días
-            Cell totalLabel = totalCell("TOTAL ESTIMADO").setTextAlignment(TextAlignment.RIGHT);
-            totalLabel.setColspan(spanLeft);
+            Cell totalLabel = totalCell("TOTAL ESTIMADO", 1, spanLeft)
+                    .setTextAlignment(TextAlignment.RIGHT);
             table.addCell(totalLabel);
             table.addCell(totalCell(money(totalEstimated)).setTextAlignment(TextAlignment.RIGHT));
-            Cell appliedLabel = totalCell("Aplicado: " + money(totalApplied))
+            Cell appliedLabel = totalCell("Aplicado: " + money(totalApplied), 1, 3)
                     .setTextAlignment(TextAlignment.CENTER);
-            appliedLabel.setColspan(3);
             table.addCell(appliedLabel);
         }
 
@@ -285,7 +284,12 @@ public class BudgetForecastPdfService {
     }
 
     private Cell totalCell(String text) {
-        return new Cell()
+        return totalCell(text, 1, 1);
+    }
+
+    /** iText 7 sólo permite definir colspan/rowspan en el constructor. */
+    private Cell totalCell(String text, int rowspan, int colspan) {
+        return new Cell(rowspan, colspan)
                 .add(new Paragraph(text).setBold().setFontColor(ColorConstants.WHITE).setFontSize(9))
                 .setBackgroundColor(TOTAL_COLOR);
     }
