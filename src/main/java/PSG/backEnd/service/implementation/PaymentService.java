@@ -233,9 +233,16 @@ public class PaymentService implements IPaymentService {
      * </ul>
      */
     private void attachApplications(PaymentDetails details, PaymentDetailsDTO dto) {
-        boolean hasNew = dto.applications() != null && !dto.applications().isEmpty();
-        boolean hasLegacy = dto.paidDocumentIds() != null && !dto.paidDocumentIds().isEmpty();
-        if (hasNew && hasLegacy) {
+        // A non-null `applications` field (even an empty list) is the authoritative source of truth:
+        // the caller has explicitly stated the per-document distribution. Only when it is null do we
+        // fall back to the legacy `paidDocumentIds` proportional path. This prevents stale legacy ids
+        // (e.g. carried forward from the persisted entity during an update merge) from re-triggering
+        // a duplicated allocation when the new client already sent its own applications payload.
+        boolean explicitApps = dto.applications() != null;
+        boolean hasNew = explicitApps && !dto.applications().isEmpty();
+        boolean hasLegacy = !explicitApps && dto.paidDocumentIds() != null && !dto.paidDocumentIds().isEmpty();
+        if (explicitApps && dto.paidDocumentIds() != null && !dto.paidDocumentIds().isEmpty()) {
+            // Both explicitly populated => ambiguous, reject.
             throw new IllegalArgumentException(messageSourceHelper.getMessage(
                 "payment.applications.bothFieldsProvided"));
         }
@@ -433,6 +440,15 @@ public class PaymentService implements IPaymentService {
      * Respects Factory pattern and OCP.
      */
     private PaymentResponseDTO mapToPaymentResponse(PaymentDetails paymentDetails) {
+        // Force-initialize the lazy applications + paidDocuments collections so the response DTO
+        // carries the per-document allocations. Without this the mapper returns an empty list and
+        // edit forms can't hydrate the existing imputaciones, falling back to all-zero allocations.
+        if (paymentDetails.getApplications() != null) {
+            Hibernate.initialize(paymentDetails.getApplications());
+        }
+        if (paymentDetails.getPaidDocuments() != null) {
+            Hibernate.initialize(paymentDetails.getPaidDocuments());
+        }
         if (paymentDetails.getCashPayment() != null) {
             return cashPaymentMapper.toResponse(paymentDetails.getCashPayment());
         } else if (paymentDetails.getTransferPayment() != null) {
@@ -885,12 +901,19 @@ public class PaymentService implements IPaymentService {
      * Combines original details with updates (only non-null fields).
      */
     private PaymentDetailsDTO mergePaymentDetails(PaymentDetailsDTO original, PaymentDetailsDTO updated) {
+        // When the client provided an explicit `applications` payload (even empty), it owns the
+        // distribution and the legacy `paidDocumentIds` from the persisted entity must not leak
+        // into the merged DTO — otherwise attachApplications would dual-process and double-count.
+        boolean explicitApps = updated.applications() != null;
+        List<Long> mergedPaidDocs = explicitApps
+            ? null
+            : getValueOrOriginal(updated.paidDocumentIds(), original.paidDocumentIds());
         return new PaymentDetailsDTO(
             getValueOrOriginal(updated.paymentDate(), original.paymentDate()),
             getValueOrOriginal(updated.supplierId(), original.supplierId()),
             getValueOrOriginal(updated.amount(), original.amount()),
             getValueOrOriginal(updated.comment(), original.comment()),
-            getValueOrOriginal(updated.paidDocumentIds(), original.paidDocumentIds()),
+            mergedPaidDocs,
             getValueOrOriginal(updated.applications(), original.applications()),
             getValueOrOriginal(updated.onAccountAmount(), original.onAccountAmount())
         );
