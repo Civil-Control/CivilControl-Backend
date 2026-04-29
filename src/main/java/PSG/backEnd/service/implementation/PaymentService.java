@@ -744,7 +744,10 @@ public class PaymentService implements IPaymentService {
      */
     @Override
     public java.util.Optional<Long> findPaymentIdByDocumentId(Long documentId) {
-        return paymentRepository.findPaymentIdByDocumentId(documentId);
+        // A document can now be paid by multiple payments (N:M PaymentApplication). Pick the most
+        // recent one (ORDER BY pd.id DESC) so the legacy single-payment lookup keeps working
+        // without throwing on non-unique results.
+        return paymentRepository.findPaymentIdsByDocumentId(documentId).stream().findFirst();
     }
 
     @Override

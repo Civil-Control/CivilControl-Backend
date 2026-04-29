@@ -81,8 +81,9 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             "   OR  EXISTS (SELECT 1 FROM PaymentDetails pd2 JOIN pd2.paidDocuments d WHERE pd2.id = pd.id AND d.id = :documentId)) " +
             "AND NOT EXISTS (SELECT 1 FROM CashPayment cp     WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) " +
             "AND NOT EXISTS (SELECT 1 FROM CheckPayment chp   WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
-            "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true)")
-    Optional<Long> findPaymentIdByDocumentId(@Param("documentId") Long documentId);
+            "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true) " +
+            "ORDER BY pd.id DESC")
+    List<Long> findPaymentIdsByDocumentId(@Param("documentId") Long documentId);
 
     /**
      * Returns the payment method display name for the payment linked to the given document.
