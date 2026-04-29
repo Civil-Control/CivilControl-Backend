@@ -17,6 +17,23 @@ public interface PaymentApplicationRepository extends JpaRepository<PaymentAppli
     List<PaymentApplication> findByDocument_Id(Long documentId);
 
     /**
+     * Active applications (i.e. tied to a non-deleted payment) for the given document, with the
+     * parent payment + the three subtype rows fetched eagerly so the mini-table on the document
+     * detail / form can be rendered without N+1 lookups. Ordered most-recent first.
+     */
+    @Query("SELECT pa FROM PaymentApplication pa " +
+            "JOIN FETCH pa.payment p " +
+            "LEFT JOIN FETCH p.cashPayment " +
+            "LEFT JOIN FETCH p.transferPayment " +
+            "LEFT JOIN FETCH p.checkPayment " +
+            "WHERE pa.document.id = :documentId " +
+            "AND NOT EXISTS (SELECT 1 FROM CashPayment     cp  WHERE cp.paymentDetails.id  = p.id AND cp.deleted  = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM CheckPayment    chp WHERE chp.paymentDetails.id = p.id AND chp.deleted = true) " +
+            "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp  WHERE tp.paymentDetails.id  = p.id AND tp.deleted  = true) " +
+            "ORDER BY p.paymentDate DESC, pa.id DESC")
+    List<PaymentApplication> findActiveByDocumentIdWithPayment(@Param("documentId") Long documentId);
+
+    /**
      * Sum of payment amounts applied to the given document, excluding applications
      * that belong to soft-deleted payments (cash/transfer/check).
      */

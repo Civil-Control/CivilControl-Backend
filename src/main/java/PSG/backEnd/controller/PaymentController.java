@@ -166,6 +166,17 @@ public class PaymentController {
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
+    @GetMapping("/applications/by-document/{documentId}")
+    @Operation(summary = "List payment imputations for a document",
+            description = "Returns every active payment application targeting the given document, " +
+                    "enriched with the parent payment's date, method and reference fields. " +
+                    "Used by the document detail / form mini-table when one document is paid by multiple payments.")
+    public ResponseEntity<java.util.List<DocumentPaymentApplicationDTO>> getDocumentPayments(
+            @Parameter(description = "Transactional document ID", required = true) @PathVariable Long documentId) {
+        return ResponseEntity.ok(paymentService.getDocumentPayments(documentId));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
     @GetMapping("/suppliers/{supplierId}/on-account-balance")
     @Operation(summary = "Get supplier on-account balance",
             description = "Returns the supplier's available on-account credit (saldo a favor del proveedor): " +

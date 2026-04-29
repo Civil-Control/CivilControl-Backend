@@ -42,5 +42,12 @@ public interface IPaymentService {
      */
     SupplierOnAccountDTO getSupplierOnAccount(Long supplierId);
 
+    /**
+     * Returns the per-payment imputations (active applications) registered against the given
+     * document, ordered most-recent first. Used by the document detail / form to render the
+     * "Imputaciones recibidas" mini-table when more than one payment touches the same document.
+     */
+    java.util.List<DocumentPaymentApplicationDTO> getDocumentPayments(Long documentId);
+
     byte[] generatePaymentOrderPdf(Long id);
 }

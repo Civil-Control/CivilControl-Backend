@@ -758,6 +758,53 @@ public class PaymentService implements IPaymentService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<DocumentPaymentApplicationDTO> getDocumentPayments(Long documentId) {
+        List<PaymentApplication> rows = paymentApplicationRepository.findActiveByDocumentIdWithPayment(documentId);
+        List<DocumentPaymentApplicationDTO> out = new ArrayList<>(rows.size());
+        for (PaymentApplication pa : rows) {
+            PaymentDetails p = pa.getPayment();
+            String method;
+            String bankName = null;
+            String txNumber = null;
+            String checkNumber = null;
+            java.time.LocalDate dueDate = null;
+            if (p.getCashPayment() != null) {
+                method = "CASH";
+            } else if (p.getTransferPayment() != null) {
+                method = "TRANSFER";
+                txNumber = p.getTransferPayment().getTransactionNumber();
+                if (p.getTransferPayment().getBankAccount() != null) {
+                    bankName = p.getTransferPayment().getBankAccount().getBankName();
+                }
+            } else if (p.getCheckPayment() != null) {
+                method = "CHECK";
+                checkNumber = p.getCheckPayment().getCheckNumber();
+                dueDate = p.getCheckPayment().getDueDate();
+                if (p.getCheckPayment().getBankAccount() != null) {
+                    bankName = p.getCheckPayment().getBankAccount().getBankName();
+                }
+            } else {
+                method = "UNKNOWN";
+            }
+            out.add(new DocumentPaymentApplicationDTO(
+                    pa.getId(),
+                    p.getId(),
+                    p.getPaymentDate(),
+                    method,
+                    pa.getAmountApplied(),
+                    p.getAmount(),
+                    bankName,
+                    txNumber,
+                    checkNumber,
+                    dueDate,
+                    p.getComment()
+            ));
+        }
+        return out;
+    }
+
+    @Override
     @Transactional
     public void deleteCash(Long id) {
         deletePaymentWithBusinessLogic(id, cashPaymentRepository,
