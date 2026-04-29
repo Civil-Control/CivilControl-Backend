@@ -71,12 +71,14 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
     );
 
     /**
-     * Returns the PaymentDetails ID of the (non-deleted) payment that includes
-     * the given document among its paid-document references, if any.
+     * Returns the PaymentDetails ID of the (non-deleted) payment that has at least one
+     * {@link PSG.backEnd.model.entity.payment.PaymentApplication} pointing at the given document.
+     * Falls back to the legacy {@code paidDocuments} join for any pre-V73 rows whose backfill might be
+     * incomplete, ensuring continuity.
      */
     @Query("SELECT pd.id FROM PaymentDetails pd " +
-            "JOIN pd.paidDocuments doc " +
-            "WHERE doc.id = :documentId " +
+            "WHERE (EXISTS (SELECT 1 FROM PaymentApplication pa WHERE pa.payment.id = pd.id AND pa.document.id = :documentId) " +
+            "   OR  EXISTS (SELECT 1 FROM PaymentDetails pd2 JOIN pd2.paidDocuments d WHERE pd2.id = pd.id AND d.id = :documentId)) " +
             "AND NOT EXISTS (SELECT 1 FROM CashPayment cp     WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) " +
             "AND NOT EXISTS (SELECT 1 FROM CheckPayment chp   WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
             "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true)")
@@ -91,8 +93,8 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             "WHEN EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND (chp.deleted = false OR chp.deleted IS NULL)) THEN 'cheque' " +
             "ELSE NULL END " +
             "FROM PaymentDetails pd " +
-            "JOIN pd.paidDocuments doc " +
-            "WHERE doc.id = :documentId " +
+            "WHERE (EXISTS (SELECT 1 FROM PaymentApplication pa WHERE pa.payment.id = pd.id AND pa.document.id = :documentId) " +
+            "   OR  EXISTS (SELECT 1 FROM PaymentDetails pd2 JOIN pd2.paidDocuments d WHERE pd2.id = pd.id AND d.id = :documentId)) " +
             "AND NOT EXISTS (SELECT 1 FROM CashPayment cp WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) " +
             "AND NOT EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
             "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true)")

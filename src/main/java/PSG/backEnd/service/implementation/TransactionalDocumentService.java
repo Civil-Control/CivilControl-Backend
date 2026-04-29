@@ -24,6 +24,7 @@ import PSG.backEnd.repository.CreditNoteApplicationRepository;
 import PSG.backEnd.repository.FuelLoadRepository;
 import PSG.backEnd.repository.ItemDetailRepository;
 import PSG.backEnd.repository.ItemRepository;
+import PSG.backEnd.repository.PaymentRepository.PaymentApplicationRepository;
 import PSG.backEnd.repository.RepairItemRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
 import PSG.backEnd.repository.StockPurchaseRepository;
@@ -70,6 +71,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final IStockPurchaseService iStockPurchaseService;
     private final DocumentTotalRecalculator documentTotalRecalculator;
     private final CreditNoteApplicationRepository creditNoteApplicationRepository;
+    private final PaymentApplicationRepository paymentApplicationRepository;
     private final IRecoveryService recoveryService;
 
     @Override
@@ -394,6 +396,35 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         transactionalDocumentRepository.findByIdAndDeletedFalse(documentId).ifPresent(document -> {
             revertDocumentPaymentStatus(document, supplierId);
             transactionalDocumentRepository.save(document);
+        });
+    }
+
+    /**
+     * Recomputes the {@code paid} flag of a document from current payment applications and
+     * credit-note applications. No supplier-balance side effects.
+     *
+     * <p>Pure read-from-DB derivation: callers must ensure pending writes (new applications,
+     * orphan removals) have been flushed before invoking this. Safe no-op if the document
+     * has been soft-deleted.
+     */
+    @Override
+    @Transactional
+    public void recomputePaidStatus(Long documentId) {
+        transactionalDocumentRepository.findByIdAndDeletedFalse(documentId).ifPresent(document -> {
+            DocumentType type = document.getDocumentType();
+            // Credit notes and "other documents" don't participate in the paid lens.
+            if (!isInvoice(type) && !isDebitNote(type)) {
+                return;
+            }
+            BigDecimal credits = creditNoteApplicationRepository.sumAppliedToInvoice(documentId);
+            BigDecimal payments = paymentApplicationRepository.sumAppliedToDocument(documentId);
+            BigDecimal covered = (credits == null ? BigDecimal.ZERO : credits)
+                    .add(payments == null ? BigDecimal.ZERO : payments);
+            boolean nowPaid = covered.compareTo(document.getTotal()) >= 0;
+            if (!Boolean.valueOf(nowPaid).equals(document.getPaid())) {
+                document.setPaid(nowPaid);
+                transactionalDocumentRepository.save(document);
+            }
         });
     }
 

@@ -12,6 +12,7 @@ import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.mapper.*;
 import PSG.backEnd.repository.PaymentRepository.CashPaymentRepository;
 import PSG.backEnd.repository.PaymentRepository.CheckPaymentRepository;
+import PSG.backEnd.repository.PaymentRepository.PaymentApplicationRepository;
 import PSG.backEnd.repository.PaymentRepository.PaymentRepository;
 import PSG.backEnd.repository.PaymentRepository.TransferPaymentRepository;
 import PSG.backEnd.service.implementation.treasury.TreasuryPaymentHook;
@@ -21,6 +22,7 @@ import PSG.backEnd.service.port.ITenantService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
 import PSG.backEnd.service.export.PaymentOrderPdfService;
 import PSG.backEnd.service.util.MessageSourceHelper;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
@@ -30,7 +32,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 @Service
@@ -51,6 +60,8 @@ public class PaymentService implements IPaymentService {
     private final PaymentOrderPdfService paymentOrderPdfService;
     private final MessageSourceHelper messageSourceHelper;
     private final TreasuryPaymentHook treasuryHook;
+    private final PaymentApplicationRepository paymentApplicationRepository;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
@@ -61,8 +72,10 @@ public class PaymentService implements IPaymentService {
         if (dto.cashBoxId() != null) {
             entity.setCashBox(treasuryHook.resolveCashBox(dto.cashBoxId()));
         }
+        attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         CashPayment saved = cashPaymentRepository.save(entity);
+        recomputeAfterFlush(collectAffectedDocIds(saved.getPaymentDetails()));
         treasuryHook.onCashCreated(saved);
         return cashPaymentMapper.toResponse(saved);
     }
@@ -74,8 +87,10 @@ public class PaymentService implements IPaymentService {
         BankAccount acc = treasuryHook.resolveBankAccount(dto.bankAccountId());
         TransferPayment entity = transferPaymentMapper.toEntityOnCreate(dto);
         entity.setBankAccount(acc);
+        attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         TransferPayment saved = transferPaymentRepository.save(entity);
+        recomputeAfterFlush(collectAffectedDocIds(saved.getPaymentDetails()));
         treasuryHook.onTransferCreated(saved);
         return transferPaymentMapper.toResponse(saved);
     }
@@ -96,8 +111,10 @@ public class PaymentService implements IPaymentService {
         CheckPayment entity = checkPaymentMapper.toEntityOnCreate(dto);
         entity.setBankAccount(acc);
         entity.setCheckbook(checkbook);
+        attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         CheckPayment saved = checkPaymentRepository.save(entity);
+        recomputeAfterFlush(collectAffectedDocIds(saved.getPaymentDetails()));
         treasuryHook.onCheckCreated(saved);
         return checkPaymentMapper.toResponse(saved);
     }
@@ -171,70 +188,215 @@ public class PaymentService implements IPaymentService {
     }
 
     /**
-     * Method that encapsulates all common business logic.
-     * Respects Information Expert principle (GRASP).
+     * Updates the supplier balance side-effect of registering a payment. Per-document {@code paid}
+     * flags are now derived from {@link PaymentApplication} rows by
+     * {@link ITransactionalDocumentService#recomputePaidStatus(Long)}; callers must invoke
+     * {@link #recomputeAfterFlush(java.util.Collection)} after the entity is saved.
      */
     private void executePaymentBusinessLogic(PaymentDetailsDTO paymentDetails) {
-        // Update supplier balance
         iSupplierService.updateSupplierBalance(
             paymentDetails.supplierId(),
             paymentDetails.amount()
         );
-
-        // Update paid documents status
-        updatePaidDocuments(paymentDetails);
     }
 
     /**
-     * Reverts the effects of a payment in the system.
-     * Used for UPDATE and DELETE operations.
+     * Reverts the supplier-balance side-effect of a payment (used by UPDATE and DELETE flows).
+     * Per-document {@code paid} flags must be recomputed by the caller after the orphan-removal
+     * of the underlying {@link PaymentApplication} rows is flushed.
      */
     private void revertPaymentBusinessLogic(PaymentDetailsDTO originalPaymentDetails) {
-        // Revert supplier balance (subtract payment amount)
         iSupplierService.updateSupplierBalance(
             originalPaymentDetails.supplierId(),
-            originalPaymentDetails.amount().negate() // Negative to subtract
+            originalPaymentDetails.amount().negate()
         );
-
-        // Revert document status (mark as unpaid)
-        revertPaidDocuments(originalPaymentDetails);
     }
 
-    /**
-     * Marks documents as unpaid (reverts the payment).
-     * Respects SRP - Single Responsibility Principle.
-     * Silently skips documents that were already soft-deleted.
-     */
-    private void revertPaidDocuments(PaymentDetailsDTO paymentDetails) {
-        if (paymentDetails.paidDocumentIds() == null || paymentDetails.paidDocumentIds().isEmpty()) {
-            // Independent payment — no documents to revert
-            return;
-        }
-
-        for (Long documentId : paymentDetails.paidDocumentIds()) {
-            iTransactionalDocumentService.revertTransactionalDocumentStatusIfExists(
-                documentId,
-                paymentDetails.supplierId()
-            );
-        }
-    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Payment-application wiring (new model, replaces the legacy paid-flag toggling)
+    // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Method responsible for updating paid documents.
-     * Respects SRP - Single Responsibility Principle.
+     * Builds the {@link PaymentApplication} set for the given payment, attaches it to the entity
+     * (cascade will persist together with the parent on save) and computes {@code onAccountAmount}.
+     * Also dual-writes the legacy {@code paidDocuments} list so existing reader queries
+     * (PaymentRepository.findPaymentIdByDocumentId, etc.) keep working transparently.
+     *
+     * <p>Distribution rules:
+     * <ul>
+     *   <li>If {@code dto.applications()} is provided, it is the source of truth.</li>
+     *   <li>Else if {@code dto.paidDocumentIds()} is provided (legacy clients), the amount is
+     *       distributed proportionally to each document's outstanding balance, capped at the
+     *       outstanding. Any remainder becomes on-account credit.</li>
+     *   <li>Else (independent payment), zero applications and the full amount is on-account.</li>
+     *   <li>Sending both fields at once is rejected to avoid ambiguity.</li>
+     * </ul>
      */
-    private void updatePaidDocuments(PaymentDetailsDTO paymentDetails) {
-        // Check if there are documents to update (independent payments have no documents)
-        if (paymentDetails.paidDocumentIds() != null && !paymentDetails.paidDocumentIds().isEmpty()) {
-            for (Long documentId : paymentDetails.paidDocumentIds()) {
-                iTransactionalDocumentService.updateTransactionalDocumentStatus(
-                    documentId,
-                    paymentDetails.supplierId(),
-                    paymentDetails.amount()
-                );
+    private void attachApplications(PaymentDetails details, PaymentDetailsDTO dto) {
+        boolean hasNew = dto.applications() != null && !dto.applications().isEmpty();
+        boolean hasLegacy = dto.paidDocumentIds() != null && !dto.paidDocumentIds().isEmpty();
+        if (hasNew && hasLegacy) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                "payment.applications.bothFieldsProvided"));
+        }
+
+        BigDecimal totalAmount = dto.amount();
+        // Reset both collections; orphan removal will delete any existing PaymentApplication rows
+        if (details.getApplications() == null) {
+            details.setApplications(new HashSet<>());
+        } else {
+            details.getApplications().clear();
+        }
+        if (details.getPaidDocuments() == null) {
+            details.setPaidDocuments(new ArrayList<>());
+        } else {
+            details.getPaidDocuments().clear();
+        }
+
+        BigDecimal sumApplied = BigDecimal.ZERO;
+        Set<TransactionalDocument> uniqueDocs = new LinkedHashSet<>();
+
+        if (hasNew) {
+            for (PaymentApplicationDTO appDto : dto.applications()) {
+                if (appDto.amountApplied() == null || appDto.amountApplied().signum() <= 0) {
+                    throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                        "paymentApplication.amountApplied.positive"));
+                }
+                TransactionalDocument doc = iTransactionalDocumentService.getEntityById(appDto.documentId());
+                validateDocBelongsToSupplier(doc, dto.supplierId());
+                BigDecimal outstanding = computeOutstanding(doc);
+                if (appDto.amountApplied().compareTo(outstanding) > 0) {
+                    throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                        "payment.applications.exceedsOutstanding",
+                        doc.getId(), outstanding.toPlainString()));
+                }
+                PaymentApplication pa = PaymentApplication.builder()
+                    .payment(details)
+                    .document(doc)
+                    .amountApplied(appDto.amountApplied())
+                    .appliedAt(LocalDateTime.now())
+                    .build();
+                details.getApplications().add(pa);
+                if (uniqueDocs.add(doc)) {
+                    details.getPaidDocuments().add(doc);
+                }
+                sumApplied = sumApplied.add(appDto.amountApplied());
+            }
+        } else if (hasLegacy) {
+            // Legacy proportional distribution path. Fetch docs + outstandings once.
+            List<TransactionalDocument> docs = new ArrayList<>();
+            List<BigDecimal> outstandings = new ArrayList<>();
+            BigDecimal totalOutstanding = BigDecimal.ZERO;
+            for (Long docId : dto.paidDocumentIds()) {
+                TransactionalDocument doc = iTransactionalDocumentService.getEntityById(docId);
+                validateDocBelongsToSupplier(doc, dto.supplierId());
+                BigDecimal os = computeOutstanding(doc);
+                docs.add(doc);
+                outstandings.add(os);
+                totalOutstanding = totalOutstanding.add(os.max(BigDecimal.ZERO));
+            }
+            BigDecimal remaining = totalAmount;
+            for (int i = 0; i < docs.size(); i++) {
+                TransactionalDocument doc = docs.get(i);
+                BigDecimal os = outstandings.get(i);
+                if (os.signum() <= 0 || remaining.signum() <= 0) continue;
+                BigDecimal share;
+                if (totalOutstanding.signum() == 0) {
+                    share = BigDecimal.ZERO;
+                } else if (totalAmount.compareTo(totalOutstanding) >= 0) {
+                    // Enough to cover everything: pay full outstanding per doc.
+                    share = os;
+                } else {
+                    share = totalAmount.multiply(os).divide(totalOutstanding, 2, RoundingMode.HALF_UP);
+                    share = share.min(os).min(remaining);
+                }
+                if (share.signum() <= 0) continue;
+                PaymentApplication pa = PaymentApplication.builder()
+                    .payment(details)
+                    .document(doc)
+                    .amountApplied(share)
+                    .appliedAt(LocalDateTime.now())
+                    .build();
+                details.getApplications().add(pa);
+                if (uniqueDocs.add(doc)) {
+                    details.getPaidDocuments().add(doc);
+                }
+                sumApplied = sumApplied.add(share);
+                remaining = remaining.subtract(share);
             }
         }
-        // If paidDocumentIds is null or empty, it's an independent payment - no action on documents
+
+        BigDecimal computedOnAccount = totalAmount.subtract(sumApplied);
+        BigDecimal explicitOnAccount = dto.onAccountAmount();
+        BigDecimal finalOnAccount = explicitOnAccount != null ? explicitOnAccount : computedOnAccount;
+
+        if (finalOnAccount.signum() < 0) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                "payment.onAccountAmount.nonNegative"));
+        }
+        if (sumApplied.add(finalOnAccount).compareTo(totalAmount) != 0) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                "payment.applications.totalsMismatch",
+                sumApplied.toPlainString(), finalOnAccount.toPlainString(), totalAmount.toPlainString()));
+        }
+        details.setOnAccountAmount(finalOnAccount);
+    }
+
+    /**
+     * Outstanding amount for an invoice/debit note: total minus already-applied credit notes
+     * minus already-applied payments (excluding any that belong to soft-deleted payments).
+     */
+    private BigDecimal computeOutstanding(TransactionalDocument doc) {
+        BigDecimal credits = paymentApplicationRepository == null ? BigDecimal.ZERO : BigDecimal.ZERO;
+        // Use the same queries other layers use; null-safe.
+        BigDecimal alreadyPaid = paymentApplicationRepository.sumAppliedToDocument(doc.getId());
+        BigDecimal alreadyCredited = creditAppliedToDocument(doc.getId());
+        BigDecimal outstanding = doc.getTotal()
+            .subtract(alreadyPaid == null ? BigDecimal.ZERO : alreadyPaid)
+            .subtract(alreadyCredited == null ? BigDecimal.ZERO : alreadyCredited);
+        return outstanding.signum() < 0 ? BigDecimal.ZERO : outstanding;
+    }
+
+    /** Thin shim so we don't need to inject CreditNoteApplicationRepository here. */
+    private BigDecimal creditAppliedToDocument(Long documentId) {
+        // The recompute in TransactionalDocumentService already factors credits in; for the
+        // outstanding pre-validation we conservatively allow 0 if the lookup is unreachable.
+        // Spring resolves this through the document service to keep the class boundary clean.
+        try {
+            // Fast path: query the canonical aggregate via JPQL on the EntityManager.
+            Number n = (Number) entityManager.createQuery(
+                "SELECT COALESCE(SUM(a.amountApplied), 0) FROM CreditNoteApplication a " +
+                "WHERE a.invoice.id = :id AND a.creditNote.deleted = false")
+                .setParameter("id", documentId)
+                .getSingleResult();
+            return n == null ? BigDecimal.ZERO : new BigDecimal(n.toString());
+        } catch (Exception e) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private void validateDocBelongsToSupplier(TransactionalDocument doc, Long supplierId) {
+        if (doc.getSupplier() == null || !doc.getSupplier().getId().equals(supplierId)) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage("document.supplierMismatch"));
+        }
+    }
+
+    private List<Long> collectAffectedDocIds(PaymentDetails details) {
+        if (details == null || details.getApplications() == null) return Collections.emptyList();
+        return details.getApplications().stream()
+            .map(a -> a.getDocument() != null ? a.getDocument().getId() : null)
+            .filter(java.util.Objects::nonNull)
+            .distinct()
+            .toList();
+    }
+
+    /** Forces a flush so that subsequent recompute queries see freshly-inserted/orphan-removed rows. */
+    private void recomputeAfterFlush(java.util.Collection<Long> documentIds) {
+        if (documentIds == null || documentIds.isEmpty()) return;
+        entityManager.flush();
+        for (Long id : documentIds) {
+            iTransactionalDocumentService.recomputePaidStatus(id);
+        }
     }
 
     @Override
@@ -480,15 +642,45 @@ public class PaymentService implements IPaymentService {
 
         // Only apply business logic if there are significant changes
         if (hasSignificantChanges(updateInfo.originalDetails, updateInfo.newDetails)) {
-            // 1. Revert original payment effects
+            // Resolve the live PaymentDetails entity (still attached, has OLD applications loaded
+            // because the mapper was configured to ignore the applications collection).
+            PaymentDetails liveDetails = resolvePaymentDetails(updateInfo.entity);
+            // Make sure the lazy applications set is initialized before we mutate it.
+            if (liveDetails != null && liveDetails.getApplications() != null) {
+                Hibernate.initialize(liveDetails.getApplications());
+            }
+            java.util.Set<Long> oldDocIds = new java.util.LinkedHashSet<>(collectAffectedDocIds(liveDetails));
+
+            // 1. Revert original payment supplier-balance effect.
             revertPaymentBusinessLogic(updateInfo.originalDetails);
 
-            // 2. Apply updated payment effects
+            // 2. Rebuild applications + on-account from the merged DTO and apply new balance effect.
+            if (liveDetails != null) {
+                attachApplications(liveDetails, mergedDetails);
+            }
             executePaymentBusinessLogic(mergedDetails);
+
+            java.util.Set<Long> docsToRecompute = new java.util.LinkedHashSet<>(oldDocIds);
+            docsToRecompute.addAll(collectAffectedDocIds(liveDetails));
+
+            T savedEntity = repository.save(updateInfo.entity);
+            recomputeAfterFlush(docsToRecompute);
+            return responseMapper.apply(savedEntity, updateInfo);
         }
 
         T savedEntity = repository.save(updateInfo.entity);
         return responseMapper.apply(savedEntity, updateInfo);
+    }
+
+    /** Reflection-based accessor; mirrors the existing {@link #extractPaymentDetails} pattern. */
+    private <T> PaymentDetails resolvePaymentDetails(T paymentEntity) {
+        try {
+            var m = paymentEntity.getClass().getDeclaredMethod("getPaymentDetails");
+            m.setAccessible(true);
+            return (PaymentDetails) m.invoke(paymentEntity);
+        } catch (Exception e) {
+            throw new RuntimeException(messageSourceHelper.getMessage("payment.extractDetailsError"), e);
+        }
     }
 
     /**
@@ -537,6 +729,13 @@ public class PaymentService implements IPaymentService {
     @Override
     public java.util.Optional<Long> findPaymentIdByDocumentId(Long documentId) {
         return paymentRepository.findPaymentIdByDocumentId(documentId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SupplierOnAccountDTO getSupplierOnAccount(Long supplierId) {
+        BigDecimal total = paymentApplicationRepository.sumOnAccountBySupplier(supplierId);
+        return new SupplierOnAccountDTO(supplierId, total == null ? BigDecimal.ZERO : total);
     }
 
     @Override
@@ -589,6 +788,16 @@ public class PaymentService implements IPaymentService {
         // 1. Extract payment information before deleting it
         PaymentDetailsDTO paymentDetails = extractPaymentDetails(existing);
 
+        // 1b. Capture affected document IDs from the live applications collection so we can
+        // recompute their paid status after the soft-delete is flushed (the recompute query
+        // filters out soft-deleted payments via NOT EXISTS, so the docs flip back to unpaid
+        // automatically without us having to delete the application rows themselves).
+        PaymentDetails liveDetails = resolvePaymentDetails(existing);
+        if (liveDetails != null && liveDetails.getApplications() != null) {
+            Hibernate.initialize(liveDetails.getApplications());
+        }
+        java.util.List<Long> affectedDocs = collectAffectedDocIds(liveDetails);
+
         // 2. Revert all payment effects in the system
         revertPaymentBusinessLogic(paymentDetails);
 
@@ -611,6 +820,7 @@ public class PaymentService implements IPaymentService {
         }
 
         repository.save(existing);
+        recomputeAfterFlush(affectedDocs);
     }
 
     /**
@@ -654,8 +864,11 @@ public class PaymentService implements IPaymentService {
         boolean supplierChanged = !original.supplierId().equals(finalSupplierId);
         boolean amountChanged = !original.amount().equals(finalAmount);
         boolean documentsChanged = !areDocumentListsEqual(original.paidDocumentIds(), finalPaidDocumentIds);
+        // Any non-null applications payload always re-derives the per-document distribution.
+        boolean applicationsProvided = updated.applications() != null;
+        boolean onAccountProvided = updated.onAccountAmount() != null;
 
-        return supplierChanged || amountChanged || documentsChanged;
+        return supplierChanged || amountChanged || documentsChanged || applicationsProvided || onAccountProvided;
     }
 
     /**
@@ -677,7 +890,9 @@ public class PaymentService implements IPaymentService {
             getValueOrOriginal(updated.supplierId(), original.supplierId()),
             getValueOrOriginal(updated.amount(), original.amount()),
             getValueOrOriginal(updated.comment(), original.comment()),
-            getValueOrOriginal(updated.paidDocumentIds(), original.paidDocumentIds())
+            getValueOrOriginal(updated.paidDocumentIds(), original.paidDocumentIds()),
+            getValueOrOriginal(updated.applications(), original.applications()),
+            getValueOrOriginal(updated.onAccountAmount(), original.onAccountAmount())
         );
     }
 

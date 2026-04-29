@@ -18,6 +18,17 @@ public interface ITransactionalDocumentService {
     TransactionalDocumentResponseDTO updateTransactionalDocument(Long id, TransactionalDocumentDTO transactionalDocumentDTO);
     void updateTransactionalDocumentStatus(Long documentId, Long supplierId, BigDecimal amount);
     void revertTransactionalDocumentStatusIfExists(Long documentId, Long supplierId);
+
+    /**
+     * Recomputes the {@code paid} flag of the given document based on the current
+     * {@link PSG.backEnd.model.entity.payment.PaymentApplication} rows + applied credit notes:
+     * {@code paid = sum(payment_applications.amountApplied) + sum(credit_note_applications.amountApplied) >= total}.
+     *
+     * <p>Pure derivation, no balance side-effects: balance changes are owned by the caller
+     * (PaymentService for payment-driven changes, TransactionalDocumentService for create/delete-driven changes).
+     * Idempotent and safe to call after every payment-application mutation.
+     */
+    void recomputePaidStatus(Long documentId);
     TransactionalDocumentResponseDTO markDocumentUnpaid(Long id);
     TransactionalDocumentResponseDTO markCreditNoteApplied(Long id, boolean applied);
     LinkedRecordsSummaryDTO getLinkedRecordsSummary(Long id);

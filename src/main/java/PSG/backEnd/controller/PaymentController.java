@@ -166,6 +166,17 @@ public class PaymentController {
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
+    @GetMapping("/suppliers/{supplierId}/on-account-balance")
+    @Operation(summary = "Get supplier on-account balance",
+            description = "Returns the supplier's available on-account credit (saldo a favor del proveedor): " +
+                    "the gross sum of every non-deleted payment's onAccountAmount registered against the supplier. " +
+                    "Used by the payment-creation forms to surface the available credit for re-use.")
+    public ResponseEntity<SupplierOnAccountDTO> getSupplierOnAccountBalance(
+            @Parameter(description = "Supplier ID", required = true) @PathVariable Long supplierId) {
+        return ResponseEntity.ok(paymentService.getSupplierOnAccount(supplierId));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get payment by ID",
             description = "Retrieves a payment by its PaymentDetails ID, automatically resolving the payment type (cash, transfer or check). " +

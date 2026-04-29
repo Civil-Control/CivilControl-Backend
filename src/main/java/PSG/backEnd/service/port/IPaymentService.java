@@ -35,5 +35,12 @@ public interface IPaymentService {
     /** Returns the payment-details ID for the payment that covers the given document, or empty if none. */
     java.util.Optional<Long> findPaymentIdByDocumentId(Long documentId);
 
+    /**
+     * Returns the on-account credit (saldo a favor) currently parked at the supplier across
+     * all non-deleted payments. Used by the frontend to offer a "use available credit" toggle
+     * when registering a new payment for the same supplier.
+     */
+    SupplierOnAccountDTO getSupplierOnAccount(Long supplierId);
+
     byte[] generatePaymentOrderPdf(Long id);
 }
