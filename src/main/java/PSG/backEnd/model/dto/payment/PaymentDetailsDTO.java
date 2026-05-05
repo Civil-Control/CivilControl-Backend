@@ -88,4 +88,10 @@ public record PaymentDetailsDTO(
                                  String comment, List<Long> paidDocumentIds) {
                 this(paymentDate, supplierId, amount, comment, paidDocumentIds, null, null, null);
         }
+
+        public PaymentDetailsDTO(LocalDate paymentDate, Long supplierId, BigDecimal amount,
+                                 String comment, List<Long> paidDocumentIds,
+                                 List<PaymentApplicationDTO> applications, BigDecimal onAccountAmount) {
+                this(paymentDate, supplierId, amount, comment, paidDocumentIds, applications, onAccountAmount, null);
+        }
 }
