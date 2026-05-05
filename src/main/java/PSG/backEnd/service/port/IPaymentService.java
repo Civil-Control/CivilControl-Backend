@@ -43,6 +43,12 @@ public interface IPaymentService {
     SupplierOnAccountDTO getSupplierOnAccount(Long supplierId);
 
     /**
+     * Returns all active, not-fully-applied credit notes for the given supplier.
+     * Used by the payment form to let the user offset invoices with credit notes.
+     */
+    java.util.List<AvailableCreditNoteDTO> getAvailableCreditNotes(Long supplierId);
+
+    /**
      * Returns the per-payment imputations (active applications) registered against the given
      * document, ordered most-recent first. Used by the document detail / form to render the
      * "Imputaciones recibidas" mini-table when more than one payment touches the same document.

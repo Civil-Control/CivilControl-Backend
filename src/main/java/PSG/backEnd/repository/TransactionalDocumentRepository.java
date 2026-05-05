@@ -200,4 +200,19 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
            "                        PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_C)")
     BigDecimal sumCreditBySupplierIdBeforeDate(@Param("supplierId") Long supplierId,
                                                @Param("beforeDate") LocalDate beforeDate);
+
+    /**
+     * Returns non-deleted, not-fully-manually-applied credit notes for a supplier, newest first.
+     * Used by the payment form to show what credit notes are available to apply.
+     */
+    @Query("SELECT td FROM TransactionalDocument td " +
+           "WHERE td.supplier.id = :supplierId " +
+           "AND td.deleted = false " +
+           "AND (td.manuallyApplied IS NULL OR td.manuallyApplied = false) " +
+           "AND td.documentType IN (" +
+           "    PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_A, " +
+           "    PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_B, " +
+           "    PSG.backEnd.model.enums.documents.DocumentType.CREDIT_NOTE_C) " +
+           "ORDER BY td.date DESC")
+    java.util.List<TransactionalDocument> findActiveCreditNotesBySupplierId(@Param("supplierId") Long supplierId);
 }

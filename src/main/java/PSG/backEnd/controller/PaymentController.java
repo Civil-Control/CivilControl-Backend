@@ -188,6 +188,16 @@ public class PaymentController {
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
+    @GetMapping("/suppliers/{supplierId}/available-credit-notes")
+    @Operation(summary = "Get available credit notes for a supplier",
+            description = "Returns all active, not-fully-applied credit notes for the given supplier. " +
+                    "Used by the payment form to let the user offset invoices with credit notes.")
+    public ResponseEntity<java.util.List<PSG.backEnd.model.dto.payment.AvailableCreditNoteDTO>> getAvailableCreditNotes(
+            @Parameter(description = "Supplier ID", required = true) @PathVariable Long supplierId) {
+        return ResponseEntity.ok(paymentService.getAvailableCreditNotes(supplierId));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
     @GetMapping("/{id}")
     @Operation(summary = "Get payment by ID",
             description = "Retrieves a payment by its PaymentDetails ID, automatically resolving the payment type (cash, transfer or check). " +

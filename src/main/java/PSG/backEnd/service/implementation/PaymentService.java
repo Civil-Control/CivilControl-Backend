@@ -62,6 +62,8 @@ public class PaymentService implements IPaymentService {
     private final TreasuryPaymentHook treasuryHook;
     private final PaymentApplicationRepository paymentApplicationRepository;
     private final EntityManager entityManager;
+    private final PSG.backEnd.repository.CreditNoteApplicationRepository creditNoteApplicationRepository;
+    private final PSG.backEnd.repository.TransactionalDocumentRepository transactionalDocumentRepository;
 
     @Override
     @Transactional
@@ -72,10 +74,14 @@ public class PaymentService implements IPaymentService {
         if (dto.cashBoxId() != null) {
             entity.setCashBox(treasuryHook.resolveCashBox(dto.cashBoxId()));
         }
+        java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(dto.paymentDetails());
+        if (!creditInvoiceIds.isEmpty()) { entityManager.flush(); }
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         CashPayment saved = cashPaymentRepository.save(entity);
-        recomputeAfterFlush(collectAffectedDocIds(saved.getPaymentDetails()));
+        java.util.Set<Long> allAffected = new java.util.LinkedHashSet<>(collectAffectedDocIds(saved.getPaymentDetails()));
+        allAffected.addAll(creditInvoiceIds);
+        recomputeAfterFlush(allAffected);
         treasuryHook.onCashCreated(saved);
         return cashPaymentMapper.toResponse(saved);
     }
@@ -87,10 +93,14 @@ public class PaymentService implements IPaymentService {
         BankAccount acc = treasuryHook.resolveBankAccount(dto.bankAccountId());
         TransferPayment entity = transferPaymentMapper.toEntityOnCreate(dto);
         entity.setBankAccount(acc);
+        java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(dto.paymentDetails());
+        if (!creditInvoiceIds.isEmpty()) { entityManager.flush(); }
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         TransferPayment saved = transferPaymentRepository.save(entity);
-        recomputeAfterFlush(collectAffectedDocIds(saved.getPaymentDetails()));
+        java.util.Set<Long> allAffected = new java.util.LinkedHashSet<>(collectAffectedDocIds(saved.getPaymentDetails()));
+        allAffected.addAll(creditInvoiceIds);
+        recomputeAfterFlush(allAffected);
         treasuryHook.onTransferCreated(saved);
         return transferPaymentMapper.toResponse(saved);
     }
@@ -111,10 +121,14 @@ public class PaymentService implements IPaymentService {
         CheckPayment entity = checkPaymentMapper.toEntityOnCreate(dto);
         entity.setBankAccount(acc);
         entity.setCheckbook(checkbook);
+        java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(dto.paymentDetails());
+        if (!creditInvoiceIds.isEmpty()) { entityManager.flush(); }
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         CheckPayment saved = checkPaymentRepository.save(entity);
-        recomputeAfterFlush(collectAffectedDocIds(saved.getPaymentDetails()));
+        java.util.Set<Long> allAffected = new java.util.LinkedHashSet<>(collectAffectedDocIds(saved.getPaymentDetails()));
+        allAffected.addAll(creditInvoiceIds);
+        recomputeAfterFlush(allAffected);
         treasuryHook.onCheckCreated(saved);
         return checkPaymentMapper.toResponse(saved);
     }
@@ -364,22 +378,8 @@ public class PaymentService implements IPaymentService {
         return outstanding.signum() < 0 ? BigDecimal.ZERO : outstanding;
     }
 
-    /** Thin shim so we don't need to inject CreditNoteApplicationRepository here. */
     private BigDecimal creditAppliedToDocument(Long documentId) {
-        // The recompute in TransactionalDocumentService already factors credits in; for the
-        // outstanding pre-validation we conservatively allow 0 if the lookup is unreachable.
-        // Spring resolves this through the document service to keep the class boundary clean.
-        try {
-            // Fast path: query the canonical aggregate via JPQL on the EntityManager.
-            Number n = (Number) entityManager.createQuery(
-                "SELECT COALESCE(SUM(a.amountApplied), 0) FROM CreditNoteApplication a " +
-                "WHERE a.invoice.id = :id AND a.creditNote.deleted = false")
-                .setParameter("id", documentId)
-                .getSingleResult();
-            return n == null ? BigDecimal.ZERO : new BigDecimal(n.toString());
-        } catch (Exception e) {
-            return BigDecimal.ZERO;
-        }
+        return creditNoteApplicationRepository.sumAppliedToInvoice(documentId);
     }
 
     private void validateDocBelongsToSupplier(TransactionalDocument doc, Long supplierId) {
@@ -755,6 +755,75 @@ public class PaymentService implements IPaymentService {
     public SupplierOnAccountDTO getSupplierOnAccount(Long supplierId) {
         BigDecimal total = paymentApplicationRepository.sumOnAccountBySupplier(supplierId);
         return new SupplierOnAccountDTO(supplierId, total == null ? BigDecimal.ZERO : total);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<AvailableCreditNoteDTO> getAvailableCreditNotes(Long supplierId) {
+        java.util.List<TransactionalDocument> notes =
+            transactionalDocumentRepository.findActiveCreditNotesBySupplierId(supplierId);
+        java.util.List<AvailableCreditNoteDTO> result = new ArrayList<>();
+        for (TransactionalDocument cn : notes) {
+            BigDecimal applied = creditNoteApplicationRepository.sumAppliedByCreditNote(cn.getId());
+            if (applied == null) applied = BigDecimal.ZERO;
+            BigDecimal available = cn.getTotal() != null ? cn.getTotal().subtract(applied) : BigDecimal.ZERO;
+            if (available.signum() > 0) {
+                result.add(new AvailableCreditNoteDTO(
+                    cn.getId(),
+                    cn.getDocumentNumber(),
+                    cn.getDate(),
+                    cn.getTotal(),
+                    applied,
+                    available
+                ));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Creates CreditNoteApplication records for each entry in {@code dto.creditNoteApplications()}.
+     * Returns the set of invoice IDs to include in recomputePaidStatus.
+     */
+    private java.util.List<Long> attachCreditNoteApplications(PaymentDetailsDTO dto) {
+        java.util.List<CreditNoteApplicationForPaymentDTO> cnApps = dto.creditNoteApplications();
+        if (cnApps == null || cnApps.isEmpty()) return Collections.emptyList();
+
+        java.util.List<Long> affectedInvoiceIds = new ArrayList<>();
+        for (CreditNoteApplicationForPaymentDTO cnDto : cnApps) {
+            TransactionalDocument creditNote = iTransactionalDocumentService.getEntityById(cnDto.creditNoteId());
+            if (creditNote.getSupplier() == null || !creditNote.getSupplier().getId().equals(dto.supplierId())) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage("document.supplierMismatch"));
+            }
+            TransactionalDocument invoice = iTransactionalDocumentService.getEntityById(cnDto.invoiceId());
+            if (invoice.getSupplier() == null || !invoice.getSupplier().getId().equals(dto.supplierId())) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage("document.supplierMismatch"));
+            }
+            if (creditNoteApplicationRepository.existsByCreditNote_IdAndInvoice_Id(cnDto.creditNoteId(), cnDto.invoiceId())) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                    "creditNote.application.alreadyExists", cnDto.creditNoteId(), cnDto.invoiceId()));
+            }
+            BigDecimal alreadyApplied = creditNoteApplicationRepository.sumAppliedByCreditNote(cnDto.creditNoteId());
+            if (alreadyApplied == null) alreadyApplied = BigDecimal.ZERO;
+            BigDecimal available = creditNote.getTotal().subtract(alreadyApplied);
+            if (cnDto.amountApplied().compareTo(available) > 0) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                    "creditNote.application.exceedsCreditNote", cnDto.creditNoteId(), available.toPlainString()));
+            }
+            BigDecimal invoiceHeadroom = computeOutstanding(invoice);
+            if (cnDto.amountApplied().compareTo(invoiceHeadroom) > 0) {
+                throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                    "creditNote.application.exceedsInvoice", cnDto.invoiceId(), invoiceHeadroom.toPlainString()));
+            }
+            PSG.backEnd.model.entity.CreditNoteApplication app = PSG.backEnd.model.entity.CreditNoteApplication.builder()
+                .creditNote(creditNote)
+                .invoice(invoice)
+                .amountApplied(cnDto.amountApplied())
+                .build();
+            creditNoteApplicationRepository.save(app);
+            affectedInvoiceIds.add(cnDto.invoiceId());
+        }
+        return affectedInvoiceIds;
     }
 
     @Override

@@ -74,7 +74,10 @@ public record PaymentDetailsDTO(
                 nullable = true)
         @DecimalMin(value = "0.00", message = "{payment.onAccountAmount.nonNegative}", groups = {OnCreate.class, OnUpdate.class})
         @Digits(integer = 12, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
-        BigDecimal onAccountAmount
+        BigDecimal onAccountAmount,
+
+        @Valid
+        List<CreditNoteApplicationForPaymentDTO> creditNoteApplications
 ) {
 
         /**
@@ -83,6 +86,6 @@ public record PaymentDetailsDTO(
          */
         public PaymentDetailsDTO(LocalDate paymentDate, Long supplierId, BigDecimal amount,
                                  String comment, List<Long> paidDocumentIds) {
-                this(paymentDate, supplierId, amount, comment, paidDocumentIds, null, null);
+                this(paymentDate, supplierId, amount, comment, paidDocumentIds, null, null, null);
         }
 }

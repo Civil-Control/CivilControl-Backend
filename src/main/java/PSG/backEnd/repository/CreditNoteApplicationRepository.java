@@ -22,4 +22,11 @@ public interface CreditNoteApplicationRepository extends JpaRepository<CreditNot
     BigDecimal sumAppliedToInvoice(@Param("invoiceId") Long invoiceId);
 
     void deleteByCreditNote_Id(Long creditNoteId);
+
+    boolean existsByCreditNote_IdAndInvoice_Id(Long creditNoteId, Long invoiceId);
+
+    /** Sum of credit applied FROM a specific credit note across all its applications. */
+    @Query("SELECT COALESCE(SUM(a.amountApplied), 0) FROM CreditNoteApplication a " +
+           "WHERE a.creditNote.id = :creditNoteId AND a.creditNote.deleted = false")
+    BigDecimal sumAppliedByCreditNote(@Param("creditNoteId") Long creditNoteId);
 }
