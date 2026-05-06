@@ -13,11 +13,12 @@ public record PaymentDetailsResponseDTO(
         String comment,
         List<Long> paidDocumentIds,
         List<PaymentApplicationResponseDTO> applications,
-        BigDecimal onAccountAmount
+        BigDecimal onAccountAmount,
+        List<CreditNoteApplicationResponseDTO> creditNoteApplications
 ) {
     /** Back-compat constructor for legacy call sites. */
     public PaymentDetailsResponseDTO(Long id, LocalDate paymentDate, Long supplierId, String supplierName,
                                      BigDecimal amount, String comment, List<Long> paidDocumentIds) {
-        this(id, paymentDate, supplierId, supplierName, amount, comment, paidDocumentIds, List.of(), BigDecimal.ZERO);
+        this(id, paymentDate, supplierId, supplierName, amount, comment, paidDocumentIds, List.of(), BigDecimal.ZERO, List.of());
     }
 }

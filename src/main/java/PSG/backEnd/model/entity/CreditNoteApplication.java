@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity;
 
+import PSG.backEnd.model.entity.payment.PaymentDetails;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -52,4 +53,8 @@ public class CreditNoteApplication extends TenantEntity {
     /** Amount of the credit note that is applied to this specific invoice. */
     @Column(name = "amount_applied", nullable = false, precision = 19, scale = 2)
     private BigDecimal amountApplied;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_details_id")
+    private PaymentDetails paymentDetails;
 }

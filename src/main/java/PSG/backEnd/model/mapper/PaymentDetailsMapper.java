@@ -1,8 +1,10 @@
 package PSG.backEnd.model.mapper;
 
+import PSG.backEnd.model.dto.payment.CreditNoteApplicationResponseDTO;
 import PSG.backEnd.model.dto.payment.PaymentApplicationResponseDTO;
 import PSG.backEnd.model.dto.payment.PaymentDetailsDTO;
 import PSG.backEnd.model.dto.payment.PaymentDetailsResponseDTO;
+import PSG.backEnd.model.entity.CreditNoteApplication;
 import PSG.backEnd.model.entity.payment.PaymentApplication;
 import PSG.backEnd.model.entity.payment.PaymentDetails;
 import PSG.backEnd.model.entity.Supplier;
@@ -20,8 +22,9 @@ public interface PaymentDetailsMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "supplier", source = "supplierId")
     @Mapping(target = "paidDocuments", source = "paidDocumentIds")
-    @Mapping(target = "applications", ignore = true)            // wired in service layer
-    @Mapping(target = "onAccountAmount", ignore = true)         // wired in service layer
+    @Mapping(target = "applications", ignore = true)
+    @Mapping(target = "onAccountAmount", ignore = true)
+    @Mapping(target = "creditNoteApplications", ignore = true)
     @Mapping(target = "cashPayment", ignore = true)
     @Mapping(target = "transferPayment", ignore = true)
     @Mapping(target = "checkPayment", ignore = true)
@@ -31,8 +34,9 @@ public interface PaymentDetailsMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "supplier", source = "supplierId")
     @Mapping(target = "paidDocuments", source = "paidDocumentIds")
-    @Mapping(target = "applications", ignore = true)            // wired in service layer
-    @Mapping(target = "onAccountAmount", ignore = true)         // wired in service layer
+    @Mapping(target = "applications", ignore = true)
+    @Mapping(target = "onAccountAmount", ignore = true)
+    @Mapping(target = "creditNoteApplications", ignore = true)
     @Mapping(target = "cashPayment", ignore = true)
     @Mapping(target = "transferPayment", ignore = true)
     @Mapping(target = "checkPayment", ignore = true)
@@ -43,6 +47,7 @@ public interface PaymentDetailsMapper {
     @Mapping(target = "paidDocumentIds", source = "paidDocuments")
     @Mapping(target = "applications", source = "applications")
     @Mapping(target = "onAccountAmount", source = "onAccountAmount", defaultExpression = "java(java.math.BigDecimal.ZERO)")
+    @Mapping(target = "creditNoteApplications", source = "creditNoteApplications")
     PaymentDetailsResponseDTO toResponse(PaymentDetails entity);
 
     // Custom mapping to convert Long to Supplier
@@ -145,6 +150,19 @@ public interface PaymentDetailsMapper {
             return payment.getCheckPayment().getCheckNumber();
         }
         return null;
+    }
+
+    default List<CreditNoteApplicationResponseDTO> mapCreditNoteApplications(java.util.Set<CreditNoteApplication> cnas) {
+        if (cnas == null || !Hibernate.isInitialized(cnas)) return Collections.emptyList();
+        return cnas.stream()
+                .map(cna -> new CreditNoteApplicationResponseDTO(
+                        cna.getCreditNote() != null ? cna.getCreditNote().getId() : null,
+                        cna.getCreditNote() != null ? cna.getCreditNote().getDocumentNumber() : null,
+                        cna.getInvoice() != null ? cna.getInvoice().getId() : null,
+                        cna.getInvoice() != null ? cna.getInvoice().getDocumentNumber() : null,
+                        cna.getAmountApplied()
+                ))
+                .collect(Collectors.toList());
     }
 
 }

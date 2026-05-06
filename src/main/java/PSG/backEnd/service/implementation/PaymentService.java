@@ -74,8 +74,7 @@ public class PaymentService implements IPaymentService {
         if (dto.cashBoxId() != null) {
             entity.setCashBox(treasuryHook.resolveCashBox(dto.cashBoxId()));
         }
-        java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(dto.paymentDetails());
-        if (!creditInvoiceIds.isEmpty()) { entityManager.flush(); }
+        java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(entity.getPaymentDetails(), dto.paymentDetails());
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         CashPayment saved = cashPaymentRepository.save(entity);
@@ -93,8 +92,7 @@ public class PaymentService implements IPaymentService {
         BankAccount acc = treasuryHook.resolveBankAccount(dto.bankAccountId());
         TransferPayment entity = transferPaymentMapper.toEntityOnCreate(dto);
         entity.setBankAccount(acc);
-        java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(dto.paymentDetails());
-        if (!creditInvoiceIds.isEmpty()) { entityManager.flush(); }
+        java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(entity.getPaymentDetails(), dto.paymentDetails());
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         TransferPayment saved = transferPaymentRepository.save(entity);
@@ -121,8 +119,7 @@ public class PaymentService implements IPaymentService {
         CheckPayment entity = checkPaymentMapper.toEntityOnCreate(dto);
         entity.setBankAccount(acc);
         entity.setCheckbook(checkbook);
-        java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(dto.paymentDetails());
-        if (!creditInvoiceIds.isEmpty()) { entityManager.flush(); }
+        java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(entity.getPaymentDetails(), dto.paymentDetails());
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         CheckPayment saved = checkPaymentRepository.save(entity);
@@ -449,6 +446,13 @@ public class PaymentService implements IPaymentService {
         if (paymentDetails.getPaidDocuments() != null) {
             Hibernate.initialize(paymentDetails.getPaidDocuments());
         }
+        if (paymentDetails.getCreditNoteApplications() != null) {
+            Hibernate.initialize(paymentDetails.getCreditNoteApplications());
+            for (PSG.backEnd.model.entity.CreditNoteApplication cna : paymentDetails.getCreditNoteApplications()) {
+                Hibernate.initialize(cna.getCreditNote());
+                Hibernate.initialize(cna.getInvoice());
+            }
+        }
         if (paymentDetails.getCashPayment() != null) {
             return cashPaymentMapper.toResponse(paymentDetails.getCashPayment());
         } else if (paymentDetails.getTransferPayment() != null) {
@@ -658,19 +662,25 @@ public class PaymentService implements IPaymentService {
 
         // Only apply business logic if there are significant changes
         if (hasSignificantChanges(updateInfo.originalDetails, updateInfo.newDetails)) {
-            // Resolve the live PaymentDetails entity (still attached, has OLD applications loaded
-            // because the mapper was configured to ignore the applications collection).
             PaymentDetails liveDetails = resolvePaymentDetails(updateInfo.entity);
-            // Make sure the lazy applications set is initialized before we mutate it.
             if (liveDetails != null && liveDetails.getApplications() != null) {
                 Hibernate.initialize(liveDetails.getApplications());
             }
             java.util.Set<Long> oldDocIds = new java.util.LinkedHashSet<>(collectAffectedDocIds(liveDetails));
 
-            // 1. Revert original payment supplier-balance effect.
+            // Update credit note applications when the client sent them explicitly
+            java.util.List<Long> cnInvoiceIds = Collections.emptyList();
+            if (liveDetails != null && mergedDetails.creditNoteApplications() != null) {
+                if (liveDetails.getCreditNoteApplications() != null) {
+                    Hibernate.initialize(liveDetails.getCreditNoteApplications());
+                    liveDetails.getCreditNoteApplications().clear();
+                    entityManager.flush();
+                }
+                cnInvoiceIds = attachCreditNoteApplications(liveDetails, mergedDetails);
+            }
+
             revertPaymentBusinessLogic(updateInfo.originalDetails);
 
-            // 2. Rebuild applications + on-account from the merged DTO and apply new balance effect.
             if (liveDetails != null) {
                 attachApplications(liveDetails, mergedDetails);
             }
@@ -678,6 +688,7 @@ public class PaymentService implements IPaymentService {
 
             java.util.Set<Long> docsToRecompute = new java.util.LinkedHashSet<>(oldDocIds);
             docsToRecompute.addAll(collectAffectedDocIds(liveDetails));
+            docsToRecompute.addAll(cnInvoiceIds);
 
             T savedEntity = repository.save(updateInfo.entity);
             recomputeAfterFlush(docsToRecompute);
@@ -785,7 +796,7 @@ public class PaymentService implements IPaymentService {
      * Creates CreditNoteApplication records for each entry in {@code dto.creditNoteApplications()}.
      * Returns the set of invoice IDs to include in recomputePaidStatus.
      */
-    private java.util.List<Long> attachCreditNoteApplications(PaymentDetailsDTO dto) {
+    private java.util.List<Long> attachCreditNoteApplications(PaymentDetails paymentDetails, PaymentDetailsDTO dto) {
         java.util.List<CreditNoteApplicationForPaymentDTO> cnApps = dto.creditNoteApplications();
         if (cnApps == null || cnApps.isEmpty()) return Collections.emptyList();
 
@@ -819,8 +830,9 @@ public class PaymentService implements IPaymentService {
                 .creditNote(creditNote)
                 .invoice(invoice)
                 .amountApplied(cnDto.amountApplied())
+                .paymentDetails(paymentDetails)
                 .build();
-            creditNoteApplicationRepository.save(app);
+            paymentDetails.getCreditNoteApplications().add(app);
             affectedInvoiceIds.add(cnDto.invoiceId());
         }
         return affectedInvoiceIds;
@@ -1002,8 +1014,9 @@ public class PaymentService implements IPaymentService {
         // Any non-null applications payload always re-derives the per-document distribution.
         boolean applicationsProvided = updated.applications() != null;
         boolean onAccountProvided = updated.onAccountAmount() != null;
+        boolean cnAppsProvided = updated.creditNoteApplications() != null;
 
-        return supplierChanged || amountChanged || documentsChanged || applicationsProvided || onAccountProvided;
+        return supplierChanged || amountChanged || documentsChanged || applicationsProvided || onAccountProvided || cnAppsProvided;
     }
 
     /**
@@ -1034,7 +1047,8 @@ public class PaymentService implements IPaymentService {
             getValueOrOriginal(updated.comment(), original.comment()),
             mergedPaidDocs,
             getValueOrOriginal(updated.applications(), original.applications()),
-            getValueOrOriginal(updated.onAccountAmount(), original.onAccountAmount())
+            getValueOrOriginal(updated.onAccountAmount(), original.onAccountAmount()),
+            getValueOrOriginal(updated.creditNoteApplications(), original.creditNoteApplications())
         );
     }
 

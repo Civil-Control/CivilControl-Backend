@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity.payment;
 
+import PSG.backEnd.model.entity.CreditNoteApplication;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.TenantEntity;
@@ -67,6 +68,10 @@ public class PaymentDetails extends TenantEntity {
 
     @Column(length = 500)
     private String comment;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "paymentDetails", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<CreditNoteApplication> creditNoteApplications = new HashSet<>();
 
     @OneToOne(mappedBy = "paymentDetails")
     private CashPayment cashPayment;
