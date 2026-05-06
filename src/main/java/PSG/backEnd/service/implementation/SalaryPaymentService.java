@@ -97,7 +97,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     @Override
     @Transactional(readOnly = true)
     public SalaryPaymentResponseDTO getSalaryPaymentById(Long id) {
-        return salaryPaymentRepository.findByIdAndEmployeeDeletedFalse(id)
+        return salaryPaymentRepository.findById(id)
                 .map(salaryPaymentMapper::toResponseDto)
                 .orElseThrow(() -> new SalaryPaymentNotFoundException(id));
     }
@@ -105,7 +105,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     @Override
     @Transactional
     public SalaryPaymentResponseDTO updateSalaryPayment(Long id, SalaryPaymentDTO salaryPaymentDTO) {
-        SalaryPayment existingSalaryPayment = salaryPaymentRepository.findByIdAndEmployeeDeletedFalse(id)
+        SalaryPayment existingSalaryPayment = salaryPaymentRepository.findById(id)
                 .orElseThrow(() -> new SalaryPaymentNotFoundException(id));
 
         Long oldDocumentId = existingSalaryPayment.getTransactionalDocument() != null
@@ -146,7 +146,7 @@ public class SalaryPaymentService implements ISalaryPaymentService {
     @Override
     @Transactional
     public void deleteSalaryPayment(Long id) {
-        SalaryPayment salaryPayment = salaryPaymentRepository.findByIdAndEmployeeDeletedFalse(id)
+        SalaryPayment salaryPayment = salaryPaymentRepository.findById(id)
                 .orElseThrow(() -> new SalaryPaymentNotFoundException(id));
 
         Long docId = salaryPayment.getTransactionalDocument() != null

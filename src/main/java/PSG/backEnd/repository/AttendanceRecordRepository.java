@@ -12,12 +12,9 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface AttendanceRecordRepository extends JpaRepository<AttendanceRecord, Long> {
-
-    Optional<AttendanceRecord> findByIdAndEmployeeDeletedFalse(Long id);
 
     boolean existsByEmployeeIdAndDateAndTimeAndMovementType(
             Long employeeId, LocalDate date, LocalTime time, MovementType movementType);
@@ -25,8 +22,7 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     List<AttendanceRecord> findByEmployeeIdAndDateOrderByTimeAsc(Long employeeId, LocalDate date);
 
     @Query("SELECT ar FROM AttendanceRecord ar " +
-            "WHERE ar.employee.deleted = false " +
-            "AND (CAST(:employeeId AS long) IS NULL OR ar.employee.id = :employeeId) " +
+            "WHERE (CAST(:employeeId AS long) IS NULL OR ar.employee.id = :employeeId) " +
             "AND (:firstName IS NULL OR LOWER(CAST(ar.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
             "AND (:lastName IS NULL OR LOWER(CAST(ar.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
             "AND (:dni IS NULL OR LOWER(CAST(ar.employee.dni AS string)) LIKE LOWER(CONCAT('%', CAST(:dni AS string), '%'))) " +
@@ -56,8 +52,7 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     );
 
     @Query("SELECT ar FROM AttendanceRecord ar " +
-            "WHERE ar.employee.deleted = false " +
-            "AND (CAST(:employeeId AS long) IS NULL OR ar.employee.id = :employeeId) " +
+            "WHERE (CAST(:employeeId AS long) IS NULL OR ar.employee.id = :employeeId) " +
             "AND (:firstName IS NULL OR LOWER(CAST(ar.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
             "AND (:lastName IS NULL OR LOWER(CAST(ar.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
             "AND (:dni IS NULL OR LOWER(CAST(ar.employee.dni AS string)) LIKE LOWER(CONCAT('%', CAST(:dni AS string), '%'))) " +
@@ -86,8 +81,7 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     );
 
     @Query("SELECT COUNT(ar) FROM AttendanceRecord ar " +
-            "WHERE ar.employee.deleted = false " +
-            "AND (CAST(:employeeId AS long) IS NULL OR ar.employee.id = :employeeId) " +
+            "WHERE (CAST(:employeeId AS long) IS NULL OR ar.employee.id = :employeeId) " +
             "AND (:firstName IS NULL OR LOWER(CAST(ar.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
             "AND (:lastName IS NULL OR LOWER(CAST(ar.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
             "AND (:dni IS NULL OR LOWER(CAST(ar.employee.dni AS string)) LIKE LOWER(CONCAT('%', CAST(:dni AS string), '%'))) " +

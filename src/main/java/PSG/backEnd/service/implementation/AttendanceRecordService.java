@@ -132,7 +132,7 @@ public class AttendanceRecordService implements IAttendanceRecordService {
     @Override
     @Transactional(readOnly = true)
     public AttendanceRecordResponseDTO getAttendanceRecordById(Long id) {
-        return attendanceRecordRepository.findByIdAndEmployeeDeletedFalse(id)
+        return attendanceRecordRepository.findById(id)
                 .map(attendanceRecordMapper::toResponseDto)
                 .orElseThrow(() -> new AttendanceRecordNotFoundException(id));
     }
@@ -140,7 +140,7 @@ public class AttendanceRecordService implements IAttendanceRecordService {
     @Override
     @Transactional
     public AttendanceRecordResponseDTO updateAttendanceRecord(Long id, AttendanceRecordDTO dto) {
-        AttendanceRecord existing = attendanceRecordRepository.findByIdAndEmployeeDeletedFalse(id)
+        AttendanceRecord existing = attendanceRecordRepository.findById(id)
                 .orElseThrow(() -> new AttendanceRecordNotFoundException(id));
 
         if (dto.employeeId() != null) {
@@ -171,7 +171,7 @@ public class AttendanceRecordService implements IAttendanceRecordService {
     @Override
     @Transactional
     public void deleteAttendanceRecord(Long id) {
-        AttendanceRecord record = attendanceRecordRepository.findByIdAndEmployeeDeletedFalse(id)
+        AttendanceRecord record = attendanceRecordRepository.findById(id)
                 .orElseThrow(() -> new AttendanceRecordNotFoundException(id));
         attendanceRecordRepository.delete(record);
     }

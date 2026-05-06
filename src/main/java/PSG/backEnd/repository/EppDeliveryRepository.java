@@ -21,7 +21,6 @@ public interface EppDeliveryRepository extends JpaRepository<EppDelivery, Long> 
 
     @Query("SELECT ed FROM EppDelivery ed " +
             "WHERE ed.deleted = false " +
-            "AND ed.employee.deleted = false " +
             "AND (CAST(:employeeId AS long) IS NULL OR ed.employee.id = :employeeId) " +
             "AND (:employeeSearch IS NULL OR (LOWER(CAST(ed.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')) " +
             "     OR LOWER(CAST(ed.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')))) " +

@@ -11,16 +11,12 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface DisciplinaryActionRepository extends JpaRepository<DisciplinaryAction, Long> {
     List<DisciplinaryAction> findByEmployeeId(Long employeeId);
-    Optional<DisciplinaryAction> findByIdAndEmployeeDeletedFalse(Long id);
-
     @Query("SELECT da FROM DisciplinaryAction da " +
-            "WHERE da.employee.deleted = false " +
-            "AND (CAST(:employeeId AS long) IS NULL OR da.employee.id = :employeeId) " +
+            "WHERE (CAST(:employeeId AS long) IS NULL OR da.employee.id = :employeeId) " +
             "AND (:employeeSearch IS NULL OR (LOWER(CAST(da.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')) " +
             "     OR LOWER(CAST(da.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')))) " +
             "AND (:actionType IS NULL OR da.actionType = :actionType) " +

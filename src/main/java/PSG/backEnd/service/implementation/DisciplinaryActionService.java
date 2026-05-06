@@ -65,7 +65,7 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
     @Override
     @Transactional(readOnly = true)
     public DisciplinaryActionResponseDTO getDisciplinaryActionById(Long id) {
-        return disciplinaryActionRepository.findByIdAndEmployeeDeletedFalse(id)
+        return disciplinaryActionRepository.findById(id)
                 .map(disciplinaryActionMapper::toResponseDto)
                 .orElseThrow(() -> new DisciplinaryActionNotFoundException(id));
     }
@@ -73,7 +73,7 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
     @Override
     @Transactional
     public DisciplinaryActionResponseDTO updateDisciplinaryAction(Long id, DisciplinaryActionDTO disciplinaryActionDTO) {
-        DisciplinaryAction existingDisciplinaryAction = disciplinaryActionRepository.findByIdAndEmployeeDeletedFalse(id)
+        DisciplinaryAction existingDisciplinaryAction = disciplinaryActionRepository.findById(id)
                 .orElseThrow(() -> new DisciplinaryActionNotFoundException(id));
 
         if (disciplinaryActionDTO.employeeId() != null) {
@@ -97,7 +97,7 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
     @Override
     @Transactional
     public void deleteDisciplinaryAction(Long id) {
-        DisciplinaryAction disciplinaryAction = disciplinaryActionRepository.findByIdAndEmployeeDeletedFalse(id)
+        DisciplinaryAction disciplinaryAction = disciplinaryActionRepository.findById(id)
                 .orElseThrow(() -> new DisciplinaryActionNotFoundException(id));
 
         disciplinaryActionRepository.delete(disciplinaryAction);

@@ -13,18 +13,14 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Long> {
     List<SalaryPayment> findByEmployeeId(Long employeeId);
-    Optional<SalaryPayment> findByIdAndEmployeeDeletedFalse(Long id);
-
     List<SalaryPayment> findByTransactionalDocumentId(Long transactionalDocumentId);
 
     @Query("SELECT sp FROM SalaryPayment sp " +
-            "WHERE sp.employee.deleted = false " +
-            "AND (CAST(:employeeId AS long) IS NULL OR sp.employee.id = :employeeId) " +
+            "WHERE (CAST(:employeeId AS long) IS NULL OR sp.employee.id = :employeeId) " +
             "AND (:firstName IS NULL OR LOWER(CAST(sp.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:firstName AS string), '%'))) " +
             "AND (:lastName IS NULL OR LOWER(CAST(sp.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:lastName AS string), '%'))) " +
             "AND (:salaryFrequency IS NULL OR sp.salaryFrequency = :salaryFrequency) " +
@@ -60,7 +56,6 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND sp.salaryFrequency = 'MENSUAL' " +
             "AND YEAR(sp.paymentDate) = :year " +
             "AND MONTH(sp.paymentDate) = :month " +
-            "AND sp.employee.deleted = false " +
             "AND (CAST(:excludePaymentId AS long) IS NULL OR sp.id != :excludePaymentId)")
     boolean existsMonthlyPaymentForEmployeeInMonth(
             @Param("employeeId") Long employeeId,
@@ -74,7 +69,6 @@ public interface SalaryPaymentRepository extends JpaRepository<SalaryPayment, Lo
             "AND sp.salaryFrequency = 'QUINCENAL' " +
             "AND YEAR(sp.paymentDate) = :year " +
             "AND MONTH(sp.paymentDate) = :month " +
-            "AND sp.employee.deleted = false " +
             "AND (CAST(:excludePaymentId AS long) IS NULL OR sp.id != :excludePaymentId)")
     long countBiweeklyPaymentsForEmployeeInMonth(
             @Param("employeeId") Long employeeId,

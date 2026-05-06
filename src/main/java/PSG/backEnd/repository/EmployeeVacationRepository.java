@@ -13,7 +13,6 @@ public interface EmployeeVacationRepository extends JpaRepository<EmployeeVacati
     Optional<EmployeeVacation> findByIdAndDeletedFalse(Long id);
     @Query("SELECT ev FROM EmployeeVacation ev " +
             "WHERE ev.deleted = false " +
-            "AND ev.employee.deleted = false " +
             "AND (:employeeId IS NULL OR ev.employee.id = :employeeId) " +
             "AND (:employeeSearch IS NULL OR (LOWER(CAST(ev.employee.name AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')) " +
             "     OR LOWER(CAST(ev.employee.lastName AS string)) LIKE LOWER(CONCAT('%', CAST(:employeeSearch AS string), '%')))) " +
@@ -36,7 +35,6 @@ public interface EmployeeVacationRepository extends JpaRepository<EmployeeVacati
     );
     @Query("SELECT COUNT(ev) > 0 FROM EmployeeVacation ev " +
             "WHERE ev.deleted = false " +
-            "AND ev.employee.deleted = false " +
             "AND ev.employee.id = :employeeId " +
             "AND (CAST(:excludeId AS long) IS NULL OR ev.id <> :excludeId) " +
             "AND ev.startDate <= :endDate " +
