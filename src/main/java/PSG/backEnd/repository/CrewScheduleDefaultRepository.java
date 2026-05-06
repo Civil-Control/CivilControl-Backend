@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface CrewScheduleDefaultRepository extends JpaRepository<CrewScheduleDefault, Long> {
 
-    @Query("SELECT d FROM CrewScheduleDefault d JOIN FETCH d.projectArea WHERE d.projectArea.deleted = false ORDER BY d.projectArea.name")
+    @Query("SELECT d FROM CrewScheduleDefault d JOIN FETCH d.projectArea ORDER BY d.projectArea.name")
     List<CrewScheduleDefault> findAllWithProjectArea();
 
     Optional<CrewScheduleDefault> findByProjectAreaId(Long projectAreaId);
