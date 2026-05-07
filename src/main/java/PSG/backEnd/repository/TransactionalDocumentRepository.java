@@ -31,6 +31,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             LEFT JOIN td.projectArea pa
             WHERE (:documentNumber IS NULL OR td.documentNumber LIKE %:documentNumber%)
             AND (:documentType IS NULL OR td.documentType = :documentType)
+            AND (CAST(:supplierId AS long) IS NULL OR s.id = :supplierId)
             AND (:supplierCuit IS NULL OR s.cuit LIKE %:supplierCuit%)
             AND (:supplierName IS NULL OR 
                  LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR
@@ -72,6 +73,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
     Page<TransactionalDocument> findAllWithFilters(
             @Param("documentNumber") String documentNumber,
             @Param("documentType") DocumentType documentType,
+            @Param("supplierId") Long supplierId,
             @Param("supplierCuit") String supplierCuit,
             @Param("supplierName") String supplierName,
             @Param("projectAreaId") Long projectAreaId,

@@ -74,6 +74,9 @@ public class TransactionalDocumentController {
             @Parameter(description = "Filter by document type (enum key). Values: BILL_A, BILL_B, BILL_C, DEBIT_NOTE_A, DEBIT_NOTE_B, DEBIT_NOTE_C, CREDIT_NOTE_A, CREDIT_NOTE_B, CREDIT_NOTE_C, OTHER_DOCUMENT", example = "BILL_A")
             @RequestParam(required = false) String documentType,
 
+            @Parameter(description = "Filter by supplier ID", example = "12")
+            @RequestParam(required = false) Long supplierId,
+
             @Parameter(description = "Filter by supplier CUIT (tax ID, partial match). Format: XX-XXXXXXXX-X", example = "30-12345678")
             @RequestParam(required = false) String supplierCuit,
 
@@ -130,8 +133,8 @@ public class TransactionalDocumentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         TransactionalDocumentFilterDTO filter = new TransactionalDocumentFilterDTO(
-                documentNumber, documentType, supplierCuit, supplierName, projectAreaId, projectAreaName, minTotalAmount,
-                maxTotalAmount, totalAmount, fromDate, toDate, paid, search
+                documentNumber, documentType, supplierId, supplierCuit, supplierName, projectAreaId, projectAreaName,
+                minTotalAmount, maxTotalAmount, totalAmount, fromDate, toDate, paid, search
         );
         return ResponseEntity.ok(iTransactionalDocumentService.getAllTransactionalDocuments(filter, pageable));
     }

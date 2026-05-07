@@ -135,6 +135,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         return transactionalDocumentRepository.findAllWithFilters(
                 filterDTO.documentNumber(),
                 docType,
+                filterDTO.supplierId(),
                 filterDTO.supplierCuit(),
                 filterDTO.supplierName(),
                 filterDTO.projectAreaId(),

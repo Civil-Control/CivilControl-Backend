@@ -587,6 +587,7 @@ public class ReportService implements IReportService {
         var documents = transactionalDocumentRepository.findAllWithFilters(
                 null, // documentNumber
                 null, // documentType
+                null, // supplierId
                 null, // supplierCuit
                 null, // supplierName
                 getEffectiveAreaId(filters), // projectAreaId - from filter
@@ -1453,6 +1454,7 @@ public class ReportService implements IReportService {
                 allDocuments.addAll(transactionalDocumentRepository.findAllWithFilters(
                         null,
                         filters.documentType(),
+                        null,
                         null, null,
                         areaId,
                         null,
@@ -1470,6 +1472,7 @@ public class ReportService implements IReportService {
             allDocuments = transactionalDocumentRepository.findAllWithFilters(
                     null,
                     filters.documentType(),
+                    null,
                     null, null,
                     effectiveAreaId,
                     null,

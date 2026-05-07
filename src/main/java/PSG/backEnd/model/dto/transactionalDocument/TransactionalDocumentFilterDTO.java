@@ -6,6 +6,7 @@ import java.time.LocalDate;
 public record TransactionalDocumentFilterDTO(
     String documentNumber,
     String documentType,
+    Long supplierId,
     String supplierCuit,
     String supplierName,
     Long projectAreaId,
