@@ -42,11 +42,10 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             "(:minAmount IS NULL OR pd.amount >= :minAmount) AND " +
             "(:maxAmount IS NULL OR pd.amount <= :maxAmount) AND " +
             "(:amount IS NULL OR LOWER(CAST(pd.amount AS string)) LIKE LOWER(CONCAT('%', CAST(:amount AS string), '%'))) AND " +
-            "(:transactionNumber IS NULL OR " +
-            "  (EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id " +
-            "           AND LOWER(chp.checkNumber) LIKE LOWER(CONCAT('%', CAST(:transactionNumber AS string), '%'))) OR " +
-            "   EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id " +
-            "           AND LOWER(tp.transactionNumber) LIKE LOWER(CONCAT('%', CAST(:transactionNumber AS string), '%'))))) AND " +
+            "(:checkNumber IS NULL OR EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id " +
+            "   AND LOWER(chp.checkNumber) LIKE LOWER(CONCAT('%', CAST(:checkNumber AS string), '%')))) AND " +
+            "(:transferNumber IS NULL OR EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id " +
+            "   AND LOWER(tp.transactionNumber) LIKE LOWER(CONCAT('%', CAST(:transferNumber AS string), '%')))) AND " +
             "(:supplierName IS NULL OR LOWER(pd.supplier.legalName) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR LOWER(pd.supplier.tradeName) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) AND " +
             "(:supplierId IS NULL OR pd.supplier.id = :supplierId) AND " +
             "(:search IS NULL OR " +
@@ -62,7 +61,8 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             @Param("endDate") LocalDate endDate,
             @Param("minAmount") BigDecimal minAmount,
             @Param("maxAmount") BigDecimal maxAmount,
-            @Param("transactionNumber") String transactionNumber,
+            @Param("checkNumber") String checkNumber,
+            @Param("transferNumber") String transferNumber,
             @Param("supplierName") String supplierName,
             @Param("supplierId") Long supplierId,
             @Param("amount") String amount,

@@ -24,7 +24,10 @@ public record PaymentFilterDTO(
         BigDecimal maxAmount,
 
         @Size(max = 50, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
-        String transactionNumber,
+        String checkNumber,
+
+        @Size(max = 50, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+        String transferNumber,
 
         @Size(max = 255, message = "{validation.size}")
         String supplierName,

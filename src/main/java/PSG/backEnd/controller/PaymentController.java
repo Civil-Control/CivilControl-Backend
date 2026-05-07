@@ -112,7 +112,8 @@ public class PaymentController {
             @Parameter(description = "Filter by maximum payment date (inclusive). Format: yyyy-MM-dd", example = "2025-12-31") @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             @Parameter(description = "Filter by minimum payment amount", example = "1000.00") @RequestParam(required = false) BigDecimal minAmount,
             @Parameter(description = "Filter by maximum payment amount", example = "50000.00") @RequestParam(required = false) BigDecimal maxAmount,
-            @Parameter(description = "Filter by transaction number (check number or transfer number). Substring/coincidence match.", example = "556") @RequestParam(required = false) String transactionNumber,
+            @Parameter(description = "Filter by check number. Substring match, only returns check payments.", example = "556") @RequestParam(required = false) String checkNumber,
+            @Parameter(description = "Filter by transfer number. Substring match, only returns transfer payments.", example = "11445") @RequestParam(required = false) String transferNumber,
             @Parameter(description = "Filter by supplier name (partial match on legal or trade name)", example = "Proveedor SA") @RequestParam(required = false) String supplierName,
             @Parameter(description = "Filter by supplier ID who received the payment", example = "42") @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Filter by payment amount as a substring/coincidence (e.g. '150' matches 1500, 21500.00).", example = "150") @RequestParam(required = false) String amount,
@@ -133,7 +134,7 @@ public class PaymentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         PaymentFilterDTO filter = new PaymentFilterDTO(
-                paymentMethod, startDate, endDate, minAmount, maxAmount, transactionNumber, supplierName, supplierId, amount, search
+                paymentMethod, startDate, endDate, minAmount, maxAmount, checkNumber, transferNumber, supplierName, supplierId, amount, search
         );
         return ResponseEntity.ok(paymentService.findAll(filter, pageable));
     }
