@@ -1,5 +1,6 @@
 package PSG.backEnd.exception;
 
+import PSG.backEnd.exception.purchaseOrder.PurchaseOrderNotValidException;
 import PSG.backEnd.exception.serviceSupplier.ServiceAssignmentAlreadyExistsException;
 import PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException;
 import PSG.backEnd.exception.vehicle.VehicleDataConflictException;
@@ -308,6 +309,26 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .body(problemDetail);
+    }
+
+    @ExceptionHandler(PurchaseOrderNotValidException.class)
+    public ResponseEntity<ProblemDetail> handlePurchaseOrderNotValidException(
+            PurchaseOrderNotValidException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                "Purchase Order Validation Error",
+                ex.getMessage(),
+                request,
+                ex
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(problemDetail);
     }
 
