@@ -154,16 +154,25 @@ public class PurchaseOrderController {
     @PreAuthorize("hasAuthority('" + AppPermissions.PURCHASE_ORDER_WRITE + "')")
     @PatchMapping("/{id}/link-document")
     @Operation(summary = "Link a transactional document to a purchase order",
-               description = "Links a fiscal document to the purchase order. Only allowed when status is COMPRADA.")
+               description = "Links a fiscal document to the purchase order. Automatically transitions status to COMPRADA.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Document successfully linked"),
-            @ApiResponse(responseCode = "400", description = "Order is not COMPRADA or document not found"),
+            @ApiResponse(responseCode = "400", description = "Document not found"),
             @ApiResponse(responseCode = "404", description = "Purchase order not found")
     })
     public ResponseEntity<PurchaseOrderResponseDTO> linkTransactionalDocument(
             @Parameter(description = "Purchase order unique identifier") @PathVariable Long id,
             @Validated @RequestBody PurchaseOrderLinkDocumentDTO dto) {
         return ResponseEntity.ok(purchaseOrderService.linkTransactionalDocument(id, dto));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.PURCHASE_ORDER_CREATE + "') or hasAuthority('" + AppPermissions.PURCHASE_ORDER_READ + "')")
+    @GetMapping("/next-order-number")
+    @Operation(summary = "Get next available order number",
+               description = "Returns the next sequential order number for the current tenant.")
+    @ApiResponse(responseCode = "200", description = "Next order number returned")
+    public ResponseEntity<Long> getNextOrderNumber() {
+        return ResponseEntity.ok(purchaseOrderService.getNextOrderNumber());
     }
 
     private Pageable buildPageable(int page, int size, String sortBy, String sortDir) {

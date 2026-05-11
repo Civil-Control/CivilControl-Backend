@@ -26,6 +26,9 @@ public class PurchaseOrder extends TenantEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "order_number", nullable = false)
+    private Long orderNumber;
+
     @Column(nullable = false)
     private LocalDate date;
 

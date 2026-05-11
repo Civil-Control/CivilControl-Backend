@@ -13,6 +13,7 @@ import java.util.List;
 @Schema(description = "Response DTO containing complete information about a purchase order.")
 public record PurchaseOrderResponseDTO(
         Long id,
+        Long orderNumber,
         LocalDate date,
         PurchaseOrderCategory category,
         String description,

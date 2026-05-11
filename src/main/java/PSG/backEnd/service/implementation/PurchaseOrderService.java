@@ -85,7 +85,6 @@ public class PurchaseOrderService implements IPurchaseOrderService {
     public void deletePurchaseOrder(Long id) {
         PurchaseOrder order = findOrderById(id);
         validateOwnership(order);
-        validatePendingStatus(order);
         order.setDeleted(true);
         purchaseOrderRepository.save(order);
     }
@@ -109,17 +108,32 @@ public class PurchaseOrderService implements IPurchaseOrderService {
     @Transactional
     public PurchaseOrderResponseDTO linkTransactionalDocument(Long id, PurchaseOrderLinkDocumentDTO dto) {
         PurchaseOrder order = findOrderById(id);
-        if (order.getStatus() != PurchaseOrderStatus.COMPRADA) {
-            throw new PurchaseOrderNotValidException(
-                    MessageSourceHelper.getMessageStatic("purchaseOrder.linkDocumentOnlyComprada")
-            );
-        }
         TransactionalDocument doc = transactionalDocumentRepository.findByIdAndDeletedFalse(dto.transactionalDocumentId())
                 .orElseThrow(() -> new PurchaseOrderNotValidException(
                         MessageSourceHelper.getMessageStatic("purchaseOrder.transactionalDocumentNotFound", dto.transactionalDocumentId())
                 ));
         order.setTransactionalDocument(doc);
+        order.setStatus(PurchaseOrderStatus.COMPRADA);
         return purchaseOrderMapper.toResponseDto(purchaseOrderRepository.save(order));
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderResponseDTO linkTransactionalDocumentFromDoc(Long purchaseOrderId, Long transactionalDocumentId) {
+        PurchaseOrder order = findOrderById(purchaseOrderId);
+        TransactionalDocument doc = transactionalDocumentRepository.findByIdAndDeletedFalse(transactionalDocumentId)
+                .orElseThrow(() -> new PurchaseOrderNotValidException(
+                        MessageSourceHelper.getMessageStatic("purchaseOrder.transactionalDocumentNotFound", transactionalDocumentId)
+                ));
+        order.setTransactionalDocument(doc);
+        order.setStatus(PurchaseOrderStatus.COMPRADA);
+        return purchaseOrderMapper.toResponseDto(purchaseOrderRepository.save(order));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getNextOrderNumber() {
+        return purchaseOrderRepository.findNextOrderNumber();
     }
 
     // ── Private helpers ──────────────────────────────────────────────

@@ -14,6 +14,13 @@ import java.util.List;
 @Schema(description = "Data Transfer Object for creating or updating a purchase order.")
 public record PurchaseOrderRequestDTO(
 
+        @Schema(description = "Sequential order number assigned to this purchase order.",
+                example = "42",
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotNull(message = "{purchaseOrder.orderNumber.required}", groups = OnCreate.class)
+        @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+        Long orderNumber,
+
         @Schema(description = "Date of the request. Must be today or in the past.",
                 example = "2026-05-11",
                 requiredMode = Schema.RequiredMode.REQUIRED)

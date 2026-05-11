@@ -36,6 +36,7 @@ import java.time.LocalDate;
 public class TransactionalDocumentController {
 
     private final ITransactionalDocumentService iTransactionalDocumentService;
+    private final PSG.backEnd.service.port.IPurchaseOrderService purchaseOrderService;
 
     @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     @PostMapping
@@ -279,5 +280,20 @@ public class TransactionalDocumentController {
             @Parameter(description = "Document unique identifier", required = true, example = "1")
             @PathVariable Long id) {
         return ResponseEntity.ok(iTransactionalDocumentService.markDocumentUnpaid(id));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.PURCHASE_ORDER_WRITE + "')")
+    @PatchMapping("/{id}/link-purchase-order")
+    @Operation(summary = "Link a purchase order to this document",
+               description = "Links a purchase order to the document and automatically transitions it to COMPRADA status.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Purchase order successfully linked"),
+            @ApiResponse(responseCode = "400", description = "Purchase order not found"),
+            @ApiResponse(responseCode = "404", description = "Document not found")
+    })
+    public ResponseEntity<PSG.backEnd.model.dto.purchaseOrder.PurchaseOrderResponseDTO> linkPurchaseOrder(
+            @Parameter(description = "Document unique identifier") @PathVariable Long id,
+            @Validated @RequestBody PSG.backEnd.model.dto.transactionalDocument.LinkPurchaseOrderDTO dto) {
+        return ResponseEntity.ok(purchaseOrderService.linkTransactionalDocumentFromDoc(dto.purchaseOrderId(), id));
     }
 }

@@ -12,6 +12,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
 
+    @Query("SELECT COALESCE(MAX(po.orderNumber), 0) + 1 FROM PurchaseOrder po WHERE po.deleted = false")
+    Long findNextOrderNumber();
+
+
     @Query("""
         SELECT po FROM PurchaseOrder po
         LEFT JOIN FETCH po.createdByUser

@@ -21,4 +21,8 @@ public interface IPurchaseOrderService {
     PurchaseOrderResponseDTO changeStatus(Long id, PurchaseOrderStatusDTO statusDTO);
 
     PurchaseOrderResponseDTO linkTransactionalDocument(Long id, PurchaseOrderLinkDocumentDTO dto);
+
+    PurchaseOrderResponseDTO linkTransactionalDocumentFromDoc(Long purchaseOrderId, Long transactionalDocumentId);
+
+    Long getNextOrderNumber();
 }
