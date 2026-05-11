@@ -19,9 +19,9 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
           AND (:#{#f.status}   IS NULL OR po.status   = :#{#f.status})
           AND (:#{#f.category} IS NULL OR po.category = :#{#f.category})
           AND (:#{#f.priority} IS NULL OR po.priority = :#{#f.priority})
-          AND (CAST(:#{#f.dateFrom} AS date) IS NULL OR po.date >= :#{#f.dateFrom})
-          AND (CAST(:#{#f.dateTo}   AS date) IS NULL OR po.date <= :#{#f.dateTo})
-          AND (CAST(:#{#f.transactionalDocumentId} AS long) IS NULL
+          AND (:#{#f.dateFrom} IS NULL OR po.date >= :#{#f.dateFrom})
+          AND (:#{#f.dateTo}   IS NULL OR po.date <= :#{#f.dateTo})
+          AND (:#{#f.transactionalDocumentId} IS NULL
                OR po.transactionalDocument.id = :#{#f.transactionalDocumentId})
           AND (:#{#f.search} IS NULL
                OR LOWER(CAST(po.description AS string)) LIKE LOWER(CONCAT('%', CAST(:#{#f.search} AS string), '%'))
