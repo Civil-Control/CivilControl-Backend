@@ -660,5 +660,16 @@ public final class AppPermissions {
 
     /** Module: Budget Forecast Templates. Allows deleting templates. */
     public static final String BUDGET_FORECAST_TEMPLATE_DELETE = "BUDGET_FORECAST_TEMPLATE_DELETE";
+
+    // ==================== MODULE: PURCHASE ORDERS ====================
+
+    /** Module: Purchase Orders. Allows registering new orders and managing own ones. */
+    public static final String PURCHASE_ORDER_CREATE = "PURCHASE_ORDER_CREATE";
+
+    /** Module: Purchase Orders. Allows viewing all purchase orders of the tenant with full filters. */
+    public static final String PURCHASE_ORDER_READ = "PURCHASE_ORDER_READ";
+
+    /** Module: Purchase Orders. Allows changing order status and linking fiscal documents. */
+    public static final String PURCHASE_ORDER_WRITE = "PURCHASE_ORDER_WRITE";
 }
 
