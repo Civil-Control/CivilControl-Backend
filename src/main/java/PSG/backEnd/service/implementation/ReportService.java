@@ -957,6 +957,7 @@ public class ReportService implements IReportService {
         var repairs = repairRepository.findAllWithFilters(
                 filters.startDate(),
                 filters.endDate(),
+                null, // exactDate
                 null, // vehicleId
                 null, // licensePlate
                 getEffectiveAreaId(filters), // projectAreaId - from filter
@@ -2575,6 +2576,7 @@ public class ReportService implements IReportService {
             for (Long areaId : areaIds) {
                 allRepairs.addAll(repairRepository.findAllWithFilters(
                         filters.startDate(), filters.endDate(),
+                        null,
                         filters.vehicleId(), null,
                         areaId,
                         filters.minAmount(), filters.maxAmount(),
@@ -2587,6 +2589,7 @@ public class ReportService implements IReportService {
             Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
             allRepairs = repairRepository.findAllWithFilters(
                     filters.startDate(), filters.endDate(),
+                    null,
                     filters.vehicleId(), null,
                     effectiveAreaId,
                     filters.minAmount(), filters.maxAmount(),

@@ -69,6 +69,7 @@ public class RepairService implements IRepairService {
         Page<Repair> repairs = repairRepository.findAllWithFilters(
                 filterDTO.dateFrom(),
                 filterDTO.dateTo(),
+                filterDTO.date(),
                 filterDTO.vehicleId(),
                 filterDTO.vehicleLicensePlate(),
                 filterDTO.projectAreaId(),

@@ -54,5 +54,8 @@ public record RepairFilterDTO(
         Long transactionalDocumentId,
 
         @Schema(description = "When true, return only repairs whose items are all unlinked (no transactional document).", nullable = true)
-        Boolean unlinked
+        Boolean unlinked,
+
+        @Schema(description = "Filter by exact repair date.", nullable = true)
+        LocalDate date
 ) {}

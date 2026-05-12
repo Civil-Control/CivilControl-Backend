@@ -72,6 +72,7 @@ public class RepairController {
             @Parameter(description = "Generic search across vehicle license plate, supplier and item descriptions") @RequestParam(required = false) String search,
             @Parameter(description = "Filter by linked transactional document ID on any item") @RequestParam(required = false) Long transactionalDocumentId,
             @Parameter(description = "When true, return only repairs with all items unlinked") @RequestParam(required = false) Boolean unlinked,
+            @Parameter(description = "Filter by exact repair date") @RequestParam(required = false) LocalDate date,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by.") @RequestParam(defaultValue = "date") String sortBy,
@@ -85,7 +86,7 @@ public class RepairController {
         RepairFilterDTO filterDTO = new RepairFilterDTO(
                 dateFrom, dateTo, vehicleId, vehicleLicensePlate, projectAreaId,
                 minCost, maxCost, supplierId, supplierLegalName, description, itemDescription,
-                minMileage, maxMileage, search, transactionalDocumentId, unlinked
+                minMileage, maxMileage, search, transactionalDocumentId, unlinked, date
         );
 
         return ResponseEntity.ok(repairService.getAllRepairs(filterDTO, pageable));
