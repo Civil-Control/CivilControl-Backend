@@ -110,7 +110,8 @@ public class DocumentTotalRecalculator {
         BigDecimal ivaTotal        = iva.setScale(2, RoundingMode.HALF_UP);
         BigDecimal ivaExemptTotal  = exempt.setScale(2, RoundingMode.HALF_UP);
         BigDecimal otherTaxes      = document.getOtherTaxes() != null ? document.getOtherTaxes() : BigDecimal.ZERO;
-        BigDecimal total           = netTotal.add(ivaTotal).add(ivaExemptTotal).add(otherTaxes)
+        BigDecimal iibbPerception  = document.getIibbPerception() != null ? document.getIibbPerception() : BigDecimal.ZERO;
+        BigDecimal total           = netTotal.add(ivaTotal).add(ivaExemptTotal).add(otherTaxes).add(iibbPerception)
                 .setScale(2, RoundingMode.HALF_UP);
 
         document.setNetTotal(netTotal);

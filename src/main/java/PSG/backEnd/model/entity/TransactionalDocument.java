@@ -49,6 +49,10 @@ public class TransactionalDocument extends TenantEntity {
     @Column(name = "other_taxes", nullable = false)
     private BigDecimal otherTaxes;
 
+    @Column(name = "iibb_perception", nullable = false)
+    @Builder.Default
+    private BigDecimal iibbPerception = BigDecimal.ZERO;
+
     @Column(name = "net_total", nullable = false)
     private BigDecimal netTotal;
 

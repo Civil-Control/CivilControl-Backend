@@ -59,7 +59,7 @@ public interface TransactionalDocumentMapper {
         return new TransactionalDocumentResponseDTO(
                 base.id(), base.date(), base.supplierId(), base.supplierName(),
                 base.documentType(), base.branchCode(), base.documentNumber(), base.items(),
-                base.otherTaxes(), base.netTotal(), base.ivaTotal(), base.ivaExemptTotal(),
+                base.otherTaxes(), base.iibbPerception(), base.netTotal(), base.ivaTotal(), base.ivaExemptTotal(),
                 base.total(), base.discountPercentage(),
                 base.projectAreaId(), base.projectAreaName(), base.projectAreaColor(),
                 base.projectAreaTaskId(), base.projectAreaTaskName(),

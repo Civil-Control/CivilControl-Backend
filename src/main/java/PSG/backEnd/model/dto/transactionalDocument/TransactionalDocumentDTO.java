@@ -80,6 +80,15 @@ public record TransactionalDocumentDTO(
     @Digits(integer = 12, fraction = 2, message = "{validation.digits}", groups = {OnCreate.class, OnUpdate.class})
     BigDecimal otherTaxes,
 
+    @Schema(description = "Percepción de Ingresos Brutos (IIBB). Importe fijo informado en el comprobante. " +
+            "Represents the provincial gross income tax perception collected by the supplier on behalf of the tax authority. " +
+            "Entered as an amount (not a percentage). Must be zero or positive.",
+            example = "85.20",
+            nullable = true)
+    @DecimalMin(value = "0.00", inclusive = true, message = "{validation.positiveOrZero}", groups = {OnCreate.class, OnUpdate.class})
+    @Digits(integer = 12, fraction = 2, message = "{validation.digits}", groups = {OnCreate.class, OnUpdate.class})
+    BigDecimal iibbPerception,
+
     @Schema(description = "Net total amount (subtotal before taxes). Must be zero or positive.",
             example = "10000.00",
             requiredMode = Schema.RequiredMode.REQUIRED)

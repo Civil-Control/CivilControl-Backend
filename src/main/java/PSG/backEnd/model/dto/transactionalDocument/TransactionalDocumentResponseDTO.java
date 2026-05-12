@@ -16,6 +16,7 @@ public record TransactionalDocumentResponseDTO(
     String documentNumber,
     List<ItemDetailResponseDTO> items,
     BigDecimal otherTaxes,
+    BigDecimal iibbPerception,
     BigDecimal netTotal,
     BigDecimal ivaTotal,
     BigDecimal ivaExemptTotal,

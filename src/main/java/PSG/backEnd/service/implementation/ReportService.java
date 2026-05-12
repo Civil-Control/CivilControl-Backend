@@ -1510,6 +1510,10 @@ public class ReportService implements IReportService {
                 .map(td -> signed(td, td.getOtherTaxes()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        BigDecimal totalIibbPerception = allDocuments.stream()
+                .map(td -> signed(td, td.getIibbPerception() != null ? td.getIibbPerception() : BigDecimal.ZERO))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         Map<DocumentType, BigDecimal> totalsByDocType = buildDocumentTypeSubtotals(allDocuments);
         Map<String, BigDecimal> totalsByIvaRate = buildIvaRateSubtotals(allDocuments);
 
@@ -1523,6 +1527,7 @@ public class ReportService implements IReportService {
                 .totalIva(totalIva)
                 .totalIvaExempt(totalIvaExempt)
                 .totalOtherTaxes(totalOtherTaxes)
+                .totalIibbPerception(totalIibbPerception)
                 .totalCount(allDocuments.size())
                 .totalsByDocumentType(totalsByDocType)
                 .totalsByIvaRate(totalsByIvaRate)
@@ -1609,6 +1614,10 @@ public class ReportService implements IReportService {
                     .map(td -> signed(td, td.getOtherTaxes()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            BigDecimal subtotalIibbPerception = areaDocs.stream()
+                    .map(td -> signed(td, td.getIibbPerception() != null ? td.getIibbPerception() : BigDecimal.ZERO))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             Map<DocumentType, BigDecimal> areaDocTypeSubtotals = buildDocumentTypeSubtotals(areaDocs);
 
             groups.add(InvoiceReportAreaGroupDTO.builder()
@@ -1620,6 +1629,7 @@ public class ReportService implements IReportService {
                     .subtotalIva(subtotalIva)
                     .subtotalIvaExempt(subtotalIvaExempt)
                     .subtotalOtherTaxes(subtotalOtherTaxes)
+                    .subtotalIibbPerception(subtotalIibbPerception)
                     .documentCount(areaDocs.size())
                     .subtotalsByDocumentType(areaDocTypeSubtotals)
                     .supplierGroups(supplierGroups)
@@ -1667,6 +1677,10 @@ public class ReportService implements IReportService {
                     .map(td -> signed(td, td.getOtherTaxes()))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+            BigDecimal supplierIibbPerception = supplierDocs.stream()
+                    .map(td -> signed(td, td.getIibbPerception() != null ? td.getIibbPerception() : BigDecimal.ZERO))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
             Map<DocumentType, BigDecimal> supplierDocTypeSubtotals = buildDocumentTypeSubtotals(supplierDocs);
 
             List<InvoiceReportDocumentDTO> documentDTOs = supplierDocs.stream()
@@ -1682,6 +1696,7 @@ public class ReportService implements IReportService {
                             td.getIvaTotal(),
                             td.getIvaExemptTotal(),
                             td.getOtherTaxes(),
+                            td.getIibbPerception() != null ? td.getIibbPerception() : BigDecimal.ZERO,
                             td.getSupplier().getLegalName(),
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getId() : null,
                             td.getProjectAreaTask() != null ? td.getProjectAreaTask().getName() : null,
@@ -1700,6 +1715,7 @@ public class ReportService implements IReportService {
                     .totalIva(supplierIva)
                     .totalIvaExempt(supplierIvaExempt)
                     .totalOtherTaxes(supplierOtherTaxes)
+                    .totalIibbPerception(supplierIibbPerception)
                     .documentCount(supplierDocs.size())
                     .subtotalsByDocumentType(supplierDocTypeSubtotals)
                     .documents(documentDTOs)

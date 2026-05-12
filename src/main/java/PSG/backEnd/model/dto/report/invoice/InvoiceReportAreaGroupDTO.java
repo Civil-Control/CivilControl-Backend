@@ -19,6 +19,7 @@ public record InvoiceReportAreaGroupDTO(
     BigDecimal subtotalIva,
     BigDecimal subtotalIvaExempt,
     BigDecimal subtotalOtherTaxes,
+    BigDecimal subtotalIibbPerception,
     int documentCount,
     Map<DocumentType, BigDecimal> subtotalsByDocumentType,
     List<InvoiceReportSupplierGroupDTO> supplierGroups

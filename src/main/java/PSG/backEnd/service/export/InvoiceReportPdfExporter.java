@@ -228,7 +228,7 @@ public class InvoiceReportPdfExporter {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void addDocumentDetailTable(Document document, InvoiceReportDTO report) {
-        Table table = new Table(new float[]{1.8f, 2f, 1f, 1.2f, 1.2f, 1.2f, 1f, 1f, 1f, 1.2f, 0.8f});
+        Table table = new Table(new float[]{1.8f, 2f, 1f, 1.2f, 1.2f, 1f, 1f, 1f, 1f, 1f, 1.2f, 0.8f});
         table.setWidth(UnitValue.createPercentValue(100));
 
         table.addHeaderCell(headerCell("Área"));
@@ -240,6 +240,7 @@ public class InvoiceReportPdfExporter {
         table.addHeaderCell(headerCell("IVA"));
         table.addHeaderCell(headerCell("IVA Exento"));
         table.addHeaderCell(headerCell("Otros Trib."));
+        table.addHeaderCell(headerCell("Perc. IIBB"));
         table.addHeaderCell(headerCell("Total"));
         table.addHeaderCell(headerCell("Pagado"));
 
@@ -273,6 +274,9 @@ public class InvoiceReportPdfExporter {
                     table.addCell(new Cell().add(new Paragraph(
                             formatAmount(doc.otherTaxes() != null ? doc.otherTaxes() : BigDecimal.ZERO)).setFontSize(8))
                             .setTextAlignment(TextAlignment.RIGHT));
+                    table.addCell(new Cell().add(new Paragraph(
+                            formatAmount(doc.iibbPerception() != null ? doc.iibbPerception() : BigDecimal.ZERO)).setFontSize(8))
+                            .setTextAlignment(TextAlignment.RIGHT));
                     table.addCell(new Cell().add(new Paragraph(formatAmount(doc.totalAmount())).setFontSize(8))
                             .setTextAlignment(TextAlignment.RIGHT));
                     table.addCell(new Cell().add(new Paragraph(
@@ -281,7 +285,7 @@ public class InvoiceReportPdfExporter {
                 }
 
                 // Supplier subtotal
-                table.addCell(new Cell(1, 9).add(new Paragraph(
+                table.addCell(new Cell(1, 10).add(new Paragraph(
                         "Subtotal " + supplier.supplierLegalName())
                         .setFontSize(8).setBold().setItalic())
                         .setBackgroundColor(SUBTOTAL_COLOR).setPadding(3));
@@ -294,7 +298,7 @@ public class InvoiceReportPdfExporter {
             }
 
             // Area subtotal
-            table.addCell(new Cell(1, 9).add(new Paragraph(
+            table.addCell(new Cell(1, 10).add(new Paragraph(
                     "Subtotal " + area.projectAreaName() + " (" + area.documentCount() + " docs)")
                     .setFontSize(9).setBold())
                     .setBackgroundColor(SUBTOTAL_COLOR).setPadding(4));
@@ -307,7 +311,7 @@ public class InvoiceReportPdfExporter {
         }
 
         // Grand total
-        Cell totalLabel = new Cell(1, 9).add(new Paragraph(
+        Cell totalLabel = new Cell(1, 10).add(new Paragraph(
                 "TOTAL GENERAL (" + report.totalCount() + " docs)").setBold().setFontSize(10))
                 .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE).setPadding(6);
         table.addCell(totalLabel);
