@@ -4,7 +4,7 @@
 -- =============================================================================
 
 CREATE TABLE labor_incidents (
-    id               BIGINT         NOT NULL AUTO_INCREMENT,
+    id               BIGSERIAL      NOT NULL,
     tenant_id        BIGINT         NOT NULL,
     incident_type    VARCHAR(50)    NOT NULL,
     incident_date    DATE           NOT NULL,
