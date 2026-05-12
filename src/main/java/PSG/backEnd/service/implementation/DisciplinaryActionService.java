@@ -3,6 +3,9 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotFoundException;
 import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotValidException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
+import PSG.backEnd.exception.laborIncident.LaborIncidentNotFoundException;
+import PSG.backEnd.model.entity.employee.LaborIncident;
+import PSG.backEnd.repository.LaborIncidentRepository;
 import PSG.backEnd.model.dto.employee.DisciplinaryActionDTO;
 import PSG.backEnd.model.dto.employee.DisciplinaryActionFilterDTO;
 import PSG.backEnd.model.dto.employee.DisciplinaryActionResponseDTO;
@@ -28,6 +31,7 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
 
     private final DisciplinaryActionRepository disciplinaryActionRepository;
     private final EmployeeRepository employeeRepository;
+    private final LaborIncidentRepository laborIncidentRepository;
     private final DisciplinaryActionMapper disciplinaryActionMapper;
     private final MessageSourceHelper messageSourceHelper;
 
@@ -42,6 +46,12 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
 
         DisciplinaryAction disciplinaryAction = disciplinaryActionMapper.toEntity(disciplinaryActionDTO);
         disciplinaryAction.setEmployee(employee);
+
+        if (disciplinaryActionDTO.laborIncidentId() != null) {
+            LaborIncident incident = laborIncidentRepository.findById(disciplinaryActionDTO.laborIncidentId())
+                    .orElseThrow(() -> new LaborIncidentNotFoundException(disciplinaryActionDTO.laborIncidentId()));
+            disciplinaryAction.setLaborIncident(incident);
+        }
 
         DisciplinaryAction savedDisciplinaryAction = disciplinaryActionRepository.save(disciplinaryAction);
         return disciplinaryActionMapper.toResponseDto(savedDisciplinaryAction);
@@ -87,6 +97,12 @@ public class DisciplinaryActionService implements IDisciplinaryActionService {
             Employee employee = employeeRepository.findByIdAndDeletedFalse(disciplinaryActionDTO.employeeId())
                     .orElseThrow(() -> new EmployeeNotFoundException(disciplinaryActionDTO.employeeId()));
             existingDisciplinaryAction.setEmployee(employee);
+        }
+
+        if (disciplinaryActionDTO.laborIncidentId() != null) {
+            LaborIncident incident = laborIncidentRepository.findById(disciplinaryActionDTO.laborIncidentId())
+                    .orElseThrow(() -> new LaborIncidentNotFoundException(disciplinaryActionDTO.laborIncidentId()));
+            existingDisciplinaryAction.setLaborIncident(incident);
         }
 
         disciplinaryActionMapper.partialUpdate(disciplinaryActionDTO, existingDisciplinaryAction);
