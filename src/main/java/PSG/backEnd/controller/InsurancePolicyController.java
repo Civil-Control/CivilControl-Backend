@@ -7,6 +7,7 @@ import PSG.backEnd.model.dto.insurance.InsurancePolicyPaymentCreateDTO;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyPaymentResponseDTO;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleDTO;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleResponseDTO;
+import PSG.backEnd.model.dto.insurance.PolicyVehicleWithPaymentsDTO;
 import PSG.backEnd.model.enums.vehicle.PaymentFrequency;
 import PSG.backEnd.model.enums.vehicle.PolicyStatus;
 import PSG.backEnd.model.enums.vehicle.PolicyType;
@@ -228,9 +229,9 @@ public class InsurancePolicyController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved policy list for the vehicle"),
             @ApiResponse(responseCode = "404", description = "Vehicle not found")
     })
-    public ResponseEntity<List<PolicyVehicleResponseDTO>> getPoliciesByVehicleId(
+    public ResponseEntity<List<PolicyVehicleWithPaymentsDTO>> getPoliciesByVehicleId(
             @Parameter(description = "Vehicle unique identifier", required = true) @PathVariable Long vehicleId) {
-        List<PolicyVehicleResponseDTO> policies = policyVehicleService.getByVehicleId(vehicleId);
+        List<PolicyVehicleWithPaymentsDTO> policies = policyVehicleService.getByVehicleId(vehicleId);
         return ResponseEntity.ok(policies);
     }
 

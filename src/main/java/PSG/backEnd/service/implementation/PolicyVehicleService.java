@@ -3,12 +3,18 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.insurance.DuplicateVehicleInPolicyException;
 import PSG.backEnd.exception.insurance.InsurancePolicyNotFoundException;
 import PSG.backEnd.exception.insurance.PolicyVehicleNotFoundException;
+import PSG.backEnd.model.dto.insurance.InsurancePolicyPaymentResponseDTO;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleDTO;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleResponseDTO;
+import PSG.backEnd.model.dto.insurance.PolicyVehicleWithPaymentsDTO;
 import PSG.backEnd.model.entity.insurance.AutoPolicy;
+import PSG.backEnd.model.entity.insurance.InsurancePolicy;
+import PSG.backEnd.model.entity.insurance.InsurancePolicyPaymentDetail;
 import PSG.backEnd.model.entity.insurance.PolicyVehicle;
+import PSG.backEnd.model.entity.payment.PaymentDetails;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.mapper.PolicyVehicleMapper;
+import PSG.backEnd.repository.InsurancePolicyPaymentDetailRepository;
 import PSG.backEnd.repository.PolicyVehicleRepository;
 import PSG.backEnd.repository.AutoPolicyRepository;
 import PSG.backEnd.service.port.IInsurancePolicyService;
@@ -35,6 +41,7 @@ public class PolicyVehicleService implements IPolicyVehicleService {
     private final IVehicleService vehicleService;
     private final AutoPolicyRepository autoPolicyRepository;
     private final IInsurancePolicyService insurancePolicyService;
+    private final InsurancePolicyPaymentDetailRepository paymentDetailRepository;
     private final MessageSourceHelper messageSourceHelper;
 
     @Override
@@ -121,11 +128,65 @@ public class PolicyVehicleService implements IPolicyVehicleService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PolicyVehicleResponseDTO> getByVehicleId(Long vehicleId) {
-        List<PolicyVehicle> policyVehicles = policyVehicleRepository.findByVehicleId(vehicleId);
-        return policyVehicles.stream()
-                .map(policyVehicleMapper::toResponseDto)
+    public List<PolicyVehicleWithPaymentsDTO> getByVehicleId(Long vehicleId) {
+        return policyVehicleRepository.findByVehicleIdAndDeletedFalse(vehicleId).stream()
+                .map(pv -> {
+                    InsurancePolicy policy = pv.getAutoPolicy().getInsurancePolicy();
+                    List<InsurancePolicyPaymentResponseDTO> payments =
+                            paymentDetailRepository.findByPolicyIdWithPaymentDetails(policy.getId())
+                                    .stream()
+                                    .map(this::toPaymentResponseDTO)
+                                    .toList();
+                    return new PolicyVehicleWithPaymentsDTO(
+                            pv.getId(),
+                            pv.getVehicle().getId(),
+                            pv.getVehicle().getLicensePlate(),
+                            pv.getVehicle().getBrand(),
+                            pv.getVehicle().getModel(),
+                            pv.getVehicle().getYear(),
+                            pv.getAutoPolicy().getId(),
+                            policy.getId(),
+                            policy.getPolicyNumber(),
+                            pv.getSumInsured(),
+                            pv.getEffectiveFrom(),
+                            pv.getEffectiveTo(),
+                            pv.getCancellationDate(),
+                            pv.getNumberOfInstallments(),
+                            pv.getPremioTotal(),
+                            pv.getPremioMensual(),
+                            payments
+                    );
+                })
                 .toList();
+    }
+
+    private InsurancePolicyPaymentResponseDTO toPaymentResponseDTO(InsurancePolicyPaymentDetail detail) {
+        PaymentDetails pd = detail.getPaymentDetails();
+        InsurancePolicy policy = detail.getInsurancePolicy();
+        String paymentMethod;
+        String bankName = null;
+        String transactionNumber = null;
+        String checkNumber = null;
+        LocalDate checkDueDate = null;
+        if (pd.getCashPayment() != null) {
+            paymentMethod = "CASH";
+        } else if (pd.getTransferPayment() != null) {
+            paymentMethod = "TRANSFER";
+            bankName = pd.getTransferPayment().getBankAccount() != null ? pd.getTransferPayment().getBankAccount().getBankName() : null;
+            transactionNumber = pd.getTransferPayment().getTransactionNumber();
+        } else if (pd.getCheckPayment() != null) {
+            paymentMethod = "CHECK";
+            bankName = pd.getCheckPayment().getBankAccount() != null ? pd.getCheckPayment().getBankAccount().getBankName() : null;
+            checkNumber = pd.getCheckPayment().getCheckNumber();
+            checkDueDate = pd.getCheckPayment().getDueDate();
+        } else {
+            paymentMethod = "UNKNOWN";
+        }
+        return new InsurancePolicyPaymentResponseDTO(
+                detail.getId(), pd.getId(), policy.getId(), policy.getPolicyNumber(),
+                pd.getPaymentDate(), pd.getAmount(), detail.getPeriodFrom(), detail.getPeriodTo(),
+                pd.getComment(), paymentMethod, bankName, transactionNumber, checkNumber, checkDueDate
+        );
     }
 
     @Override

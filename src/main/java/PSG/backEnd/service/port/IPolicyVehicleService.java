@@ -2,6 +2,7 @@ package PSG.backEnd.service.port;
 
 import PSG.backEnd.model.dto.insurance.PolicyVehicleDTO;
 import PSG.backEnd.model.dto.insurance.PolicyVehicleResponseDTO;
+import PSG.backEnd.model.dto.insurance.PolicyVehicleWithPaymentsDTO;
 import PSG.backEnd.model.entity.insurance.PolicyVehicle;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +23,7 @@ public interface IPolicyVehicleService {
     PolicyVehicle getEntityById(Long id);
     boolean existsById(Long id);
     List<PolicyVehicleResponseDTO> getByAutoPolicyId(Long autoPolicyId);
-    List<PolicyVehicleResponseDTO> getByVehicleId(Long vehicleId);
+    List<PolicyVehicleWithPaymentsDTO> getByVehicleId(Long vehicleId);
     void validateVehicleNotInPolicy(Long vehicleId, Long autoPolicyId, Long excludeId);
 
     PolicyVehicleResponseDTO addVehicleToInsurancePolicy(Long insurancePolicyId, PolicyVehicleDTO policyVehicleDTO);

@@ -19,6 +19,7 @@ public interface PolicyVehicleRepository extends JpaRepository<PolicyVehicle, Lo
     Optional<PolicyVehicle> findByIdAndDeletedFalse(Long id);
     List<PolicyVehicle> findByAutoPolicyId(Long autoPolicyId);
     List<PolicyVehicle> findByVehicleId(Long vehicleId);
+    List<PolicyVehicle> findByVehicleIdAndDeletedFalse(Long vehicleId);
     Optional<PolicyVehicle> findByVehicleIdAndAutoPolicyIdAndDeletedTrue(Long vehicleId, Long autoPolicyId);
     boolean existsByIdAndDeletedFalse(Long id);
     boolean existsByVehicleIdAndAutoPolicyId(Long vehicleId, Long autoPolicyId);
