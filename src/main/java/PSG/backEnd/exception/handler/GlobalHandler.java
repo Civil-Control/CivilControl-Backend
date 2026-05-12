@@ -12,6 +12,8 @@ import PSG.backEnd.exception.building.BuildingNotFoundException;
 import PSG.backEnd.exception.building.BuildingNotValidException;
 import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotFoundException;
 import PSG.backEnd.exception.disciplinaryAction.DisciplinaryActionNotValidException;
+import PSG.backEnd.exception.laborIncident.LaborIncidentNotFoundException;
+import PSG.backEnd.exception.laborIncident.LaborIncidentNotValidException;
 import PSG.backEnd.exception.employee.EmployeeAlreadyExistsException;
 import PSG.backEnd.exception.employee.EmployeeDataConflictException;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
@@ -320,6 +322,18 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DisciplinaryActionNotValidException.class)
     public ResponseEntity<ResponseMessage> handleDisciplinaryActionNotValidException(DisciplinaryActionNotValidException ex) {
+        return buildResponse(ex, HttpStatus.BAD_REQUEST);
+    }
+
+    // ==================== LaborIncident Exceptions ====================
+
+    @ExceptionHandler(LaborIncidentNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleLaborIncidentNotFoundException(LaborIncidentNotFoundException ex) {
+        return buildResponse(ex, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(LaborIncidentNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleLaborIncidentNotValidException(LaborIncidentNotValidException ex) {
         return buildResponse(ex, HttpStatus.BAD_REQUEST);
     }
 

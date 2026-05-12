@@ -5,6 +5,7 @@ import PSG.backEnd.model.enums.employee.ActionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -34,4 +35,8 @@ public interface DisciplinaryActionRepository extends JpaRepository<Disciplinary
             @Param("endDateTo") LocalDate endDateTo,
             Pageable pageable
     );
+
+    @Modifying
+    @Query("UPDATE DisciplinaryAction da SET da.laborIncident = null WHERE da.laborIncident.id = :incidentId")
+    void nullifyLaborIncident(@Param("incidentId") Long incidentId);
 }

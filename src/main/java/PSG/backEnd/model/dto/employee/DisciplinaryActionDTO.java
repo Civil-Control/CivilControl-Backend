@@ -59,6 +59,9 @@ public record DisciplinaryActionDTO(
             maxLength = 1000,
             nullable = true)
     @Size(max = 1000, message = "{disciplinaryAction.notes.size}", groups = {OnCreate.class, OnUpdate.class})
-    String notes
+    String notes,
+
+    @Schema(description = "ID del incidente laboral que originó esta acción disciplinaria. Opcional.", nullable = true)
+    Long laborIncidentId
 ) {}
 

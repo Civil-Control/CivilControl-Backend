@@ -79,6 +79,12 @@ public final class AppPermissions {
      */
     public static final String DISCIPLINARY_ACTION_DELETE = "DISCIPLINARY_ACTION_DELETE";
 
+    // ==================== MODULE: LABOR INCIDENTS ====================
+
+    public static final String LABOR_INCIDENT_READ   = "LABOR_INCIDENT_READ";
+    public static final String LABOR_INCIDENT_WRITE  = "LABOR_INCIDENT_WRITE";
+    public static final String LABOR_INCIDENT_DELETE = "LABOR_INCIDENT_DELETE";
+
     // ==================== MODULE: SALARY PAYMENTS ====================
     
     /**

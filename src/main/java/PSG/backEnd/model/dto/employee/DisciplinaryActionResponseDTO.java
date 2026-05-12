@@ -1,6 +1,7 @@
 package PSG.backEnd.model.dto.employee;
 
 import PSG.backEnd.model.enums.employee.ActionType;
+import PSG.backEnd.model.enums.employee.LaborIncidentType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDate;
@@ -44,6 +45,15 @@ public record DisciplinaryActionResponseDTO(
     @Schema(description = "Additional notes or comments about the disciplinary action.",
             example = "Employee acknowledged the issue and committed to improvement.",
             nullable = true)
-    String notes
+    String notes,
+
+    @Schema(nullable = true)
+    Long laborIncidentId,
+
+    @Schema(nullable = true)
+    LaborIncidentType laborIncidentType,
+
+    @Schema(nullable = true)
+    LocalDate laborIncidentDate
 ) {}
 

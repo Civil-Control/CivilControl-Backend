@@ -39,4 +39,8 @@ public class DisciplinaryAction extends TenantEntity {
 
     @Column(name = "notes", length = 1000, columnDefinition = "VARCHAR(1000)")
     private String notes;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "labor_incident_id")
+    private LaborIncident laborIncident;
 }
