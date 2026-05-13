@@ -22,6 +22,8 @@ public interface WorkContractRepository extends JpaRepository<WorkContract, Long
 
     List<WorkContract> findByDeletedFalse();
 
+    List<WorkContract> findAllByDeletedFalseAndStatus(WorkContractStatus status);
+
     @Query("""
             SELECT wc FROM WorkContract wc
             WHERE wc.deleted = false

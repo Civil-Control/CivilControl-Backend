@@ -1,6 +1,7 @@
 package PSG.backEnd.repository;
 
 import PSG.backEnd.model.entity.insurance.InsurancePolicy;
+import PSG.backEnd.model.enums.vehicle.PolicyStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,6 +18,7 @@ public interface InsurancePolicyRepository extends JpaRepository<InsurancePolicy
 
     List<InsurancePolicy> findAllByOrderByIdDesc();
     Optional<InsurancePolicy> findByIdAndDeletedFalse(Long id);
+    List<InsurancePolicy> findAllByDeletedFalseAndPolicyStatus(PolicyStatus policyStatus);
     Optional<InsurancePolicy> findByPolicyNumberAndDeletedFalse(String policyNumber);
     Optional<InsurancePolicy> findByPolicyNumberAndDeletedTrue(String policyNumber);
     boolean existsByPolicyNumberAndDeletedFalse(String policyNumber);
