@@ -17,7 +17,9 @@ import PSG.backEnd.model.mapper.UserMapper;
 import PSG.backEnd.repository.CredentialsRepository;
 import PSG.backEnd.repository.RoleRepository;
 import PSG.backEnd.repository.UserRepository;
+import PSG.backEnd.model.entity.security.UserDeletedEvent;
 import PSG.backEnd.service.port.IUserService;
+import org.springframework.context.ApplicationEventPublisher;
 import PSG.backEnd.service.security.PasswordPolicyService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,7 @@ public class UserService implements IUserService {
     private final PasswordPolicyService passwordPolicyService;
     private final MessageSourceHelper messageSourceHelper;
     private final JwtService jwtService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -202,6 +205,7 @@ public class UserService implements IUserService {
             user.getCredentials().setDeleted(true);
         }
 
+        eventPublisher.publishEvent(new UserDeletedEvent(user.getId()));
         userRepository.save(user);
 
         log.info("User deleted successfully: {}", user.getUsername());

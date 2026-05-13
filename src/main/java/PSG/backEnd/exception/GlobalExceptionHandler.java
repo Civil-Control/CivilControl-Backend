@@ -1,5 +1,6 @@
 package PSG.backEnd.exception;
 
+import PSG.backEnd.exception.notification.NotificationSubscriptionNotValidException;
 import PSG.backEnd.exception.purchaseOrder.PurchaseOrderNotValidException;
 import PSG.backEnd.exception.serviceSupplier.ServiceAssignmentAlreadyExistsException;
 import PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException;
@@ -449,6 +450,26 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .body(problemDetail);
+    }
+
+    @ExceptionHandler(NotificationSubscriptionNotValidException.class)
+    public ResponseEntity<ProblemDetail> handleNotificationSubscriptionNotValidException(
+            NotificationSubscriptionNotValidException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                "Notification Subscription Validation Error",
+                ex.getMessage(),
+                request,
+                ex
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(problemDetail);
     }
 

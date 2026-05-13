@@ -9,11 +9,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface NotificationSubscriptionRepository extends JpaRepository<NotificationSubscription, Long> {
 
     List<NotificationSubscription> findAllByDeletedFalseAndActiveTrue();
+
+    Optional<NotificationSubscription> findByIdAndDeletedFalse(Long id);
 
     List<NotificationSubscription> findAllByUserIdAndDeletedFalse(Long userId);
 
