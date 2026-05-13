@@ -20,8 +20,11 @@ public class WhatsAppNotificationSender implements NotificationSender {
 
     private final RestClient whatsAppRestClient;
 
-    @Value("${whatsapp.cloud-api.phone-number-id}")
+    @Value("${whatsapp.cloud-api.phone-number-id:}")
     private String phoneNumberId;
+
+    @Value("${whatsapp.cloud-api.access-token:}")
+    private String accessToken;
 
     private static final Map<NotificationSubjectType, String> TEMPLATE_NAMES = Map.of(
             NotificationSubjectType.VEHICLE_VTV,        "vtv_expiration_alert",
@@ -36,6 +39,10 @@ public class WhatsAppNotificationSender implements NotificationSender {
 
     @Override
     public void send(NotificationPayload payload) {
+        if (accessToken == null || accessToken.isBlank() || phoneNumberId == null || phoneNumberId.isBlank()) {
+            log.warn("WhatsApp notification skipped: WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_ID not configured");
+            return;
+        }
         String phoneNumber = payload.channelAddresses().get(NotificationChannel.WHATSAPP);
         if (phoneNumber == null || phoneNumber.isBlank()) {
             log.warn("WhatsApp notification skipped for userId={}: no phone number", payload.userId());

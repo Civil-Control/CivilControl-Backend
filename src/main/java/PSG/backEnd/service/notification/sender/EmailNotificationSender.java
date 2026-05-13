@@ -19,6 +19,9 @@ public class EmailNotificationSender implements NotificationSender {
 
     private final Resend resendClient;
 
+    @Value("${resend.api-key:}")
+    private String apiKey;
+
     @Value("${resend.from-address}")
     private String fromAddress;
 
@@ -30,6 +33,10 @@ public class EmailNotificationSender implements NotificationSender {
 
     @Override
     public void send(NotificationPayload payload) {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("Email notification skipped: RESEND_API_KEY not configured");
+            return;
+        }
         String email = payload.channelAddresses().get(NotificationChannel.EMAIL);
         if (email == null || email.isBlank()) {
             log.warn("Email notification skipped for userId={}: no email address", payload.userId());
