@@ -677,5 +677,13 @@ public final class AppPermissions {
 
     /** Module: Purchase Orders. Allows changing order status and linking fiscal documents. */
     public static final String PURCHASE_ORDER_WRITE = "PURCHASE_ORDER_WRITE";
+
+    // ==================== MODULE: NOTIFICATIONS (Feature 21) ====================
+
+    /** Module: Notifications. Allows subscribing to notifications for the authenticated user's own subjects. */
+    public static final String NOTIFICATION_SELF_SUBSCRIBE = "NOTIFICATION_SELF_SUBSCRIBE";
+
+    /** Module: Notifications. Allows creating and managing notification subscriptions on behalf of other users. */
+    public static final String NOTIFICATION_ASSIGN_OTHERS = "NOTIFICATION_ASSIGN_OTHERS";
 }
 

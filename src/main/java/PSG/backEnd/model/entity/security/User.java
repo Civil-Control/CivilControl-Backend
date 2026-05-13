@@ -95,6 +95,9 @@ public class User extends TenantEntity implements UserDetails {
     @Embedded
     private UserLocation location;
 
+    @Column(name = "whatsapp_number", length = 20)
+    private String whatsappNumber;
+
     // ==================== UserDetails Implementation ====================
 
     /**

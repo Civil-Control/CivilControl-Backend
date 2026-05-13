@@ -39,6 +39,9 @@ public record UserResponseDTO(
         Boolean enabled,
 
         @Schema(description = "User's default location for address autofill")
-        UserLocationDTO location
+        UserLocationDTO location,
+
+        @Schema(description = "WhatsApp number in E.164 format", example = "+5491112345678", nullable = true)
+        String whatsappNumber
 ) {}
 
