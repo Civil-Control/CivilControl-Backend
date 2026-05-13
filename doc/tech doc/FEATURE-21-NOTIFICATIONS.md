@@ -9,7 +9,7 @@ Cada usuario (o un usuario con permisos) puede suscribirse a un sujeto concreto 
 **Herramientas externas:**
 - **WebSocket:** STOMP sobre SockJS con autenticación JWT en el handshake.
 - **Email:** [Resend](https://resend.com) — SDK Java oficial, 3.000 emails/mes gratis, deliverability superior a Gmail SMTP.
-- **WhatsApp:** [Twilio WhatsApp API](https://www.twilio.com/whatsapp) — SDK Java oficial, sandbox gratuito para desarrollo.
+- **WhatsApp:** [WhatsApp Cloud API (Meta)](https://developers.facebook.com/docs/whatsapp/cloud-api) — API REST oficial sobre Graph API. Sin SDK de terceros, sin markup de intermediario. Entorno de pruebas gratuito con hasta 5 números en lista blanca permanente.
 
 **Dependencias del proyecto:**
 - Ninguna feature anterior es prerrequisito directo, pero se deben resolver las modificaciones al `User` (sección prerrequisito) antes de implementar el canal WhatsApp.
@@ -107,9 +107,7 @@ public enum NotificationDeliveryStatus {
 
 ```java
 @Entity
-@Table(name = "notification_subscriptions", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"tenant_id", "user_id", "subject_type", "subject_id"})
-})
+@Table(name = "notification_subscriptions")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -157,7 +155,7 @@ public class NotificationSubscription extends TenantEntity {
 }
 ```
 
-**Nota sobre la unicidad:** el constraint `(tenant_id, user_id, subject_type, subject_id)` incluye a `subject_id` que puede ser NULL. En PostgreSQL, múltiples NULLs no violan el unique constraint por defecto (NULL != NULL). Para suscripciones wildcard (`subject_id = NULL`), el servicio debe verificar manualmente si ya existe una suscripción wildcard del mismo tipo para ese usuario.
+**Nota sobre la unicidad:** la unicidad se delega al motor de base de datos mediante un índice `NULLS NOT DISTINCT` (PostgreSQL 15+), que sí considera dos NULLs como iguales. El `@UniqueConstraint` JPA se omite de la entidad para evitar la generación de un índice estándar que no aplicaría este comportamiento. El servicio realiza una única comprobación de duplicado (sin bifurcación `isNull`) apoyándose en que el motor aplica la restricción correctamente.
 
 ### 1.5 Entidad: `NotificationAlert`
 
@@ -297,6 +295,11 @@ CREATE TABLE notification_subscriptions (
     CONSTRAINT fk_notif_sub_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
 );
 
+-- Unicidad real con NULLs tratados como iguales (requiere PostgreSQL 15+)
+CREATE UNIQUE INDEX idx_unique_subscription
+    ON notification_subscriptions (tenant_id, user_id, subject_type, subject_id)
+    NULLS NOT DISTINCT;
+
 CREATE INDEX idx_notif_sub_tenant_user      ON notification_subscriptions(tenant_id, user_id);
 CREATE INDEX idx_notif_sub_tenant_type      ON notification_subscriptions(tenant_id, subject_type);
 CREATE INDEX idx_notif_sub_active_deleted   ON notification_subscriptions(tenant_id, active, deleted);
@@ -362,12 +365,8 @@ Agregar dentro del bloque `<dependencies>`:
     <version>3.0.0</version>
 </dependency>
 
-<!-- WhatsApp — Twilio -->
-<dependency>
-    <groupId>com.twilio.sdk</groupId>
-    <artifactId>twilio</artifactId>
-    <version>10.3.3</version>
-</dependency>
+<!-- WhatsApp Cloud API (Meta): no requiere dependencia adicional.
+     Se usa RestClient de Spring 6.1+ (incluido en spring-boot-starter-web). -->
 ```
 
 ---
@@ -384,10 +383,11 @@ resend:
   from-address: ${RESEND_FROM_ADDRESS:noreply@civilcontrol.app}
   from-name: ${RESEND_FROM_NAME:CivilControl}
 
-twilio:
-  account-sid: ${TWILIO_ACCOUNT_SID}
-  auth-token: ${TWILIO_AUTH_TOKEN}
-  whatsapp-from: ${TWILIO_WHATSAPP_FROM:whatsapp:+14155238886}  # número sandbox de Twilio
+whatsapp:
+  cloud-api:
+    url: ${WHATSAPP_API_URL:https://graph.facebook.com/v20.0}
+    phone-number-id: ${WHATSAPP_PHONE_ID}
+    access-token: ${WHATSAPP_ACCESS_TOKEN}
 ```
 
 ### 4.2 `WebSocketConfig`
@@ -464,7 +464,31 @@ public class WebSocketJwtInterceptor implements ChannelInterceptor {
 
 **Nota:** El método `findByCredentials_UsernameAndDeletedFalse` ya debe existir en `UserRepository` (o uno equivalente que resuelva el user por username). Verificar el nombre exacto del método antes de implementar.
 
-### 4.4 `ResendConfig` y `TwilioConfig`
+### 4.4 `AsyncConfig`
+
+**Ubicación:** `config/AsyncConfig.java`
+
+Configura el executor dedicado para el despacho asíncrono de notificaciones, aislando esos hilos del pool general de Spring.
+
+```java
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+
+    @Bean(name = "notificationTaskExecutor")
+    public ThreadPoolTaskExecutor notificationTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("notif-dispatch-");
+        executor.initialize();
+        return executor;
+    }
+}
+```
+
+### 4.5 `ResendConfig` y `WhatsAppCloudApiConfig`
 
 **Ubicación:** `config/ResendConfig.java`
 
@@ -482,21 +506,27 @@ public class ResendConfig {
 }
 ```
 
-**Ubicación:** `config/TwilioConfig.java`
+**Ubicación:** `config/WhatsAppCloudApiConfig.java`
+
+Crea un `RestClient` preconfigurado con la URL base de Graph API y el Bearer token. No requiere ningún SDK externo; `RestClient` está disponible desde Spring Boot 3.2 vía `spring-boot-starter-web`.
 
 ```java
 @Configuration
-public class TwilioConfig {
+public class WhatsAppCloudApiConfig {
 
-    @Value("${twilio.account-sid}")
-    private String accountSid;
+    @Value("${whatsapp.cloud-api.url}")
+    private String apiUrl;
 
-    @Value("${twilio.auth-token}")
-    private String authToken;
+    @Value("${whatsapp.cloud-api.access-token}")
+    private String accessToken;
 
-    @PostConstruct
-    public void init() {
-        Twilio.init(accountSid, authToken);
+    @Bean
+    public RestClient whatsAppRestClient(RestClient.Builder builder) {
+        return builder
+                .baseUrl(apiUrl)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
     }
 }
 ```
@@ -642,11 +672,14 @@ public interface NotificationSubscriptionRepository extends JpaRepository<Notifi
 
     List<NotificationSubscription> findAllByUserIdAndDeletedFalse(Long userId);
 
+    // Verificación de duplicado unificada — el índice NULLS NOT DISTINCT garantiza
+    // que subjectId=null también sea tratado como valor único por el motor.
     boolean existsByUserIdAndSubjectTypeAndSubjectIdAndDeletedFalse(
             Long userId, NotificationSubjectType subjectType, Long subjectId);
 
-    boolean existsByUserIdAndSubjectTypeAndSubjectIdIsNullAndDeletedFalse(
-            Long userId, NotificationSubjectType subjectType);
+    @Modifying
+    @Query("UPDATE NotificationSubscription s SET s.deleted = true WHERE s.userId = :userId")
+    void markDeletedByUserId(@Param("userId") Long userId);
 }
 ```
 
@@ -669,9 +702,15 @@ public interface NotificationAlertRepository extends JpaRepository<NotificationA
 @Repository
 public interface NotificationLogRepository extends JpaRepository<NotificationLog, Long> {
 
-    // Deduplicación: verifica si ya se envió este aviso hoy para este sujeto concreto
-    boolean existsBySubscriptionIdAndAlertIdAndSubjectIdAndLogDate(
-            Long subscriptionId, Long alertId, Long subjectId, LocalDate logDate);
+    // Carga bulk de claves de deduplicación para un tenant en una fecha dada.
+    // Evita N+1 queries en el scheduler: se llama una sola vez por tenant por día.
+    @Query("SELECT CONCAT(CAST(l.subscriptionId AS string), '_', " +
+           "CAST(l.alertId AS string), '_', " +
+           "COALESCE(CAST(l.subjectId AS string), 'null')) " +
+           "FROM NotificationLog l " +
+           "WHERE l.tenantId = :tenantId AND l.logDate = :logDate")
+    Set<String> findSentKeysForTenantAndDate(@Param("tenantId") Long tenantId,
+                                              @Param("logDate") LocalDate logDate);
 
     // Bandeja de entrada del canal SYSTEM para un usuario (obtenido vía subscriptionId en subquery o join)
     @Query("SELECT l FROM NotificationLog l " +
@@ -1058,13 +1097,28 @@ public class EmailNotificationSender implements NotificationSender {
 
 **Ubicación:** `service/notification/sender/WhatsAppNotificationSender.java`
 
+Llama directamente a la WhatsApp Cloud API de Meta. Los mensajes proactivos **deben** usar plantillas preaprobadas (políticas anti-spam de Meta B2B). Cada `NotificationSubjectType` se mapea a un `template_name` fijo; las variables dinámicas se inyectan como parámetros de componente.
+
+**Convención de plantillas:** cada plantilla debe tener exactamente 3 parámetros de cuerpo en este orden: `{{1}}` nombre del sujeto, `{{2}}` fecha de vencimiento (dd/MM/yyyy), `{{3}}` días restantes. Registrar y aprobar las 5 plantillas en el Business Manager de Meta antes de pasar a producción.
+
 ```java
 @Component
+@RequiredArgsConstructor
 @Slf4j
 public class WhatsAppNotificationSender implements NotificationSender {
 
-    @Value("${twilio.whatsapp-from}")
-    private String from;
+    private final RestClient whatsAppRestClient;
+
+    @Value("${whatsapp.cloud-api.phone-number-id}")
+    private String phoneNumberId;
+
+    private static final Map<NotificationSubjectType, String> TEMPLATE_NAMES = Map.of(
+            NotificationSubjectType.VEHICLE_VTV,        "vtv_expiration_alert",
+            NotificationSubjectType.CHECK_PAYMENT,      "check_payment_alert",
+            NotificationSubjectType.INSURANCE_POLICY,   "insurance_policy_alert",
+            NotificationSubjectType.SERVICE_ASSIGNMENT, "service_assignment_alert",
+            NotificationSubjectType.WORK_CONTRACT,      "work_contract_alert"
+    );
 
     @Override
     public NotificationChannel getChannel() { return NotificationChannel.WHATSAPP; }
@@ -1076,15 +1130,35 @@ public class WhatsAppNotificationSender implements NotificationSender {
             return;
         }
 
-        String body = "*CivilControl* — " + payload.subjectDisplayName()
-                + " vence el " + payload.dueDate().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                + " (" + payload.daysUntilDue() + " días restantes).";
+        String templateName = TEMPLATE_NAMES.get(payload.subjectType());
+        String dueDateFormatted = payload.dueDate()
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
 
-        Message.creator(
-                new PhoneNumber("whatsapp:" + payload.userWhatsappNumber()),
-                new PhoneNumber(from),
-                body
-        ).create();
+        Map<String, Object> requestBody = Map.of(
+                "messaging_product", "whatsapp",
+                "to", payload.userWhatsappNumber(),
+                "type", "template",
+                "template", Map.of(
+                        "name", templateName,
+                        "language", Map.of("code", "es_AR"),
+                        "components", List.of(
+                                Map.of(
+                                        "type", "body",
+                                        "parameters", List.of(
+                                                Map.of("type", "text", "text", payload.subjectDisplayName()),
+                                                Map.of("type", "text", "text", dueDateFormatted),
+                                                Map.of("type", "text", "text", String.valueOf(payload.daysUntilDue()))
+                                        )
+                                )
+                        )
+                )
+        );
+
+        whatsAppRestClient.post()
+                .uri("/{phoneNumberId}/messages", phoneNumberId)
+                .body(requestBody)
+                .retrieve()
+                .toBodilessEntity();
     }
 }
 ```
@@ -1156,8 +1230,7 @@ if (dto.userId().equals(currentUserId)) {
 1. `dto.userId()` debe existir y no estar deleted → `UserNotFoundException`
 2. Si `dto.subjectId() != null`, el sujeto debe existir en el tenant actual (delegar verificación al resolver correspondiente: `resolver.resolveForId(dto.subjectId())` debe devolver al menos un elemento)
 3. Verificar que no existe ya una suscripción activa para la misma combinación `(userId, subjectType, subjectId)`:
-   - Si `subjectId != null`: `existsByUserIdAndSubjectTypeAndSubjectIdAndDeletedFalse()`
-   - Si `subjectId == null`: `existsByUserIdAndSubjectTypeAndSubjectIdIsNullAndDeletedFalse()`
+   - Llamar a `existsByUserIdAndSubjectTypeAndSubjectIdAndDeletedFalse()` en todos los casos (incluido `subjectId = null`). El índice `NULLS NOT DISTINCT` del motor garantiza que dos wildcard del mismo tipo también colisionen.
    - Si ya existe → `NotificationSubscriptionNotValidException` (mensaje `notification.subscription.duplicate`)
 4. `dto.channels()` no puede estar vacío (Bean Validation ya lo valida, reforzar en servicio)
 5. `dto.alerts()` no puede estar vacío; cada `daysBeforeAlert` debe ser único dentro de la lista → si hay duplicados → `NotificationSubscriptionNotValidException` (mensaje `notification.subscription.alerts.duplicate`)
@@ -1187,6 +1260,19 @@ validarPermisos(dto.userId())
 **Actualización en `updateSubscription`:** solo se puede actualizar `channels`, `alerts` y `active`. `userId`, `subjectType` y `subjectId` son inmutables después de la creación.
 
 Al actualizar `alerts`: la lista recibida **reemplaza completa** la lista existente (orphanRemoval se encarga de eliminar los que ya no están).
+
+**Soft delete en cascada desde `User`:**
+
+Cuando un usuario es eliminado lógicamente, el scheduler no debe procesar suscripciones huérfanas. Agregar en `NotificationSubscriptionService` un listener que reaccione al evento de dominio `UserDeletedEvent` (publicado por `UserService.deleteUser()` vía `ApplicationEventPublisher`):
+
+```java
+@TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+public void onUserDeleted(UserDeletedEvent event) {
+    subscriptionRepository.markDeletedByUserId(event.userId());
+}
+```
+
+`UserDeletedEvent` es un record simple `public record UserDeletedEvent(Long userId) {}`. Publicarlo en `UserService` con `eventPublisher.publishEvent(new UserDeletedEvent(user.getId()))` justo antes del `save()` del soft-delete.
 
 **Método `getInbox`:**
 ```java
@@ -1219,6 +1305,11 @@ public class NotificationDispatchService {
     private final Map<NotificationChannel, NotificationSender> senders;
     private final NotificationLogRepository logRepository;
 
+    // @Async libera el hilo del scheduler de inmediato.
+    // @Transactional garantiza que cada invocación asíncrona maneje su propia transacción
+    // al guardar los logs, evitando contención en la tabla notification_logs.
+    @Async("notificationTaskExecutor")
+    @Transactional
     public void dispatch(NotificationPayload payload,
                          Set<NotificationChannel> channels,
                          Long subscriptionId,
@@ -1277,7 +1368,7 @@ public class NotificationSchedulerService {
         tenantRepository.findAllByDeletedFalseAndActiveTrue().forEach(tenant -> {
             try {
                 TenantContext.setCurrentTenant(tenant.getId());
-                processTenant();
+                processTenant(tenant.getId());
             } catch (Exception e) {
                 log.error("NotificationScheduler: error processing tenant {}: {}", tenant.getId(), e.getMessage());
             } finally {
@@ -1287,8 +1378,13 @@ public class NotificationSchedulerService {
         log.info("NotificationScheduler: daily run complete");
     }
 
-    private void processTenant() {
+    private void processTenant(Long tenantId) {
         LocalDate today = LocalDate.now();
+
+        // Una sola query por tenant por día. Evita el problema N+1 que se genera al
+        // llamar existsBySubscriptionIdAndAlertIdAndSubjectIdAndLogDate() en cada iteración.
+        Set<String> sentToday = logRepository.findSentKeysForTenantAndDate(tenantId, today);
+
         List<NotificationSubscription> subscriptions = subscriptionRepository.findAllByDeletedFalseAndActiveTrue();
 
         for (NotificationSubscription sub : subscriptions) {
@@ -1301,20 +1397,21 @@ public class NotificationSchedulerService {
             for (SubjectDueDateInfo info : subjects) {
                 for (NotificationAlert alert : sub.getAlerts()) {
                     if (!alert.isActive()) continue;
-                    processAlert(sub, alert, info, today);
+                    processAlert(sub, alert, info, today, sentToday);
                 }
             }
         }
     }
 
     private void processAlert(NotificationSubscription sub, NotificationAlert alert,
-                               SubjectDueDateInfo info, LocalDate today) {
+                               SubjectDueDateInfo info, LocalDate today,
+                               Set<String> sentToday) {
         LocalDate triggerDate = info.dueDate().minusDays(alert.getDaysBeforeAlert());
         if (!today.equals(triggerDate)) return;
 
-        // Deduplicación: evitar doble envío si el scheduler corre más de una vez en el día
-        if (logRepository.existsBySubscriptionIdAndAlertIdAndSubjectIdAndLogDate(
-                sub.getId(), alert.getId(), info.subjectId(), today)) return;
+        String dedupKey = sub.getId() + "_" + alert.getId() + "_"
+                + (info.subjectId() != null ? info.subjectId() : "null");
+        if (sentToday.contains(dedupKey)) return;
 
         userRepository.findById(sub.getUserId()).ifPresent(user -> {
             NotificationPayload payload = new NotificationPayload(
@@ -1505,16 +1602,28 @@ export class WsNotificationService {
   private notificationsSubject = new Subject<WsNotificationPayload>();
   notifications$ = this.notificationsSubject.asObservable();
 
-  connect(token: string): void {
+  constructor(private authService: AuthService) {}
+
+  connect(): void {
     this.client = new Client({
       webSocketFactory: () => new SockJS('/ws'),
-      connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
+      // beforeConnect se ejecuta antes de cada intento de conexión (inicial y reconexiones).
+      // Obtiene un token válido, renovándolo si expiró, antes de enviar el CONNECT frame.
+      // Esto resuelve el caso en que el JWT caduca mientras la pestaña está abierta:
+      // si el socket se cae, la reconexión automática usará el token renovado.
+      beforeConnect: async () => {
+        const token = await firstValueFrom(this.authService.getValidToken());
+        this.client!.connectHeaders = { Authorization: `Bearer ${token}` };
+      },
       onConnect: () => {
         this.client!.subscribe('/user/queue/notifications', (msg) => {
           const payload: WsNotificationPayload = JSON.parse(msg.body);
           this.notificationsSubject.next(payload);
         });
+      },
+      onStompError: (frame) => {
+        log.error('WS STOMP error:', frame.headers['message']);
       },
     });
     this.client.activate();
@@ -1527,7 +1636,9 @@ export class WsNotificationService {
 }
 ```
 
-El servicio se conecta cuando el usuario hace login (llamar `connect(token)` en el flujo de autenticación) y se desconecta en logout (`disconnect()`). El token JWT se obtiene del `AuthService` ya existente.
+**Requisito en `AuthService`:** exponer `getValidToken(): Observable<string>`, que devuelve el token actual si sigue siendo válido, o invoca el flujo de refresh y devuelve el nuevo token. El interceptor HTTP de la app ya debe implementar lógica equivalente; se puede reutilizar.
+
+El servicio se conecta llamando `connect()` en el flujo de autenticación (sin recibir el token como parámetro, lo resuelve internamente) y se desconecta en logout.
 
 ### 13.4 `NotificationHttpService`
 
@@ -1640,7 +1751,8 @@ Campos:
 | Decisión | Elección | Motivo |
 |---|---|---|
 | Canal email | Resend SDK | 3.000 emails/mes gratis, mejor deliverability que Gmail SMTP, sin gestión de infraestructura |
-| Canal WhatsApp | Twilio API | Sandbox gratuito para dev, SDK Java oficial, configuración en minutos |
+| Canal WhatsApp | WhatsApp Cloud API (Meta) | Conexión directa a Graph API: sin markup de intermediario (Twilio), menor latencia, sandbox con whitelist permanente de 5 números (sin sesión de 24 hs). Producción requiere verificación legal del negocio ante Meta; el switch es solo un cambio de credenciales en `.env` |
+| Contenido WhatsApp | Plantillas dinámicas (Templates) | Obligatorio por política anti-spam de Meta B2B. Cada `NotificationSubjectType` mapea a un `template_name` preaprobado; las variables (nombre, fecha, días) se inyectan como parámetros de componente |
 | WebSocket | STOMP + SockJS | Standard de facto en Spring Boot; SockJS provee fallback HTTP para redes restrictivas |
 | Autenticación WebSocket | JWT en header CONNECT | Misma estrategia que la API REST; sin cookies ni sesiones adicionales |
 | Canales por suscripción | Mismos canales para todos los avisos | Simplifica la UX; cambiar de canal requiere editar la suscripción, no cada aviso |
@@ -1665,7 +1777,7 @@ Campos:
 
 ### Backend
 
-- [ ] Agregar 3 dependencias en `pom.xml` (websocket, resend, twilio)
+- [ ] Agregar 2 dependencias en `pom.xml` (websocket, resend) — WhatsApp Cloud API no requiere SDK externo
 - [ ] Crear enum `NotificationSubjectType.java`
 - [ ] Crear enum `NotificationChannel.java`
 - [ ] Crear enum `NotificationDeliveryStatus.java`
@@ -1680,6 +1792,7 @@ Campos:
 - [ ] Crear `NotificationAlertRepository.java`
 - [ ] Crear `NotificationLogRepository.java`
 - [ ] Agregar métodos faltantes a repositorios existentes (`VehicleRepository`, `CheckPaymentRepository`, `InsurancePolicyRepository`, `WorkContractRepository`, `ServiceAssignmentRepository`)
+- [ ] Agregar `markDeletedByUserId(@Param Long userId)` a `NotificationSubscriptionRepository`
 - [ ] Crear `NotificationAlertDTO.java`
 - [ ] Crear `NotificationSubscriptionDTO.java`
 - [ ] Crear `NotificationSubscriptionResponseDTO.java`
@@ -1687,10 +1800,12 @@ Campos:
 - [ ] Crear `NotificationSubscriptionMapper.java`
 - [ ] Crear `WebSocketConfig.java`
 - [ ] Crear `WebSocketJwtInterceptor.java`
+- [ ] Crear `AsyncConfig.java` (con `@EnableAsync` y bean `notificationTaskExecutor`)
 - [ ] Crear `ResendConfig.java`
-- [ ] Crear `TwilioConfig.java`
-- [ ] Agregar sección `resend` y `twilio` a `application.yml`
-- [ ] Agregar variables de entorno al `.env` / configuración de deploy
+- [ ] Crear `WhatsAppCloudApiConfig.java` (bean `RestClient` con Bearer token preconfigurado)
+- [ ] Agregar sección `resend` y `whatsapp.cloud-api` a `application.yml`
+- [ ] Agregar variables de entorno al `.env` / configuración de deploy (`WHATSAPP_PHONE_ID`, `WHATSAPP_ACCESS_TOKEN`, opcionales para sandbox: poner en whitelist hasta 5 números en Meta Business Manager)
+- [ ] Registrar y aprobar las 5 plantillas de WhatsApp en Meta Business Manager antes de pasar a producción (`vtv_expiration_alert`, `check_payment_alert`, `insurance_policy_alert`, `service_assignment_alert`, `work_contract_alert`)
 - [ ] Excluir `NotificationAlertRepository` del `TenantFilterAspect` (no extiende `TenantEntity`) agregando `&& !execution(* PSG.backEnd.repository.NotificationAlertRepository.*(..))` al pointcut
 - [ ] Crear interface `NextDueDateResolver.java`
 - [ ] Crear `VehicleVtvDueDateResolver.java`
@@ -1703,9 +1818,10 @@ Campos:
 - [ ] Crear `WhatsAppNotificationSender.java`
 - [ ] Crear `WebSocketNotificationSender.java`
 - [ ] Crear `INotificationSubscriptionService.java`
-- [ ] Crear `NotificationSubscriptionService.java`
-- [ ] Crear `NotificationDispatchService.java`
-- [ ] Crear `NotificationSchedulerService.java`
+- [ ] Crear `NotificationSubscriptionService.java` (incluye `@TransactionalEventListener` para `UserDeletedEvent`)
+- [ ] Crear `UserDeletedEvent.java` y publicarlo en `UserService.deleteUser()`
+- [ ] Crear `NotificationDispatchService.java` (con `@Async("notificationTaskExecutor")` + `@Transactional`)
+- [ ] Crear `NotificationSchedulerService.java` (con carga bulk de `sentToday` por tenant)
 - [ ] Crear `NotificationSubscriptionController.java`
 - [ ] Agregar `NOTIFICATION_SELF_SUBSCRIBE` y `NOTIFICATION_ASSIGN_OTHERS` a `AppPermissions.java`
 - [ ] Agregar mensajes i18n a `messages.properties`
@@ -1718,8 +1834,9 @@ Campos:
 - [ ] `npm install --save-dev @types/sockjs-client`
 - [ ] Crear `notification.model.ts`
 - [ ] Agregar export a `shared/models/index.ts`
-- [ ] Crear `WsNotificationService` en `core/services/`
-- [ ] Conectar `WsNotificationService.connect(token)` en el flujo de login
+- [ ] Crear `WsNotificationService` en `core/services/` (con `beforeConnect` para renovar token)
+- [ ] Exponer `getValidToken(): Observable<string>` en `AuthService`
+- [ ] Conectar `WsNotificationService.connect()` en el flujo de login
 - [ ] Conectar `WsNotificationService.disconnect()` en el flujo de logout
 - [ ] Crear `NotificationHttpService`
 - [ ] Crear componente `notification-bell` standalone
