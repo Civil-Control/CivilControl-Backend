@@ -268,8 +268,12 @@ public record NotificationPayload(
     LocalDate dueDate,
     int daysUntilDue,
     Long userId,
-    String userEmail,
-    String userWhatsappNumber
+    // Mapa canal → dirección de contacto. Aísla al payload de los canales concretos:
+    // agregar un canal nuevo = una línea en el scheduler, cero cambios aquí.
+    // EMAIL     → dirección de correo
+    // WHATSAPP  → número E.164
+    // SYSTEM    → no requiere entrada (el routing se hace por userId vía WebSocket)
+    Map<NotificationChannel, String> channelAddresses
 ) {}
 ```
 
@@ -1058,7 +1062,8 @@ public class EmailNotificationSender implements NotificationSender {
 
     @Override
     public void send(NotificationPayload payload) {
-        if (payload.userEmail() == null || payload.userEmail().isBlank()) {
+        String email = payload.channelAddresses().get(NotificationChannel.EMAIL);
+        if (email == null || email.isBlank()) {
             log.warn("Email notification skipped for userId={}: no email address", payload.userId());
             return;
         }
@@ -1068,7 +1073,7 @@ public class EmailNotificationSender implements NotificationSender {
 
         SendEmailRequest request = SendEmailRequest.builder()
                 .from(fromName + " <" + fromAddress + ">")
-                .to(payload.userEmail())
+                .to(email)
                 .subject(subject)
                 .html(body)
                 .build();
@@ -1125,7 +1130,8 @@ public class WhatsAppNotificationSender implements NotificationSender {
 
     @Override
     public void send(NotificationPayload payload) {
-        if (payload.userWhatsappNumber() == null || payload.userWhatsappNumber().isBlank()) {
+        String phoneNumber = payload.channelAddresses().get(NotificationChannel.WHATSAPP);
+        if (phoneNumber == null || phoneNumber.isBlank()) {
             log.warn("WhatsApp notification skipped for userId={}: no phone number", payload.userId());
             return;
         }
@@ -1136,7 +1142,7 @@ public class WhatsAppNotificationSender implements NotificationSender {
 
         Map<String, Object> requestBody = Map.of(
                 "messaging_product", "whatsapp",
-                "to", payload.userWhatsappNumber(),
+                "to", phoneNumber,
                 "type", "template",
                 "template", Map.of(
                         "name", templateName,
@@ -1184,6 +1190,39 @@ public class WebSocketNotificationSender implements NotificationSender {
                 "/queue/notifications",
                 payload
         );
+    }
+}
+```
+
+### 8.11 `NotificationSenderRegistry`
+
+**Ubicación:** `service/notification/sender/NotificationSenderRegistry.java`
+
+Componente central de registro de senders. Reemplaza la inyección frágil de `Map<NotificationChannel, NotificationSender>` (que Spring resolvería por bean name, no por `getChannel()`). Al iniciar el contexto, recolecta automáticamente todos los beans `NotificationSender` presentes, construye el mapa indexado por canal y falla rápido (`IllegalStateException`) si un valor del enum no tiene sender registrado.
+
+**Contrato de extensibilidad:** agregar un canal nuevo = crear un `@Component` que implemente `NotificationSender`. El registry lo detecta sin ningún cambio adicional.
+
+```java
+@Component
+public class NotificationSenderRegistry {
+
+    private final Map<NotificationChannel, NotificationSender> senders;
+
+    public NotificationSenderRegistry(List<NotificationSender> senderList) {
+        this.senders = senderList.stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        NotificationSender::getChannel,
+                        Function.identity()));
+        Arrays.stream(NotificationChannel.values()).forEach(channel -> {
+            if (!this.senders.containsKey(channel)) {
+                throw new IllegalStateException(
+                        "No NotificationSender registered for channel: " + channel);
+            }
+        });
+    }
+
+    public NotificationSender get(NotificationChannel channel) {
+        return senders.get(channel);
     }
 }
 ```
@@ -1302,7 +1341,7 @@ List<NotificationLog> logs = logRepository.findSystemInboxBySubscriptionIds(
 @Slf4j
 public class NotificationDispatchService {
 
-    private final Map<NotificationChannel, NotificationSender> senders;
+    private final NotificationSenderRegistry senderRegistry;
     private final NotificationLogRepository logRepository;
 
     // @Async libera el hilo del scheduler de inmediato.
@@ -1318,7 +1357,7 @@ public class NotificationDispatchService {
             NotificationDeliveryStatus status = NotificationDeliveryStatus.SENT;
             String errorMsg = null;
             try {
-                senders.get(channel).send(payload);
+                senderRegistry.get(channel).send(payload);
             } catch (Exception e) {
                 status = NotificationDeliveryStatus.FAILED;
                 errorMsg = e.getMessage();
@@ -1342,7 +1381,7 @@ public class NotificationDispatchService {
 }
 ```
 
-**Nota:** Spring inyecta automáticamente el `Map<NotificationChannel, NotificationSender>` cuando los beans implementan la interfaz y están anotados con `@Component`. El `getChannel()` se usa como clave del mapa. Para configurar esto explícitamente si Spring no lo resuelve automáticamente, crear un `@Bean Map<NotificationChannel, NotificationSender>` en una `@Configuration` class que itere sobre la lista de senders.
+**Nota:** El `NotificationSenderRegistry` (sección 8.11) gestiona la inyección y validación del mapa de senders. `NotificationDispatchService` no conoce los canales concretos; solo delega al registry.
 
 ### 9.4 `NotificationSchedulerService`
 
@@ -1414,6 +1453,12 @@ public class NotificationSchedulerService {
         if (sentToday.contains(dedupKey)) return;
 
         userRepository.findById(sub.getUserId()).ifPresent(user -> {
+            // Construir el mapa de direcciones de contacto por canal.
+            // Agregar un canal nuevo = añadir una línea aquí. Sin más cambios.
+            Map<NotificationChannel, String> channelAddresses = new EnumMap<>(NotificationChannel.class);
+            channelAddresses.put(NotificationChannel.EMAIL, user.getEmail());
+            channelAddresses.put(NotificationChannel.WHATSAPP, user.getWhatsappNumber());
+
             NotificationPayload payload = new NotificationPayload(
                     sub.getSubjectType(),
                     info.subjectId(),
@@ -1421,8 +1466,7 @@ public class NotificationSchedulerService {
                     info.dueDate(),
                     alert.getDaysBeforeAlert(),
                     user.getId(),
-                    user.getEmail(),
-                    user.getWhatsappNumber()
+                    channelAddresses
             );
             dispatchService.dispatch(payload, sub.getChannels(), sub.getId(), alert.getId());
         });
@@ -1763,6 +1807,8 @@ Campos:
 | `NotificationAlert` sin `TenantEntity` | Entidad hijo simple | Siempre se accede a través de su suscripción padre; la tenencia queda garantizada por cascada |
 | Inbox SYSTEM | Endpoint REST + WebSocket | WebSocket para tiempo real; REST para histórico en login (usuario que estuvo offline) |
 | `userId` como `Long` (no FK) | Sin `@ManyToOne` a `User` | Desacopla el módulo de notificaciones de seguridad; consistente con campos de auditoría del proyecto |
+| Registro de senders | `NotificationSenderRegistry` (lista → mapa explícito) | Falla en startup si un canal del enum no tiene sender registrado; evita la inyección frágil de `Map<K,V>` por bean name de Spring. Agregar canal = crear un `@Component`, cero cambios al registro |
+| Datos de contacto en payload | `Map<NotificationChannel, String> channelAddresses` | Evita añadir campos al record `NotificationPayload` por cada canal nuevo. Agregar canal = una línea en el scheduler al construir el payload |
 
 ---
 
@@ -1817,6 +1863,7 @@ Campos:
 - [ ] Crear `EmailNotificationSender.java`
 - [ ] Crear `WhatsAppNotificationSender.java`
 - [ ] Crear `WebSocketNotificationSender.java`
+- [ ] Crear `NotificationSenderRegistry.java`
 - [ ] Crear `INotificationSubscriptionService.java`
 - [ ] Crear `NotificationSubscriptionService.java` (incluye `@TransactionalEventListener` para `UserDeletedEvent`)
 - [ ] Crear `UserDeletedEvent.java` y publicarlo en `UserService.deleteUser()`
