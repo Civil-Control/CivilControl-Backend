@@ -146,6 +146,17 @@
 			<artifactId>bucket4j-core</artifactId>
 			<version>8.10.1</version>
 		</dependency>
+		<!-- WebSocket / STOMP -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-websocket</artifactId>
+		</dependency>
+		<!-- Email transaccional — Resend -->
+		<dependency>
+			<groupId>com.resend</groupId>
+			<artifactId>resend-java</artifactId>
+			<version>3.0.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>

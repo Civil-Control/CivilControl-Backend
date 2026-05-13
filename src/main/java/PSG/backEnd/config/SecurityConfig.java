@@ -75,6 +75,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // Public endpoints - Biometric webhook (hardware devices cannot authenticate)
                         .requestMatchers("/api/webhook/**").permitAll()
+                        // WebSocket handshake — JWT validated in STOMP CONNECT frame by WebSocketJwtInterceptor
+                        .requestMatchers("/ws/**").permitAll()
                         // Swagger/OpenAPI endpoints
                         .requestMatchers(
                                 "/v3/api-docs/**",
