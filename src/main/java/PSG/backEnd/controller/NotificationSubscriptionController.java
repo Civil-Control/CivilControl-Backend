@@ -46,6 +46,13 @@ public class NotificationSubscriptionController {
                 .body(subscriptionService.createSubscription(dto));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.NOTIFICATION_ASSIGN_OTHERS + "')")
+    @GetMapping("/subscriptions")
+    @Operation(summary = "Todas las suscripciones", description = "Devuelve todas las suscripciones del tenant. Requiere NOTIFICATION_ASSIGN_OTHERS.")
+    public ResponseEntity<List<NotificationSubscriptionResponseDTO>> getAllSubscriptions() {
+        return ResponseEntity.ok(subscriptionService.getAllSubscriptions());
+    }
+
     @GetMapping("/subscriptions/me")
     @Operation(summary = "Mis suscripciones", description = "Devuelve todas las suscripciones activas del usuario autenticado.")
     @ApiResponse(responseCode = "200", description = "Lista de suscripciones")

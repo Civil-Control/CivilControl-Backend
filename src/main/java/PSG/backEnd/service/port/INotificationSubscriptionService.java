@@ -13,5 +13,6 @@ public interface INotificationSubscriptionService {
     void deleteSubscription(Long id);
     List<NotificationSubscriptionResponseDTO> getMySubscriptions();
     List<NotificationSubscriptionResponseDTO> getUserSubscriptions(Long userId);
+    List<NotificationSubscriptionResponseDTO> getAllSubscriptions();
     List<NotificationInboxItemDTO> getInbox(int limit);
 }

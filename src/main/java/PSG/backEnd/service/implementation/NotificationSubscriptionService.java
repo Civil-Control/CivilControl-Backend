@@ -23,7 +23,6 @@ import PSG.backEnd.service.port.INotificationSubscriptionService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -160,6 +159,14 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
     public List<NotificationSubscriptionResponseDTO> getMySubscriptions() {
         Long currentUserId = getCurrentUser().getId();
         return subscriptionRepository.findAllByUserIdAndDeletedFalse(currentUserId).stream()
+                .map(this::enrichAndMap)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificationSubscriptionResponseDTO> getAllSubscriptions() {
+        return subscriptionRepository.findAllByDeletedFalse().stream()
                 .map(this::enrichAndMap)
                 .toList();
     }

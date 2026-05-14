@@ -16,6 +16,8 @@ public interface NotificationSubscriptionRepository extends JpaRepository<Notifi
 
     List<NotificationSubscription> findAllByDeletedFalseAndActiveTrue();
 
+    List<NotificationSubscription> findAllByDeletedFalse();
+
     Optional<NotificationSubscription> findByIdAndDeletedFalse(Long id);
 
     List<NotificationSubscription> findAllByUserIdAndDeletedFalse(Long userId);
