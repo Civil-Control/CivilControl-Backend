@@ -23,6 +23,7 @@ import PSG.backEnd.service.port.INotificationSubscriptionService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -111,7 +112,12 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
                 })
                 .forEach(entity.getAlerts()::add);
 
-        return enrichAndMap(subscriptionRepository.save(entity));
+        try {
+            return enrichAndMap(subscriptionRepository.save(entity));
+        } catch (DataIntegrityViolationException e) {
+            throw new NotificationSubscriptionNotValidException(
+                    messageSourceHelper.getMessage("notification.subscription.duplicate"));
+        }
     }
 
     @Override
