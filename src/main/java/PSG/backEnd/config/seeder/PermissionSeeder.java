@@ -101,6 +101,7 @@ public class PermissionSeeder implements CommandLineRunner {
         // Longest-prefix-first: TEMPLATE before generic BUDGET_FORECAST_
         MODULE_MAP.put("BUDGET_FORECAST_TEMPLATE_", "Budget Forecast Templates");
         MODULE_MAP.put("BUDGET_FORECAST_", "Budget Forecasts");
+        MODULE_MAP.put("NOTIFICATION_", "Notifications");
 
         // Spanish translations for modules
         MODULE_SPANISH_MAP.put("EMPLOYEE_VACATION_", "Vacaciones de Empleados");
@@ -142,6 +143,7 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("TREASURY_", "Tesorería");
         MODULE_SPANISH_MAP.put("BUDGET_FORECAST_TEMPLATE_", "Plantillas de Previsiones");
         MODULE_SPANISH_MAP.put("BUDGET_FORECAST_", "Previsiones de Gastos");
+        MODULE_SPANISH_MAP.put("NOTIFICATION_", "Notificaciones");
 
         // Spanish translations for actions
         ACTION_SPANISH_MAP.put("READ", "Lectura");
@@ -163,6 +165,8 @@ public class PermissionSeeder implements CommandLineRunner {
         ACTION_SPANISH_MAP.put("APPLY", "Aplicación");
         ACTION_SPANISH_MAP.put("CONFIG", "Configuración");
         ACTION_SPANISH_MAP.put("BALANCE_ADJUST", "Ajuste de Saldo");
+        ACTION_SPANISH_MAP.put("SELF_SUBSCRIBE", "Autogestión");
+        ACTION_SPANISH_MAP.put("ASSIGN_OTHERS", "Asignación a Terceros");
 
         // Work module mappings (high-level groupings)
         // services: serviceSupplier, servicePayment
@@ -220,6 +224,7 @@ public class PermissionSeeder implements CommandLineRunner {
         // forecasts: budget forecasts and templates
         WORK_MODULE_MAP.put("BUDGET_FORECAST_TEMPLATE_", "forecasts");
         WORK_MODULE_MAP.put("BUDGET_FORECAST_", "forecasts");
+        WORK_MODULE_MAP.put("NOTIFICATION_", "notifications");
         WORK_MODULE_MAP.put("SYSTEM_", "administration");
         WORK_MODULE_MAP.put("AUDIT_", "administration");
         WORK_MODULE_MAP.put("EXCEPTION_LOG_", "administration");
@@ -239,6 +244,7 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_SPANISH_MAP.put("clients", "Clientes");
         WORK_MODULE_SPANISH_MAP.put("administration", "Administración");
         WORK_MODULE_SPANISH_MAP.put("treasury", "Tesorería");
+        WORK_MODULE_SPANISH_MAP.put("notifications", "Notificaciones");
     }
 
     @Override
