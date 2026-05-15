@@ -2,7 +2,6 @@ package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.notification.NotificationSubscriptionNotFoundException;
 import PSG.backEnd.exception.notification.NotificationSubscriptionNotValidException;
-import PSG.backEnd.exception.security.ChannelVerificationNotValidException;
 import PSG.backEnd.exception.user.UserNotFoundException;
 import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.notification.NotificationInboxItemDTO;
@@ -255,16 +254,16 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
 
     private void validateChannelVerification(NotificationSubscriptionDTO dto, User targetUser) {
         if (dto.channels() == null) return;
-        boolean needsEmail     = dto.channels().contains(NotificationChannel.EMAIL);
-        boolean needsWhatsapp  = dto.channels().contains(NotificationChannel.WHATSAPP);
+        boolean needsEmail    = dto.channels().contains(NotificationChannel.EMAIL);
+        boolean needsWhatsapp = dto.channels().contains(NotificationChannel.WHATSAPP);
         if (!needsEmail && !needsWhatsapp) return;
 
         if (needsEmail && !Boolean.TRUE.equals(targetUser.getEmailVerified())) {
-            throw new ChannelVerificationNotValidException(
+            throw new NotificationSubscriptionNotValidException(
                     messageSourceHelper.getMessage("notification.subscription.channel.emailNotVerified"));
         }
         if (needsWhatsapp && !Boolean.TRUE.equals(targetUser.getWhatsappVerified())) {
-            throw new ChannelVerificationNotValidException(
+            throw new NotificationSubscriptionNotValidException(
                     messageSourceHelper.getMessage("notification.subscription.channel.whatsappNotVerified"));
         }
     }
