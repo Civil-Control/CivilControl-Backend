@@ -14,7 +14,6 @@ public record ItemDetailDTO(
     Long itemId,
 
     @NotNull(groups = {OnCreate.class, OnUpdate.class}, message = "{validation.required}")
-    @DecimalMin(value = "0.01", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.positive}")
     @Digits(integer = 17, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.pattern}")
     BigDecimal unitAmount,
 
@@ -28,7 +27,6 @@ public record ItemDetailDTO(
     @Digits(integer = 3, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.pattern}")
     BigDecimal ivaPercentage,
 
-    @DecimalMin(value = "0.01", inclusive = true, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.positive}")
     @Digits(integer = 19, fraction = 2, groups = {OnCreate.class, OnUpdate.class}, message = "{validation.pattern}")
     BigDecimal totalAmount,
 

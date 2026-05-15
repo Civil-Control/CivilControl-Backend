@@ -114,6 +114,8 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         TransactionalDocument refreshed = transactionalDocumentRepository.findByIdAndDeletedFalse(document.getId())
                 .orElse(document);
 
+        validateNonNegativeTotal(refreshed);
+
         // Feature 18 (Value Recovery) — eligibility is validated inside the service.
         // For Facturas A in the recovery sector → generate the positive cash-box movement.
         // For credit notes → adjust each linked invoice that already produced a recovery.
@@ -216,6 +218,8 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         documentTotalRecalculator.recalculateDocumentTotals(savedDocument.getId());
         TransactionalDocument refreshed = transactionalDocumentRepository.findByIdAndDeletedFalse(savedDocument.getId())
                 .orElse(savedDocument);
+
+        validateNonNegativeTotal(refreshed);
 
         // Feature 18 (Value Recovery) — re-evaluate after edits. For credit notes, also
         // re-issue the proportional adjustment using the current set of credit applications.
@@ -749,6 +753,13 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         Supplier supplier = iSupplierService.getEntityById(dto.supplierId());
         if (supplier == null) {
             throw new SupplierNotFoundException(dto.supplierId());
+        }
+    }
+
+    private void validateNonNegativeTotal(TransactionalDocument document) {
+        if (document.getTotal() != null && document.getTotal().compareTo(java.math.BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(
+                    messageSourceHelper.getMessage("document.negativeTotalNotAllowed"));
         }
     }
 

@@ -29,7 +29,18 @@ public interface SalaryPaymentMapper {
     @Mapping(source = "projectAreaTask.name", target = "projectAreaTaskName")
     @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
     @Mapping(target = "ivaPercentage", source = "ivaPercentage")
+    @Mapping(target = "totalWithIva", expression = "java(computeTotalWithIva(salaryPayment))")
     SalaryPaymentResponseDTO toResponseDto(SalaryPayment salaryPayment);
+
+    default java.math.BigDecimal computeTotalWithIva(SalaryPayment sp) {
+        if (sp.getTransactionalDocument() == null || sp.getAmount() == null) return null;
+        java.math.BigDecimal iva = sp.getIvaPercentage();
+        if (iva == null || iva.compareTo(java.math.BigDecimal.ZERO) <= 0) return sp.getAmount();
+        return sp.getAmount()
+                .multiply(iva.divide(new java.math.BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)
+                        .add(java.math.BigDecimal.ONE))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+    }
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)

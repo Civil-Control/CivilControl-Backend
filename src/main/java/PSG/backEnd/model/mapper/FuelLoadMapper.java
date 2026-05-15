@@ -40,7 +40,18 @@ public interface FuelLoadMapper {
     @Mapping(target = "gasStationName", expression = "java(fuelLoad.getGasStation() != null ? fuelLoad.getGasStation().getSupplier().getLegalName() : null)")
     @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
     @Mapping(target = "ivaPercentage", source = "ivaPercentage")
+    @Mapping(target = "totalWithIva", expression = "java(computeTotalWithIva(fuelLoad))")
     FuelLoadResponseDTO toResponseDto(FuelLoad fuelLoad);
+
+    default java.math.BigDecimal computeTotalWithIva(FuelLoad fl) {
+        if (fl.getTransactionalDocument() == null || fl.getTotalAmount() == null) return null;
+        java.math.BigDecimal iva = fl.getIvaPercentage();
+        if (iva == null || iva.compareTo(java.math.BigDecimal.ZERO) <= 0) return fl.getTotalAmount();
+        return fl.getTotalAmount()
+                .multiply(iva.divide(new java.math.BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)
+                        .add(java.math.BigDecimal.ONE))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+    }
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)

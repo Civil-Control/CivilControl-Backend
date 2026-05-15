@@ -57,26 +57,32 @@ public interface RepairMapper {
                 BigDecimal subtotal = item.getAmount() != null
                         ? item.getAmount().multiply(quantity).setScale(2, java.math.RoundingMode.HALF_UP)
                         : null;
-                // IVA only counts when the item is linked to a transactional document:
-                // for unlinked items the IVA is just an estimate placeholder, so we
-                // expose null and exclude it from the repair total to avoid inflating it.
+
+                boolean isCredit = item.getTransactionalDocument() != null
+                        && item.getTransactionalDocument().getDocumentType() != null
+                        && item.getTransactionalDocument().getDocumentType().name().startsWith("CREDIT_NOTE");
+
                 BigDecimal ivaAmount = null;
                 if (item.getTransactionalDocument() != null && subtotal != null) {
-                    ivaAmount = subtotal
+                    BigDecimal rawIva = subtotal
                             .multiply(ivaPercentage)
                             .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+                    ivaAmount = isCredit ? rawIva.negate() : rawIva;
                     totalIva = totalIva.add(ivaAmount);
                 }
-                BigDecimal subtotalWithIva = subtotal != null
-                        ? subtotal.add(ivaAmount != null ? ivaAmount : BigDecimal.ZERO)
+
+                BigDecimal signedSubtotal = (subtotal != null && isCredit) ? subtotal.negate() : subtotal;
+                BigDecimal subtotalWithIva = signedSubtotal != null
+                        ? signedSubtotal.add(ivaAmount != null ? ivaAmount : BigDecimal.ZERO)
                         : null;
+
                 itemDtos.add(new RepairItemResponseDTO(
                         item.getId(),
                         item.getItemType() != null ? item.getItemType().name() : null,
                         item.getDescription(),
                         item.getAmount(),
                         quantity,
-                        subtotal,
+                        signedSubtotal,
                         ivaPercentage,
                         ivaAmount,
                         subtotalWithIva,
@@ -85,9 +91,9 @@ public interface RepairMapper {
                 ));
                 if (subtotal != null) {
                     if (item.getItemType() == RepairItemType.MATERIAL) {
-                        materialSubtotal = materialSubtotal.add(subtotal);
+                        materialSubtotal = isCredit ? materialSubtotal.subtract(subtotal) : materialSubtotal.add(subtotal);
                     } else if (item.getItemType() == RepairItemType.MANO_DE_OBRA) {
-                        laborSubtotal = laborSubtotal.add(subtotal);
+                        laborSubtotal = isCredit ? laborSubtotal.subtract(subtotal) : laborSubtotal.add(subtotal);
                     }
                 }
             }

@@ -28,7 +28,18 @@ public interface StockPurchaseMapper {
     @Mapping(target = "transactionalDocumentId", source = "purchase.transactionalDocumentId")
     @Mapping(target = "transactionalDocument", expression = "java(documentToSummaryDto(document))")
     @Mapping(target = "ivaPercentage", source = "purchase.ivaPercentage")
+    @Mapping(target = "totalWithIva", expression = "java(computeTotalWithIva(purchase, document))")
     StockPurchaseResponseDTO toResponseDto(StockPurchase purchase, Stock stock, TransactionalDocument document);
+
+    default java.math.BigDecimal computeTotalWithIva(StockPurchase purchase, TransactionalDocument document) {
+        if (document == null || purchase.getTotalAmount() == null) return null;
+        java.math.BigDecimal iva = purchase.getIvaPercentage();
+        if (iva == null || iva.compareTo(java.math.BigDecimal.ZERO) <= 0) return purchase.getTotalAmount();
+        return purchase.getTotalAmount()
+                .multiply(iva.divide(new java.math.BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)
+                        .add(java.math.BigDecimal.ONE))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+    }
 
     /** Backwards-compatible overload (no linked document). */
     default StockPurchaseResponseDTO toResponseDto(StockPurchase purchase, Stock stock) {

@@ -45,5 +45,8 @@ public record StockPurchaseResponseDTO(
         @Schema(description = "IVA percentage applied to this stock purchase.", example = "21.00")
         BigDecimal ivaPercentage,
 
-        Integer documentSortOrder
+        Integer documentSortOrder,
+
+        @Schema(description = "Total amount including IVA. Only populated when linked to a transactional document.", nullable = true)
+        BigDecimal totalWithIva
 ) {}

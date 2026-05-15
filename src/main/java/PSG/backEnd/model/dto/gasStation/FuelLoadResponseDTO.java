@@ -80,5 +80,8 @@ public record FuelLoadResponseDTO(
         @Schema(description = "IVA percentage applied to this fuel load.", example = "21.00")
         java.math.BigDecimal ivaPercentage,
 
-        Integer documentSortOrder
+        Integer documentSortOrder,
+
+        @Schema(description = "Total amount including IVA. Only populated when linked to a transactional document.", nullable = true)
+        java.math.BigDecimal totalWithIva
 ) {}
