@@ -1,6 +1,7 @@
 package PSG.backEnd.exception;
 
 import PSG.backEnd.exception.notification.NotificationSubscriptionNotValidException;
+import PSG.backEnd.exception.security.ChannelVerificationNotValidException;
 import PSG.backEnd.exception.purchaseOrder.PurchaseOrderNotValidException;
 import PSG.backEnd.exception.serviceSupplier.ServiceAssignmentAlreadyExistsException;
 import PSG.backEnd.exception.vehicle.VehicleAlreadyExistsException;
@@ -450,6 +451,26 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .body(problemDetail);
+    }
+
+    @ExceptionHandler(ChannelVerificationNotValidException.class)
+    public ResponseEntity<ProblemDetail> handleChannelVerificationNotValidException(
+            ChannelVerificationNotValidException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                "Channel Verification Error",
+                ex.getMessage(),
+                request,
+                ex
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(problemDetail);
     }
 

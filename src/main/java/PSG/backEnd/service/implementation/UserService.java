@@ -117,12 +117,24 @@ public class UserService implements IUserService {
         // Validar actualización
         validateUserUpdate(id, requestDTO);
 
+        // Capture sensitive values before partial update to detect changes
+        String oldEmail         = existingUser.getEmail();
+        String oldWhatsappNumber = existingUser.getWhatsappNumber();
+
         // Partial update: map non-null basic fields (mapper uses IGNORE for nulls)
         userMapper.partialUpdate(requestDTO, existingUser);
 
         // Explicit sanitization and partial updates for fields that need trimming or special handling
         if (requestDTO.email() != null) {
-            existingUser.setEmail(requestDTO.email().trim());
+            String trimmedEmail = requestDTO.email().trim();
+            if (!trimmedEmail.equals(oldEmail)) {
+                existingUser.setEmailVerified(false);
+            }
+            existingUser.setEmail(trimmedEmail);
+        }
+
+        if (requestDTO.whatsappNumber() != null && !requestDTO.whatsappNumber().equals(oldWhatsappNumber)) {
+            existingUser.setWhatsappVerified(false);
         }
         if (requestDTO.firstName() != null) {
             existingUser.setFirstName(requestDTO.firstName().trim());
@@ -686,7 +698,16 @@ public class UserService implements IUserService {
             existingUser.setLastName(requestDTO.lastName());
         }
         if (requestDTO.email() != null) {
+            if (!requestDTO.email().equals(existingUser.getEmail())) {
+                existingUser.setEmailVerified(false);
+            }
             existingUser.setEmail(requestDTO.email());
+        }
+        if (requestDTO.whatsappNumber() != null) {
+            if (!requestDTO.whatsappNumber().equals(existingUser.getWhatsappNumber())) {
+                existingUser.setWhatsappVerified(false);
+            }
+            existingUser.setWhatsappNumber(requestDTO.whatsappNumber());
         }
 
         // Update credentials if provided

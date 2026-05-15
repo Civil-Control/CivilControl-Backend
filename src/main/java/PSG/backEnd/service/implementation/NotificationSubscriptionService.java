@@ -2,6 +2,7 @@ package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.notification.NotificationSubscriptionNotFoundException;
 import PSG.backEnd.exception.notification.NotificationSubscriptionNotValidException;
+import PSG.backEnd.exception.security.ChannelVerificationNotValidException;
 import PSG.backEnd.exception.user.UserNotFoundException;
 import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.notification.NotificationInboxItemDTO;
@@ -13,6 +14,7 @@ import PSG.backEnd.model.entity.notification.NotificationSubscription;
 import PSG.backEnd.model.entity.notification.SubjectDueDateInfo;
 import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.model.entity.security.UserDeletedEvent;
+import PSG.backEnd.model.enums.notification.NotificationChannel;
 import PSG.backEnd.model.enums.notification.NotificationSubjectType;
 import PSG.backEnd.model.mapper.NotificationSubscriptionMapper;
 import PSG.backEnd.repository.NotificationLogRepository;
@@ -77,8 +79,10 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
 
         checkCreatePermission(dto.userId(), currentUserId);
 
-        userRepository.findByIdAndDeletedFalse(dto.userId())
+        User targetUser = userRepository.findByIdAndDeletedFalse(dto.userId())
                 .orElseThrow(() -> new UserNotFoundException(dto.userId()));
+
+        validateChannelVerification(dto, targetUser);
 
         if (dto.subjectId() != null) {
             NextDueDateResolver resolver = resolvers.get(dto.subjectType());
@@ -246,6 +250,22 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
                 && !hasAuthority(AppPermissions.NOTIFICATION_ASSIGN_OTHERS)) {
             throw new NotificationSubscriptionNotValidException(
                     messageSourceHelper.getMessage("notification.subscription.forbidden"));
+        }
+    }
+
+    private void validateChannelVerification(NotificationSubscriptionDTO dto, User targetUser) {
+        if (dto.channels() == null) return;
+        boolean needsEmail     = dto.channels().contains(NotificationChannel.EMAIL);
+        boolean needsWhatsapp  = dto.channels().contains(NotificationChannel.WHATSAPP);
+        if (!needsEmail && !needsWhatsapp) return;
+
+        if (needsEmail && !Boolean.TRUE.equals(targetUser.getEmailVerified())) {
+            throw new ChannelVerificationNotValidException(
+                    messageSourceHelper.getMessage("notification.subscription.channel.emailNotVerified"));
+        }
+        if (needsWhatsapp && !Boolean.TRUE.equals(targetUser.getWhatsappVerified())) {
+            throw new ChannelVerificationNotValidException(
+                    messageSourceHelper.getMessage("notification.subscription.channel.whatsappNotVerified"));
         }
     }
 

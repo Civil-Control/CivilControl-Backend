@@ -5,6 +5,7 @@ import PSG.backEnd.model.entity.UserLocation;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import lombok.Builder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -97,6 +98,14 @@ public class User extends TenantEntity implements UserDetails {
 
     @Column(name = "whatsapp_number", length = 20)
     private String whatsappNumber;
+
+    @Builder.Default
+    @Column(name = "email_verified", nullable = false)
+    private Boolean emailVerified = false;
+
+    @Builder.Default
+    @Column(name = "whatsapp_verified", nullable = false)
+    private Boolean whatsappVerified = false;
 
     // ==================== UserDetails Implementation ====================
 
