@@ -261,7 +261,8 @@ public class SalaryReportPdfExporter {
                     table.addCell(new Cell().add(new Paragraph(
                             payment.paymentMethod() != null ? payment.paymentMethod().getDisplayName() : "-")
                             .setFontSize(8)).setTextAlignment(TextAlignment.CENTER));
-                    table.addCell(new Cell().add(new Paragraph(formatAmount(payment.amount())).setFontSize(8))
+                    table.addCell(new Cell().add(new Paragraph(
+                            formatAmount(payment.totalWithIva() != null ? payment.totalWithIva() : payment.amount())).setFontSize(8))
                             .setTextAlignment(TextAlignment.RIGHT));
                 }
 

@@ -29,6 +29,12 @@ public record StockPurchaseReportItemDTO(
     @Schema(description = "Total amount")
     BigDecimal totalAmount,
 
+    @Schema(description = "IVA percentage applied when linked to a document", nullable = true)
+    BigDecimal ivaPercentage,
+
+    @Schema(description = "Total including IVA. Null when not linked to a transactional document.", nullable = true)
+    BigDecimal totalWithIva,
+
     @Schema(description = "Purchase notes", nullable = true)
     String notes,
 

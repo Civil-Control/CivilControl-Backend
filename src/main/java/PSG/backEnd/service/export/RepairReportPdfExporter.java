@@ -206,7 +206,7 @@ public class RepairReportPdfExporter {
                             formatAmount(repair.laborCost())).setFontSize(8))
                             .setTextAlignment(TextAlignment.RIGHT));
                     table.addCell(new Cell().add(new Paragraph(
-                            formatAmount(repair.totalCost())).setFontSize(8))
+                            formatAmount(repair.totalWithIva())).setFontSize(8))
                             .setTextAlignment(TextAlignment.RIGHT));
                 }
 

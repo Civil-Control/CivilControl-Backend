@@ -259,7 +259,7 @@ public class FuelLoadReportPdfExporter {
                             formatAmount(load.pricePerLiter())).setFontSize(8))
                             .setTextAlignment(TextAlignment.RIGHT));
                     table.addCell(new Cell().add(new Paragraph(
-                            formatAmount(load.totalAmount())).setFontSize(8))
+                            formatAmount(load.totalWithIva() != null ? load.totalWithIva() : load.totalAmount())).setFontSize(8))
                             .setTextAlignment(TextAlignment.RIGHT));
                 }
 

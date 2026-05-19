@@ -327,7 +327,7 @@ public class FuelLoadReportExcelExporter {
                     priceCell.setCellStyle(currencyStyle);
 
                     Cell amountCell = row.createCell(9);
-                    amountCell.setCellValue(load.totalAmount().doubleValue());
+                    amountCell.setCellValue((load.totalWithIva() != null ? load.totalWithIva() : load.totalAmount()).doubleValue());
                     amountCell.setCellStyle(currencyStyle);
                 }
 

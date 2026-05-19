@@ -182,7 +182,7 @@ public class StockPurchaseReportPdfExporter {
                             purchase.unitPrice() != null ? formatAmount(purchase.unitPrice()) : "—").setFontSize(8))
                             .setTextAlignment(TextAlignment.RIGHT));
                     table.addCell(new Cell().add(new Paragraph(
-                            formatAmount(purchase.totalAmount())).setFontSize(8))
+                            formatAmount(purchase.totalWithIva() != null ? purchase.totalWithIva() : purchase.totalAmount())).setFontSize(8))
                             .setTextAlignment(TextAlignment.RIGHT));
                     table.addCell(new Cell().add(new Paragraph(
                             purchase.notes() != null ? purchase.notes() : "").setFontSize(8)));

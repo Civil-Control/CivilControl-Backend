@@ -19,6 +19,12 @@ public record SalaryReportPaymentDTO(
     @Schema(description = "Payment amount", example = "150000.50")
     BigDecimal amount,
 
+    @Schema(description = "IVA percentage applied when linked to a document", nullable = true)
+    BigDecimal ivaPercentage,
+
+    @Schema(description = "Total including IVA. Null when not linked to a transactional document.", nullable = true)
+    BigDecimal totalWithIva,
+
     @Schema(description = "Salary frequency", example = "MENSUAL")
     SalaryFrecuency salaryFrequency,
 

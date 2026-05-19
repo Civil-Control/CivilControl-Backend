@@ -1342,18 +1342,34 @@ public class ReportService implements IReportService {
             List<SalaryReportPaymentDTO> paymentDTOs = empPayments.stream()
                     .sorted(Comparator.comparing((SalaryPayment sp) -> sp.getSalaryFrequency().ordinal())
                             .thenComparing(SalaryPayment::getPaymentDate, Comparator.reverseOrder()))
-                    .map(sp -> new SalaryReportPaymentDTO(
-                            sp.getId(),
-                            sp.getPaymentDate(),
-                            sp.getAmount(),
-                            sp.getSalaryFrequency(),
-                            sp.getPaymentMethod(),
-                            sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getId() : null,
-                            sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null,
-                            sp.getEmployee().getName(),
-                            sp.getEmployee().getLastName(),
-                            areaName
-                    ))
+                    .map(sp -> {
+                        BigDecimal spIva = sp.getIvaPercentage();
+                        BigDecimal spTotalWithIva = null;
+                        if (sp.getTransactionalDocument() != null && sp.getAmount() != null) {
+                            if (spIva != null && spIva.compareTo(BigDecimal.ZERO) > 0) {
+                                spTotalWithIva = sp.getAmount()
+                                        .multiply(spIva.divide(new BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)
+                                                .add(BigDecimal.ONE))
+                                        .setScale(2, java.math.RoundingMode.HALF_UP);
+                            } else {
+                                spTotalWithIva = sp.getAmount();
+                            }
+                        }
+                        return new SalaryReportPaymentDTO(
+                                sp.getId(),
+                                sp.getPaymentDate(),
+                                sp.getAmount(),
+                                spIva,
+                                spTotalWithIva,
+                                sp.getSalaryFrequency(),
+                                sp.getPaymentMethod(),
+                                sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getId() : null,
+                                sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null,
+                                sp.getEmployee().getName(),
+                                sp.getEmployee().getLastName(),
+                                areaName
+                        );
+                    })
                     .toList();
 
             employeeGroups.add(SalaryReportEmployeeGroupDTO.builder()
@@ -2375,23 +2391,39 @@ public class ReportService implements IReportService {
 
             List<FuelLoadReportItemDTO> items = vehicleLoads.stream()
                     .sorted(Comparator.comparing(FuelLoad::getDate, Comparator.reverseOrder()))
-                    .map(fl -> new FuelLoadReportItemDTO(
-                            fl.getId(),
-                            fl.getDate(),
-                            fl.getFuelType().name(),
-                            fl.getLiters(),
-                            fl.getPricePerLiter(),
-                            fl.getTotalAmount(),
-                            fl.getVehicle() != null ? fl.getVehicle().getLicensePlate() : "Bidón",
-                            fl.getVehicle() != null ? buildVehicleDescription(fl.getVehicle()) : null,
-                            fl.getGasStation() != null && fl.getGasStation().getSupplier() != null
-                                    ? fl.getGasStation().getSupplier().getLegalName() : "Sin estación",
-                            fl.getBranchCode(),
-                            fl.getTicketNumber(),
-                            fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getId() : null,
-                            fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getName() : null,
-                            fl.getProjectArea() != null ? fl.getProjectArea().getName() : "Sin área"
-                    ))
+                    .map(fl -> {
+                        BigDecimal flIva = fl.getIvaPercentage();
+                        BigDecimal flTotalWithIva = null;
+                        if (fl.getTransactionalDocument() != null && fl.getTotalAmount() != null) {
+                            if (flIva != null && flIva.compareTo(BigDecimal.ZERO) > 0) {
+                                flTotalWithIva = fl.getTotalAmount()
+                                        .multiply(flIva.divide(new BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)
+                                                .add(BigDecimal.ONE))
+                                        .setScale(2, java.math.RoundingMode.HALF_UP);
+                            } else {
+                                flTotalWithIva = fl.getTotalAmount();
+                            }
+                        }
+                        return new FuelLoadReportItemDTO(
+                                fl.getId(),
+                                fl.getDate(),
+                                fl.getFuelType().name(),
+                                fl.getLiters(),
+                                fl.getPricePerLiter(),
+                                fl.getTotalAmount(),
+                                flIva,
+                                flTotalWithIva,
+                                fl.getVehicle() != null ? fl.getVehicle().getLicensePlate() : "Bidón",
+                                fl.getVehicle() != null ? buildVehicleDescription(fl.getVehicle()) : null,
+                                fl.getGasStation() != null && fl.getGasStation().getSupplier() != null
+                                        ? fl.getGasStation().getSupplier().getLegalName() : "Sin estación",
+                                fl.getBranchCode(),
+                                fl.getTicketNumber(),
+                                fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getId() : null,
+                                fl.getProjectAreaTask() != null ? fl.getProjectAreaTask().getName() : null,
+                                fl.getProjectArea() != null ? fl.getProjectArea().getName() : "Sin área"
+                        );
+                    })
                     .toList();
 
             BigDecimal total = vehicleLoads.stream()
@@ -2775,9 +2807,11 @@ public class ReportService implements IReportService {
                     .map(r -> {
                         BigDecimal matCost = BigDecimal.ZERO;
                         BigDecimal labCost = BigDecimal.ZERO;
+                        BigDecimal totalIva = BigDecimal.ZERO;
                         boolean hasLinked = false;
                         for (RepairItem ri : r.getItems()) {
                             BigDecimal amt = ri.getAmount() != null ? ri.getAmount() : BigDecimal.ZERO;
+                            BigDecimal qty = ri.getQuantity() != null ? ri.getQuantity() : BigDecimal.ONE;
                             if (ri.getItemType() == RepairItemType.MATERIAL) {
                                 matCost = matCost.add(amt);
                             } else if (ri.getItemType() == RepairItemType.MANO_DE_OBRA) {
@@ -2785,8 +2819,17 @@ public class ReportService implements IReportService {
                             }
                             if (ri.getTransactionalDocument() != null) {
                                 hasLinked = true;
+                                if (ri.getIvaPercentage() != null && ri.getIvaPercentage().compareTo(BigDecimal.ZERO) > 0) {
+                                    boolean isCredit = ri.getTransactionalDocument().getDocumentType() != null
+                                            && ri.getTransactionalDocument().getDocumentType().name().startsWith("CREDIT_NOTE");
+                                    BigDecimal ivaAmt = amt.multiply(qty)
+                                            .multiply(ri.getIvaPercentage())
+                                            .divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
+                                    totalIva = isCredit ? totalIva.subtract(ivaAmt) : totalIva.add(ivaAmt);
+                                }
                             }
                         }
+                        BigDecimal totalCost = matCost.add(labCost);
                         return new RepairReportItemDTO(
                                 r.getId(),
                                 r.getDate(),
@@ -2794,7 +2837,9 @@ public class ReportService implements IReportService {
                                 r.getMileage(),
                                 matCost,
                                 labCost,
-                                matCost.add(labCost),
+                                totalCost,
+                                totalIva,
+                                totalCost.add(totalIva),
                                 r.getSupplier() != null ? r.getSupplier().getLegalName() : null,
                                 r.getItems().size(),
                                 hasLinked,
@@ -3033,17 +3078,34 @@ public class ReportService implements IReportService {
 
             List<StockPurchaseReportItemDTO> items = stockPurchases.stream()
                     .sorted(Comparator.comparing(StockPurchase::getDate, Comparator.reverseOrder()))
-                    .map(sp -> new StockPurchaseReportItemDTO(
-                            sp.getId(),
-                            sp.getDate(),
-                            stockName,
-                            categoryName,
-                            sp.getQuantity(),
-                            sp.getUnitPrice(),
-                            sp.getTotalAmount() != null ? sp.getTotalAmount() : BigDecimal.ZERO,
-                            sp.getNotes(),
-                            sp.getTransactionalDocumentId() != null
-                    ))
+                    .map(sp -> {
+                        BigDecimal base = sp.getTotalAmount() != null ? sp.getTotalAmount() : BigDecimal.ZERO;
+                        BigDecimal stIva = sp.getIvaPercentage();
+                        BigDecimal stTotalWithIva = null;
+                        if (sp.getTransactionalDocumentId() != null && sp.getTotalAmount() != null) {
+                            if (stIva != null && stIva.compareTo(BigDecimal.ZERO) > 0) {
+                                stTotalWithIva = base
+                                        .multiply(stIva.divide(new BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)
+                                                .add(BigDecimal.ONE))
+                                        .setScale(2, java.math.RoundingMode.HALF_UP);
+                            } else {
+                                stTotalWithIva = base;
+                            }
+                        }
+                        return new StockPurchaseReportItemDTO(
+                                sp.getId(),
+                                sp.getDate(),
+                                stockName,
+                                categoryName,
+                                sp.getQuantity(),
+                                sp.getUnitPrice(),
+                                base,
+                                stIva,
+                                stTotalWithIva,
+                                sp.getNotes(),
+                                sp.getTransactionalDocumentId() != null
+                        );
+                    })
                     .toList();
 
             groups.add(StockPurchaseReportStockGroupDTO.builder()

@@ -304,7 +304,7 @@ public class SalaryReportExcelExporter {
                             payment.paymentMethod() != null ? payment.paymentMethod().getDisplayName() : "-");
 
                     Cell amountCell = row.createCell(5);
-                    amountCell.setCellValue(payment.amount().doubleValue());
+                    amountCell.setCellValue((payment.totalWithIva() != null ? payment.totalWithIva() : payment.amount()).doubleValue());
                     amountCell.setCellStyle(currencyStyle);
                 }
 

@@ -29,6 +29,12 @@ public record RepairReportItemDTO(
     @Schema(description = "Total cost (materialCost + laborCost)")
     BigDecimal totalCost,
 
+    @Schema(description = "IVA total (sum of IVA amounts for items linked to a document; negative for credit note items)")
+    BigDecimal totalIva,
+
+    @Schema(description = "Total including IVA (totalCost + totalIva)")
+    BigDecimal totalWithIva,
+
     @Schema(description = "Supplier name (for external repairs)", nullable = true)
     String supplierName,
 

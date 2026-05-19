@@ -26,6 +26,12 @@ public record FuelLoadReportItemDTO(
     @Schema(description = "Total amount")
     BigDecimal totalAmount,
 
+    @Schema(description = "IVA percentage applied when linked to a document", nullable = true)
+    BigDecimal ivaPercentage,
+
+    @Schema(description = "Total including IVA. Null when not linked to a transactional document.", nullable = true)
+    BigDecimal totalWithIva,
+
     @Schema(description = "Vehicle license plate", nullable = true)
     String vehicleLicensePlate,
 

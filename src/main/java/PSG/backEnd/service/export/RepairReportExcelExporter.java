@@ -278,7 +278,7 @@ public class RepairReportExcelExporter {
                     labCell.setCellValue(repair.laborCost().doubleValue());
                     labCell.setCellStyle(currencyStyle);
                     Cell totalCell = row.createCell(8);
-                    totalCell.setCellValue(repair.totalCost().doubleValue());
+                    totalCell.setCellValue(repair.totalWithIva().doubleValue());
                     totalCell.setCellStyle(currencyStyle);
                 }
 

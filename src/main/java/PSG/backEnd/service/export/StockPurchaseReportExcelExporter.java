@@ -265,7 +265,7 @@ public class StockPurchaseReportExcelExporter {
                     unitPriceCell.setCellStyle(currencyStyle);
 
                     Cell totalCell = row.createCell(5);
-                    totalCell.setCellValue(purchase.totalAmount().doubleValue());
+                    totalCell.setCellValue((purchase.totalWithIva() != null ? purchase.totalWithIva() : purchase.totalAmount()).doubleValue());
                     totalCell.setCellStyle(currencyStyle);
 
                     row.createCell(6).setCellValue(purchase.notes() != null ? purchase.notes() : "");
