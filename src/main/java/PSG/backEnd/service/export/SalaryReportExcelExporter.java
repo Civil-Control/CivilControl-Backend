@@ -15,7 +15,6 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Dedicated Excel exporter for salary reports.
@@ -270,57 +269,80 @@ public class SalaryReportExcelExporter {
         Sheet sheet = workbook.createSheet("Detalle de Pagos");
         int rowNum = 0;
 
+        CellStyle empNameStyle = createEmployeeNameStyle(workbook);
+
         // Title
         rowNum = addSheetHeader(sheet, "REPORTE DE SALARIOS - DETALLE DE PAGOS", report, titleCellStyle, 6);
         rowNum++;
 
-        // Headers: Área | Apellido y Nombre | Fecha | Frecuencia | Método de Pago | Monto
+        // Headers: Apellido y Nombre | Fecha | Frecuencia | Método de Pago | Monto | Área
         Row headerRow = sheet.createRow(rowNum++);
-        setCellWithStyle(headerRow, 0, "Área", headerStyle);
-        setCellWithStyle(headerRow, 1, "Apellido y Nombre", headerStyle);
-        setCellWithStyle(headerRow, 2, "Fecha", headerStyle);
-        setCellWithStyle(headerRow, 3, "Frecuencia", headerStyle);
-        setCellWithStyle(headerRow, 4, "Método de Pago", headerStyle);
-        setCellWithStyle(headerRow, 5, "Monto", headerStyle);
+        setCellWithStyle(headerRow, 0, "Apellido y Nombre", headerStyle);
+        setCellWithStyle(headerRow, 1, "Fecha", headerStyle);
+        setCellWithStyle(headerRow, 2, "Frecuencia", headerStyle);
+        setCellWithStyle(headerRow, 3, "Método de Pago", headerStyle);
+        setCellWithStyle(headerRow, 4, "Monto", headerStyle);
+        setCellWithStyle(headerRow, 5, "Área", headerStyle);
 
-        // Data rows - sorted by area, then employee (alpha), then frequency order, then date
         for (SalaryReportAreaGroupDTO area : report.areaGroups()) {
             for (SalaryReportEmployeeGroupDTO emp : area.employeeGroups()) {
-                for (SalaryReportPaymentDTO payment : emp.payments()) {
-                    Row row = sheet.createRow(rowNum++);
-                    String areaDisplay = area.projectAreaName();
-                    if (payment.projectAreaTaskName() != null) {
-                        areaDisplay += " - " + payment.projectAreaTaskName();
-                    }
-                    row.createCell(0).setCellValue(areaDisplay);
-                    row.createCell(1).setCellValue(emp.employeeLastName() + ", " + emp.employeeName());
+                List<SalaryReportPaymentDTO> payments = emp.payments();
+                int empStartRow = rowNum;
+                int paymentCount = payments.size();
 
-                    Cell dateCell = row.createCell(2);
+                for (int pi = 0; pi < paymentCount; pi++) {
+                    SalaryReportPaymentDTO payment = payments.get(pi);
+                    Row row = sheet.createRow(rowNum++);
+
+                    if (pi == 0) {
+                        Cell nameCell = row.createCell(0);
+                        nameCell.setCellValue(emp.employeeLastName() + ", " + emp.employeeName());
+                        nameCell.setCellStyle(empNameStyle);
+                    } else {
+                        row.createCell(0).setCellStyle(empNameStyle);
+                    }
+
+                    Cell dateCell = row.createCell(1);
                     dateCell.setCellValue(payment.paymentDate().format(DATE_FORMATTER));
                     dateCell.setCellStyle(dateStyle);
 
-                    row.createCell(3).setCellValue(payment.salaryFrequency().getDisplayName());
-                    row.createCell(4).setCellValue(
+                    row.createCell(2).setCellValue(payment.salaryFrequency().getDisplayName());
+                    row.createCell(3).setCellValue(
                             payment.paymentMethod() != null ? payment.paymentMethod().getDisplayName() : "-");
 
-                    Cell amountCell = row.createCell(5);
+                    Cell amountCell = row.createCell(4);
                     amountCell.setCellValue((payment.totalWithIva() != null ? payment.totalWithIva() : payment.amount()).doubleValue());
                     amountCell.setCellStyle(currencyStyle);
+
+                    String areaDisplay = payment.projectAreaName() != null ? payment.projectAreaName() : "";
+                    if (payment.projectAreaTaskName() != null) {
+                        areaDisplay += " - " + payment.projectAreaTaskName();
+                    }
+                    row.createCell(5).setCellValue(areaDisplay);
                 }
 
-                // Employee subtotal row
-                int empSubtotalRowNum = rowNum;
-                Row empSubtotalRow = sheet.createRow(rowNum++);
-                Cell empLabel = empSubtotalRow.createCell(0);
-                empLabel.setCellValue("Subtotal " + emp.employeeLastName() + ", " + emp.employeeName());
-                empLabel.setCellStyle(subtotalLabelStyle);
-                for (int i = 1; i <= 4; i++) {
-                    empSubtotalRow.createCell(i).setCellStyle(subtotalLabelStyle);
+                if (paymentCount > 1) {
+                    sheet.addMergedRegion(new CellRangeAddress(empStartRow, empStartRow + paymentCount - 1, 0, 0));
                 }
-                sheet.addMergedRegion(new CellRangeAddress(empSubtotalRowNum, empSubtotalRowNum, 0, 4));
-                Cell empTotal = empSubtotalRow.createCell(5);
-                empTotal.setCellValue(emp.totalAmount().doubleValue());
-                empTotal.setCellStyle(subtotalStyle);
+
+                // Frequency subtotal rows (one per active frequency)
+                for (SalaryFrecuency freq : FREQUENCY_ORDER) {
+                    BigDecimal freqAmount = emp.subtotalsByFrequency().get(freq);
+                    if (freqAmount == null) continue;
+                    int freqRowNum = rowNum;
+                    Row freqRow = sheet.createRow(rowNum++);
+                    Cell freqLabel = freqRow.createCell(0);
+                    freqLabel.setCellValue("Total " + freq.getDisplayName());
+                    freqLabel.setCellStyle(subtotalLabelStyle);
+                    for (int i = 1; i <= 3; i++) {
+                        freqRow.createCell(i).setCellStyle(subtotalLabelStyle);
+                    }
+                    sheet.addMergedRegion(new CellRangeAddress(freqRowNum, freqRowNum, 0, 3));
+                    Cell freqTotal = freqRow.createCell(4);
+                    freqTotal.setCellValue(freqAmount.doubleValue());
+                    freqTotal.setCellStyle(subtotalStyle);
+                    freqRow.createCell(5);
+                }
             }
 
             // Area subtotal row
@@ -329,13 +351,14 @@ public class SalaryReportExcelExporter {
             Cell areaLabel = areaSubtotalRow.createCell(0);
             areaLabel.setCellValue("Subtotal " + area.projectAreaName() + " (" + area.paymentCount() + " pagos)");
             areaLabel.setCellStyle(subtotalLabelStyle);
-            for (int i = 1; i <= 4; i++) {
+            for (int i = 1; i <= 3; i++) {
                 areaSubtotalRow.createCell(i).setCellStyle(subtotalLabelStyle);
             }
-            sheet.addMergedRegion(new CellRangeAddress(areaSubtotalRowNum, areaSubtotalRowNum, 0, 4));
-            Cell areaTotal = areaSubtotalRow.createCell(5);
+            sheet.addMergedRegion(new CellRangeAddress(areaSubtotalRowNum, areaSubtotalRowNum, 0, 3));
+            Cell areaTotal = areaSubtotalRow.createCell(4);
             areaTotal.setCellValue(area.subtotalAmount().doubleValue());
             areaTotal.setCellStyle(subtotalStyle);
+            areaSubtotalRow.createCell(5);
 
             rowNum++; // blank row between areas
         }
@@ -346,13 +369,14 @@ public class SalaryReportExcelExporter {
         Cell totalLabel = totalRow.createCell(0);
         totalLabel.setCellValue("TOTAL GENERAL (" + report.totalCount() + " pagos)");
         totalLabel.setCellStyle(totalLabelStyle);
-        for (int i = 1; i <= 4; i++) {
+        for (int i = 1; i <= 3; i++) {
             totalRow.createCell(i).setCellStyle(totalLabelStyle);
         }
-        sheet.addMergedRegion(new CellRangeAddress(grandTotalRowNum, grandTotalRowNum, 0, 4));
-        Cell grandTotal = totalRow.createCell(5);
+        sheet.addMergedRegion(new CellRangeAddress(grandTotalRowNum, grandTotalRowNum, 0, 3));
+        Cell grandTotal = totalRow.createCell(4);
         grandTotal.setCellValue(report.totalAmount().doubleValue());
         grandTotal.setCellStyle(totalStyle);
+        totalRow.createCell(5);
 
         // Auto-size
         for (int i = 0; i < 6; i++) {
@@ -488,6 +512,19 @@ public class SalaryReportExcelExporter {
     private CellStyle createDateStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         style.setAlignment(HorizontalAlignment.CENTER);
+        return style;
+    }
+
+    private CellStyle createEmployeeNameStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setWrapText(false);
         return style;
     }
 

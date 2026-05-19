@@ -1260,9 +1260,9 @@ public class ReportService implements IReportService {
         Map<Long, List<SalaryPayment>> byArea = new LinkedHashMap<>();
 
         for (SalaryPayment sp : payments) {
-            Long areaId = sp.getProjectArea() != null
-                    ? sp.getProjectArea().getId()
-                    : -1L; // sentinel for "no area"
+            Long areaId = sp.getEmployee().getProjectArea() != null
+                    ? sp.getEmployee().getProjectArea().getId()
+                    : -1L;
             byArea.computeIfAbsent(areaId, k -> new ArrayList<>()).add(sp);
         }
 
@@ -1283,8 +1283,8 @@ public class ReportService implements IReportService {
             } else {
                 areaIdDTO = areaId;
                 SalaryPayment first = areaPayments.get(0);
-                areaName = first.getProjectArea().getName();
-                areaColor = first.getProjectArea().getColor();
+                areaName = first.getEmployee().getProjectArea().getName();
+                areaColor = first.getEmployee().getProjectArea().getColor();
             }
 
             List<SalaryReportEmployeeGroupDTO> employeeGroups = buildEmployeeGroups(areaPayments, areaName);
@@ -1338,10 +1338,9 @@ public class ReportService implements IReportService {
 
             Map<SalaryFrecuency, BigDecimal> empFreqSubtotals = buildFrequencySubtotals(empPayments);
 
-            // Build individual payment DTOs sorted by frequency (MENSUAL > QUINCENAL > SEMANAL) then date desc
             List<SalaryReportPaymentDTO> paymentDTOs = empPayments.stream()
                     .sorted(Comparator.comparing((SalaryPayment sp) -> sp.getSalaryFrequency().ordinal())
-                            .thenComparing(SalaryPayment::getPaymentDate, Comparator.reverseOrder()))
+                            .thenComparing(SalaryPayment::getPaymentDate))
                     .map(sp -> {
                         BigDecimal spIva = sp.getIvaPercentage();
                         BigDecimal spTotalWithIva = null;
@@ -1367,7 +1366,7 @@ public class ReportService implements IReportService {
                                 sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null,
                                 sp.getEmployee().getName(),
                                 sp.getEmployee().getLastName(),
-                                areaName
+                                sp.getProjectArea() != null ? sp.getProjectArea().getName() : "Sin área asignada"
                         );
                     })
                     .toList();
