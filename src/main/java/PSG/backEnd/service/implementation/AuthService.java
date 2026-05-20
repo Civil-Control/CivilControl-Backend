@@ -212,7 +212,10 @@ public class AuthService implements IAuthService {
                 user.getLastName(),
                 user.getEmail(),
                 roleDTOs,
-                user.getLocation() != null ? userLocationMapper.toDto(user.getLocation()) : null
+                user.getLocation() != null ? userLocationMapper.toDto(user.getLocation()) : null,
+                user.getEmailVerified(),
+                user.getWhatsappVerified(),
+                user.getWhatsappNumber()
         );
     }
 
@@ -230,7 +233,10 @@ public class AuthService implements IAuthService {
                 user.getLastName(),
                 user.getEmail(),
                 buildRoleDTOs(user),
-                user.getLocation() != null ? userLocationMapper.toDto(user.getLocation()) : null
+                user.getLocation() != null ? userLocationMapper.toDto(user.getLocation()) : null,
+                user.getEmailVerified(),
+                user.getWhatsappVerified(),
+                user.getWhatsappNumber()
         );
     }
 

@@ -32,5 +32,14 @@ public record UserProfileDTO(
         Set<RoleResponseDTO> roles,
 
         @Schema(description = "User's default location")
-        UserLocationDTO location
+        UserLocationDTO location,
+
+        @Schema(description = "Whether the user's email channel has been verified")
+        Boolean emailVerified,
+
+        @Schema(description = "Whether the user's WhatsApp channel has been verified")
+        Boolean whatsappVerified,
+
+        @Schema(description = "User's WhatsApp phone number")
+        String whatsappNumber
 ) {}
