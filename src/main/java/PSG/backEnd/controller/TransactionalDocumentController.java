@@ -282,6 +282,23 @@ public class TransactionalDocumentController {
         return ResponseEntity.ok(iTransactionalDocumentService.markDocumentUnpaid(id));
     }
 
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
+    @PostMapping("/{id}/recalculate-totals")
+    @Operation(summary = "Recalculate document totals from linked records",
+            description = "Forces a recomputation of all totals (net, IVA, exempt, total) by reading " +
+                    "all linked records (item details, salary payments, fuel loads, repairs, stock purchases) " +
+                    "from the database. Use after syncing linked records externally so the stored totals " +
+                    "reflect the complete set of records before creating a payment.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Totals recalculated and updated document returned"),
+            @ApiResponse(responseCode = "404", description = "Document not found")
+    })
+    public ResponseEntity<TransactionalDocumentResponseDTO> recalculateTotals(
+            @Parameter(description = "Document unique identifier", required = true, example = "1")
+            @PathVariable Long id) {
+        return ResponseEntity.ok(iTransactionalDocumentService.recalculateTotals(id));
+    }
+
     @PreAuthorize("hasAuthority('" + AppPermissions.PURCHASE_ORDER_WRITE + "')")
     @PatchMapping("/{id}/link-purchase-order")
     @Operation(summary = "Link a purchase order to this document",

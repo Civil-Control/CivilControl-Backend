@@ -528,6 +528,15 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
     @Override
     @Transactional
+    public TransactionalDocumentResponseDTO recalculateTotals(Long id) {
+        documentTotalRecalculator.recalculateDocumentTotals(id);
+        TransactionalDocument refreshed = transactionalDocumentRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new TransactionalDocumentNotFoundException(id));
+        return enrichResponse(refreshed);
+    }
+
+    @Override
+    @Transactional
     public void deleteTransactionalDocument(Long id, boolean deleteLinkedRecords) {
         TransactionalDocument document = getEntityById(id);
 

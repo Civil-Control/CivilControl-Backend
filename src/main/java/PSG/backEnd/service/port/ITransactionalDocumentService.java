@@ -34,4 +34,5 @@ public interface ITransactionalDocumentService {
     LinkedRecordsSummaryDTO getLinkedRecordsSummary(Long id);
     void deleteTransactionalDocument(Long id, boolean deleteLinkedRecords);
     TransactionalDocument getEntityById(Long id);
+    TransactionalDocumentResponseDTO recalculateTotals(Long id);
 }
