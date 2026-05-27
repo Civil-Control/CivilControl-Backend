@@ -371,23 +371,8 @@ public class PaymentService implements IPaymentService {
         details.setOnAccountAmount(finalOnAccount);
     }
 
-    /**
-     * Outstanding amount for an invoice/debit note: total minus already-applied credit notes
-     * minus already-applied payments (excluding any that belong to soft-deleted payments).
-     */
     private BigDecimal computeOutstanding(TransactionalDocument doc) {
-        BigDecimal credits = paymentApplicationRepository == null ? BigDecimal.ZERO : BigDecimal.ZERO;
-        // Use the same queries other layers use; null-safe.
-        BigDecimal alreadyPaid = paymentApplicationRepository.sumAppliedToDocument(doc.getId());
-        BigDecimal alreadyCredited = creditAppliedToDocument(doc.getId());
-        BigDecimal outstanding = doc.getTotal()
-            .subtract(alreadyPaid == null ? BigDecimal.ZERO : alreadyPaid)
-            .subtract(alreadyCredited == null ? BigDecimal.ZERO : alreadyCredited);
-        return outstanding.signum() < 0 ? BigDecimal.ZERO : outstanding;
-    }
-
-    private BigDecimal creditAppliedToDocument(Long documentId) {
-        return creditNoteApplicationRepository.sumAppliedToInvoice(documentId);
+        return ledgerService.getRemainingBalance(doc);
     }
 
     private void validateDocBelongsToSupplier(TransactionalDocument doc, Long supplierId) {

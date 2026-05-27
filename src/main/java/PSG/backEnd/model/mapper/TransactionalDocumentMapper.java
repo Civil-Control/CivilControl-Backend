@@ -38,6 +38,7 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "creditApplied", ignore = true)
     @Mapping(target = "pendingAmount", ignore = true)
+    @Mapping(target = "remainingBalance", ignore = true)
     @Mapping(target = "creditApplications", ignore = true)
     @Mapping(target = "appliedCredits", ignore = true)
     TransactionalDocumentResponseDTO toResponseDto(TransactionalDocument entity);
@@ -53,6 +54,7 @@ public interface TransactionalDocumentMapper {
             String status,
             BigDecimal creditApplied,
             BigDecimal pendingAmount,
+            BigDecimal remainingBalance,
             List<CreditNoteApplicationResponseDTO> creditApplications,
             List<CreditNoteApplicationResponseDTO> appliedCredits) {
         TransactionalDocumentResponseDTO base = toResponseDto(entity);
@@ -64,7 +66,7 @@ public interface TransactionalDocumentMapper {
                 base.projectAreaId(), base.projectAreaName(), base.projectAreaColor(),
                 base.projectAreaTaskId(), base.projectAreaTaskName(),
                 base.comment(), base.paid(), base.deleted(),
-                status, creditApplied, pendingAmount, creditApplications, appliedCredits,
+                status, creditApplied, pendingAmount, remainingBalance, creditApplications, appliedCredits,
                 Boolean.TRUE.equals(entity.getManuallyApplied()));
     }
 

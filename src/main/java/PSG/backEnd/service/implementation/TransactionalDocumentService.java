@@ -237,6 +237,10 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         } else {
             recoveryService.regenerateIfNeeded(refreshed);
         }
+        ledgerService.syncDocumentMovement(refreshed);
+        if (isCreditNote(refreshed.getDocumentType())) {
+            ledgerService.syncCreditNoteApplicationImputations(refreshed);
+        }
         return enrichResponse(refreshed);
     }
 
@@ -1002,6 +1006,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         DocumentType type = doc.getDocumentType();
         BigDecimal creditApplied = BigDecimal.ZERO;
         BigDecimal pendingAmount = BigDecimal.ZERO;
+        BigDecimal remainingBalance = BigDecimal.ZERO;
         List<CreditNoteApplicationResponseDTO> creditApplications = java.util.Collections.emptyList();
         List<CreditNoteApplicationResponseDTO> appliedCredits = java.util.Collections.emptyList();
         String status;
@@ -1018,22 +1023,20 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         } else if (isInvoice(type) || isDebitNote(type)) {
             BigDecimal sumApplied = creditNoteApplicationRepository.sumAppliedToInvoice(doc.getId());
             creditApplied = sumApplied != null ? sumApplied : BigDecimal.ZERO;
-            BigDecimal total = doc.getTotal() != null ? doc.getTotal() : BigDecimal.ZERO;
-            BigDecimal outstanding = total.subtract(creditApplied);
-            if (outstanding.signum() < 0) outstanding = BigDecimal.ZERO;
+            remainingBalance = ledgerService.getRemainingBalance(doc);
 
             if (Boolean.TRUE.equals(doc.getPaid())) {
                 status = STATUS_PAID;
                 pendingAmount = BigDecimal.ZERO;
-            } else if (creditApplied.signum() > 0 && outstanding.signum() == 0) {
+            } else if (remainingBalance.signum() <= 0) {
                 status = STATUS_CREDITED;
                 pendingAmount = BigDecimal.ZERO;
             } else if (creditApplied.signum() > 0) {
                 status = STATUS_PARTIALLY_CREDITED;
-                pendingAmount = outstanding;
+                pendingAmount = remainingBalance;
             } else {
                 status = STATUS_PENDING;
-                pendingAmount = outstanding;
+                pendingAmount = remainingBalance;
             }
 
             if (doc.getAppliedCredits() != null) {
@@ -1047,7 +1050,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         }
 
         return transactionalDocumentMapper.toEnrichedResponseDto(
-                doc, status, creditApplied, pendingAmount, creditApplications, appliedCredits);
+                doc, status, creditApplied, pendingAmount, remainingBalance, creditApplications, appliedCredits);
     }
 
     private CreditNoteApplicationResponseDTO toApplicationDto(CreditNoteApplication app) {

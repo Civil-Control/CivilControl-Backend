@@ -60,7 +60,7 @@ public class LedgerService implements ILedgerService {
             if (creditNote.getCreditNoteApplications() == null) return;
             for (CreditNoteApplication app : creditNote.getCreditNoteApplications()) {
                 if (app.getInvoice() == null || app.getAmountApplied() == null) continue;
-                movementRepository.findOriginalBySourceDocument(app.getInvoice().getId())
+                movementRepository.findOriginalBySourceDocumentWithLock(app.getInvoice().getId())
                         .ifPresent(invoiceMovement -> imputationRepository.save(AccountImputation.builder()
                                 .originMovement(cnMovement)
                                 .destinationMovement(invoiceMovement)
@@ -68,6 +68,30 @@ public class LedgerService implements ILedgerService {
                                 .build()));
             }
         });
+    }
+
+    @Override
+    @Transactional
+    public void syncDocumentMovement(TransactionalDocument doc) {
+        movementRepository.findOriginalBySourceDocument(doc.getId()).ifPresent(movement -> {
+            BigDecimal newAmount = signedAmountFor(doc.getDocumentType(), doc.getTotal());
+            if (movement.getAmount().compareTo(newAmount) != 0) {
+                movement.setAmount(newAmount);
+                movementRepository.save(movement);
+            }
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getRemainingBalance(TransactionalDocument doc) {
+        return movementRepository.findOriginalBySourceDocument(doc.getId())
+                .map(movement -> {
+                    BigDecimal applied = imputationRepository.sumAppliedToDestination(movement.getId());
+                    BigDecimal result = movement.getAmount().subtract(applied == null ? BigDecimal.ZERO : applied);
+                    return result.signum() < 0 ? BigDecimal.ZERO : result;
+                })
+                .orElse(doc.getTotal() != null ? doc.getTotal() : BigDecimal.ZERO);
     }
 
     @Override
@@ -107,7 +131,7 @@ public class LedgerService implements ILedgerService {
         if (paymentMovement == null) return;
         for (PaymentApplication app : paymentDetails.getApplications()) {
             if (app.getDocument() == null || app.getAmountApplied() == null) continue;
-            movementRepository.findOriginalBySourceDocument(app.getDocument().getId())
+            movementRepository.findOriginalBySourceDocumentWithLock(app.getDocument().getId())
                     .ifPresent(docMovement -> imputationRepository.save(AccountImputation.builder()
                             .originMovement(paymentMovement)
                             .destinationMovement(docMovement)
@@ -123,7 +147,7 @@ public class LedgerService implements ILedgerService {
         for (CreditNoteApplication app : paymentDetails.getCreditNoteApplications()) {
             if (app.getCreditNote() == null || app.getInvoice() == null || app.getAmountApplied() == null) continue;
             AccountMovement cnMovement = movementRepository.findOriginalBySourceDocument(app.getCreditNote().getId()).orElse(null);
-            AccountMovement invoiceMovement = movementRepository.findOriginalBySourceDocument(app.getInvoice().getId()).orElse(null);
+            AccountMovement invoiceMovement = movementRepository.findOriginalBySourceDocumentWithLock(app.getInvoice().getId()).orElse(null);
             if (cnMovement == null || invoiceMovement == null) continue;
             imputationRepository.save(AccountImputation.builder()
                     .originMovement(cnMovement)

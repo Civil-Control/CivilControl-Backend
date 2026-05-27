@@ -15,6 +15,7 @@ import PSG.backEnd.model.mapper.SupplierMapper;
 import PSG.backEnd.repository.PaymentRepository.PaymentRepository;
 import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
+import PSG.backEnd.repository.ledger.AccountMovementRepository;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class SupplierService implements ISupplierService {
     private final SupplierRepository supplierRepository;
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final PaymentRepository paymentRepository;
+    private final AccountMovementRepository accountMovementRepository;
     private final SupplierMapper supplierMapper;
     private final ContactInfoMapper contactInfoMapper;
     private final MessageSourceHelper messageSourceHelper;
@@ -82,17 +84,12 @@ public class SupplierService implements ISupplierService {
     @Override
     @Transactional(readOnly = true)
     public SupplierStatsDTO getSupplierStats(Long id, LocalDate fromDate, LocalDate toDate) {
-        supplierRepository.findByIdAndDeletedFalse(id)
+        Supplier supplier = supplierRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
         BigDecimal totalInvoiced = transactionalDocumentRepository.sumInvoicedBySupplierId(id, fromDate, toDate);
-        // "Total pagado" must reflect the actual payments registered for the supplier
-        // (sum of PaymentDetails.amount), not the total of invoices flagged as paid.
-        // Payment amounts may differ from the sum of attached invoice totals — for example
-        // when a credit note is applied as a discount on the payment without canceling any
-        // specific invoice — so summing payments is the canonical source of truth.
         BigDecimal totalPaid = paymentRepository.sumAmountBySupplierId(id, fromDate, toDate);
         BigDecimal totalCredited = transactionalDocumentRepository.sumCreditedBySupplierId(id, fromDate, toDate);
-        BigDecimal totalPending = totalInvoiced.subtract(totalPaid).subtract(totalCredited);
+        BigDecimal totalPending = accountMovementRepository.sumBalanceBySupplier(id, supplier.getTenantId());
         if (totalPending.signum() < 0) totalPending = BigDecimal.ZERO;
         return new SupplierStatsDTO(totalInvoiced, totalPaid, totalCredited, totalPending);
     }

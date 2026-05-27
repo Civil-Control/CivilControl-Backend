@@ -45,6 +45,9 @@ public record TransactionalDocumentResponseDTO(
     /** Outstanding amount = total - creditApplied for unpaid invoices/debit notes; 0 otherwise. */
     BigDecimal pendingAmount,
 
+    /** Ledger-accurate remaining balance: total minus all payment and credit-note imputations. */
+    BigDecimal remainingBalance,
+
     /** Populated when this document IS a credit note: invoices/debit-notes it credits. */
     List<CreditNoteApplicationResponseDTO> creditApplications,
 
