@@ -383,37 +383,6 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         return itemDetail;
     }
 
-    @Override
-    @Transactional
-    public void updateTransactionalDocumentStatus(Long documentId, Long supplierId, BigDecimal amount) {
-        TransactionalDocument document = getEntityById(documentId);
-
-        // If amount is zero, revert the status (mark as unpaid)
-        if (amount.compareTo(BigDecimal.ZERO) == 0) {
-            revertDocumentPaymentStatus(document, supplierId);
-        } else {
-            // Normal logic: mark as paid
-            validateDocumentForPayment(document, supplierId, amount);
-            document.setPaid(true);
-        }
-
-        transactionalDocumentRepository.save(document);
-    }
-
-    /**
-     * Reverts a document to unpaid status only if it still exists (not soft-deleted).
-     * Used when deleting a payment — if the associated document was already deleted,
-     * there is nothing to revert and the operation is silently skipped.
-     */
-    @Override
-    @Transactional
-    public void revertTransactionalDocumentStatusIfExists(Long documentId, Long supplierId) {
-        transactionalDocumentRepository.findByIdAndDeletedFalse(documentId).ifPresent(document -> {
-            revertDocumentPaymentStatus(document, supplierId);
-            transactionalDocumentRepository.save(document);
-        });
-    }
-
     /**
      * Recomputes the {@code paid} flag of a document from current payment applications and
      * credit-note applications. No supplier-balance side effects.
@@ -809,77 +778,6 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         return type == DocumentType.BILL_C
                 || type == DocumentType.DEBIT_NOTE_C
                 || type == DocumentType.CREDIT_NOTE_C;
-    }
-
-    private void validateDocumentForPayment(TransactionalDocument document, Long supplierId, BigDecimal amount) {
-        validateDocumentIsPayable(document);
-        validateSupplierMatch(document, supplierId);
-        validateDocumentNotAlreadyPaid(document);
-        validatePaymentAmount(document, amount);
-    }
-
-    /**
-     * Payable documents are those that represent a liability to the supplier:
-     * Invoices and Debit Notes. Credit Notes reduce the supplier's balance and
-     * cannot be paid; OTHER_DOCUMENT is informational only.
-     */
-    private void validateDocumentIsPayable(TransactionalDocument document) {
-        DocumentType type = document.getDocumentType();
-        if (isCreditNote(type)) {
-            throw new IllegalStateException(messageSourceHelper.getMessage("document.creditNoteCannotBePaid"));
-        }
-        if (!isInvoice(type) && !isDebitNote(type)) {
-            throw new IllegalStateException(messageSourceHelper.getMessage("document.onlyInvoicesPaid"));
-        }
-    }
-
-    private void validateSupplierMatch(TransactionalDocument document, Long supplierId) {
-        if (!document.getSupplier().getId().equals(supplierId)) {
-            throw new IllegalArgumentException(messageSourceHelper.getMessage("document.supplierMismatch"));
-        }
-    }
-
-    private void validateDocumentNotAlreadyPaid(TransactionalDocument document) {
-        if (document.getPaid()) {
-            throw new IllegalStateException(messageSourceHelper.getMessage("document.alreadyPaid"));
-        }
-    }
-
-    private void validatePaymentAmount(TransactionalDocument document, BigDecimal amount) {
-        // For invoices/debit notes that already received credit applications, the user only
-        // owes the difference. Allow paying the outstanding (total - creditApplied) amount.
-        BigDecimal credit = creditNoteApplicationRepository.sumAppliedToInvoice(document.getId());
-        BigDecimal outstanding = document.getTotal().subtract(credit != null ? credit : BigDecimal.ZERO);
-        if (outstanding.signum() < 0) outstanding = BigDecimal.ZERO;
-        if (amount.compareTo(outstanding) < 0) {
-            throw new IllegalArgumentException(messageSourceHelper.getMessage("document.paymentAmountInsufficient"));
-        }
-    }
-
-    /**
-     * Reverts the payment status of a document.
-     * When a document is marked as unpaid, its amount (with discounts)
-     * should be added back to the supplier's pending balance.
-     */
-    private void revertDocumentPaymentStatus(TransactionalDocument document, Long supplierId) {
-        validateSupplierMatch(document, supplierId);
-
-        // Idempotent: if already unpaid, nothing to revert
-        if (!document.getPaid()) {
-            return;
-        }
-
-        // Only invoices and debit notes contribute to pendingBalance via the paid flag.
-        // Reverting them to unpaid means re-adding the discounted amount to the balance.
-        // Credit notes are not subject to revert (they cannot be "unpaid").
-        DocumentType type = document.getDocumentType();
-        if (isInvoice(type) || isDebitNote(type)) {
-            Supplier supplier = document.getSupplier();
-            BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
-            applyToBalance(supplier, discountedAmount);
-        }
-
-        document.setPaid(false);
     }
 
     /**
