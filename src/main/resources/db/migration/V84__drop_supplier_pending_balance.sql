@@ -1,1 +1,1 @@
-ALTER TABLE supplier DROP COLUMN pending_balance;
+ALTER TABLE suppliers DROP COLUMN pending_balance;

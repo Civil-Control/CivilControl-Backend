@@ -61,9 +61,9 @@ SELECT
     pd.id,
     NOW()
 FROM payment_details pd
-WHERE NOT EXISTS (SELECT 1 FROM cash_payments     cp  WHERE cp.id  = pd.id AND cp.deleted  = true)
-  AND NOT EXISTS (SELECT 1 FROM transfer_payments tp  WHERE tp.id  = pd.id AND tp.deleted  = true)
-  AND NOT EXISTS (SELECT 1 FROM check_payments    chp WHERE chp.id = pd.id AND chp.deleted = true);
+WHERE NOT EXISTS (SELECT 1 FROM cash_payments     cp  WHERE cp.payment_details_id  = pd.id AND cp.deleted  = true)
+  AND NOT EXISTS (SELECT 1 FROM transfer_payments tp  WHERE tp.payment_details_id  = pd.id AND tp.deleted  = true)
+  AND NOT EXISTS (SELECT 1 FROM check_payments    chp WHERE chp.payment_details_id = pd.id AND chp.deleted = true);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Step 3: Imputations from payment_applications
@@ -79,9 +79,9 @@ SELECT
 FROM payment_applications pa
 JOIN account_movements pay_mov ON pay_mov.source_payment_id  = pa.payment_details_id
 JOIN account_movements doc_mov ON doc_mov.source_document_id = pa.document_id
-WHERE NOT EXISTS (SELECT 1 FROM cash_payments     cp  WHERE cp.id  = pa.payment_details_id AND cp.deleted  = true)
-  AND NOT EXISTS (SELECT 1 FROM transfer_payments tp  WHERE tp.id  = pa.payment_details_id AND tp.deleted  = true)
-  AND NOT EXISTS (SELECT 1 FROM check_payments    chp WHERE chp.id = pa.payment_details_id AND chp.deleted = true)
+WHERE NOT EXISTS (SELECT 1 FROM cash_payments     cp  WHERE cp.payment_details_id  = pa.payment_details_id AND cp.deleted  = true)
+  AND NOT EXISTS (SELECT 1 FROM transfer_payments tp  WHERE tp.payment_details_id  = pa.payment_details_id AND tp.deleted  = true)
+  AND NOT EXISTS (SELECT 1 FROM check_payments    chp WHERE chp.payment_details_id = pa.payment_details_id AND chp.deleted = true)
 ON CONFLICT (origin_movement_id, destination_movement_id) DO NOTHING;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -143,9 +143,9 @@ BEGIN
                 pd.tenant_id,
                 SUM(pd.amount) AS paid_total
             FROM payment_details pd
-            WHERE NOT EXISTS (SELECT 1 FROM cash_payments     cp  WHERE cp.id  = pd.id AND cp.deleted  = true)
-              AND NOT EXISTS (SELECT 1 FROM transfer_payments tp  WHERE tp.id  = pd.id AND tp.deleted  = true)
-              AND NOT EXISTS (SELECT 1 FROM check_payments    chp WHERE chp.id = pd.id AND chp.deleted = true)
+            WHERE NOT EXISTS (SELECT 1 FROM cash_payments     cp  WHERE cp.payment_details_id  = pd.id AND cp.deleted  = true)
+              AND NOT EXISTS (SELECT 1 FROM transfer_payments tp  WHERE tp.payment_details_id  = pd.id AND tp.deleted  = true)
+              AND NOT EXISTS (SELECT 1 FROM check_payments    chp WHERE chp.payment_details_id = pd.id AND chp.deleted = true)
             GROUP BY pd.supplier_id, pd.tenant_id
         ) pay_leg
                ON pay_leg.supplier_id = s.id
