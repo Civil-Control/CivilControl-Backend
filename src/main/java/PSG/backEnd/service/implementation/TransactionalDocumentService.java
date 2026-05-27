@@ -34,6 +34,7 @@ import PSG.backEnd.service.port.IProjectAreaTaskService;
 import PSG.backEnd.service.port.IRecoveryService;
 import PSG.backEnd.service.port.IStockPurchaseService;
 import PSG.backEnd.service.port.ISupplierService;
+import PSG.backEnd.service.port.ILedgerService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,6 +74,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private final CreditNoteApplicationRepository creditNoteApplicationRepository;
     private final PaymentApplicationRepository paymentApplicationRepository;
     private final IRecoveryService recoveryService;
+    private final ILedgerService ledgerService;
 
     @Override
     @Transactional
@@ -123,6 +125,10 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             recoveryService.adjustForCreditNote(refreshed);
         } else {
             recoveryService.generateForDocument(refreshed);
+        }
+        ledgerService.recordDocumentMovement(refreshed);
+        if (isCreditNote(refreshed.getDocumentType())) {
+            ledgerService.syncCreditNoteApplicationImputations(refreshed);
         }
         return enrichResponse(refreshed);
     }
@@ -562,6 +568,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
         document.setDeleted(true);
         transactionalDocumentRepository.save(document);
+        ledgerService.recordDocumentReversal(document);
 
         // Feature 18 — releasing the recovered amount when the originating Factura A is
         // soft-deleted. No-op for documents that never produced a recovery event.

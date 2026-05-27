@@ -16,6 +16,7 @@ import PSG.backEnd.repository.PaymentRepository.PaymentApplicationRepository;
 import PSG.backEnd.repository.PaymentRepository.PaymentRepository;
 import PSG.backEnd.repository.PaymentRepository.TransferPaymentRepository;
 import PSG.backEnd.service.implementation.treasury.TreasuryPaymentHook;
+import PSG.backEnd.service.port.ILedgerService;
 import PSG.backEnd.service.port.IPaymentService;
 import PSG.backEnd.service.port.ISupplierService;
 import PSG.backEnd.service.port.ITenantService;
@@ -64,6 +65,7 @@ public class PaymentService implements IPaymentService {
     private final EntityManager entityManager;
     private final PSG.backEnd.repository.CreditNoteApplicationRepository creditNoteApplicationRepository;
     private final PSG.backEnd.repository.TransactionalDocumentRepository transactionalDocumentRepository;
+    private final ILedgerService ledgerService;
 
     @Override
     @Transactional
@@ -78,6 +80,9 @@ public class PaymentService implements IPaymentService {
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         CashPayment saved = cashPaymentRepository.save(entity);
+        ledgerService.recordPaymentMovement(saved.getPaymentDetails());
+        ledgerService.recordPaymentApplicationImputations(saved.getPaymentDetails());
+        ledgerService.recordPaymentCreditNoteImputations(saved.getPaymentDetails());
         java.util.Set<Long> allAffected = new java.util.LinkedHashSet<>(collectAffectedDocIds(saved.getPaymentDetails()));
         allAffected.addAll(creditInvoiceIds);
         recomputeAfterFlush(allAffected);
@@ -96,6 +101,9 @@ public class PaymentService implements IPaymentService {
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         TransferPayment saved = transferPaymentRepository.save(entity);
+        ledgerService.recordPaymentMovement(saved.getPaymentDetails());
+        ledgerService.recordPaymentApplicationImputations(saved.getPaymentDetails());
+        ledgerService.recordPaymentCreditNoteImputations(saved.getPaymentDetails());
         java.util.Set<Long> allAffected = new java.util.LinkedHashSet<>(collectAffectedDocIds(saved.getPaymentDetails()));
         allAffected.addAll(creditInvoiceIds);
         recomputeAfterFlush(allAffected);
@@ -123,6 +131,9 @@ public class PaymentService implements IPaymentService {
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
         executePaymentBusinessLogic(dto.paymentDetails());
         CheckPayment saved = checkPaymentRepository.save(entity);
+        ledgerService.recordPaymentMovement(saved.getPaymentDetails());
+        ledgerService.recordPaymentApplicationImputations(saved.getPaymentDetails());
+        ledgerService.recordPaymentCreditNoteImputations(saved.getPaymentDetails());
         java.util.Set<Long> allAffected = new java.util.LinkedHashSet<>(collectAffectedDocIds(saved.getPaymentDetails()));
         allAffected.addAll(creditInvoiceIds);
         recomputeAfterFlush(allAffected);
@@ -968,6 +979,9 @@ public class PaymentService implements IPaymentService {
         }
 
         repository.save(existing);
+        if (liveDetails != null) {
+            ledgerService.recordPaymentReversal(liveDetails);
+        }
         recomputeAfterFlush(affectedDocs);
     }
 
