@@ -57,9 +57,6 @@ public class Supplier extends TenantEntity {
     @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ContactInfo> contacts = new ArrayList<>();
 
-    @Column(name = "pending_balance")
-    private BigDecimal pendingBalance;
-
     @Column(name = "default_discount_percentage")
     private BigDecimal defaultDiscountPercentage;
 

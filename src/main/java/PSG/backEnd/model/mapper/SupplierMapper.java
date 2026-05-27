@@ -9,7 +9,6 @@ import org.mapstruct.*;
 public interface SupplierMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "pendingBalance", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "contacts", ignore = true)
     Supplier toEntity(SupplierDTO supplierDTO);
@@ -18,7 +17,6 @@ public interface SupplierMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "pendingBalance", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "contacts", ignore = true)
     void partialUpdate(SupplierDTO updateDTO, @MappingTarget Supplier supplier);
