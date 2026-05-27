@@ -34,8 +34,7 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             "AND (CAST(:maxDiscountPercentage AS BigDecimal) IS NULL OR s.defaultDiscountPercentage <= :maxDiscountPercentage) " +
             "AND (:active IS NULL OR s.active = :active) " +
             "AND (:hasPendingBalance IS NULL OR :hasPendingBalance = false OR " +
-            "     (SELECT COALESCE(SUM(td.total), 0) - COALESCE(SUM(CASE WHEN td.paid = true THEN td.total ELSE 0 END), 0) " +
-            "      FROM TransactionalDocument td WHERE td.supplier.id = s.id AND td.deleted = false) > 0) " +
+            "     (SELECT COALESCE(SUM(am.amount), 0) FROM AccountMovement am WHERE am.supplier = s) > 0) " +
             "AND s.deleted = false " +
             "AND (:search IS NULL OR (s.cuit LIKE CONCAT('%', CAST(:search AS string), '%') " +
             "     OR LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) " +

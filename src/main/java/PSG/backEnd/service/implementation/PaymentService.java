@@ -78,7 +78,6 @@ public class PaymentService implements IPaymentService {
         }
         java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(entity.getPaymentDetails(), dto.paymentDetails());
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
-        executePaymentBusinessLogic(dto.paymentDetails());
         CashPayment saved = cashPaymentRepository.save(entity);
         ledgerService.recordPaymentMovement(saved.getPaymentDetails());
         ledgerService.recordPaymentApplicationImputations(saved.getPaymentDetails());
@@ -99,7 +98,6 @@ public class PaymentService implements IPaymentService {
         entity.setBankAccount(acc);
         java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(entity.getPaymentDetails(), dto.paymentDetails());
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
-        executePaymentBusinessLogic(dto.paymentDetails());
         TransferPayment saved = transferPaymentRepository.save(entity);
         ledgerService.recordPaymentMovement(saved.getPaymentDetails());
         ledgerService.recordPaymentApplicationImputations(saved.getPaymentDetails());
@@ -129,7 +127,6 @@ public class PaymentService implements IPaymentService {
         entity.setCheckbook(checkbook);
         java.util.List<Long> creditInvoiceIds = attachCreditNoteApplications(entity.getPaymentDetails(), dto.paymentDetails());
         attachApplications(entity.getPaymentDetails(), dto.paymentDetails());
-        executePaymentBusinessLogic(dto.paymentDetails());
         CheckPayment saved = checkPaymentRepository.save(entity);
         ledgerService.recordPaymentMovement(saved.getPaymentDetails());
         ledgerService.recordPaymentApplicationImputations(saved.getPaymentDetails());
@@ -159,10 +156,7 @@ public class PaymentService implements IPaymentService {
         // 2. Create the specific payment type entity
         T entity = entityMapper.apply(dto);
 
-        // 3. Execute common business logic (apply Information Expert - GRASP)
-        executePaymentBusinessLogic(paymentDetails);
-
-        // 4. Save and return response
+        // 3. Save and return response
         T savedEntity = repository.apply(entity);
         return responseMapper.apply(savedEntity);
     }
@@ -207,31 +201,6 @@ public class PaymentService implements IPaymentService {
                     allowedMethods)
             );
         }
-    }
-
-    /**
-     * Updates the supplier balance side-effect of registering a payment. Per-document {@code paid}
-     * flags are now derived from {@link PaymentApplication} rows by
-     * {@link ITransactionalDocumentService#recomputePaidStatus(Long)}; callers must invoke
-     * {@link #recomputeAfterFlush(java.util.Collection)} after the entity is saved.
-     */
-    private void executePaymentBusinessLogic(PaymentDetailsDTO paymentDetails) {
-        iSupplierService.updateSupplierBalance(
-            paymentDetails.supplierId(),
-            paymentDetails.amount()
-        );
-    }
-
-    /**
-     * Reverts the supplier-balance side-effect of a payment (used by UPDATE and DELETE flows).
-     * Per-document {@code paid} flags must be recomputed by the caller after the orphan-removal
-     * of the underlying {@link PaymentApplication} rows is flushed.
-     */
-    private void revertPaymentBusinessLogic(PaymentDetailsDTO originalPaymentDetails) {
-        iSupplierService.updateSupplierBalance(
-            originalPaymentDetails.supplierId(),
-            originalPaymentDetails.amount().negate()
-        );
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -676,12 +645,9 @@ public class PaymentService implements IPaymentService {
                 cnInvoiceIds = attachCreditNoteApplications(liveDetails, mergedDetails);
             }
 
-            revertPaymentBusinessLogic(updateInfo.originalDetails);
-
             if (liveDetails != null) {
                 attachApplications(liveDetails, mergedDetails);
             }
-            executePaymentBusinessLogic(mergedDetails);
 
             java.util.Set<Long> docsToRecompute = new java.util.LinkedHashSet<>(oldDocIds);
             docsToRecompute.addAll(collectAffectedDocIds(liveDetails));
@@ -929,10 +895,7 @@ public class PaymentService implements IPaymentService {
             })
             .orElseThrow(() -> new PaymentNotFoundException(errorMessage));
 
-        // 1. Extract payment information before deleting it
-        PaymentDetailsDTO paymentDetails = extractPaymentDetails(existing);
-
-        // 1b. Capture affected document IDs from the live applications collection so we can
+        // 1. Capture affected document IDs from the live applications collection so we can
         // recompute their paid status after the soft-delete is flushed (the recompute query
         // filters out soft-deleted payments via NOT EXISTS, so the docs flip back to unpaid
         // automatically without us having to delete the application rows themselves).
@@ -942,10 +905,7 @@ public class PaymentService implements IPaymentService {
         }
         java.util.List<Long> affectedDocs = collectAffectedDocIds(liveDetails);
 
-        // 2. Revert all payment effects in the system
-        revertPaymentBusinessLogic(paymentDetails);
-
-        // 2b. Revert treasury effects (bank account / cash box movements)
+        // 2. Revert treasury effects (bank account / cash box movements)
         if (existing instanceof CheckPayment cp) {
             treasuryHook.revertCheckMovement(cp);
         } else if (existing instanceof TransferPayment tp) {

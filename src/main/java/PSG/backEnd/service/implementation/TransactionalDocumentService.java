@@ -179,36 +179,10 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     public TransactionalDocumentResponseDTO updateTransactionalDocument(Long id, TransactionalDocumentDTO dto) {
         TransactionalDocument existingDocument = getEntityById(id);
 
-        // Capture the document's current impact on the supplier's pending balance BEFORE any change.
-        // This handles invoices, debit notes (positive impact when unpaid) and credit notes (always negative).
-        Supplier oldSupplier = existingDocument.getSupplier();
-        BigDecimal oldImpact = currentBalanceImpact(existingDocument, oldSupplier);
-
-        // Update the document with new values (including items, supplier, etc.)
         updateDocumentFromDTO(existingDocument, dto);
 
-        // Credit notes never carry the paid flag: their state is derived from creditApplications.
         if (isCreditNote(existingDocument.getDocumentType())) {
             existingDocument.setPaid(false);
-        }
-
-        Supplier newSupplier = existingDocument.getSupplier();
-        BigDecimal newImpact = currentBalanceImpact(existingDocument, newSupplier);
-
-        if (oldSupplier != null && newSupplier != null && oldSupplier.getId().equals(newSupplier.getId())) {
-            // Same supplier: apply only the delta
-            BigDecimal delta = newImpact.subtract(oldImpact);
-            if (delta.signum() != 0) {
-                applyToBalance(newSupplier, delta);
-            }
-        } else {
-            // Supplier changed: revert old impact on old supplier, apply full new impact on new supplier
-            if (oldSupplier != null && oldImpact.signum() != 0) {
-                applyToBalance(oldSupplier, oldImpact.negate());
-            }
-            if (newSupplier != null && newImpact.signum() != 0) {
-                applyToBalance(newSupplier, newImpact);
-            }
         }
 
         TransactionalDocument savedDocument = transactionalDocumentRepository.save(existingDocument);
@@ -461,9 +435,6 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         if (Boolean.FALSE.equals(doc.getPaid())) {
             return enrichResponse(doc);
         }
-        Supplier supplier = doc.getSupplier();
-        BigDecimal discountedAmount = calculateDiscountedAmount(doc, supplier);
-        applyToBalance(supplier, discountedAmount);
         doc.setPaid(false);
         TransactionalDocument saved = transactionalDocumentRepository.save(doc);
         return enrichResponse(saved);
@@ -518,14 +489,6 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     @Transactional
     public void deleteTransactionalDocument(Long id, boolean deleteLinkedRecords) {
         TransactionalDocument document = getEntityById(id);
-
-        // Revert any impact this document has on the supplier's pending balance.
-        // Invoices/debit notes (when unpaid) added to the balance; credit notes subtracted from it.
-        Supplier supplier = document.getSupplier();
-        BigDecimal impact = currentBalanceImpact(document, supplier);
-        if (supplier != null && impact.signum() != 0) {
-            applyToBalance(supplier, impact.negate());
-        }
 
         if (deleteLinkedRecords) {
             // Unlink RepairItems from this document (don't delete the repair itself)
@@ -591,58 +554,16 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     private void applyDocumentTypeSemanticsOnCreate(TransactionalDocument document, Supplier supplier) {
         DocumentType type = document.getDocumentType();
         if (isCreditNote(type)) {
-            // Credit notes never use the paid flag: their state (Aplicada / Crédito disponible)
-            // is derived from the presence of credit applications. They unconditionally reduce
-            // the supplier's pending balance by their full discounted total.
             document.setPaid(false);
-            BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
-            applyToBalance(supplier, discountedAmount.negate());
         } else if (isInvoice(type) || isDebitNote(type)) {
             List<PaymentMethod> methods = supplier.getAllowedPaymentMethods();
             boolean paid = methods != null
                     && methods.size() == 1
                     && methods.contains(PaymentMethod.CASH);
             document.setPaid(paid);
-
-            if (!paid) {
-                BigDecimal discountedAmount = calculateDiscountedAmount(document, supplier);
-                applyToBalance(supplier, discountedAmount);
-            }
         } else {
             document.setPaid(true);
         }
-    }
-
-    /**
-     * Adds {@code delta} (which may be negative) to the supplier's pending balance.
-     * Treats null balance as zero.
-     */
-    private void applyToBalance(Supplier supplier, BigDecimal delta) {
-        if (supplier == null || delta == null || delta.signum() == 0) return;
-        BigDecimal current = supplier.getPendingBalance() != null
-                ? supplier.getPendingBalance()
-                : BigDecimal.ZERO;
-        supplier.setPendingBalance(current.add(delta));
-    }
-
-    /**
-     * Returns the signed impact this document currently has on the supplier's pending balance:
-     * <ul>
-     *   <li>Credit Notes: always {@code -discountedAmount} (they reduce the supplier's balance).</li>
-     *   <li>Invoices / Debit Notes that are unpaid: {@code +discountedAmount}.</li>
-     *   <li>Anything else (paid invoice/debit, OTHER_DOCUMENT): {@code 0}.</li>
-     * </ul>
-     */
-    private BigDecimal currentBalanceImpact(TransactionalDocument document, Supplier supplier) {
-        if (supplier == null) return BigDecimal.ZERO;
-        DocumentType type = document.getDocumentType();
-        if (isCreditNote(type)) {
-            return calculateDiscountedAmount(document, supplier).negate();
-        }
-        if ((isInvoice(type) || isDebitNote(type)) && Boolean.FALSE.equals(document.getPaid())) {
-            return calculateDiscountedAmount(document, supplier);
-        }
-        return BigDecimal.ZERO;
     }
 
     /**
@@ -688,47 +609,6 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             // Use helper method to maintain bidirectional relationship
             document.addItemDetail(itemDetail);
         }
-    }
-
-    /**
-     * Calculates the final amount of an invoice applying all discounts:
-     * 1. Supplier's default discount (defaultDiscountPercentage)
-     * 2. Document-specific discount (discountPercentage)
-     *
-     * @param document The transactional document
-     * @param supplier The associated supplier
-     * @return The amount with applied discounts
-     */
-    private BigDecimal calculateDiscountedAmount(TransactionalDocument document, Supplier supplier) {
-        BigDecimal originalAmount = document.getTotal();
-
-        // Apply supplier's default discount
-        BigDecimal supplierDiscountPercentage = supplier.getDefaultDiscountPercentage() != null
-            ? supplier.getDefaultDiscountPercentage()
-            : BigDecimal.ZERO;
-
-        // Apply document-specific discount
-        BigDecimal documentDiscountPercentage = document.getDiscountPercentage() != null
-            ? document.getDiscountPercentage()
-            : BigDecimal.ZERO;
-
-        // Calculate combined total discount
-        // Formula: amount * (1 - discount1/100) * (1 - discount2/100)
-        BigDecimal supplierDiscountFactor = BigDecimal.ONE.subtract(
-            supplierDiscountPercentage.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)
-        );
-
-        BigDecimal documentDiscountFactor = BigDecimal.ONE.subtract(
-            documentDiscountPercentage.divide(BigDecimal.valueOf(100), 4, java.math.RoundingMode.HALF_UP)
-        );
-
-        // Apply both discounts
-        BigDecimal discountedAmount = originalAmount
-            .multiply(supplierDiscountFactor)
-            .multiply(documentDiscountFactor)
-            .setScale(2, java.math.RoundingMode.HALF_UP);
-
-        return discountedAmount;
     }
 
     private TransactionalDocument reactivateExistingDocument(TransactionalDocument document, TransactionalDocumentDTO dto) {

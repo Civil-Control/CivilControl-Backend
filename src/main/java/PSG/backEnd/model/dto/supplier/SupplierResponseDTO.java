@@ -16,7 +16,6 @@ public record SupplierResponseDTO(
     List<PaymentMethod> allowedPaymentMethods,
     AddressResponseDTO address,
     List<ContactInfoResponseDTO> contacts,
-    BigDecimal pendingBalance,
     BigDecimal defaultDiscountPercentage,
     String comment,
     boolean active,

@@ -115,15 +115,6 @@ public class SupplierService implements ISupplierService {
 
     @Override
     @Transactional
-    public void updateSupplierBalance(Long supplierId, BigDecimal amount) {
-        Supplier supplier = supplierRepository.findByIdAndDeletedFalse(supplierId)
-                .orElseThrow(() -> new SupplierNotFoundException(supplierId));
-        supplier.setPendingBalance(supplier.getPendingBalance().subtract(amount));
-        supplierRepository.save(supplier);
-    }
-
-    @Override
-    @Transactional
     public void deleteSupplier(Long id) {
         Supplier supplier = supplierRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new SupplierNotFoundException(id));
@@ -170,7 +161,6 @@ public class SupplierService implements ISupplierService {
         Supplier supplier = supplierMapper.toEntity(supplierDTO);
         supplier.setDeleted(false);
         supplier.setActive(true);
-        supplier.setPendingBalance(BigDecimal.ZERO);
         syncContacts(supplier, supplierDTO);
         return supplierMapper.toResponseDto(supplierRepository.save(supplier));
     }
