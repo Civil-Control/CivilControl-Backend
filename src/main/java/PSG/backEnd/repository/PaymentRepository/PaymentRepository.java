@@ -99,7 +99,7 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             "AND NOT EXISTS (SELECT 1 FROM CashPayment cp WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) " +
             "AND NOT EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) " +
             "AND NOT EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id AND tp.deleted = true)")
-    Optional<String> findPaymentMethodByDocumentId(@Param("documentId") Long documentId);
+    List<String> findPaymentMethodByDocumentId(@Param("documentId") Long documentId);
 
     /**
      * Sums the total amount of all (non-deleted) payments registered for the given supplier

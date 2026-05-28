@@ -615,7 +615,7 @@ public class ReportService implements IReportService {
                     .description(description)
                     .amount(doc.getTotal())
                     .paymentMethod(doc.getPaid()
-                            ? paymentRepository.findPaymentMethodByDocumentId(doc.getId()).orElse(null)
+                            ? paymentRepository.findPaymentMethodByDocumentId(doc.getId()).stream().findFirst().orElse(null)
                             : "(Pendiente)")
                     .beneficiary(doc.getSupplier().getLegalName())
                     .reference(reference)
