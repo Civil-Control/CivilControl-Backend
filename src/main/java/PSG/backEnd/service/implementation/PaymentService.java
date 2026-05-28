@@ -646,6 +646,9 @@ public class PaymentService implements IPaymentService {
             }
 
             if (liveDetails != null) {
+                if (mergedDetails.amount() != null) {
+                    ledgerService.validatePaymentAmountForOnAccount(liveDetails, mergedDetails.amount());
+                }
                 attachApplications(liveDetails, mergedDetails);
             }
 
@@ -654,6 +657,12 @@ public class PaymentService implements IPaymentService {
             docsToRecompute.addAll(cnInvoiceIds);
 
             T savedEntity = repository.save(updateInfo.entity);
+            if (liveDetails != null) {
+                PaymentDetails refreshedDetails = resolvePaymentDetails(savedEntity);
+                if (refreshedDetails != null) {
+                    ledgerService.syncPaymentMovement(refreshedDetails);
+                }
+            }
             recomputeAfterFlush(docsToRecompute);
             return responseMapper.apply(savedEntity, updateInfo);
         }

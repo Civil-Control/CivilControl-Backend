@@ -9,6 +9,7 @@ import PSG.backEnd.model.dto.transactionalDocument.CreditNoteApplicationInputDTO
 import PSG.backEnd.model.dto.transactionalDocument.CreditNoteApplicationResponseDTO;
 import PSG.backEnd.model.dto.transactionalDocument.LinkedRecordItemDTO;
 import PSG.backEnd.model.dto.transactionalDocument.LinkedRecordsSummaryDTO;
+import PSG.backEnd.model.dto.transactionalDocument.OnAccountApplicationResponseDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentFilterDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
@@ -228,6 +229,12 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         // Resolve supplier if changed
         if (dto.supplierId() != null) {
             Supplier supplier = iSupplierService.getEntityById(dto.supplierId());
+            if (document.getSupplier() != null && !dto.supplierId().equals(document.getSupplier().getId())) {
+                if (ledgerService.hasOnAccountImputations(document)) {
+                    throw new IllegalArgumentException(
+                            "No se puede cambiar el proveedor porque el comprobante tiene imputaciones de saldo a favor aplicadas.");
+                }
+            }
             document.setSupplier(supplier);
         }
 
@@ -787,6 +794,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         BigDecimal remainingBalance = BigDecimal.ZERO;
         List<CreditNoteApplicationResponseDTO> creditApplications = java.util.Collections.emptyList();
         List<CreditNoteApplicationResponseDTO> appliedCredits = java.util.Collections.emptyList();
+        List<OnAccountApplicationResponseDTO> onAccountApplications = java.util.Collections.emptyList();
         String status;
 
         if (isCreditNote(type)) {
@@ -802,6 +810,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             BigDecimal sumApplied = creditNoteApplicationRepository.sumAppliedToInvoice(doc.getId());
             creditApplied = sumApplied != null ? sumApplied : BigDecimal.ZERO;
             remainingBalance = ledgerService.getRemainingBalance(doc);
+            onAccountApplications = ledgerService.getOnAccountApplicationsForDocument(doc);
 
             if (Boolean.TRUE.equals(doc.getPaid())) {
                 status = STATUS_PAID;
@@ -828,7 +837,38 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         }
 
         return transactionalDocumentMapper.toEnrichedResponseDto(
-                doc, status, creditApplied, pendingAmount, remainingBalance, creditApplications, appliedCredits);
+                doc, status, creditApplied, pendingAmount, remainingBalance,
+                creditApplications, appliedCredits, onAccountApplications);
+    }
+
+    @Override
+    @Transactional
+    public TransactionalDocumentResponseDTO applyOnAccount(Long docId, BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("El monto a imputar debe ser mayor a cero.");
+        }
+        TransactionalDocument doc = getEntityById(docId);
+        DocumentType type = doc.getDocumentType();
+        if (!isInvoice(type) && !isDebitNote(type)) {
+            throw new IllegalArgumentException("Solo se puede aplicar saldo a favor en facturas y notas de débito.");
+        }
+        BigDecimal remaining = ledgerService.getRemainingBalance(doc);
+        if (amount.compareTo(remaining) > 0) {
+            throw new IllegalArgumentException(
+                    "El monto solicitado (" + amount + ") supera el saldo pendiente del comprobante (" + remaining + ").");
+        }
+        ledgerService.applyOnAccountToDocument(doc, amount);
+        TransactionalDocument refreshed = getEntityById(docId);
+        return enrichResponse(refreshed);
+    }
+
+    @Override
+    @Transactional
+    public TransactionalDocumentResponseDTO removeOnAccountApplication(Long docId, Long imputationId) {
+        TransactionalDocument doc = getEntityById(docId);
+        ledgerService.removeOnAccountImputation(imputationId, doc.getTenantId());
+        TransactionalDocument refreshed = getEntityById(docId);
+        return enrichResponse(refreshed);
     }
 
     private CreditNoteApplicationResponseDTO toApplicationDto(CreditNoteApplication app) {

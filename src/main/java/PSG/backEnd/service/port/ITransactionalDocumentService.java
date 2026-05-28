@@ -4,6 +4,8 @@ import PSG.backEnd.model.dto.transactionalDocument.LinkedRecordsSummaryDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentFilterDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
+
+import java.math.BigDecimal;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,4 +33,8 @@ public interface ITransactionalDocumentService {
     void deleteTransactionalDocument(Long id, boolean deleteLinkedRecords);
     TransactionalDocument getEntityById(Long id);
     TransactionalDocumentResponseDTO recalculateTotals(Long id);
+
+    TransactionalDocumentResponseDTO applyOnAccount(Long docId, BigDecimal amount);
+
+    TransactionalDocumentResponseDTO removeOnAccountApplication(Long docId, Long imputationId);
 }

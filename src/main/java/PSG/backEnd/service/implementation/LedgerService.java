@@ -1,5 +1,7 @@
 package PSG.backEnd.service.implementation;
 
+import PSG.backEnd.exception.NotFoundException;
+import PSG.backEnd.model.dto.transactionalDocument.OnAccountApplicationResponseDTO;
 import PSG.backEnd.model.entity.CreditNoteApplication;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.ledger.AccountImputation;
@@ -17,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -111,6 +115,11 @@ public class LedgerService implements ILedgerService {
     @Transactional
     public void recordPaymentReversal(PaymentDetails paymentDetails) {
         movementRepository.findOriginalBySourcePayment(paymentDetails.getId()).ifPresent(original -> {
+            if (imputationRepository.existsByOriginMovement_IdAndOnAccountTrue(original.getId())) {
+                throw new IllegalStateException(
+                        "No se puede eliminar el pago porque tiene imputaciones de saldo a favor aplicadas. " +
+                        "Elimine primero las imputaciones de saldo a favor del comprobante correspondiente.");
+            }
             imputationRepository.deleteByOriginMovement_Id(original.getId());
             movementRepository.save(AccountMovement.builder()
                     .supplier(paymentDetails.getSupplier())
@@ -164,6 +173,128 @@ public class LedgerService implements ILedgerService {
             case CREDIT_NOTE_A, CREDIT_NOTE_B, CREDIT_NOTE_C -> AccountMovementType.CREDIT_NOTE;
             default -> AccountMovementType.OTHER;
         };
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getAvailableOnAccountBalance(Long supplierId, Long tenantId) {
+        List<AccountMovement> payments = movementRepository.findPaymentMovementsBySupplierWithLock(supplierId, tenantId);
+        BigDecimal available = BigDecimal.ZERO;
+        for (AccountMovement pm : payments) {
+            BigDecimal paid = pm.getAmount().negate();
+            BigDecimal applied = imputationRepository.sumAppliedFromOrigin(pm.getId());
+            BigDecimal remaining = paid.subtract(applied == null ? BigDecimal.ZERO : applied);
+            if (remaining.signum() > 0) {
+                available = available.add(remaining);
+            }
+        }
+        return available;
+    }
+
+    @Override
+    @Transactional
+    public List<OnAccountApplicationResponseDTO> applyOnAccountToDocument(TransactionalDocument doc, BigDecimal amount) {
+        AccountMovement docMovement = movementRepository.findOriginalBySourceDocumentWithLock(doc.getId())
+                .orElseThrow(() -> new IllegalStateException("El comprobante no tiene movimiento de cuenta asociado."));
+
+        Long supplierId = doc.getSupplier().getId();
+        Long tenantId = doc.getTenantId();
+
+        List<AccountMovement> paymentMovements = movementRepository.findPaymentMovementsBySupplierWithLock(supplierId, tenantId);
+
+        BigDecimal remaining = amount;
+        List<OnAccountApplicationResponseDTO> created = new ArrayList<>();
+
+        for (AccountMovement pm : paymentMovements) {
+            if (remaining.signum() <= 0) break;
+            BigDecimal paid = pm.getAmount().negate();
+            BigDecimal applied = imputationRepository.sumAppliedFromOrigin(pm.getId());
+            BigDecimal available = paid.subtract(applied == null ? BigDecimal.ZERO : applied);
+            if (available.signum() <= 0) continue;
+
+            BigDecimal toApply = remaining.min(available);
+            AccountImputation imp = imputationRepository.save(AccountImputation.builder()
+                    .originMovement(pm)
+                    .destinationMovement(docMovement)
+                    .amountApplied(toApply)
+                    .onAccount(true)
+                    .build());
+            created.add(new OnAccountApplicationResponseDTO(
+                    imp.getId(),
+                    imp.getAmountApplied(),
+                    pm.getSourcePayment() != null ? pm.getSourcePayment().getId() : null,
+                    pm.getMovementDate()));
+            remaining = remaining.subtract(toApply);
+        }
+
+        if (remaining.signum() > 0) {
+            throw new IllegalStateException("Saldo a favor insuficiente para cubrir el monto solicitado.");
+        }
+        return created;
+    }
+
+    @Override
+    @Transactional
+    public void removeOnAccountImputation(Long imputationId, Long tenantId) {
+        AccountImputation imp = imputationRepository.findById(imputationId)
+                .orElseThrow(() -> new NotFoundException("Imputación no encontrada: " + imputationId));
+        if (!imp.isOnAccount()) {
+            throw new IllegalArgumentException("La imputación indicada no es de tipo saldo a favor.");
+        }
+        if (!tenantId.equals(imp.getTenantId())) {
+            throw new NotFoundException("Imputación no encontrada: " + imputationId);
+        }
+        imputationRepository.delete(imp);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasOnAccountImputations(TransactionalDocument doc) {
+        return movementRepository.findOriginalBySourceDocument(doc.getId())
+                .map(m -> !imputationRepository.findByDestinationMovement_IdAndOnAccountTrue(m.getId()).isEmpty())
+                .orElse(false);
+    }
+
+    @Override
+    @Transactional
+    public void syncPaymentMovement(PaymentDetails paymentDetails) {
+        movementRepository.findOriginalBySourcePayment(paymentDetails.getId()).ifPresent(movement -> {
+            BigDecimal newAmount = paymentDetails.getAmount().negate();
+            if (movement.getAmount().compareTo(newAmount) != 0) {
+                movement.setAmount(newAmount);
+                movementRepository.save(movement);
+            }
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void validatePaymentAmountForOnAccount(PaymentDetails paymentDetails, BigDecimal newAmount) {
+        movementRepository.findOriginalBySourcePayment(paymentDetails.getId()).ifPresent(movement -> {
+            BigDecimal onAccountSum = imputationRepository.sumOnAccountAppliedFromOrigin(movement.getId());
+            if (onAccountSum == null) onAccountSum = BigDecimal.ZERO;
+            if (newAmount.compareTo(onAccountSum) < 0) {
+                throw new IllegalStateException(
+                        "No se puede reducir el monto del pago a " + newAmount +
+                        " porque tiene " + onAccountSum + " imputados como saldo a favor en comprobantes.");
+            }
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OnAccountApplicationResponseDTO> getOnAccountApplicationsForDocument(TransactionalDocument doc) {
+        return movementRepository.findOriginalBySourceDocument(doc.getId())
+                .map(m -> imputationRepository.findByDestinationMovement_IdAndOnAccountTrue(m.getId())
+                        .stream()
+                        .map(imp -> new OnAccountApplicationResponseDTO(
+                                imp.getId(),
+                                imp.getAmountApplied(),
+                                imp.getOriginMovement().getSourcePayment() != null
+                                        ? imp.getOriginMovement().getSourcePayment().getId() : null,
+                                imp.getOriginMovement().getMovementDate()))
+                        .toList())
+                .orElse(java.util.Collections.emptyList());
     }
 
     private BigDecimal signedAmountFor(DocumentType dt, BigDecimal total) {

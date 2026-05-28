@@ -37,6 +37,9 @@ public class AccountImputation extends TenantEntity {
     @Column(name = "amount_applied", nullable = false, precision = 19, scale = 2)
     private BigDecimal amountApplied;
 
+    @Column(name = "on_account", nullable = false)
+    private boolean onAccount;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

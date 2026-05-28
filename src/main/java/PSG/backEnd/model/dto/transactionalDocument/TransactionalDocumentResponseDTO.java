@@ -55,5 +55,8 @@ public record TransactionalDocumentResponseDTO(
     List<CreditNoteApplicationResponseDTO> appliedCredits,
 
     /** True when a credit note was manually marked as applied (no invoice/debit-note links required). False otherwise. */
-    boolean manuallyApplied
+    boolean manuallyApplied,
+
+    /** On-account imputations applied directly to this invoice/debit-note from payment movements. */
+    List<OnAccountApplicationResponseDTO> onAccountApplications
 ) {}

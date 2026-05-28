@@ -1,6 +1,7 @@
 package PSG.backEnd.model.mapper;
 
 import PSG.backEnd.model.dto.transactionalDocument.CreditNoteApplicationResponseDTO;
+import PSG.backEnd.model.dto.transactionalDocument.OnAccountApplicationResponseDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentDTO;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentResponseDTO;
 import PSG.backEnd.model.entity.TransactionalDocument;
@@ -41,6 +42,7 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "remainingBalance", ignore = true)
     @Mapping(target = "creditApplications", ignore = true)
     @Mapping(target = "appliedCredits", ignore = true)
+    @Mapping(target = "onAccountApplications", ignore = true)
     TransactionalDocumentResponseDTO toResponseDto(TransactionalDocument entity);
 
     /**
@@ -56,7 +58,8 @@ public interface TransactionalDocumentMapper {
             BigDecimal pendingAmount,
             BigDecimal remainingBalance,
             List<CreditNoteApplicationResponseDTO> creditApplications,
-            List<CreditNoteApplicationResponseDTO> appliedCredits) {
+            List<CreditNoteApplicationResponseDTO> appliedCredits,
+            List<OnAccountApplicationResponseDTO> onAccountApplications) {
         TransactionalDocumentResponseDTO base = toResponseDto(entity);
         return new TransactionalDocumentResponseDTO(
                 base.id(), base.date(), base.supplierId(), base.supplierName(),
@@ -67,7 +70,8 @@ public interface TransactionalDocumentMapper {
                 base.projectAreaTaskId(), base.projectAreaTaskName(),
                 base.comment(), base.paid(), base.deleted(),
                 status, creditApplied, pendingAmount, remainingBalance, creditApplications, appliedCredits,
-                Boolean.TRUE.equals(entity.getManuallyApplied()));
+                Boolean.TRUE.equals(entity.getManuallyApplied()),
+                onAccountApplications);
     }
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)

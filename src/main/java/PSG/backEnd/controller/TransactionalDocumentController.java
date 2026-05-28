@@ -27,6 +27,8 @@ import PSG.backEnd.model.constants.AppPermissions;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+record ApplyOnAccountRequest(BigDecimal amount) {}
+
 @RestController
 @RequestMapping("/api/v1/transactional-documents")
 @RequiredArgsConstructor
@@ -312,5 +314,21 @@ public class TransactionalDocumentController {
             @Parameter(description = "Document unique identifier") @PathVariable Long id,
             @Validated @RequestBody PSG.backEnd.model.dto.transactionalDocument.LinkPurchaseOrderDTO dto) {
         return ResponseEntity.ok(purchaseOrderService.linkTransactionalDocumentFromDoc(dto.purchaseOrderId(), id));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
+    @PostMapping("/{id}/apply-on-account")
+    public ResponseEntity<TransactionalDocumentResponseDTO> applyOnAccount(
+            @PathVariable Long id,
+            @RequestBody ApplyOnAccountRequest body) {
+        return ResponseEntity.ok(iTransactionalDocumentService.applyOnAccount(id, body.amount()));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
+    @DeleteMapping("/{id}/on-account-applications/{imputationId}")
+    public ResponseEntity<TransactionalDocumentResponseDTO> removeOnAccountApplication(
+            @PathVariable Long id,
+            @PathVariable Long imputationId) {
+        return ResponseEntity.ok(iTransactionalDocumentService.removeOnAccountApplication(id, imputationId));
     }
 }

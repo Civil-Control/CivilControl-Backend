@@ -1,0 +1,1 @@
+ALTER TABLE account_imputations ADD COLUMN on_account BOOLEAN NOT NULL DEFAULT FALSE;
