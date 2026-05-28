@@ -32,6 +32,9 @@ public interface AccountMovementRepository extends JpaRepository<AccountMovement
     @Query("SELECT COALESCE(SUM(m.amount), 0) FROM AccountMovement m WHERE m.supplier.id = :supplierId AND m.tenantId = :tenantId")
     BigDecimal sumBalanceBySupplier(@Param("supplierId") Long supplierId, @Param("tenantId") Long tenantId);
 
+    @Query("SELECT m FROM AccountMovement m WHERE m.supplier.id = :supplierId AND m.tenantId = :tenantId AND m.movementType = PSG.backEnd.model.enums.ledger.AccountMovementType.PAYMENT ORDER BY m.movementDate ASC, m.id ASC")
+    List<AccountMovement> findPaymentMovementsBySupplier(@Param("supplierId") Long supplierId, @Param("tenantId") Long tenantId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM AccountMovement m WHERE m.supplier.id = :supplierId AND m.tenantId = :tenantId AND m.movementType = PSG.backEnd.model.enums.ledger.AccountMovementType.PAYMENT ORDER BY m.movementDate ASC, m.id ASC")
     List<AccountMovement> findPaymentMovementsBySupplierWithLock(@Param("supplierId") Long supplierId, @Param("tenantId") Long tenantId);

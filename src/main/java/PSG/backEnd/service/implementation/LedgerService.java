@@ -178,7 +178,7 @@ public class LedgerService implements ILedgerService {
     @Override
     @Transactional(readOnly = true)
     public BigDecimal getAvailableOnAccountBalance(Long supplierId, Long tenantId) {
-        List<AccountMovement> payments = movementRepository.findPaymentMovementsBySupplierWithLock(supplierId, tenantId);
+        List<AccountMovement> payments = movementRepository.findPaymentMovementsBySupplier(supplierId, tenantId);
         BigDecimal available = BigDecimal.ZERO;
         for (AccountMovement pm : payments) {
             BigDecimal paid = pm.getAmount().negate();

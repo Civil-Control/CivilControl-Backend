@@ -792,6 +792,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         BigDecimal creditApplied = BigDecimal.ZERO;
         BigDecimal pendingAmount = BigDecimal.ZERO;
         BigDecimal remainingBalance = BigDecimal.ZERO;
+        BigDecimal availableOnAccountBalance = null;
         List<CreditNoteApplicationResponseDTO> creditApplications = java.util.Collections.emptyList();
         List<CreditNoteApplicationResponseDTO> appliedCredits = java.util.Collections.emptyList();
         List<OnAccountApplicationResponseDTO> onAccountApplications = java.util.Collections.emptyList();
@@ -811,6 +812,10 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             creditApplied = sumApplied != null ? sumApplied : BigDecimal.ZERO;
             remainingBalance = ledgerService.getRemainingBalance(doc);
             onAccountApplications = ledgerService.getOnAccountApplicationsForDocument(doc);
+            if (doc.getSupplier() != null) {
+                availableOnAccountBalance = ledgerService.getAvailableOnAccountBalance(
+                        doc.getSupplier().getId(), doc.getTenantId());
+            }
 
             if (Boolean.TRUE.equals(doc.getPaid())) {
                 status = STATUS_PAID;
@@ -838,7 +843,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
         return transactionalDocumentMapper.toEnrichedResponseDto(
                 doc, status, creditApplied, pendingAmount, remainingBalance,
-                creditApplications, appliedCredits, onAccountApplications);
+                creditApplications, appliedCredits, onAccountApplications, availableOnAccountBalance);
     }
 
     @Override

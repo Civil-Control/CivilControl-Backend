@@ -43,6 +43,7 @@ public interface TransactionalDocumentMapper {
     @Mapping(target = "creditApplications", ignore = true)
     @Mapping(target = "appliedCredits", ignore = true)
     @Mapping(target = "onAccountApplications", ignore = true)
+    @Mapping(target = "availableOnAccountBalance", ignore = true)
     TransactionalDocumentResponseDTO toResponseDto(TransactionalDocument entity);
 
     /**
@@ -59,7 +60,8 @@ public interface TransactionalDocumentMapper {
             BigDecimal remainingBalance,
             List<CreditNoteApplicationResponseDTO> creditApplications,
             List<CreditNoteApplicationResponseDTO> appliedCredits,
-            List<OnAccountApplicationResponseDTO> onAccountApplications) {
+            List<OnAccountApplicationResponseDTO> onAccountApplications,
+            BigDecimal availableOnAccountBalance) {
         TransactionalDocumentResponseDTO base = toResponseDto(entity);
         return new TransactionalDocumentResponseDTO(
                 base.id(), base.date(), base.supplierId(), base.supplierName(),
@@ -71,7 +73,7 @@ public interface TransactionalDocumentMapper {
                 base.comment(), base.paid(), base.deleted(),
                 status, creditApplied, pendingAmount, remainingBalance, creditApplications, appliedCredits,
                 Boolean.TRUE.equals(entity.getManuallyApplied()),
-                onAccountApplications);
+                onAccountApplications, availableOnAccountBalance);
     }
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)

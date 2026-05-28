@@ -58,5 +58,8 @@ public record TransactionalDocumentResponseDTO(
     boolean manuallyApplied,
 
     /** On-account imputations applied directly to this invoice/debit-note from payment movements. */
-    List<OnAccountApplicationResponseDTO> onAccountApplications
+    List<OnAccountApplicationResponseDTO> onAccountApplications,
+
+    /** Total unallocated payment balance available for this document's supplier. */
+    BigDecimal availableOnAccountBalance
 ) {}
