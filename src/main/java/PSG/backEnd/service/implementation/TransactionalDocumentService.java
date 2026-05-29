@@ -820,7 +820,8 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             if (Boolean.TRUE.equals(doc.getPaid())) {
                 status = STATUS_PAID;
                 pendingAmount = BigDecimal.ZERO;
-            } else if (remainingBalance.signum() <= 0) {
+            } else if (remainingBalance.signum() <= 0
+                    && (creditApplied.signum() > 0 || !onAccountApplications.isEmpty())) {
                 status = STATUS_CREDITED;
                 pendingAmount = BigDecimal.ZERO;
             } else if (creditApplied.signum() > 0) {

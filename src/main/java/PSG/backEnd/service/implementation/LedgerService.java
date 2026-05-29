@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,11 +33,19 @@ public class LedgerService implements ILedgerService {
     @Override
     @Transactional
     public void recordDocumentMovement(TransactionalDocument doc) {
-        if (movementRepository.findOriginalBySourceDocument(doc.getId()).isPresent()) return;
+        BigDecimal amount = signedAmountFor(doc.getDocumentType(), doc.getTotal());
+        Optional<AccountMovement> existing = movementRepository.findOriginalBySourceDocument(doc.getId());
+        if (existing.isPresent()) {
+            if (existing.get().getAmount().compareTo(amount) != 0) {
+                existing.get().setAmount(amount);
+                movementRepository.save(existing.get());
+            }
+            return;
+        }
         movementRepository.save(AccountMovement.builder()
                 .supplier(doc.getSupplier())
                 .movementType(movementTypeFor(doc.getDocumentType()))
-                .amount(signedAmountFor(doc.getDocumentType(), doc.getTotal()))
+                .amount(amount)
                 .movementDate(doc.getDate())
                 .sourceDocument(doc)
                 .build());
@@ -265,6 +274,24 @@ public class LedgerService implements ILedgerService {
                 movementRepository.save(movement);
             }
         });
+    }
+
+    @Override
+    @Transactional
+    public void syncPaymentApplicationImputations(PaymentDetails paymentDetails) {
+        AccountMovement paymentMovement = movementRepository.findOriginalBySourcePayment(paymentDetails.getId()).orElse(null);
+        if (paymentMovement == null) return;
+        imputationRepository.deleteByOriginMovement_IdAndOnAccountFalse(paymentMovement.getId());
+        if (paymentDetails.getApplications() == null) return;
+        for (PaymentApplication app : paymentDetails.getApplications()) {
+            if (app.getDocument() == null || app.getAmountApplied() == null) continue;
+            movementRepository.findOriginalBySourceDocumentWithLock(app.getDocument().getId())
+                    .ifPresent(docMovement -> imputationRepository.save(AccountImputation.builder()
+                            .originMovement(paymentMovement)
+                            .destinationMovement(docMovement)
+                            .amountApplied(app.getAmountApplied())
+                            .build()));
+        }
     }
 
     @Override

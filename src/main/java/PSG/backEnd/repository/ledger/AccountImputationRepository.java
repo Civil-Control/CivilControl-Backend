@@ -24,6 +24,8 @@ public interface AccountImputationRepository extends JpaRepository<AccountImputa
 
     void deleteByOriginMovement_Id(Long originMovementId);
 
+    void deleteByOriginMovement_IdAndOnAccountFalse(Long originMovementId);
+
     @Query("SELECT COALESCE(SUM(i.amountApplied), 0) FROM AccountImputation i WHERE i.originMovement.id = :originMovementId AND i.onAccount = true")
     BigDecimal sumOnAccountAppliedFromOrigin(@Param("originMovementId") Long originMovementId);
 

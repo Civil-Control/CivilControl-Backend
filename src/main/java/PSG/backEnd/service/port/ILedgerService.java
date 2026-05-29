@@ -39,5 +39,7 @@ public interface ILedgerService {
 
     void syncPaymentMovement(PaymentDetails paymentDetails);
 
+    void syncPaymentApplicationImputations(PaymentDetails paymentDetails);
+
     void validatePaymentAmountForOnAccount(PaymentDetails paymentDetails, BigDecimal newAmount);
 }

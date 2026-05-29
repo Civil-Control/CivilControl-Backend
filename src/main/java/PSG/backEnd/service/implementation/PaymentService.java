@@ -661,6 +661,10 @@ public class PaymentService implements IPaymentService {
                 PaymentDetails refreshedDetails = resolvePaymentDetails(savedEntity);
                 if (refreshedDetails != null) {
                     ledgerService.syncPaymentMovement(refreshedDetails);
+                    if (refreshedDetails.getApplications() != null) {
+                        Hibernate.initialize(refreshedDetails.getApplications());
+                    }
+                    ledgerService.syncPaymentApplicationImputations(refreshedDetails);
                 }
             }
             recomputeAfterFlush(docsToRecompute);
