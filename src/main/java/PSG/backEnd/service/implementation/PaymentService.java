@@ -239,11 +239,15 @@ public class PaymentService implements IPaymentService {
         }
 
         BigDecimal totalAmount = dto.amount();
-        // Reset both collections; orphan removal will delete any existing PaymentApplication rows
+        // Reset both collections; orphan removal will delete any existing PaymentApplication rows.
+        // Flush immediately after clearing so that Hibernate executes the orphan-removal DELETEs
+        // before the INSERTs that follow — otherwise the unique constraint on
+        // (payment_details_id, document_id) raises a duplicate-key error.
         if (details.getApplications() == null) {
             details.setApplications(new HashSet<>());
         } else {
             details.getApplications().clear();
+            entityManager.flush();
         }
         if (details.getPaidDocuments() == null) {
             details.setPaidDocuments(new ArrayList<>());
@@ -266,7 +270,7 @@ public class PaymentService implements IPaymentService {
                 if (appDto.amountApplied().compareTo(outstanding) > 0) {
                     throw new IllegalArgumentException(messageSourceHelper.getMessage(
                         "payment.applications.exceedsOutstanding",
-                        doc.getId(), outstanding.toPlainString()));
+                        doc.getDocumentNumber(), outstanding.toPlainString()));
                 }
                 PaymentApplication pa = PaymentApplication.builder()
                     .payment(details)
@@ -634,11 +638,25 @@ public class PaymentService implements IPaymentService {
             }
             java.util.Set<Long> oldDocIds = new java.util.LinkedHashSet<>(collectAffectedDocIds(liveDetails));
 
+            // Capture old NC apps before clearing — required to remove their ledger imputations.
+            java.util.List<PSG.backEnd.model.entity.CreditNoteApplication> oldCnApps = new java.util.ArrayList<>();
+            if (liveDetails != null && liveDetails.getCreditNoteApplications() != null) {
+                Hibernate.initialize(liveDetails.getCreditNoteApplications());
+                oldCnApps.addAll(liveDetails.getCreditNoteApplications());
+            }
+
+            // Remove this payment's ledger imputations BEFORE re-validating so that
+            // computeOutstanding() returns the real pre-payment balance (not 0).
+            if (liveDetails != null) {
+                ledgerService.clearPaymentApplicationImputations(liveDetails);
+                ledgerService.clearPaymentCreditNoteImputations(oldCnApps);
+                entityManager.flush();
+            }
+
             // Update credit note applications when the client sent them explicitly
             java.util.List<Long> cnInvoiceIds = Collections.emptyList();
             if (liveDetails != null && mergedDetails.creditNoteApplications() != null) {
-                if (liveDetails.getCreditNoteApplications() != null) {
-                    Hibernate.initialize(liveDetails.getCreditNoteApplications());
+                if (!oldCnApps.isEmpty()) {
                     liveDetails.getCreditNoteApplications().clear();
                     entityManager.flush();
                 }
@@ -665,6 +683,10 @@ public class PaymentService implements IPaymentService {
                         Hibernate.initialize(refreshedDetails.getApplications());
                     }
                     ledgerService.syncPaymentApplicationImputations(refreshedDetails);
+                    if (refreshedDetails.getCreditNoteApplications() != null) {
+                        Hibernate.initialize(refreshedDetails.getCreditNoteApplications());
+                        ledgerService.recordPaymentCreditNoteImputations(refreshedDetails);
+                    }
                 }
             }
             recomputeAfterFlush(docsToRecompute);
@@ -788,19 +810,19 @@ public class PaymentService implements IPaymentService {
             }
             if (creditNoteApplicationRepository.existsByCreditNote_IdAndInvoice_Id(cnDto.creditNoteId(), cnDto.invoiceId())) {
                 throw new IllegalArgumentException(messageSourceHelper.getMessage(
-                    "creditNote.application.alreadyExists", cnDto.creditNoteId(), cnDto.invoiceId()));
+                    "creditNote.application.alreadyExists", creditNote.getDocumentNumber(), invoice.getDocumentNumber()));
             }
             BigDecimal alreadyApplied = creditNoteApplicationRepository.sumAppliedByCreditNote(cnDto.creditNoteId());
             if (alreadyApplied == null) alreadyApplied = BigDecimal.ZERO;
             BigDecimal available = creditNote.getTotal().subtract(alreadyApplied);
             if (cnDto.amountApplied().compareTo(available) > 0) {
                 throw new IllegalArgumentException(messageSourceHelper.getMessage(
-                    "creditNote.application.exceedsCreditNote", cnDto.creditNoteId(), available.toPlainString()));
+                    "creditNote.application.exceedsCreditNote", creditNote.getDocumentNumber(), available.toPlainString()));
             }
             BigDecimal invoiceHeadroom = computeOutstanding(invoice);
             if (cnDto.amountApplied().compareTo(invoiceHeadroom) > 0) {
                 throw new IllegalArgumentException(messageSourceHelper.getMessage(
-                    "creditNote.application.exceedsInvoice", cnDto.invoiceId(), invoiceHeadroom.toPlainString()));
+                    "creditNote.application.exceedsInvoice", invoice.getDocumentNumber(), invoiceHeadroom.toPlainString()));
             }
             PSG.backEnd.model.entity.CreditNoteApplication app = PSG.backEnd.model.entity.CreditNoteApplication.builder()
                 .creditNote(creditNote)

@@ -42,4 +42,8 @@ public interface ILedgerService {
     void syncPaymentApplicationImputations(PaymentDetails paymentDetails);
 
     void validatePaymentAmountForOnAccount(PaymentDetails paymentDetails, BigDecimal newAmount);
+
+    void clearPaymentApplicationImputations(PaymentDetails paymentDetails);
+
+    void clearPaymentCreditNoteImputations(java.util.Collection<PSG.backEnd.model.entity.CreditNoteApplication> apps);
 }

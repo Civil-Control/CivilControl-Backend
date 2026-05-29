@@ -295,6 +295,28 @@ public class LedgerService implements ILedgerService {
     }
 
     @Override
+    @Transactional
+    public void clearPaymentApplicationImputations(PaymentDetails paymentDetails) {
+        movementRepository.findOriginalBySourcePayment(paymentDetails.getId()).ifPresent(movement ->
+            imputationRepository.deleteByOriginMovement_IdAndOnAccountFalse(movement.getId())
+        );
+    }
+
+    @Override
+    @Transactional
+    public void clearPaymentCreditNoteImputations(java.util.Collection<CreditNoteApplication> apps) {
+        for (CreditNoteApplication app : apps) {
+            if (app.getCreditNote() == null || app.getInvoice() == null) continue;
+            movementRepository.findOriginalBySourceDocument(app.getCreditNote().getId()).ifPresent(cnMovement ->
+                movementRepository.findOriginalBySourceDocument(app.getInvoice().getId()).ifPresent(invMovement ->
+                    imputationRepository.deleteByOriginMovement_IdAndDestinationMovement_Id(
+                        cnMovement.getId(), invMovement.getId())
+                )
+            );
+        }
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public void validatePaymentAmountForOnAccount(PaymentDetails paymentDetails, BigDecimal newAmount) {
         movementRepository.findOriginalBySourcePayment(paymentDetails.getId()).ifPresent(movement -> {
