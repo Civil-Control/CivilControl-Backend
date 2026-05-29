@@ -24,6 +24,7 @@ public interface StockPurchaseMapper {
     @Mapping(target = "quantity", source = "purchase.quantity")
     @Mapping(target = "unitPrice", source = "purchase.unitPrice")
     @Mapping(target = "totalAmount", source = "purchase.totalAmount")
+    @Mapping(target = "description", source = "purchase.description")
     @Mapping(target = "notes", source = "purchase.notes")
     @Mapping(target = "transactionalDocumentId", source = "purchase.transactionalDocumentId")
     @Mapping(target = "transactionalDocument", expression = "java(documentToSummaryDto(document))")

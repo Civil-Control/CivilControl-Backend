@@ -53,6 +53,7 @@ public class StockPurchaseItemApplier implements BudgetForecastItemApplier {
                 qty,
                 unitPrice,
                 item.getExpectedAmount(),
+                null,                       // description
                 "Generado desde previsión #" + item.getBudgetForecast().getId(),
                 null,                       // transactionalDocumentId
                 new BigDecimal("21.00"),    // ivaPercentage

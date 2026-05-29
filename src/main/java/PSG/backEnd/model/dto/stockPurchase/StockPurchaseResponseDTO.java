@@ -33,6 +33,9 @@ public record StockPurchaseResponseDTO(
         @Schema(description = "Total purchase amount.", example = "2500.00")
         BigDecimal totalAmount,
 
+        @Schema(description = "Optional description of what was purchased.", example = "Casco de seguridad marca MSA")
+        String description,
+
         @Schema(description = "Optional notes.", example = "Compra urgente para obra Norte")
         String notes,
 

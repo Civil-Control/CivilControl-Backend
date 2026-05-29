@@ -40,6 +40,9 @@ public class StockPurchase extends TenantEntity {
     private BigDecimal ivaPercentage = new BigDecimal("21.00");
 
     @Column(length = 500)
+    private String description;
+
+    @Column(length = 500)
     private String notes;
 
     @Column(name = "transactional_document_id")

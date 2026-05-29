@@ -37,6 +37,10 @@ public record StockPurchaseDTO(
         @Digits(integer = 12, fraction = 2, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
         BigDecimal totalAmount,
 
+        @Schema(description = "Optional description of what is being purchased.", example = "Casco de seguridad marca MSA")
+        @Size(max = 500, message = "{stockPurchase.notes.maxLength}", groups = {OnCreate.class, OnUpdate.class})
+        String description,
+
         @Schema(description = "Optional notes for this purchase.", example = "Compra urgente para obra Norte")
         @Size(max = 500, message = "{stockPurchase.notes.maxLength}", groups = {OnCreate.class, OnUpdate.class})
         String notes,

@@ -1,0 +1,1 @@
+ALTER TABLE stock_purchases ADD COLUMN IF NOT EXISTS description VARCHAR(500);
