@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -116,7 +117,7 @@ public class LaborIncidentService implements ILaborIncidentService {
         return employeeIds.stream()
                 .map(empId -> employeeRepository.findByIdAndDeletedFalse(empId)
                         .orElseThrow(() -> new EmployeeNotFoundException(empId)))
-                .toList();
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
     }
 
     private void validateBusinessRules(LaborIncidentDTO dto) {
