@@ -17,7 +17,7 @@ public record PurchaseOrderResponseDTO(
         LocalDate date,
         PurchaseOrderCategory category,
         String description,
-        List<String> items,
+        List<PurchaseOrderItemDTO> items,
         String requestedBy,
         BigDecimal estimatedAmount,
         PurchaseOrderPriority priority,

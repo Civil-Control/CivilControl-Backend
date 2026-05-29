@@ -42,10 +42,9 @@ public record PurchaseOrderRequestDTO(
         String description,
 
         @Schema(description = "List of requested items. At least one is required.",
-                example = "[\"10 cascos de seguridad\", \"20 pares de guantes\"]",
                 requiredMode = Schema.RequiredMode.REQUIRED)
         @NotEmpty(message = "{purchaseOrder.items.required}", groups = OnCreate.class)
-        List<@NotBlank @Size(max = 200) String> items,
+        List<PurchaseOrderItemDTO> items,
 
         @Schema(description = "Name of the person requesting. Maximum 100 characters.",
                 example = "Juan Perez",

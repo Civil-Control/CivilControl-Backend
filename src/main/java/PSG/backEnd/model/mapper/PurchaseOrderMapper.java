@@ -1,7 +1,9 @@
 package PSG.backEnd.model.mapper;
 
+import PSG.backEnd.model.dto.purchaseOrder.PurchaseOrderItemDTO;
 import PSG.backEnd.model.dto.purchaseOrder.PurchaseOrderRequestDTO;
 import PSG.backEnd.model.dto.purchaseOrder.PurchaseOrderResponseDTO;
+import PSG.backEnd.model.entity.PurchaseOrderItem;
 import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
 import PSG.backEnd.model.entity.PurchaseOrder;
 import PSG.backEnd.model.entity.TransactionalDocument;
@@ -33,6 +35,10 @@ public interface PurchaseOrderMapper {
     @Mapping(target = "tenantId", ignore = true)
     @Mapping(target = "transactionalDocument", ignore = true)
     void partialUpdate(@MappingTarget PurchaseOrder entity, PurchaseOrderRequestDTO dto);
+
+    PurchaseOrderItemDTO toItemDTO(PurchaseOrderItem item);
+
+    PurchaseOrderItem toItem(PurchaseOrderItemDTO dto);
 
     @Named("toSummaryDTO")
     default TransactionalDocumentSummaryDTO toSummaryDTO(TransactionalDocument doc) {

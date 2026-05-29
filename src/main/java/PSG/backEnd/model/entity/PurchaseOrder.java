@@ -41,9 +41,8 @@ public class PurchaseOrder extends TenantEntity {
 
     @ElementCollection
     @CollectionTable(name = "purchase_order_items", joinColumns = @JoinColumn(name = "purchase_order_id"))
-    @Column(name = "item", nullable = false)
     @Builder.Default
-    private List<String> items = new ArrayList<>();
+    private List<PurchaseOrderItem> items = new ArrayList<>();
 
     @Column(name = "requested_by", length = 100)
     private String requestedBy;
