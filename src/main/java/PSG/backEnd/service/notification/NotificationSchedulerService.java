@@ -111,7 +111,6 @@ public class NotificationSchedulerService {
             Map<NotificationChannel, String> channelAddresses =
                     new EnumMap<>(NotificationChannel.class);
             channelAddresses.put(NotificationChannel.EMAIL, user.getEmail());
-            channelAddresses.put(NotificationChannel.WHATSAPP, user.getWhatsappNumber());
 
             NotificationPayload payload = new NotificationPayload(
                     sub.getSubjectType(),

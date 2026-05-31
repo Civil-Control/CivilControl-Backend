@@ -254,17 +254,12 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
 
     private void validateChannelVerification(NotificationSubscriptionDTO dto, User targetUser) {
         if (dto.channels() == null) return;
-        boolean needsEmail    = dto.channels().contains(NotificationChannel.EMAIL);
-        boolean needsWhatsapp = dto.channels().contains(NotificationChannel.WHATSAPP);
-        if (!needsEmail && !needsWhatsapp) return;
+        boolean needsEmail = dto.channels().contains(NotificationChannel.EMAIL);
+        if (!needsEmail) return;
 
-        if (needsEmail && !Boolean.TRUE.equals(targetUser.getEmailVerified())) {
+        if (!Boolean.TRUE.equals(targetUser.getEmailVerified())) {
             throw new NotificationSubscriptionNotValidException(
                     messageSourceHelper.getMessage("notification.subscription.channel.emailNotVerified"));
-        }
-        if (needsWhatsapp && !Boolean.TRUE.equals(targetUser.getWhatsappVerified())) {
-            throw new NotificationSubscriptionNotValidException(
-                    messageSourceHelper.getMessage("notification.subscription.channel.whatsappNotVerified"));
         }
     }
 

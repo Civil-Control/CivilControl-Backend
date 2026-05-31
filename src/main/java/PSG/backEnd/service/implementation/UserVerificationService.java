@@ -20,12 +20,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClient;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +35,6 @@ public class UserVerificationService implements IUserVerificationService {
     private final PasswordEncoder passwordEncoder;
     private final MessageSourceHelper messageSourceHelper;
     private final Resend resendClient;
-    private final RestClient whatsAppRestClient;
 
     private static final int OTP_EXPIRY_MINUTES = 10;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -52,16 +48,10 @@ public class UserVerificationService implements IUserVerificationService {
     @Value("${resend.from-name}")
     private String fromName;
 
-    @Value("${whatsapp.cloud-api.phone-number-id:}")
-    private String phoneNumberId;
-
-    @Value("${whatsapp.cloud-api.access-token:}")
-    private String accessToken;
-
     @Override
     @Transactional
     public void sendOtp(Long userId, NotificationChannel channel) {
-        if (channel == NotificationChannel.SYSTEM) {
+        if (channel != NotificationChannel.EMAIL) {
             throw new ChannelVerificationNotValidException(
                     messageSourceHelper.getMessage("channel.verification.invalidChannel"));
         }
@@ -69,7 +59,10 @@ public class UserVerificationService implements IUserVerificationService {
         User user = userRepository.findByIdAndDeletedFalse(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        validateChannelAddress(user, channel);
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new ChannelVerificationNotValidException(
+                    messageSourceHelper.getMessage("channel.verification.email.notSet"));
+        }
 
         String rawOtp = generateOtp();
         String hashedOtp = passwordEncoder.encode(rawOtp);
@@ -85,11 +78,7 @@ public class UserVerificationService implements IUserVerificationService {
                 .build();
         tokenRepository.save(token);
 
-        if (channel == NotificationChannel.EMAIL) {
-            dispatchEmailOtp(user.getEmail(), rawOtp);
-        } else {
-            dispatchWhatsAppOtp(user.getWhatsappNumber(), rawOtp);
-        }
+        dispatchEmailOtp(user.getEmail(), rawOtp);
 
         log.info("OTP sent for channel={} userId={}", channel, userId);
     }
@@ -115,11 +104,7 @@ public class UserVerificationService implements IUserVerificationService {
         User user = userRepository.findByIdAndDeletedFalse(userId)
                 .orElseThrow(() -> new UserNotFoundException(userId));
 
-        if (channel == NotificationChannel.EMAIL) {
-            user.setEmailVerified(true);
-        } else {
-            user.setWhatsappVerified(true);
-        }
+        user.setEmailVerified(true);
 
         userRepository.save(user);
         tokenRepository.delete(token);
@@ -130,20 +115,6 @@ public class UserVerificationService implements IUserVerificationService {
     }
 
     // ==================== Private helpers ====================
-
-    private void validateChannelAddress(User user, NotificationChannel channel) {
-        if (channel == NotificationChannel.EMAIL) {
-            if (user.getEmail() == null || user.getEmail().isBlank()) {
-                throw new ChannelVerificationNotValidException(
-                        messageSourceHelper.getMessage("channel.verification.email.notSet"));
-            }
-        } else if (channel == NotificationChannel.WHATSAPP) {
-            if (user.getWhatsappNumber() == null || user.getWhatsappNumber().isBlank()) {
-                throw new ChannelVerificationNotValidException(
-                        messageSourceHelper.getMessage("channel.verification.whatsapp.notSet"));
-            }
-        }
-    }
 
     private String generateOtp() {
         return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
@@ -168,43 +139,6 @@ public class UserVerificationService implements IUserVerificationService {
             log.error("Resend API error sending OTP to {}: {}", email, e.getMessage());
             throw new ChannelVerificationNotValidException(
                     messageSourceHelper.getMessage("channel.verification.email.sendError"));
-        }
-    }
-
-    private void dispatchWhatsAppOtp(String phoneNumber, String otp) {
-        if (accessToken == null || accessToken.isBlank() || phoneNumberId == null || phoneNumberId.isBlank()) {
-            log.warn("[DEV] WhatsApp OTP for {}: {}", phoneNumber, otp);
-            return;
-        }
-
-        Map<String, Object> requestBody = Map.of(
-                "messaging_product", "whatsapp",
-                "to", phoneNumber,
-                "type", "template",
-                "template", Map.of(
-                        "name", "verification_otp",
-                        "language", Map.of("code", "es_AR"),
-                        "components", List.of(
-                                Map.of(
-                                        "type", "body",
-                                        "parameters", List.of(
-                                                Map.of("type", "text", "text", otp)
-                                        )
-                                )
-                        )
-                )
-        );
-
-        try {
-            whatsAppRestClient.post()
-                    .uri("/{phoneNumberId}/messages", phoneNumberId)
-                    .body(requestBody)
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (Exception e) {
-            log.error("WhatsApp OTP send failed for {}: {}", phoneNumber, e.getMessage());
-            throw new ChannelVerificationNotValidException(
-                    messageSourceHelper.getMessage("channel.verification.whatsapp.sendError"));
         }
     }
 

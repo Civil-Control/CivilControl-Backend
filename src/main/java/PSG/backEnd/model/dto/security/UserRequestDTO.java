@@ -69,12 +69,6 @@ public record UserRequestDTO(
 
         @Schema(description = "User's default location for address autofill in forms")
         @Valid
-        UserLocationDTO location,
-
-        @Schema(description = "WhatsApp number in E.164 format (e.g. +5491112345678). Required to receive WhatsApp notifications.",
-                example = "+5491112345678",
-                nullable = true)
-        @Pattern(regexp = "^\\+[1-9]\\d{7,14}$", message = "{user.whatsappNumber.format}")
-        String whatsappNumber
+        UserLocationDTO location
 ) {}
 

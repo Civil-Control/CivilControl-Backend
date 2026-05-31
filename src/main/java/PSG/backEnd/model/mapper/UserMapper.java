@@ -23,7 +23,6 @@ public interface UserMapper {
     @Mapping(target = "enabled", ignore = true)
     @Mapping(target = "credentials", ignore = true)
     @Mapping(target = "emailVerified", ignore = true)
-    @Mapping(target = "whatsappVerified", ignore = true)
     User toEntity(UserRequestDTO requestDTO);
 
     @Mapping(target = "fullName", expression = "java(user.getFullName())")
@@ -51,7 +50,6 @@ public interface UserMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "credentials", ignore = true)
     @Mapping(target = "emailVerified", ignore = true)
-    @Mapping(target = "whatsappVerified", ignore = true)
     void partialUpdate(UserRequestDTO updateDTO, @MappingTarget User user);
 
     /**

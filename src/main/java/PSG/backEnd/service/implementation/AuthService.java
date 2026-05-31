@@ -213,9 +213,7 @@ public class AuthService implements IAuthService {
                 user.getEmail(),
                 roleDTOs,
                 user.getLocation() != null ? userLocationMapper.toDto(user.getLocation()) : null,
-                user.getEmailVerified(),
-                user.getWhatsappVerified(),
-                user.getWhatsappNumber()
+                user.getEmailVerified()
         );
     }
 
@@ -234,9 +232,7 @@ public class AuthService implements IAuthService {
                 user.getEmail(),
                 buildRoleDTOs(user),
                 user.getLocation() != null ? userLocationMapper.toDto(user.getLocation()) : null,
-                user.getEmailVerified(),
-                user.getWhatsappVerified(),
-                user.getWhatsappNumber()
+                user.getEmailVerified()
         );
     }
 

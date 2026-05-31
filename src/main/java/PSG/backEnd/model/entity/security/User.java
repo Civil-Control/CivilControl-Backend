@@ -96,16 +96,9 @@ public class User extends TenantEntity implements UserDetails {
     @Embedded
     private UserLocation location;
 
-    @Column(name = "whatsapp_number", length = 20)
-    private String whatsappNumber;
-
     @Builder.Default
     @Column(name = "email_verified", nullable = false)
     private Boolean emailVerified = false;
-
-    @Builder.Default
-    @Column(name = "whatsapp_verified", nullable = false)
-    private Boolean whatsappVerified = false;
 
     // ==================== UserDetails Implementation ====================
 

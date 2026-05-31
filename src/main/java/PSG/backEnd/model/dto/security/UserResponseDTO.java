@@ -41,13 +41,7 @@ public record UserResponseDTO(
         @Schema(description = "User's default location for address autofill")
         UserLocationDTO location,
 
-        @Schema(description = "WhatsApp number in E.164 format", example = "+5491112345678", nullable = true)
-        String whatsappNumber,
-
         @Schema(description = "Whether the email channel has been verified via OTP", example = "false")
-        Boolean emailVerified,
-
-        @Schema(description = "Whether the WhatsApp channel has been verified via OTP", example = "false")
-        Boolean whatsappVerified
+        Boolean emailVerified
 ) {}
 
