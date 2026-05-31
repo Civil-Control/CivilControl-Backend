@@ -14,6 +14,7 @@ import java.util.Optional;
 @Repository
 public interface NotificationSubscriptionRepository extends JpaRepository<NotificationSubscription, Long> {
 
+    @Query("SELECT DISTINCT s FROM NotificationSubscription s LEFT JOIN FETCH s.alerts WHERE s.deleted = false AND s.active = true")
     List<NotificationSubscription> findAllByDeletedFalseAndActiveTrue();
 
     List<NotificationSubscription> findAllByDeletedFalse();
