@@ -102,6 +102,9 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_MAP.put("BUDGET_FORECAST_TEMPLATE_", "Budget Forecast Templates");
         MODULE_MAP.put("BUDGET_FORECAST_", "Budget Forecasts");
         MODULE_MAP.put("NOTIFICATION_", "Notifications");
+        MODULE_MAP.put("LABOR_INCIDENT_", "Labor Incidents");
+        MODULE_MAP.put("RECOVERY_", "Recovery");
+        MODULE_MAP.put("PURCHASE_ORDER_", "Purchase Orders");
 
         // Spanish translations for modules
         MODULE_SPANISH_MAP.put("EMPLOYEE_VACATION_", "Vacaciones de Empleados");
@@ -144,6 +147,9 @@ public class PermissionSeeder implements CommandLineRunner {
         MODULE_SPANISH_MAP.put("BUDGET_FORECAST_TEMPLATE_", "Plantillas de Previsiones");
         MODULE_SPANISH_MAP.put("BUDGET_FORECAST_", "Previsiones de Gastos");
         MODULE_SPANISH_MAP.put("NOTIFICATION_", "Notificaciones");
+        MODULE_SPANISH_MAP.put("LABOR_INCIDENT_", "Incidentes Laborales");
+        MODULE_SPANISH_MAP.put("RECOVERY_", "Recupero");
+        MODULE_SPANISH_MAP.put("PURCHASE_ORDER_", "Órdenes de Compra");
 
         // Spanish translations for actions
         ACTION_SPANISH_MAP.put("READ", "Lectura");
@@ -229,8 +235,15 @@ public class PermissionSeeder implements CommandLineRunner {
         WORK_MODULE_MAP.put("AUDIT_", "administration");
         WORK_MODULE_MAP.put("EXCEPTION_LOG_", "administration");
 
-        // treasury: cash boxes, bank accounts, checkbooks
+        // treasury: cash boxes, bank accounts, checkbooks, recovery
         WORK_MODULE_MAP.put("TREASURY_", "treasury");
+        WORK_MODULE_MAP.put("RECOVERY_", "treasury");
+
+        // personal: labor incidents
+        WORK_MODULE_MAP.put("LABOR_INCIDENT_", "personal");
+
+        // mechanic: purchase orders
+        WORK_MODULE_MAP.put("PURCHASE_ORDER_", "mechanic");
 
         // Spanish translations for work modules
         WORK_MODULE_SPANISH_MAP.put("services", "Servicios");
