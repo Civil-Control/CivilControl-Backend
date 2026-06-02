@@ -10,6 +10,7 @@ public record NotificationPayload(
         NotificationSubjectType subjectType,
         Long subjectId,
         String subjectDisplayName,
+        String subjectDescription,
         LocalDate dueDate,
         int daysUntilDue,
         Long userId,

@@ -5,7 +5,8 @@ public enum NotificationSubjectType {
     CHECK_PAYMENT      ("Cheque pendiente"),
     INSURANCE_POLICY   ("Póliza de seguro"),
     SERVICE_ASSIGNMENT ("Afectación de servicio"),
-    WORK_CONTRACT      ("Contrato de obra");
+    WORK_CONTRACT      ("Contrato de obra"),
+    CUSTOM_REMINDER    ("Recordatorio personalizado");
 
     private final String displayName;
 

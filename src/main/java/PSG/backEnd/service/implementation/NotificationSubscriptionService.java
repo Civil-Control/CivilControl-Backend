@@ -81,6 +81,11 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
         User targetUser = userRepository.findByIdAndDeletedFalse(dto.userId())
                 .orElseThrow(() -> new UserNotFoundException(dto.userId()));
 
+        if (dto.subjectType() == NotificationSubjectType.CUSTOM_REMINDER) {
+            throw new NotificationSubscriptionNotValidException(
+                    messageSourceHelper.getMessage("notification.subscription.customReminderNotAllowed"));
+        }
+
         validateChannelVerification(dto, targetUser);
 
         if (dto.subjectId() != null) {

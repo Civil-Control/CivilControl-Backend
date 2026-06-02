@@ -116,6 +116,7 @@ public class NotificationSchedulerService {
                     sub.getSubjectType(),
                     info.subjectId(),
                     info.displayName(),
+                    info.description(),
                     info.dueDate(),
                     alert.getDaysBeforeAlert(),
                     user.getId(),

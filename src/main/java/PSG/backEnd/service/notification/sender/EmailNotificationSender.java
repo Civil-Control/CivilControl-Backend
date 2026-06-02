@@ -2,6 +2,7 @@ package PSG.backEnd.service.notification.sender;
 
 import PSG.backEnd.model.entity.notification.NotificationPayload;
 import PSG.backEnd.model.enums.notification.NotificationChannel;
+import PSG.backEnd.model.enums.notification.NotificationSubjectType;
 import com.resend.Resend;
 import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.CreateEmailOptions;
@@ -43,8 +44,10 @@ public class EmailNotificationSender implements NotificationSender {
             return;
         }
 
-        String subject = "CivilControl — " + payload.subjectDisplayName()
-                + " vence en " + payload.daysUntilDue() + " días";
+        boolean isReminder = payload.subjectType() == NotificationSubjectType.CUSTOM_REMINDER;
+        String subject = isReminder
+                ? "CivilControl — Recordatorio: " + payload.subjectDisplayName()
+                : "CivilControl — " + payload.subjectDisplayName() + " vence en " + payload.daysUntilDue() + " días";
 
         CreateEmailOptions request = CreateEmailOptions.builder()
                 .from(fromName + " <" + fromAddress + ">")
@@ -61,6 +64,9 @@ public class EmailNotificationSender implements NotificationSender {
     }
 
     private String buildHtmlBody(NotificationPayload p) {
+        if (p.subjectType() == NotificationSubjectType.CUSTOM_REMINDER) {
+            return buildReminderHtmlBody(p);
+        }
         return """
                 <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
                   <h2 style="color:#1a56db">CivilControl — Aviso de vencimiento</h2>
@@ -74,5 +80,28 @@ public class EmailNotificationSender implements NotificationSender {
                 p.subjectDisplayName(),
                 p.dueDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
                 p.daysUntilDue());
+    }
+
+    private String buildReminderHtmlBody(NotificationPayload p) {
+        String descBlock = (p.subjectDescription() != null && !p.subjectDescription().isBlank())
+                ? "<p style=\"color:#374151\">" + p.subjectDescription() + "</p>"
+                : "";
+        String dayText = p.daysUntilDue() == 0
+                ? "hoy"
+                : "en " + p.daysUntilDue() + " día(s)";
+        return """
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto">
+                  <h2 style="color:#1a56db">CivilControl — Recordatorio</h2>
+                  <p><strong>%s</strong></p>
+                  %s
+                  <p>Fecha: <strong>%s</strong> (%s)</p>
+                  <hr/>
+                  <small style="color:#6b7280">Este mensaje fue generado automáticamente. No responder.</small>
+                </div>
+                """.formatted(
+                p.subjectDisplayName(),
+                descBlock,
+                p.dueDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                dayText);
     }
 }
