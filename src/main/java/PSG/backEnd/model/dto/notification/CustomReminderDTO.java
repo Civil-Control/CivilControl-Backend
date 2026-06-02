@@ -36,7 +36,6 @@ public record CustomReminderDTO(
         Set<NotificationChannel> channels,
 
         @NotNull(message = "{validation.notNull}", groups = {OnCreate.class, OnUpdate.class})
-        @NotEmpty(message = "{validation.notEmpty}", groups = {OnCreate.class, OnUpdate.class})
         @Valid
         List<NotificationAlertDTO> alerts,
 

@@ -6,6 +6,7 @@ import PSG.backEnd.exception.user.UserNotFoundException;
 import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.notification.CustomReminderDTO;
 import PSG.backEnd.model.dto.notification.CustomReminderResponseDTO;
+import PSG.backEnd.model.dto.notification.NotificationAlertDTO;
 import PSG.backEnd.model.dto.notification.NotificationSubscriptionResponseDTO;
 import PSG.backEnd.model.entity.notification.CustomReminder;
 import PSG.backEnd.model.entity.notification.NotificationAlert;
@@ -265,7 +266,11 @@ public class CustomReminderService implements ICustomReminderService {
                 .active(dto.active())
                 .build();
 
-        dto.alerts().forEach(a -> {
+        List<NotificationAlertDTO> alertDtos = (dto.alerts() == null || dto.alerts().isEmpty())
+                ? List.of(new NotificationAlertDTO(0, true))
+                : dto.alerts();
+
+        alertDtos.forEach(a -> {
             NotificationAlert alert = NotificationAlert.builder()
                     .subscription(sub)
                     .daysBeforeAlert(a.daysBeforeAlert())
