@@ -4,6 +4,7 @@ import PSG.backEnd.model.entity.ledger.AccountMovement;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -42,4 +43,8 @@ public interface AccountMovementRepository extends JpaRepository<AccountMovement
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM AccountMovement m WHERE m.sourcePayment.id = :paymentId AND m.movementType <> PSG.backEnd.model.enums.ledger.AccountMovementType.REVERSAL")
     Optional<AccountMovement> findOriginalBySourcePaymentWithLock(@Param("paymentId") Long paymentId);
+
+    @Modifying
+    @Query("DELETE FROM AccountMovement m WHERE m.sourceDocument.id = :documentId AND m.movementType = PSG.backEnd.model.enums.ledger.AccountMovementType.REVERSAL")
+    void deleteReversalsBySourceDocument(@Param("documentId") Long documentId);
 }

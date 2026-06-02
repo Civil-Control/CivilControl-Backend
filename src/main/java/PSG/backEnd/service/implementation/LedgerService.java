@@ -40,6 +40,7 @@ public class LedgerService implements ILedgerService {
                 existing.get().setAmount(amount);
                 movementRepository.save(existing.get());
             }
+            movementRepository.deleteReversalsBySourceDocument(doc.getId());
             return;
         }
         movementRepository.save(AccountMovement.builder()
