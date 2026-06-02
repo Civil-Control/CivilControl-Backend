@@ -66,7 +66,7 @@ public class FuelLoadController {
         return new ResponseEntity<>(result, status);
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.FUEL_LOAD_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.FUEL_LOAD_READ + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_READ + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     @GetMapping
     @Operation(summary = "Get all fuel loads with filters",
             description = "Retrieves a paginated list of fuel load transactions with optional filtering by date range, branch code, ticket number, fuel type, vehicle, project area, and gas station. Supports sorting and pagination.")

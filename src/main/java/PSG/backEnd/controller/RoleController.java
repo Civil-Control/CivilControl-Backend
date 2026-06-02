@@ -69,7 +69,7 @@ public class RoleController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.ROLE_MANAGEMENT + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.ROLE_MANAGEMENT + "','" + AppPermissions.USER_MANAGEMENT + "')")
     @GetMapping
     @Operation(summary = "Get all roles with filters",
             description = "Retrieves a paginated list of roles with optional filtering by name and active status. " +

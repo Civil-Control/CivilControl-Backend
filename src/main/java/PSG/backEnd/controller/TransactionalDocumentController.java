@@ -63,7 +63,7 @@ public class TransactionalDocumentController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.TRANSACTIONAL_DOCUMENT_READ + "','" + AppPermissions.PAYMENT_WRITE + "')")
     @GetMapping
     @Operation(summary = "Get all transactional documents with filters",
             description = "Retrieves a paginated list of transactional documents with optional filtering by document number, supplier information, " +

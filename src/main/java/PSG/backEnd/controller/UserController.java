@@ -68,7 +68,7 @@ public class UserController {
         return ResponseEntity.created(location).body(created);
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.USER_MANAGEMENT + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.USER_MANAGEMENT + "','" + AppPermissions.NOTIFICATION_ASSIGN_OTHERS + "')")
     @GetMapping
     @Operation(summary = "Get all users with filters",
             description = "Retrieves a paginated list of users with optional filtering by username, email, name, and enabled status. " +

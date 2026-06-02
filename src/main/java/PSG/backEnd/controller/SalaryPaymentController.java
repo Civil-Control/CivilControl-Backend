@@ -67,7 +67,7 @@ public class SalaryPaymentController {
         return new ResponseEntity<>(result, status);
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.SALARY_PAYMENT_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.SALARY_PAYMENT_READ + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_READ + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     @GetMapping
     @Operation(summary = "Get all salary payments",
             description = "Retrieves a paginated list of salary payments with optional filtering by employee (ID, first name, last name), " +

@@ -54,7 +54,22 @@ public class ProjectAreaTaskController {
         return ResponseEntity.ok(taskService.getTaskById(id));
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.PROJECT_AREA_READ + "')")
+    @PreAuthorize(
+        "hasAnyAuthority("
+        + "'" + AppPermissions.PROJECT_AREA_READ + "',"
+        + "'" + AppPermissions.VEHICLE_WRITE + "',"
+        + "'" + AppPermissions.FUEL_LOAD_WRITE + "',"
+        + "'" + AppPermissions.EMPLOYEE_WRITE + "',"
+        + "'" + AppPermissions.BUILDING_WRITE + "',"
+        + "'" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "',"
+        + "'" + AppPermissions.SALARY_PAYMENT_WRITE + "',"
+        + "'" + AppPermissions.SERVICE_ASSIGNMENT_WRITE + "',"
+        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "',"
+        + "'" + AppPermissions.SALES_DOCUMENT_WRITE + "',"
+        + "'" + AppPermissions.WORK_CONTRACT_WRITE + "',"
+        + "'" + AppPermissions.EPP_DELIVERY_WRITE + "'"
+        + ")"
+    )
     @GetMapping("/by-project-area/{projectAreaId}")
     @Operation(summary = "Get all tasks for a project area")
     @ApiResponse(responseCode = "200", description = "Task list retrieved")

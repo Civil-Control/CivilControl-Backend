@@ -67,7 +67,7 @@ public class StockPurchaseController {
         return new ResponseEntity<>(result, status);
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.STOCK_PURCHASE_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.STOCK_PURCHASE_READ + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_READ + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     @GetMapping
     @Operation(summary = "Get all stock purchases with filters",
             description = "Retrieves a paginated list of stock purchases with optional filtering.")

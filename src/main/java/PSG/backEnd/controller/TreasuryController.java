@@ -30,7 +30,7 @@ public class TreasuryController {
     // ───────────────────── Cash Boxes ─────────────────────
 
     @GetMapping("/cash-boxes")
-    @PreAuthorize("hasAuthority('" + AppPermissions.TREASURY_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.TREASURY_READ + "','" + AppPermissions.PAYMENT_WRITE + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     public Page<CashBoxResponseDTO> listCashBoxes(@RequestParam(required = false) Boolean active,
                                                   @RequestParam(required = false) String search,
                                                   Pageable pageable) {
@@ -82,7 +82,7 @@ public class TreasuryController {
     // ───────────────────── Bank Accounts ─────────────────────
 
     @GetMapping("/bank-accounts")
-    @PreAuthorize("hasAuthority('" + AppPermissions.TREASURY_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.TREASURY_READ + "','" + AppPermissions.PAYMENT_WRITE + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     public Page<BankAccountResponseDTO> listBankAccounts(@RequestParam(required = false) Boolean active,
                                                          @RequestParam(required = false) String search,
                                                          Pageable pageable) {
@@ -133,7 +133,7 @@ public class TreasuryController {
     // ───────────────────── Checkbooks ─────────────────────
 
     @GetMapping("/checkbooks")
-    @PreAuthorize("hasAuthority('" + AppPermissions.TREASURY_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.TREASURY_READ + "','" + AppPermissions.PAYMENT_WRITE + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     public Page<CheckbookResponseDTO> listCheckbooks(@RequestParam(required = false) Long bankAccountId,
                                                      @RequestParam(required = false) Boolean active,
                                                      @RequestParam(required = false) String search,

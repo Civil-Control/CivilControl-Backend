@@ -65,7 +65,11 @@ public class ReferenceDataController {
         + "'" + AppPermissions.FUEL_LOAD_WRITE + "',"
         + "'" + AppPermissions.SERVICE_ASSIGNMENT_WRITE + "',"
         + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "',"
-        + "'" + AppPermissions.INSURANCE_POLICY_WRITE + "'"
+        + "'" + AppPermissions.INSURANCE_POLICY_WRITE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_CREATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_UPDATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_TEMPLATE_CREATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_TEMPLATE_UPDATE + "'"
         + ")"
     )
     public ResponseEntity<List<VehicleReferenceItem>> getVehicleReferences() {
@@ -83,7 +87,13 @@ public class ReferenceDataController {
         + "'" + AppPermissions.SALARY_PAYMENT_WRITE + "',"
         + "'" + AppPermissions.DISCIPLINARY_ACTION_WRITE + "',"
         + "'" + AppPermissions.EMPLOYEE_VACATION_WRITE + "',"
-        + "'" + AppPermissions.EPP_DELIVERY_WRITE + "'"
+        + "'" + AppPermissions.EPP_DELIVERY_WRITE + "',"
+        + "'" + AppPermissions.ATTENDANCE_RECORD_WRITE + "',"
+        + "'" + AppPermissions.LABOR_INCIDENT_WRITE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_CREATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_UPDATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_TEMPLATE_CREATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_TEMPLATE_UPDATE + "'"
         + ")"
     )
     public ResponseEntity<List<EmployeeReferenceItem>> getEmployeeReferences() {
@@ -104,7 +114,12 @@ public class ReferenceDataController {
         + "'" + AppPermissions.GAS_STATION_WRITE + "',"
         + "'" + AppPermissions.REPAIR_ORDER_WRITE + "',"
         + "'" + AppPermissions.SERVICE_SUPPLIER_WRITE + "',"
-        + "'" + AppPermissions.RECOVERY_MANAGE + "'"
+        + "'" + AppPermissions.RECOVERY_MANAGE + "',"
+        + "'" + AppPermissions.INSURANCE_POLICY_WRITE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_CREATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_UPDATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_TEMPLATE_CREATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_TEMPLATE_UPDATE + "'"
         + ")"
     )
     public ResponseEntity<List<PSG.backEnd.model.dto.reference.SupplierReferenceItem>> getSupplierReferences() {
@@ -122,7 +137,8 @@ public class ReferenceDataController {
         + "'" + AppPermissions.STOCK_WRITE + "',"
         + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "',"
         + "'" + AppPermissions.SERVICE_ASSIGNMENT_WRITE + "',"
-        + "'" + AppPermissions.VEHICLE_WRITE + "'"
+        + "'" + AppPermissions.VEHICLE_WRITE + "',"
+        + "'" + AppPermissions.ATTENDANCE_RECORD_WRITE + "'"
         + ")"
     )
     public ResponseEntity<List<ReferenceItem>> getBuildingReferences() {
@@ -145,7 +161,10 @@ public class ReferenceDataController {
         + "'" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "',"
         + "'" + AppPermissions.SALARY_PAYMENT_WRITE + "',"
         + "'" + AppPermissions.SERVICE_ASSIGNMENT_WRITE + "',"
-        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "'"
+        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "',"
+        + "'" + AppPermissions.SALES_DOCUMENT_WRITE + "',"
+        + "'" + AppPermissions.WORK_CONTRACT_WRITE + "',"
+        + "'" + AppPermissions.EPP_DELIVERY_WRITE + "'"
         + ")"
     )
     public ResponseEntity<List<ReferenceItem>> getProjectAreaReferences() {
@@ -268,7 +287,11 @@ public class ReferenceDataController {
     @PreAuthorize(
         "hasAnyAuthority("
         + "'" + AppPermissions.SERVICE_ASSIGNMENT_READ + "',"
-        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "'"
+        + "'" + AppPermissions.SERVICE_PAYMENT_WRITE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_CREATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_UPDATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_TEMPLATE_CREATE + "',"
+        + "'" + AppPermissions.BUDGET_FORECAST_TEMPLATE_UPDATE + "'"
         + ")"
     )
     public ResponseEntity<List<ServiceAssignmentReferenceItem>> getServiceAssignmentReferences() {

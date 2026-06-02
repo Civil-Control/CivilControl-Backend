@@ -50,7 +50,7 @@ public class RepairController {
         return new ResponseEntity<>(createdRepair, HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.REPAIR_READ + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_READ + "','" + AppPermissions.TRANSACTIONAL_DOCUMENT_WRITE + "')")
     @GetMapping
     @Operation(summary = "Get all repairs with filters",
                description = "Retrieves a paginated list of repairs with optional filtering.")

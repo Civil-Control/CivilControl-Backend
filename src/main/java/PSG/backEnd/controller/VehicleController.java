@@ -197,7 +197,7 @@ public class VehicleController {
         return new ResponseEntity<>(iVehicleTypeService.createVehicleType(vehicleTypeDTO), HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.VEHICLE_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.VEHICLE_READ + "','" + AppPermissions.VEHICLE_WRITE + "')")
     @GetMapping("/types")
     @Operation(summary = "Get all vehicle types",
             description = "Returns a paginated and filterable list of available vehicle types.")

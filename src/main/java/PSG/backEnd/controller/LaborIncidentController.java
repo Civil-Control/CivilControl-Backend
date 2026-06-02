@@ -48,7 +48,7 @@ public class LaborIncidentController {
         return new ResponseEntity<>(iLaborIncidentService.createLaborIncident(dto), HttpStatus.CREATED);
     }
 
-    @PreAuthorize("hasAuthority('" + AppPermissions.LABOR_INCIDENT_READ + "')")
+    @PreAuthorize("hasAnyAuthority('" + AppPermissions.LABOR_INCIDENT_READ + "','" + AppPermissions.DISCIPLINARY_ACTION_WRITE + "')")
     @GetMapping
     @Operation(summary = "Listar incidentes laborales con filtros y paginación")
     @ApiResponse(responseCode = "200", description = "Lista de incidentes obtenida correctamente")
