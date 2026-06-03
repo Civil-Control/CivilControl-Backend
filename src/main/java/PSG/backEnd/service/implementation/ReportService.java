@@ -2661,7 +2661,7 @@ public class ReportService implements IReportService {
                         filters.minAmount(), filters.maxAmount(),
                         filters.supplierId(), null, null, null, null, null, null, null, false, pageable
                 ).getContent().stream()
-                        .filter(r -> r.getProjectArea() == null)
+                        .filter(r -> r.getVehicle() == null || r.getVehicle().getProjectArea() == null)
                         .forEach(allRepairs::add);
             }
         } else {
@@ -2673,7 +2673,7 @@ public class ReportService implements IReportService {
             ).getContent());
             if (wantUnassigned) {
                 allRepairs = allRepairs.stream()
-                        .filter(r -> r.getProjectArea() == null)
+                        .filter(r -> r.getVehicle() == null || r.getVehicle().getProjectArea() == null)
                         .collect(Collectors.toList());
             }
         }
