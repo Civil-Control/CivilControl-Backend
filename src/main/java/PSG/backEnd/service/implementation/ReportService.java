@@ -378,17 +378,27 @@ public class ReportService implements IReportService {
 
         List<Long> areaIds = filters.projectAreaIds();
         boolean hasAreaFilter = areaIds != null && !areaIds.isEmpty();
+        boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
 
-        // For multiple areas: collect per area and deduplicate by item ID
-        if (hasAreaFilter && areaIds.size() > 1) {
+        if (hasAreaFilter) {
             Map<Long, ReportItemDTO> merged = new LinkedHashMap<>();
             for (Long areaId : areaIds) {
                 ReportFilterDTO singleAreaFilters = new ReportFilterDTO(
                         filters.startDate(), filters.endDate(), filters.categories(),
                         List.of(areaId), filters.minAmount(), filters.maxAmount(),
-                        filters.sortBy(), filters.sortOrder()
+                        filters.sortBy(), filters.sortOrder(), null
                 );
                 collectMoneyOutflows(singleAreaFilters).forEach(item -> merged.put(item.id(), item));
+            }
+            if (wantUnassigned) {
+                ReportFilterDTO noAreaFilters = new ReportFilterDTO(
+                        filters.startDate(), filters.endDate(), filters.categories(),
+                        null, filters.minAmount(), filters.maxAmount(),
+                        filters.sortBy(), filters.sortOrder(), null
+                );
+                collectMoneyOutflows(noAreaFilters).stream()
+                        .filter(item -> item.projectAreaName() == null)
+                        .forEach(item -> merged.putIfAbsent(item.id(), item));
             }
             log.debug("Collected {} money outflow items across {} areas", merged.size(), areaIds.size());
             return new ArrayList<>(merged.values());
@@ -437,6 +447,12 @@ public class ReportService implements IReportService {
 
         if (includeAll || filters.categories().contains(MoneyOutflowCategory.STOCK_PURCHASE)) {
             allItems.addAll(collectFromStockPurchases(filters));
+        }
+
+        if (wantUnassigned && !hasAreaFilter) {
+            allItems = allItems.stream()
+                    .filter(item -> item.projectAreaName() == null)
+                    .collect(Collectors.toList());
         }
 
         log.debug("Collected {} money outflow items", allItems.size());
@@ -1161,13 +1177,13 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        // Collect raw salary payments using existing repository
         List<Long> areaIds = filters.projectAreaIds();
-        Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
+        boolean hasAreaFilter = areaIds != null && !areaIds.isEmpty();
+        boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
+        Long effectiveAreaId = hasAreaFilter ? areaIds.get(0) : null;
 
-        // If multiple area IDs, we collect per area and merge; otherwise single call
         List<SalaryPayment> allPayments;
-        if (areaIds != null && areaIds.size() > 1) {
+        if (hasAreaFilter) {
             allPayments = new ArrayList<>();
             for (Long areaId : areaIds) {
                 allPayments.addAll(salaryPaymentRepository.findAllWithFilters(
@@ -1184,8 +1200,25 @@ public class ReportService implements IReportService {
                         pageable
                 ).getContent());
             }
+            if (wantUnassigned) {
+                salaryPaymentRepository.findAllWithFilters(
+                        null, null, null,
+                        filters.salaryFrequency(),
+                        null,
+                        filters.startDate(),
+                        filters.endDate(),
+                        filters.minAmount(),
+                        filters.maxAmount(),
+                        filters.paymentMethod(),
+                        null, null,
+                        false,
+                        pageable
+                ).getContent().stream()
+                        .filter(sp -> sp.getProjectArea() == null)
+                        .forEach(allPayments::add);
+            }
         } else {
-            allPayments = salaryPaymentRepository.findAllWithFilters(
+            allPayments = new ArrayList<>(salaryPaymentRepository.findAllWithFilters(
                     null, null, null,
                     filters.salaryFrequency(),
                     effectiveAreaId,
@@ -1197,7 +1230,12 @@ public class ReportService implements IReportService {
                     null, null,
                     false,
                     pageable
-            ).getContent();
+            ).getContent());
+            if (wantUnassigned) {
+                allPayments = allPayments.stream()
+                        .filter(sp -> sp.getProjectArea() == null)
+                        .collect(Collectors.toList());
+            }
         }
 
         // Group by project area, then by employee
@@ -1461,46 +1499,40 @@ public class ReportService implements IReportService {
         Pageable pageable = PageRequest.of(0, 10000);
 
         List<Long> areaIds = filters.projectAreaIds();
-        Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
+        boolean hasAreaFilter = areaIds != null && !areaIds.isEmpty();
+        boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
+        Long effectiveAreaId = hasAreaFilter ? areaIds.get(0) : null;
 
         List<TransactionalDocument> allDocuments;
-        if (areaIds != null && areaIds.size() > 1) {
+        if (hasAreaFilter) {
             allDocuments = new ArrayList<>();
             for (Long areaId : areaIds) {
                 allDocuments.addAll(transactionalDocumentRepository.findAllWithFilters(
-                        null,
-                        filters.documentType(),
-                        null,
-                        null, null,
-                        areaId,
-                        null,
-                        filters.maxAmount(),
-                        filters.minAmount(),
-                        null,
-                        filters.startDate(),
-                        filters.endDate(),
-                        filters.paid(),
-                        null,
-                        pageable
+                        null, filters.documentType(), null, null, null, areaId, null,
+                        filters.maxAmount(), filters.minAmount(), null,
+                        filters.startDate(), filters.endDate(), filters.paid(), null, pageable
                 ).getContent());
             }
+            if (wantUnassigned) {
+                transactionalDocumentRepository.findAllWithFilters(
+                        null, filters.documentType(), null, null, null, null, null,
+                        filters.maxAmount(), filters.minAmount(), null,
+                        filters.startDate(), filters.endDate(), filters.paid(), null, pageable
+                ).getContent().stream()
+                        .filter(td -> td.getProjectArea() == null)
+                        .forEach(allDocuments::add);
+            }
         } else {
-            allDocuments = transactionalDocumentRepository.findAllWithFilters(
-                    null,
-                    filters.documentType(),
-                    null,
-                    null, null,
-                    effectiveAreaId,
-                    null,
-                    filters.maxAmount(),
-                    filters.minAmount(),
-                    null,
-                    filters.startDate(),
-                    filters.endDate(),
-                    filters.paid(),
-                    null,
-                    pageable
-            ).getContent();
+            allDocuments = new ArrayList<>(transactionalDocumentRepository.findAllWithFilters(
+                    null, filters.documentType(), null, null, null, effectiveAreaId, null,
+                    filters.maxAmount(), filters.minAmount(), null,
+                    filters.startDate(), filters.endDate(), filters.paid(), null, pageable
+            ).getContent());
+            if (wantUnassigned) {
+                allDocuments = allDocuments.stream()
+                        .filter(td -> td.getProjectArea() == null)
+                        .collect(Collectors.toList());
+            }
         }
 
         List<InvoiceReportAreaGroupDTO> areaGroups = buildInvoiceAreaGroups(allDocuments);
@@ -1877,44 +1909,44 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        // Collect raw service payments using existing repository
         List<Long> areaIds = filters.projectAreaIds();
+        boolean hasAreaFilter = areaIds != null && !areaIds.isEmpty();
+        boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
+        Long effectiveAreaId = hasAreaFilter ? areaIds.get(0) : null;
 
         List<ServicePayment> allPayments;
-        if (areaIds != null && areaIds.size() > 1) {
+        if (hasAreaFilter) {
             allPayments = new ArrayList<>();
             for (Long areaId : areaIds) {
                 allPayments.addAll(servicePaymentRepository.findAllWithFilters(
-                        filters.subjectType(), null, null, null,
-                        areaId,
-                        filters.serviceType(),
-                        null,
-                        filters.year(),
-                        filters.period(),
-                        filters.startDate(),
-                        filters.endDate(),
-                        filters.minAmount(),
-                        filters.maxAmount(),
-                        null, null, null,
-                        pageable
+                        filters.subjectType(), null, null, null, areaId,
+                        filters.serviceType(), null, filters.year(), filters.period(),
+                        filters.startDate(), filters.endDate(),
+                        filters.minAmount(), filters.maxAmount(), null, null, null, pageable
                 ).getContent());
             }
+            if (wantUnassigned) {
+                servicePaymentRepository.findAllWithFilters(
+                        filters.subjectType(), null, null, null, null,
+                        filters.serviceType(), null, filters.year(), filters.period(),
+                        filters.startDate(), filters.endDate(),
+                        filters.minAmount(), filters.maxAmount(), null, null, null, pageable
+                ).getContent().stream()
+                        .filter(sp -> sp.getProjectArea() == null)
+                        .forEach(allPayments::add);
+            }
         } else {
-            Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
-            allPayments = servicePaymentRepository.findAllWithFilters(
-                    filters.subjectType(), null, null, null,
-                    effectiveAreaId,
-                    filters.serviceType(),
-                    null,
-                    filters.year(),
-                    filters.period(),
-                    filters.startDate(),
-                    filters.endDate(),
-                    filters.minAmount(),
-                    filters.maxAmount(),
-                    null, null, null,
-                    pageable
-            ).getContent();
+            allPayments = new ArrayList<>(servicePaymentRepository.findAllWithFilters(
+                    filters.subjectType(), null, null, null, effectiveAreaId,
+                    filters.serviceType(), null, filters.year(), filters.period(),
+                    filters.startDate(), filters.endDate(),
+                    filters.minAmount(), filters.maxAmount(), null, null, null, pageable
+            ).getContent());
+            if (wantUnassigned) {
+                allPayments = allPayments.stream()
+                        .filter(sp -> sp.getProjectArea() == null)
+                        .collect(Collectors.toList());
+            }
         }
 
         // Filter by payment method if specified (not in repository query)
@@ -2196,37 +2228,44 @@ public class ReportService implements IReportService {
         Pageable pageable = PageRequest.of(0, 10000);
 
         List<Long> areaIds = filters.projectAreaIds();
+        boolean hasAreaFilter = areaIds != null && !areaIds.isEmpty();
+        boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
+        Long effectiveAreaId = hasAreaFilter ? areaIds.get(0) : null;
         String fuelTypeStr = filters.fuelType() != null ? filters.fuelType().name() : null;
 
         List<FuelLoad> allLoads;
-        if (areaIds != null && areaIds.size() > 1) {
+        if (hasAreaFilter) {
             allLoads = new ArrayList<>();
             for (Long areaId : areaIds) {
                 allLoads.addAll(fuelLoadRepository.findAllWithFilters(
-                        filters.startDate(), filters.endDate(),
-                        null, null, fuelTypeStr,
-                        filters.vehicleId(), null,
-                        areaId, null,
+                        filters.startDate(), filters.endDate(), null, null, fuelTypeStr,
+                        filters.vehicleId(), null, areaId, null,
                         filters.gasStationId(), null, null,
-                        filters.minAmount(), filters.maxAmount(),
-                        null, null,
-                        false,
-                        pageable
+                        filters.minAmount(), filters.maxAmount(), null, null, false, pageable
                 ).getContent());
             }
+            if (wantUnassigned) {
+                fuelLoadRepository.findAllWithFilters(
+                        filters.startDate(), filters.endDate(), null, null, fuelTypeStr,
+                        filters.vehicleId(), null, null, null,
+                        filters.gasStationId(), null, null,
+                        filters.minAmount(), filters.maxAmount(), null, null, false, pageable
+                ).getContent().stream()
+                        .filter(fl -> fl.getProjectArea() == null)
+                        .forEach(allLoads::add);
+            }
         } else {
-            Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
-            allLoads = fuelLoadRepository.findAllWithFilters(
-                    filters.startDate(), filters.endDate(),
-                    null, null, fuelTypeStr,
-                    filters.vehicleId(), null,
-                    effectiveAreaId, null,
+            allLoads = new ArrayList<>(fuelLoadRepository.findAllWithFilters(
+                    filters.startDate(), filters.endDate(), null, null, fuelTypeStr,
+                    filters.vehicleId(), null, effectiveAreaId, null,
                     filters.gasStationId(), null, null,
-                    filters.minAmount(), filters.maxAmount(),
-                    null, null,
-                    false,
-                    pageable
-            ).getContent();
+                    filters.minAmount(), filters.maxAmount(), null, null, false, pageable
+            ).getContent());
+            if (wantUnassigned) {
+                allLoads = allLoads.stream()
+                        .filter(fl -> fl.getProjectArea() == null)
+                        .collect(Collectors.toList());
+            }
         }
 
         // In-memory filter: vehicle type (not supported by repository query)
@@ -2600,34 +2639,43 @@ public class ReportService implements IReportService {
         Pageable pageable = PageRequest.of(0, 10000);
 
         List<Long> areaIds = filters.projectAreaIds();
+        boolean hasAreaFilter = areaIds != null && !areaIds.isEmpty();
+        boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
+        Long effectiveAreaId = hasAreaFilter ? areaIds.get(0) : null;
 
         List<Repair> allRepairs;
-        if (areaIds != null && areaIds.size() > 1) {
+        if (hasAreaFilter) {
             allRepairs = new ArrayList<>();
             for (Long areaId : areaIds) {
                 allRepairs.addAll(repairRepository.findAllWithFilters(
-                        filters.startDate(), filters.endDate(),
-                        null,
-                        filters.vehicleId(), null,
-                        areaId,
+                        filters.startDate(), filters.endDate(), null,
+                        filters.vehicleId(), null, areaId,
                         filters.minAmount(), filters.maxAmount(),
-                        filters.supplierId(), null,
-                        null, null, null, null, null, null, false,
-                        pageable
+                        filters.supplierId(), null, null, null, null, null, null, null, false, pageable
                 ).getContent());
             }
+            if (wantUnassigned) {
+                repairRepository.findAllWithFilters(
+                        filters.startDate(), filters.endDate(), null,
+                        filters.vehicleId(), null, null,
+                        filters.minAmount(), filters.maxAmount(),
+                        filters.supplierId(), null, null, null, null, null, null, null, false, pageable
+                ).getContent().stream()
+                        .filter(r -> r.getProjectArea() == null)
+                        .forEach(allRepairs::add);
+            }
         } else {
-            Long effectiveAreaId = (areaIds != null && !areaIds.isEmpty()) ? areaIds.get(0) : null;
-            allRepairs = repairRepository.findAllWithFilters(
-                    filters.startDate(), filters.endDate(),
-                    null,
-                    filters.vehicleId(), null,
-                    effectiveAreaId,
+            allRepairs = new ArrayList<>(repairRepository.findAllWithFilters(
+                    filters.startDate(), filters.endDate(), null,
+                    filters.vehicleId(), null, effectiveAreaId,
                     filters.minAmount(), filters.maxAmount(),
-                    filters.supplierId(), null,
-                    null, null, null, null, null, null, false,
-                    pageable
-            ).getContent();
+                    filters.supplierId(), null, null, null, null, null, null, null, false, pageable
+            ).getContent());
+            if (wantUnassigned) {
+                allRepairs = allRepairs.stream()
+                        .filter(r -> r.getProjectArea() == null)
+                        .collect(Collectors.toList());
+            }
         }
 
         List<RepairReportAreaGroupDTO> areaGroups = buildRepairAreaGroups(allRepairs);
@@ -3453,6 +3501,7 @@ public class ReportService implements IReportService {
 
         // ── Fetch sales documents ──
         boolean hasAreaFilter = filters.projectAreaIds() != null && !filters.projectAreaIds().isEmpty();
+        boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
         Collection<Long> areaIds = hasAreaFilter ? filters.projectAreaIds() : List.of(-1L);
         boolean hasClientFilter = filters.clientIds() != null && !filters.clientIds().isEmpty();
         Collection<Long> clientIds = hasClientFilter ? filters.clientIds() : List.of(-1L);
@@ -3470,6 +3519,30 @@ public class ReportService implements IReportService {
                 clientIds,
                 filters.ivaCondition()
         );
+
+        if (wantUnassigned && hasAreaFilter) {
+            List<SalesDocument> unassigned = salesDocumentRepository.findAllForReport(
+                    filters.documentType(),
+                    filters.startDate(),
+                    filters.endDate(),
+                    filters.minAmount(),
+                    filters.maxAmount(),
+                    filters.paid(),
+                    false,
+                    List.of(-1L),
+                    hasClientFilter,
+                    clientIds,
+                    filters.ivaCondition()
+            ).stream().filter(sd -> sd.getProjectArea() == null).toList();
+            Set<Long> existingIds = allDocuments.stream().map(SalesDocument::getId).collect(Collectors.toSet());
+            List<SalesDocument> merged = new ArrayList<>(allDocuments);
+            unassigned.stream().filter(sd -> !existingIds.contains(sd.getId())).forEach(merged::add);
+            allDocuments = merged;
+        } else if (wantUnassigned && !hasAreaFilter) {
+            allDocuments = allDocuments.stream()
+                    .filter(sd -> sd.getProjectArea() == null)
+                    .collect(Collectors.toList());
+        }
 
         // Filter by workContractId via linked certifications (if specified)
         Map<Long, List<Certification>> certByDoc = new HashMap<>();
@@ -3984,8 +4057,14 @@ public class ReportService implements IReportService {
         // Project-area filter restricts which documents drive movements.
         if (filters.projectAreaIds() != null && !filters.projectAreaIds().isEmpty()) {
             Set<Long> areaIds = new HashSet<>(filters.projectAreaIds());
+            boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
             periodDocs = periodDocs.stream()
-                    .filter(td -> td.getProjectArea() != null && areaIds.contains(td.getProjectArea().getId()))
+                    .filter(td -> (td.getProjectArea() != null && areaIds.contains(td.getProjectArea().getId()))
+                               || (wantUnassigned && td.getProjectArea() == null))
+                    .toList();
+        } else if (Boolean.TRUE.equals(filters.includeUnassigned())) {
+            periodDocs = periodDocs.stream()
+                    .filter(td -> td.getProjectArea() == null)
                     .toList();
         }
 
@@ -4503,7 +4582,7 @@ public class ReportService implements IReportService {
         return new IssuedPaymentReportFilterDTO(
                 start, end, f.paymentMethods(), f.supplierIds(), f.projectAreaIds(),
                 f.checkStatuses(), f.bankAccountIds(), f.cashBoxIds(), f.checkbookIds(),
-                f.minAmount(), f.maxAmount(), f.onlyOverdueChecks(), f.groupBy()
+                f.minAmount(), f.maxAmount(), f.onlyOverdueChecks(), f.groupBy(), f.includeUnassigned()
         );
     }
 
@@ -4535,11 +4614,18 @@ public class ReportService implements IReportService {
                 if (sid == null || !f.supplierIds().contains(sid)) return false;
             }
 
-            // project area: at least one paid document in selected areas
+            // project area filter
             if (f.projectAreaIds() != null && !f.projectAreaIds().isEmpty()) {
-                boolean any = pd.getPaidDocuments() != null && pd.getPaidDocuments().stream().anyMatch(d ->
+                boolean wantUnassigned = Boolean.TRUE.equals(f.includeUnassigned());
+                boolean anyInArea = pd.getPaidDocuments() != null && pd.getPaidDocuments().stream().anyMatch(d ->
                         d.getProjectArea() != null && f.projectAreaIds().contains(d.getProjectArea().getId()));
-                if (!any) return false;
+                boolean anyUnassigned = wantUnassigned && pd.getPaidDocuments() != null
+                        && pd.getPaidDocuments().stream().anyMatch(d -> d.getProjectArea() == null);
+                if (!anyInArea && !anyUnassigned) return false;
+            } else if (Boolean.TRUE.equals(f.includeUnassigned())) {
+                boolean anyUnassigned = pd.getPaidDocuments() != null
+                        && pd.getPaidDocuments().stream().anyMatch(d -> d.getProjectArea() == null);
+                if (!anyUnassigned) return false;
             }
 
             // treasury filters

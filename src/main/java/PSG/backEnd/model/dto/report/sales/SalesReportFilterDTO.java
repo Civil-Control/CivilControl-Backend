@@ -23,5 +23,6 @@ public record SalesReportFilterDTO(
         Boolean includeCertificationsOnly,
         CertificationStatus certificationStatus,
         BigDecimal minAmount,
-        BigDecimal maxAmount
+        BigDecimal maxAmount,
+        Boolean includeUnassigned
 ) {}

@@ -30,5 +30,8 @@ public record SalaryReportFilterDTO(
     BigDecimal minAmount,
 
     @Schema(description = "Maximum payment amount (inclusive)", nullable = true)
-    BigDecimal maxAmount
+    BigDecimal maxAmount,
+
+    @Schema(description = "When true, include records with no project area assigned alongside any selected area filter")
+    Boolean includeUnassigned
 ) {}

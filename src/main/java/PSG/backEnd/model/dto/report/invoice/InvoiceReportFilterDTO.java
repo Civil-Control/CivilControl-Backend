@@ -15,5 +15,6 @@ public record InvoiceReportFilterDTO(
     DocumentType documentType,
     Boolean paid,
     BigDecimal minAmount,
-    BigDecimal maxAmount
+    BigDecimal maxAmount,
+    Boolean includeUnassigned
 ) {}

@@ -21,5 +21,6 @@ public record SupplierAccountReportFilterDTO(
         PaymentMethod paymentMethod,
         BigDecimal minFinalBalance,
         BigDecimal maxFinalBalance,
-        Boolean onlyWithMovementsInPeriod
+        Boolean onlyWithMovementsInPeriod,
+        Boolean includeUnassigned
 ) {}

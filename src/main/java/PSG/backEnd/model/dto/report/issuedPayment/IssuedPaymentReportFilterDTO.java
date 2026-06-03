@@ -56,5 +56,8 @@ public record IssuedPaymentReportFilterDTO(
     Boolean onlyOverdueChecks,
 
     @Schema(description = "Layer-1 grouping mode: METHOD (default) or SUPPLIER")
-    IssuedPaymentReportGroupBy groupBy
+    IssuedPaymentReportGroupBy groupBy,
+
+    @Schema(description = "When true, include payments with no project area assigned on their documents")
+    Boolean includeUnassigned
 ) {}

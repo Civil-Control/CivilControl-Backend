@@ -40,5 +40,8 @@ public record ServicePaymentReportFilterDTO(
     BigDecimal minAmount,
 
     @Schema(description = "Maximum amount (inclusive)")
-    BigDecimal maxAmount
+    BigDecimal maxAmount,
+
+    @Schema(description = "When true, include records with no project area assigned")
+    Boolean includeUnassigned
 ) {}

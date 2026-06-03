@@ -133,7 +133,11 @@ public class ReportController {
 
             @Parameter(description = "Sort order: asc (ascending) or desc (descending)", example = "desc")
             @RequestParam(required = false, defaultValue = "desc")
-            String sortOrder
+            String sortOrder,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Generating money outflow report: startDate={}, endDate={}, categories={}, projectAreaIds={}",
                 startDate, endDate, categories, projectAreaIds);
@@ -146,7 +150,8 @@ public class ReportController {
                 minAmount,
                 maxAmount,
                 sortBy,
-                sortOrder
+                sortOrder,
+                includeUnassigned
         );
 
         MoneyOutflowReportDTO report = reportService.generateMoneyOutflowReport(filters);
@@ -228,7 +233,11 @@ public class ReportController {
 
             @Parameter(description = "Sort order: asc (ascending) or desc (descending)", example = "desc")
             @RequestParam(required = false, defaultValue = "desc")
-            String sortOrder
+            String sortOrder,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Downloading money outflow report: format={}, startDate={}, endDate={}, categories={}, projectAreaIds={}",
                 format, startDate, endDate, categories, projectAreaIds);
@@ -241,7 +250,8 @@ public class ReportController {
                 minAmount,
                 maxAmount,
                 sortBy,
-                sortOrder
+                sortOrder,
+                includeUnassigned
         );
 
         ResponseEntity<byte[]> response = reportService.generateMoneyOutflowReportFile(filters, format);
@@ -301,7 +311,11 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount to filter (inclusive)", example = "50000.00")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Generating preview: startDate={}, endDate={}, categories={}, projectAreaIds={}",
                 startDate, endDate, categories, projectAreaIds);
@@ -314,7 +328,8 @@ public class ReportController {
                 minAmount,
                 maxAmount,
                 "date",
-                "desc"
+                "desc",
+                includeUnassigned
         );
 
         MoneyOutflowReportPreviewDTO preview = reportService.generateMoneyOutflowReportPreview(filters);
@@ -369,12 +384,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Generating salary report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
 
         SalaryReportFilterDTO filters = new SalaryReportFilterDTO(
-                startDate, endDate, projectAreaIds, salaryFrequency, paymentMethod, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, salaryFrequency, paymentMethod, minAmount, maxAmount, includeUnassigned
         );
 
         SalaryReportDTO report = reportService.generateSalaryReport(filters);
@@ -427,12 +446,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Downloading salary report: format={}", format);
 
         SalaryReportFilterDTO filters = new SalaryReportFilterDTO(
-                startDate, endDate, projectAreaIds, salaryFrequency, paymentMethod, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, salaryFrequency, paymentMethod, minAmount, maxAmount, includeUnassigned
         );
 
         return reportService.generateSalaryReportFile(filters, format);
@@ -482,12 +505,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Generating invoice report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
 
         InvoiceReportFilterDTO filters = new InvoiceReportFilterDTO(
-                startDate, endDate, projectAreaIds, documentType, paid, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, documentType, paid, minAmount, maxAmount, includeUnassigned
         );
 
         InvoiceReportDTO report = reportService.generateInvoiceReport(filters);
@@ -540,12 +567,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Downloading invoice report: format={}", format);
 
         InvoiceReportFilterDTO filters = new InvoiceReportFilterDTO(
-                startDate, endDate, projectAreaIds, documentType, paid, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, documentType, paid, minAmount, maxAmount, includeUnassigned
         );
 
         return reportService.generateInvoiceReportFile(filters, format);
@@ -607,12 +638,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Generating service payment report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
 
         ServicePaymentReportFilterDTO filters = new ServicePaymentReportFilterDTO(
-                startDate, endDate, projectAreaIds, serviceType, subjectType, paymentMethod, year, period, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, serviceType, subjectType, paymentMethod, year, period, minAmount, maxAmount, includeUnassigned
         );
 
         ServicePaymentReportDTO report = reportService.generateServicePaymentReport(filters);
@@ -677,12 +712,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Downloading service payment report: format={}", format);
 
         ServicePaymentReportFilterDTO filters = new ServicePaymentReportFilterDTO(
-                startDate, endDate, projectAreaIds, serviceType, subjectType, paymentMethod, year, period, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, serviceType, subjectType, paymentMethod, year, period, minAmount, maxAmount, includeUnassigned
         );
 
         return reportService.generateServicePaymentReportFile(filters, format);
@@ -740,13 +779,16 @@ public class ReportController {
             @RequestParam(required = false) Boolean onlyOverdueChecks,
 
             @Parameter(description = "Group-by strategy: METHOD or SUPPLIER")
-            @RequestParam(required = false) IssuedPaymentReportGroupBy groupBy
+            @RequestParam(required = false) IssuedPaymentReportGroupBy groupBy,
+
+            @Parameter(description = "When true, include payments with no project area on their documents")
+            @RequestParam(required = false) Boolean includeUnassigned
     ) {
         log.info("Generating issued payments report: {}..{} groupBy={}", startDate, endDate, groupBy);
 
         IssuedPaymentReportFilterDTO filters = new IssuedPaymentReportFilterDTO(
                 startDate, endDate, paymentMethods, supplierIds, projectAreaIds, checkStatuses,
-                bankAccountIds, cashBoxIds, checkbookIds, minAmount, maxAmount, onlyOverdueChecks, groupBy
+                bankAccountIds, cashBoxIds, checkbookIds, minAmount, maxAmount, onlyOverdueChecks, groupBy, includeUnassigned
         );
 
         IssuedPaymentReportDTO report = reportService.generateIssuedPaymentReport(filters);
@@ -781,13 +823,14 @@ public class ReportController {
             @RequestParam(required = false) BigDecimal minAmount,
             @RequestParam(required = false) BigDecimal maxAmount,
             @RequestParam(required = false) Boolean onlyOverdueChecks,
-            @RequestParam(required = false) IssuedPaymentReportGroupBy groupBy
+            @RequestParam(required = false) IssuedPaymentReportGroupBy groupBy,
+            @RequestParam(required = false) Boolean includeUnassigned
     ) {
         log.info("Downloading issued payments report: format={}", format);
 
         IssuedPaymentReportFilterDTO filters = new IssuedPaymentReportFilterDTO(
                 startDate, endDate, paymentMethods, supplierIds, projectAreaIds, checkStatuses,
-                bankAccountIds, cashBoxIds, checkbookIds, minAmount, maxAmount, onlyOverdueChecks, groupBy
+                bankAccountIds, cashBoxIds, checkbookIds, minAmount, maxAmount, onlyOverdueChecks, groupBy, includeUnassigned
         );
 
         return reportService.generateIssuedPaymentReportFile(filters, format);
@@ -845,12 +888,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Generating fuel load report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
 
         FuelLoadReportFilterDTO filters = new FuelLoadReportFilterDTO(
-                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, vehicleTypeId, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, vehicleTypeId, minAmount, maxAmount, includeUnassigned
         );
 
         FuelLoadReportDTO report = reportService.generateFuelLoadReport(filters);
@@ -911,12 +958,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Downloading fuel load report: format={}", format);
 
         FuelLoadReportFilterDTO filters = new FuelLoadReportFilterDTO(
-                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, vehicleTypeId, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, fuelType, gasStationId, vehicleId, vehicleTypeId, minAmount, maxAmount, includeUnassigned
         );
 
         return reportService.generateFuelLoadReportFile(filters, format);
@@ -966,12 +1017,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Generating repair report: startDate={}, endDate={}, areas={}", startDate, endDate, projectAreaIds);
 
         RepairReportFilterDTO filters = new RepairReportFilterDTO(
-                startDate, endDate, projectAreaIds, vehicleId, supplierId, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, vehicleId, supplierId, minAmount, maxAmount, includeUnassigned
         );
 
         RepairReportDTO report = reportService.generateRepairReport(filters);
@@ -1024,12 +1079,16 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Downloading repair report: format={}", format);
 
         RepairReportFilterDTO filters = new RepairReportFilterDTO(
-                startDate, endDate, projectAreaIds, vehicleId, supplierId, minAmount, maxAmount
+                startDate, endDate, projectAreaIds, vehicleId, supplierId, minAmount, maxAmount, includeUnassigned
         );
 
         return reportService.generateRepairReportFile(filters, format);
@@ -1314,7 +1373,11 @@ public class ReportController {
 
             @Parameter(description = "Maximum amount (inclusive)")
             @RequestParam(required = false)
-            BigDecimal maxAmount
+            BigDecimal maxAmount,
+
+            @Parameter(description = "When true, include records with no project area assigned")
+            @RequestParam(required = false)
+            Boolean includeUnassigned
     ) {
         log.info("Generating sales report: startDate={}, endDate={}, areas={}, clients={}",
                 startDate, endDate, projectAreaIds, clientIds);
@@ -1322,7 +1385,7 @@ public class ReportController {
         SalesReportFilterDTO filters = new SalesReportFilterDTO(
                 startDate, endDate, projectAreaIds, clientIds, documentType, ivaCondition,
                 paid, workContractId, onlyLinkedToCertifications, includeCertificationsOnly,
-                certificationStatus, minAmount, maxAmount
+                certificationStatus, minAmount, maxAmount, includeUnassigned
         );
 
         SalesReportDTO report = reportService.generateSalesReport(filters);
@@ -1361,14 +1424,15 @@ public class ReportController {
             @RequestParam(required = false) Boolean includeCertificationsOnly,
             @RequestParam(required = false) CertificationStatus certificationStatus,
             @RequestParam(required = false) BigDecimal minAmount,
-            @RequestParam(required = false) BigDecimal maxAmount
+            @RequestParam(required = false) BigDecimal maxAmount,
+            @RequestParam(required = false) Boolean includeUnassigned
     ) {
         log.info("Downloading sales report: format={}", format);
 
         SalesReportFilterDTO filters = new SalesReportFilterDTO(
                 startDate, endDate, projectAreaIds, clientIds, documentType, ivaCondition,
                 paid, workContractId, onlyLinkedToCertifications, includeCertificationsOnly,
-                certificationStatus, minAmount, maxAmount
+                certificationStatus, minAmount, maxAmount, includeUnassigned
         );
 
         return reportService.generateSalesReportFile(filters, format);
@@ -1418,7 +1482,10 @@ public class ReportController {
             @RequestParam(required = false) BigDecimal maxFinalBalance,
 
             @Parameter(description = "If true, hide suppliers with no movements in the period")
-            @RequestParam(required = false) Boolean onlyWithMovementsInPeriod
+            @RequestParam(required = false) Boolean onlyWithMovementsInPeriod,
+
+            @Parameter(description = "When true, include documents with no project area assigned")
+            @RequestParam(required = false) Boolean includeUnassigned
     ) {
         log.info("Generating supplier-account report: startDate={}, endDate={}, suppliers={}",
                 startDate, endDate, supplierIds);
@@ -1426,7 +1493,7 @@ public class ReportController {
         SupplierAccountReportFilterDTO filters = new SupplierAccountReportFilterDTO(
                 startDate, endDate, supplierIds, projectAreaIds, statusFilter,
                 documentType, paymentMethod, minFinalBalance, maxFinalBalance,
-                onlyWithMovementsInPeriod
+                onlyWithMovementsInPeriod, includeUnassigned
         );
 
         SupplierAccountReportDTO report = reportService.generateSupplierAccountReport(filters);
@@ -1460,14 +1527,15 @@ public class ReportController {
             @RequestParam(required = false) PaymentMethod paymentMethod,
             @RequestParam(required = false) BigDecimal minFinalBalance,
             @RequestParam(required = false) BigDecimal maxFinalBalance,
-            @RequestParam(required = false) Boolean onlyWithMovementsInPeriod
+            @RequestParam(required = false) Boolean onlyWithMovementsInPeriod,
+            @RequestParam(required = false) Boolean includeUnassigned
     ) {
         log.info("Downloading supplier-account report: format={}", format);
 
         SupplierAccountReportFilterDTO filters = new SupplierAccountReportFilterDTO(
                 startDate, endDate, supplierIds, projectAreaIds, statusFilter,
                 documentType, paymentMethod, minFinalBalance, maxFinalBalance,
-                onlyWithMovementsInPeriod
+                onlyWithMovementsInPeriod, includeUnassigned
         );
 
         return reportService.generateSupplierAccountReportFile(filters, format);

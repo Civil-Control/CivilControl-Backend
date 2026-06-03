@@ -56,7 +56,10 @@ public record ReportFilterDTO(
     @Schema(description = "Sort order: 'asc' for ascending, 'desc' for descending. Default is 'desc'.",
             example = "desc",
             allowableValues = {"asc", "desc"})
-    String sortOrder
+    String sortOrder,
+
+    @Schema(description = "When true, include records with no project area assigned alongside any selected area filter")
+    Boolean includeUnassigned
 ) {
 
     /**
