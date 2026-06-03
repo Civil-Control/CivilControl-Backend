@@ -449,12 +449,6 @@ public class ReportService implements IReportService {
             allItems.addAll(collectFromStockPurchases(filters));
         }
 
-        if (wantUnassigned && !hasAreaFilter) {
-            allItems = allItems.stream()
-                    .filter(item -> item.projectAreaName() == null)
-                    .collect(Collectors.toList());
-        }
-
         log.debug("Collected {} money outflow items", allItems.size());
 
         return allItems;
@@ -1231,11 +1225,6 @@ public class ReportService implements IReportService {
                     false,
                     pageable
             ).getContent());
-            if (wantUnassigned) {
-                allPayments = allPayments.stream()
-                        .filter(sp -> sp.getProjectArea() == null)
-                        .collect(Collectors.toList());
-            }
         }
 
         // Group by project area, then by employee
@@ -1528,11 +1517,6 @@ public class ReportService implements IReportService {
                     filters.maxAmount(), filters.minAmount(), null,
                     filters.startDate(), filters.endDate(), filters.paid(), null, pageable
             ).getContent());
-            if (wantUnassigned) {
-                allDocuments = allDocuments.stream()
-                        .filter(td -> td.getProjectArea() == null)
-                        .collect(Collectors.toList());
-            }
         }
 
         List<InvoiceReportAreaGroupDTO> areaGroups = buildInvoiceAreaGroups(allDocuments);
@@ -1942,11 +1926,6 @@ public class ReportService implements IReportService {
                     filters.startDate(), filters.endDate(),
                     filters.minAmount(), filters.maxAmount(), null, null, null, pageable
             ).getContent());
-            if (wantUnassigned) {
-                allPayments = allPayments.stream()
-                        .filter(sp -> sp.getProjectArea() == null)
-                        .collect(Collectors.toList());
-            }
         }
 
         // Filter by payment method if specified (not in repository query)
@@ -2261,11 +2240,6 @@ public class ReportService implements IReportService {
                     filters.gasStationId(), null, null,
                     filters.minAmount(), filters.maxAmount(), null, null, false, pageable
             ).getContent());
-            if (wantUnassigned) {
-                allLoads = allLoads.stream()
-                        .filter(fl -> fl.getProjectArea() == null)
-                        .collect(Collectors.toList());
-            }
         }
 
         // In-memory filter: vehicle type (not supported by repository query)
@@ -2671,11 +2645,6 @@ public class ReportService implements IReportService {
                     filters.minAmount(), filters.maxAmount(),
                     filters.supplierId(), null, null, null, null, null, null, null, false, pageable
             ).getContent());
-            if (wantUnassigned) {
-                allRepairs = allRepairs.stream()
-                        .filter(r -> r.getVehicle() == null || r.getVehicle().getProjectArea() == null)
-                        .collect(Collectors.toList());
-            }
         }
 
         List<RepairReportAreaGroupDTO> areaGroups = buildRepairAreaGroups(allRepairs);
@@ -3538,10 +3507,6 @@ public class ReportService implements IReportService {
             List<SalesDocument> merged = new ArrayList<>(allDocuments);
             unassigned.stream().filter(sd -> !existingIds.contains(sd.getId())).forEach(merged::add);
             allDocuments = merged;
-        } else if (wantUnassigned && !hasAreaFilter) {
-            allDocuments = allDocuments.stream()
-                    .filter(sd -> sd.getProjectArea() == null)
-                    .collect(Collectors.toList());
         }
 
         // Filter by workContractId via linked certifications (if specified)
@@ -4061,10 +4026,6 @@ public class ReportService implements IReportService {
             periodDocs = periodDocs.stream()
                     .filter(td -> (td.getProjectArea() != null && areaIds.contains(td.getProjectArea().getId()))
                                || (wantUnassigned && td.getProjectArea() == null))
-                    .toList();
-        } else if (Boolean.TRUE.equals(filters.includeUnassigned())) {
-            periodDocs = periodDocs.stream()
-                    .filter(td -> td.getProjectArea() == null)
                     .toList();
         }
 
@@ -4622,10 +4583,6 @@ public class ReportService implements IReportService {
                 boolean anyUnassigned = wantUnassigned && pd.getPaidDocuments() != null
                         && pd.getPaidDocuments().stream().anyMatch(d -> d.getProjectArea() == null);
                 if (!anyInArea && !anyUnassigned) return false;
-            } else if (Boolean.TRUE.equals(f.includeUnassigned())) {
-                boolean anyUnassigned = pd.getPaidDocuments() != null
-                        && pd.getPaidDocuments().stream().anyMatch(d -> d.getProjectArea() == null);
-                if (!anyUnassigned) return false;
             }
 
             // treasury filters
