@@ -194,9 +194,16 @@ public class RepairService implements IRepairService {
     @Override
     @Transactional
     public void updateItemAmount(Long itemId, java.math.BigDecimal amount) {
+        updateItemAmount(itemId, amount, null);
+    }
+
+    @Override
+    @Transactional
+    public void updateItemAmount(Long itemId, java.math.BigDecimal amount, java.math.BigDecimal quantity) {
         RepairItem item = repairItemRepository.findById(itemId)
                 .orElseThrow(() -> new RepairNotFoundException(itemId));
-        item.setAmount(amount);
+        if (amount != null) item.setAmount(amount);
+        if (quantity != null) item.setQuantity(quantity);
         repairItemRepository.save(item);
         if (item.getTransactionalDocument() != null) {
             documentTotalRecalculator.recalculateAndRecover(item.getTransactionalDocument().getId());

@@ -204,7 +204,7 @@ public class RepairController {
     public ResponseEntity<Void> updateItemAmount(
             @PathVariable Long itemId,
             @RequestBody java.util.Map<String, BigDecimal> body) {
-        repairService.updateItemAmount(itemId, body.get("amount"));
+        repairService.updateItemAmount(itemId, body.get("amount"), body.get("quantity"));
         return ResponseEntity.noContent().build();
     }
 }

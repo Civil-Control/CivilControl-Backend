@@ -16,5 +16,6 @@ public interface IRepairService {
     void linkItemToDocument(Long itemId, Long documentId, java.math.BigDecimal ivaPercentage, Integer sortOrder);
     void unlinkItem(Long itemId);
     void updateItemAmount(Long itemId, java.math.BigDecimal amount);
+    void updateItemAmount(Long itemId, java.math.BigDecimal amount, java.math.BigDecimal quantity);
 }
 
