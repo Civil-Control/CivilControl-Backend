@@ -11,6 +11,7 @@ import PSG.backEnd.repository.RepairItemRepository;
 import PSG.backEnd.repository.SalaryPaymentRepository;
 import PSG.backEnd.repository.StockPurchaseRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
+import PSG.backEnd.service.port.ILedgerService;
 import PSG.backEnd.service.port.IRecoveryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
@@ -44,9 +45,16 @@ public class DocumentTotalRecalculator {
      */
     private IRecoveryService recoveryService;
 
+    private ILedgerService ledgerService;
+
     @Autowired
     public void setRecoveryService(@Lazy IRecoveryService recoveryService) {
         this.recoveryService = recoveryService;
+    }
+
+    @Autowired
+    public void setLedgerService(@Lazy ILedgerService ledgerService) {
+        this.ledgerService = ledgerService;
     }
 
     @Transactional
@@ -120,6 +128,10 @@ public class DocumentTotalRecalculator {
         document.setTotal(total);
 
         transactionalDocumentRepository.save(document);
+
+        if (ledgerService != null) {
+            ledgerService.syncDocumentMovement(document);
+        }
     }
 
     /**
