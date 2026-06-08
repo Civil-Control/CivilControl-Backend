@@ -60,6 +60,13 @@ public record EppDeliveryDTO(
             requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     @Min(value = 1, message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
-    Integer quantity
+    Integer quantity,
+
+    @Schema(description = "Optional identifier of the linked stock item. When provided, the delivered quantity is " +
+            "discounted from that stock item's available quantity. Leave null for a quick, unlinked delivery.",
+            example = "5",
+            nullable = true)
+    @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+    Long stockId
 ) {}
 
