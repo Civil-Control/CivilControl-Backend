@@ -38,6 +38,9 @@ public class EppDelivery extends TenantEntity {
     @Column(nullable = false)
     private Integer quantity;
 
+    @Column(name = "stock_id")
+    private Long stockId;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean deleted = false;

@@ -3,16 +3,19 @@ package PSG.backEnd.service.implementation;
 import PSG.backEnd.exception.employee.EmployeeNotFoundException;
 import PSG.backEnd.exception.eppDelivery.EppDeliveryNotFoundException;
 import PSG.backEnd.exception.eppDelivery.EppDeliveryNotValidException;
+import PSG.backEnd.exception.stock.StockNotFoundException;
 import PSG.backEnd.model.dto.batch.BatchResponseDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryBatchDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryFilterDTO;
 import PSG.backEnd.model.dto.employee.EppDeliveryResponseDTO;
+import PSG.backEnd.model.entity.Stock;
 import PSG.backEnd.model.entity.employee.Employee;
 import PSG.backEnd.model.entity.employee.EppDelivery;
 import PSG.backEnd.model.mapper.EppDeliveryMapper;
 import PSG.backEnd.repository.EmployeeRepository;
 import PSG.backEnd.repository.EppDeliveryRepository;
+import PSG.backEnd.repository.StockRepository;
 import PSG.backEnd.service.port.IEppDeliveryService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,6 +35,7 @@ public class EppDeliveryService implements IEppDeliveryService {
 
     private final EppDeliveryRepository eppDeliveryRepository;
     private final EmployeeRepository employeeRepository;
+    private final StockRepository stockRepository;
     private final EppDeliveryMapper eppDeliveryMapper;
     private final MessageSourceHelper messageSourceHelper;
     private final BatchProcessor batchProcessor;
@@ -52,9 +57,12 @@ public class EppDeliveryService implements IEppDeliveryService {
         EppDelivery eppDelivery = eppDeliveryMapper.toEntity(eppDeliveryDTO);
         eppDelivery.setEmployee(employee);
 
+        // Optional stock link: discount delivered quantity from the linked stock item
+        Stock stock = deductStock(eppDeliveryDTO.stockId(), eppDeliveryDTO.quantity());
+
         // Save and return
         EppDelivery savedEppDelivery = eppDeliveryRepository.save(eppDelivery);
-        return eppDeliveryMapper.toResponseDto(savedEppDelivery);
+        return eppDeliveryMapper.toResponseDto(savedEppDelivery, stock != null ? stock.getName() : null);
     }
 
     @Override
@@ -74,14 +82,14 @@ public class EppDeliveryService implements IEppDeliveryService {
                 filterDTO.itemType(),
                 filterDTO.brand(),
                 pageable
-        ).map(eppDeliveryMapper::toResponseDto);
+        ).map(this::toEnrichedResponse);
     }
 
     @Override
     @Transactional(readOnly = true)
     public EppDeliveryResponseDTO getEppDeliveryById(Long id) {
         return eppDeliveryRepository.findByIdAndDeletedFalse(id)
-                .map(eppDeliveryMapper::toResponseDto)
+                .map(this::toEnrichedResponse)
                 .orElseThrow(() -> new EppDeliveryNotFoundException(id));
     }
 
@@ -108,12 +116,23 @@ public class EppDeliveryService implements IEppDeliveryService {
             existingEppDelivery.setEmployee(employee);
         }
 
-        // Partial update
+        Long oldStockId = existingEppDelivery.getStockId();
+        Integer oldQuantity = existingEppDelivery.getQuantity();
+
+        // Partial update (mapper ignores stockId; handled explicitly to support unlinking via null)
         eppDeliveryMapper.partialUpdate(eppDeliveryDTO, existingEppDelivery);
+
+        // The form always sends stockId; null means "no stock linked".
+        Long newStockId = eppDeliveryDTO.stockId();
+        existingEppDelivery.setStockId(newStockId);
+
+        // Reconcile stock: return the previously discounted quantity, then discount the new one
+        restoreStock(oldStockId, oldQuantity);
+        Stock stock = deductStock(newStockId, existingEppDelivery.getQuantity());
 
         // Save and return
         EppDelivery updatedEppDelivery = eppDeliveryRepository.save(existingEppDelivery);
-        return eppDeliveryMapper.toResponseDto(updatedEppDelivery);
+        return eppDeliveryMapper.toResponseDto(updatedEppDelivery, stock != null ? stock.getName() : null);
     }
 
     @Override
@@ -122,9 +141,48 @@ public class EppDeliveryService implements IEppDeliveryService {
         EppDelivery eppDelivery = eppDeliveryRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EppDeliveryNotFoundException(id));
 
+        // Return the discounted quantity to the linked stock, if any
+        restoreStock(eppDelivery.getStockId(), eppDelivery.getQuantity());
+
         // Soft delete
         eppDelivery.setDeleted(true);
         eppDeliveryRepository.save(eppDelivery);
+    }
+
+    // ==================== Private Stock Helpers ====================
+
+    /** Resolves the linked stock name (if any) and builds the response DTO. */
+    private EppDeliveryResponseDTO toEnrichedResponse(EppDelivery eppDelivery) {
+        String stockName = null;
+        if (eppDelivery.getStockId() != null) {
+            stockName = stockRepository.findById(eppDelivery.getStockId())
+                    .map(Stock::getName)
+                    .orElse(null);
+        }
+        return eppDeliveryMapper.toResponseDto(eppDelivery, stockName);
+    }
+
+    /** Discounts the delivered quantity from the linked stock item, blocking on insufficient stock. */
+    private Stock deductStock(Long stockId, Integer quantity) {
+        if (stockId == null) return null;
+        Stock stock = stockRepository.findByIdAndDeletedFalse(stockId)
+                .orElseThrow(() -> new StockNotFoundException(stockId));
+        BigDecimal requested = BigDecimal.valueOf(quantity);
+        if (stock.getQuantity().compareTo(requested) < 0) {
+            throw new EppDeliveryNotValidException(messageSourceHelper.getMessage(
+                    "eppDelivery.stock.insufficient", stock.getName(), stock.getQuantity(), quantity));
+        }
+        stock.setQuantity(stock.getQuantity().subtract(requested));
+        return stockRepository.save(stock);
+    }
+
+    /** Returns a previously discounted quantity back to the linked stock item. */
+    private void restoreStock(Long stockId, Integer quantity) {
+        if (stockId == null || quantity == null) return;
+        stockRepository.findByIdAndDeletedFalse(stockId).ifPresent(stock -> {
+            stock.setQuantity(stock.getQuantity().add(BigDecimal.valueOf(quantity)));
+            stockRepository.save(stock);
+        });
     }
 
     // ==================== Private Validation Methods ====================

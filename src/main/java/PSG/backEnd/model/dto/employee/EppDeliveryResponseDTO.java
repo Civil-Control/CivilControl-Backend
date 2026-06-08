@@ -42,6 +42,16 @@ public record EppDeliveryResponseDTO(
 
     @Schema(description = "Quantity of items delivered.",
             example = "2")
-    Integer quantity
+    Integer quantity,
+
+    @Schema(description = "Identifier of the linked stock item, if the delivery was linked to stock.",
+            example = "5",
+            nullable = true)
+    Long stockId,
+
+    @Schema(description = "Name of the linked stock item, if any.",
+            example = "Casco de Seguridad",
+            nullable = true)
+    String stockName
 ) {}
 
