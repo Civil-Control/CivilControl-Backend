@@ -232,6 +232,29 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
         }
     }
 
+    @Override
+    public void markAllInboxRead() {
+        List<Long> subscriptionIds = currentUserSubscriptionIds();
+        if (!subscriptionIds.isEmpty()) {
+            logRepository.markAllReadBySubscriptionIds(subscriptionIds);
+        }
+    }
+
+    @Override
+    public void dismissAllInbox() {
+        List<Long> subscriptionIds = currentUserSubscriptionIds();
+        if (!subscriptionIds.isEmpty()) {
+            logRepository.dismissAllBySubscriptionIds(subscriptionIds);
+        }
+    }
+
+    private List<Long> currentUserSubscriptionIds() {
+        Long currentUserId = getCurrentUser().getId();
+        return subscriptionRepository.findAllByUserIdAndDeletedFalse(currentUserId).stream()
+                .map(NotificationSubscription::getId)
+                .toList();
+    }
+
     // ==================== Event listener ====================
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)

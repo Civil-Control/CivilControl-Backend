@@ -1358,7 +1358,9 @@ public class NotificationSchedulerService {
 | `DELETE` | `/api/v1/notifications/subscriptions/{id}`      | Autenticado (dueño) o `NOTIFICATION_ASSIGN_OTHERS` | 204 | Eliminar suscripción (soft delete) |
 | `GET`    | `/api/v1/notifications/inbox`                   | Autenticado | 200 | Bandeja de entrada SYSTEM del usuario autenticado |
 | `PATCH`  | `/api/v1/notifications/inbox/{logId}/read`      | Autenticado (dueño) | 204 | Marca una notificación como leída |
+| `PATCH`  | `/api/v1/notifications/inbox/read-all`          | Autenticado | 204 | Marca todas las notificaciones del usuario como leídas |
 | `DELETE` | `/api/v1/notifications/inbox/{logId}`           | Autenticado (dueño) | 204 | Descarta (soft-dismiss) una notificación del inbox |
+| `DELETE` | `/api/v1/notifications/inbox`                   | Autenticado | 204 | Vacía el inbox del usuario (soft-dismiss de todas) |
 | `POST`   | `/api/v1/notifications/run-check`               | `NOTIFICATION_ASSIGN_OTHERS` | 200 | Ejecuta el chequeo on-demand para el tenant actual (test / operación) |
 
 **Parámetros del `POST /run-check`:**
@@ -1614,6 +1616,7 @@ unreadCount = computed(() => this.items().filter(i => !i.read).length);
   - **Marcar leída** → `PATCH /inbox/{logId}/read` y actualiza el item local.
   - **Eliminar** → `DELETE /inbox/{logId}` (soft-dismiss) y lo quita de la lista.
   - **Click en el ítem** → marca leída y navega al registro relacionado (ver mapa de navegación).
+- Acciones globales (toolbar del panel): **Marcar todas leídas** → `PATCH /inbox/read-all`; **Limpiar** → `DELETE /inbox`.
 
 **Mapa de navegación (deep-link al registro que disparó la alerta):**
 

@@ -17,4 +17,6 @@ public interface INotificationSubscriptionService {
     List<NotificationInboxItemDTO> getInbox(int limit);
     void markInboxItemRead(Long logId);
     void dismissInboxItem(Long logId);
+    void markAllInboxRead();
+    void dismissAllInbox();
 }

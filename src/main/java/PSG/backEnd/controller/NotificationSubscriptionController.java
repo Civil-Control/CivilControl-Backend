@@ -145,6 +145,26 @@ public class NotificationSubscriptionController {
         return ResponseEntity.ok(subscriptionService.getInbox(Math.min(limit, 100)));
     }
 
+    @PatchMapping("/inbox/read-all")
+    @Operation(
+        summary = "Marcar todas como leídas",
+        description = "Marca como leídas todas las notificaciones del inbox del usuario autenticado.")
+    @ApiResponse(responseCode = "204", description = "Notificaciones marcadas como leídas")
+    public ResponseEntity<Void> markAllInboxRead() {
+        subscriptionService.markAllInboxRead();
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/inbox")
+    @Operation(
+        summary = "Vaciar el inbox",
+        description = "Descarta (soft-dismiss) todas las notificaciones del inbox del usuario autenticado.")
+    @ApiResponse(responseCode = "204", description = "Inbox vaciado")
+    public ResponseEntity<Void> dismissAllInbox() {
+        subscriptionService.dismissAllInbox();
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/inbox/{logId}/read")
     @Operation(
         summary = "Marcar notificación como leída",

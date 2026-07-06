@@ -3,6 +3,7 @@ package PSG.backEnd.repository;
 import PSG.backEnd.model.entity.notification.NotificationLog;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -29,4 +30,16 @@ public interface NotificationLogRepository extends JpaRepository<NotificationLog
     List<NotificationLog> findSystemInboxBySubscriptionIds(
             @Param("subscriptionIds") List<Long> subscriptionIds,
             Pageable pageable);
+
+    @Modifying
+    @Query("UPDATE NotificationLog l SET l.read = true " +
+           "WHERE l.subscriptionId IN :subscriptionIds " +
+           "AND l.channel = 'SYSTEM' AND l.dismissed = false AND l.read = false")
+    int markAllReadBySubscriptionIds(@Param("subscriptionIds") List<Long> subscriptionIds);
+
+    @Modifying
+    @Query("UPDATE NotificationLog l SET l.dismissed = true " +
+           "WHERE l.subscriptionId IN :subscriptionIds " +
+           "AND l.channel = 'SYSTEM' AND l.dismissed = false")
+    int dismissAllBySubscriptionIds(@Param("subscriptionIds") List<Long> subscriptionIds);
 }
