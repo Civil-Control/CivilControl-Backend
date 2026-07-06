@@ -2,10 +2,12 @@ package PSG.backEnd.controller;
 
 import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.notification.NotificationInboxItemDTO;
+import PSG.backEnd.model.dto.notification.NotificationRunReportDTO;
 import PSG.backEnd.model.dto.notification.NotificationSubscriptionDTO;
 import PSG.backEnd.model.dto.notification.NotificationSubscriptionResponseDTO;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
+import PSG.backEnd.service.notification.NotificationSchedulerService;
 import PSG.backEnd.service.port.INotificationSubscriptionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -27,6 +29,7 @@ import java.util.List;
 public class NotificationSubscriptionController {
 
     private final INotificationSubscriptionService subscriptionService;
+    private final NotificationSchedulerService schedulerService;
 
     // ==================== Suscripciones ====================
 
@@ -108,6 +111,25 @@ public class NotificationSubscriptionController {
             @Parameter(description = "ID de la suscripción") @PathVariable Long id) {
         subscriptionService.deleteSubscription(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ==================== Disparo manual (test / operación) ====================
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.NOTIFICATION_ASSIGN_OTHERS + "')")
+    @PostMapping("/run-check")
+    @Operation(
+        summary = "Ejecutar el chequeo de notificaciones on-demand",
+        description = "Corre el pipeline de notificaciones para el tenant actual sin esperar al cron diario. " +
+                      "Devuelve un reporte con el resultado de cada aviso evaluado (dueDate, triggerDate, ventana, " +
+                      "deduplicación, despacho). Requiere NOTIFICATION_ASSIGN_OTHERS.")
+    @ApiResponse(responseCode = "200", description = "Reporte de la corrida")
+    @ApiResponse(responseCode = "403", description = "Sin permiso NOTIFICATION_ASSIGN_OTHERS")
+    public ResponseEntity<NotificationRunReportDTO> runCheck(
+            @Parameter(description = "Ignora la deduplicación por ciclo (reenvía aunque ya se haya enviado)")
+            @RequestParam(defaultValue = "false") boolean force,
+            @Parameter(description = "Evalúa y reporta sin despachar nada")
+            @RequestParam(defaultValue = "false") boolean dryRun) {
+        return ResponseEntity.ok(schedulerService.runManual(force, dryRun));
     }
 
     // ==================== Bandeja de entrada ====================

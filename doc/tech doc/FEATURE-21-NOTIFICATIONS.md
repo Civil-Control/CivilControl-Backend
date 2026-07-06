@@ -1249,8 +1249,8 @@ public class NotificationSchedulerService {
     private final Map<NotificationSubjectType, NextDueDateResolver> resolvers;
     private final NotificationDispatchService dispatchService;
 
-    @Scheduled(cron = "0 0 8 * * *")
-    @Async
+    // Zona fija: el cron no depende de la timezone por defecto de la JVM.
+    @Scheduled(cron = "0 0 8 * * *", zone = "America/Argentina/Buenos_Aires")
     public void runDailyCheck() {
         log.info("NotificationScheduler: starting daily run");
         tenantRepository.findAllByDeletedFalseAndActiveTrue().forEach(tenant -> {
@@ -1347,6 +1347,14 @@ public class NotificationSchedulerService {
 | `PATCH`  | `/api/v1/notifications/subscriptions/{id}`      | Autenticado (dueño) o `NOTIFICATION_ASSIGN_OTHERS` | 200 | Actualizar canales/alertas/activo |
 | `DELETE` | `/api/v1/notifications/subscriptions/{id}`      | Autenticado (dueño) o `NOTIFICATION_ASSIGN_OTHERS` | 204 | Eliminar suscripción (soft delete) |
 | `GET`    | `/api/v1/notifications/inbox`                   | Autenticado | 200 | Bandeja de entrada SYSTEM del usuario autenticado |
+| `POST`   | `/api/v1/notifications/run-check`               | `NOTIFICATION_ASSIGN_OTHERS` | 200 | Ejecuta el chequeo on-demand para el tenant actual (test / operación) |
+
+**Parámetros del `POST /run-check`:**
+
+- `force` (default `false`) — ignora la deduplicación por ciclo y reenvía aunque ya se haya enviado.
+- `dryRun` (default `false`) — evalúa y devuelve el reporte sin despachar.
+
+Devuelve `NotificationRunReportDTO`: por cada aviso evaluado incluye `dueDate`, `triggerDate`, canales y `outcome` (`DISPATCHED` / `WOULD_DISPATCH` / `OUT_OF_WINDOW` / `ALREADY_SENT` / `USER_NOT_FOUND`). Es la vía recomendada para probar el pipeline sin esperar al cron.
 
 **Parámetros del `GET /inbox`:**
 
