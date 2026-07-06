@@ -50,6 +50,14 @@ public class NotificationLog extends TenantEntity {
     @Column(name = "due_date")
     private LocalDate dueDate;
 
+    @Column(name = "read", nullable = false)
+    @Builder.Default
+    private boolean read = false;
+
+    @Column(name = "dismissed", nullable = false)
+    @Builder.Default
+    private boolean dismissed = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 10)
     private NotificationDeliveryStatus status;

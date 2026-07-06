@@ -191,6 +191,14 @@ public class NotificationLog extends TenantEntity {
     @Column(name = "log_date", nullable = false)
     private LocalDate logDate;
 
+    // Estado del inbox SYSTEM (por notificación, por usuario):
+    // read = leída; dismissed = descartada de la lista (soft, conserva auditoría y dedup).
+    @Column(name = "read", nullable = false)
+    private boolean read;
+
+    @Column(name = "dismissed", nullable = false)
+    private boolean dismissed;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 10)
     private NotificationDeliveryStatus status;
@@ -544,7 +552,8 @@ public record NotificationInboxItemDTO(
     String subjectDisplayName,
     LocalDate dueDate,
     int daysUntilDue,
-    LocalDateTime sentAt
+    LocalDateTime sentAt,
+    boolean read
 ) {}
 ```
 
@@ -641,6 +650,7 @@ public interface NotificationLogRepository extends JpaRepository<NotificationLog
            "WHERE l.subscriptionId IN :subscriptionIds " +
            "AND l.channel = 'SYSTEM' " +
            "AND l.status = 'SENT' " +
+           "AND l.dismissed = false " +
            "ORDER BY l.sentAt DESC")
     List<NotificationLog> findSystemInboxBySubscriptionIds(
             @Param("subscriptionIds") List<Long> subscriptionIds,
@@ -1347,6 +1357,8 @@ public class NotificationSchedulerService {
 | `PATCH`  | `/api/v1/notifications/subscriptions/{id}`      | Autenticado (dueño) o `NOTIFICATION_ASSIGN_OTHERS` | 200 | Actualizar canales/alertas/activo |
 | `DELETE` | `/api/v1/notifications/subscriptions/{id}`      | Autenticado (dueño) o `NOTIFICATION_ASSIGN_OTHERS` | 204 | Eliminar suscripción (soft delete) |
 | `GET`    | `/api/v1/notifications/inbox`                   | Autenticado | 200 | Bandeja de entrada SYSTEM del usuario autenticado |
+| `PATCH`  | `/api/v1/notifications/inbox/{logId}/read`      | Autenticado (dueño) | 204 | Marca una notificación como leída |
+| `DELETE` | `/api/v1/notifications/inbox/{logId}`           | Autenticado (dueño) | 204 | Descarta (soft-dismiss) una notificación del inbox |
 | `POST`   | `/api/v1/notifications/run-check`               | `NOTIFICATION_ASSIGN_OTHERS` | 200 | Ejecuta el chequeo on-demand para el tenant actual (test / operación) |
 
 **Parámetros del `POST /run-check`:**
@@ -1589,24 +1601,38 @@ Componente standalone que se coloca en el header/navbar de la aplicación.
 **Estado del componente (`.ts`):**
 
 ```typescript
-unreadCount = signal(0);
 items = signal<NotificationInboxItem[]>([]);
 open = signal(false);
+unreadCount = computed(() => this.items().filter(i => !i.read).length);
 ```
 
 **Comportamiento:**
-- Al inicializar: llama `notificationHttpService.getInbox(10)` y puebla `items`.
-- Suscribe a `wsNotificationService.notifications$` via `takeUntilDestroyed(destroyRef)`. Al recibir un payload WebSocket:
-  1. Incrementa `unreadCount`.
-  2. Prepend del nuevo item en `items` (construir un `NotificationInboxItem` parcial con los datos del payload).
-- Al hacer click en la campana: alterna `open` y resetea `unreadCount = 0`.
-- Al hacer click en un item: navega al módulo correspondiente según `subjectType` (usando el `Router`).
+- Al inicializar y al abrir el panel: llama `getInbox()` y puebla `items` (el estado `read` viene del backend).
+- Suscribe a `wsNotificationService.notifications$`. Al recibir un payload WebSocket recarga el inbox (el log ya fue persistido por el dispatch, así se obtiene `logId` y `read` reales).
+- `unreadCount` es derivado (cantidad de `items` con `read = false`); el badge lo refleja.
+- Acciones por ítem:
+  - **Marcar leída** → `PATCH /inbox/{logId}/read` y actualiza el item local.
+  - **Eliminar** → `DELETE /inbox/{logId}` (soft-dismiss) y lo quita de la lista.
+  - **Click en el ítem** → marca leída y navega al registro relacionado (ver mapa de navegación).
 
-**Template HTML** — mostrar:
+**Mapa de navegación (deep-link al registro que disparó la alerta):**
+
+| `subjectType` | Destino |
+|---|---|
+| `VEHICLE_VTV` | `/vehiculos/vehiculos?focus=<id>` → abre el detalle del vehículo |
+| `INSURANCE_POLICY` | `/vehiculos/seguros/<id>` (página de detalle) |
+| `WORK_CONTRACT` | `/clientes/contratos/<id>` (página de detalle) |
+| `CHECK_PAYMENT` | `/documentos/pagos?openPaymentId=<id>` → abre el pago (el id del `CheckPayment` coincide con el de `PaymentDetails` vía `@MapsId`) |
+| `SERVICE_ASSIGNMENT` | `/servicios/afectaciones?focus=<id>` → abre el detalle de la afectación |
+| `CUSTOM_REMINDER` | `/notificaciones/recordatorios` |
+
+Las páginas destino que usan panel de detalle (`vehiculos`, `afectaciones`) leen el query param `focus`, hacen `getById` y disparan su flujo `viewDetails`. La lista de pagos ya soporta `openPaymentId`.
+
+**Template HTML** — estilo Gmail:
 - Icono campana con badge rojo cuando `unreadCount() > 0`.
-- Dropdown con lista de `items()`, mostrando `subjectDisplayName`, `daysUntilDue` y `sentAt` (formato `dd/MM/yyyy HH:mm`).
+- Dropdown con lista de `items()`: ícono por tipo, tipo, `subjectDisplayName`, **fecha de vencimiento** (`dd/MM/yyyy`) y chip de urgencia (`Vence en N días` / `hoy` / `Vencido`). Punto de no-leída. Acciones ✓/✕ al hover.
 - Si `items().length === 0`: texto "Sin notificaciones recientes".
-- Enlace "Ver todas" que navega a la página de gestión de suscripciones.
+- Enlace "Gestionar" que navega a la página de suscripciones.
 
 ### 13.6 Gestión de suscripciones
 

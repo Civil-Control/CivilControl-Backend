@@ -57,7 +57,7 @@ public class NotificationSchedulerService {
                         NextDueDateResolver::getSubjectType, Function.identity()));
     }
 
-    @Scheduled(cron = "0 25 15 * * *", zone = "America/Argentina/Buenos_Aires")
+    @Scheduled(cron = "0 0 8 * * *", zone = "America/Argentina/Buenos_Aires")
     public void runDailyCheck() {
         log.info("NotificationScheduler: starting daily run");
         tenantRepository.findAllByDeletedFalseAndActiveTrue().forEach(tenant -> {

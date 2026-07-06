@@ -214,6 +214,24 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
                 .toList();
     }
 
+    @Override
+    public void markInboxItemRead(Long logId) {
+        NotificationLog log = getOwnedInboxLog(logId);
+        if (!log.isRead()) {
+            log.setRead(true);
+            logRepository.save(log);
+        }
+    }
+
+    @Override
+    public void dismissInboxItem(Long logId) {
+        NotificationLog log = getOwnedInboxLog(logId);
+        if (!log.isDismissed()) {
+            log.setDismissed(true);
+            logRepository.save(log);
+        }
+    }
+
     // ==================== Event listener ====================
 
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
@@ -330,7 +348,22 @@ public class NotificationSubscriptionService implements INotificationSubscriptio
                 subjectDisplayName,
                 log.getDueDate(),
                 daysUntilDue,
-                log.getSentAt()
+                log.getSentAt(),
+                log.isRead()
         );
+    }
+
+    private NotificationLog getOwnedInboxLog(Long logId) {
+        NotificationLog log = logRepository.findById(logId)
+                .orElseThrow(() -> new NotificationSubscriptionNotFoundException(logId));
+        Long currentUserId = getCurrentUser().getId();
+        boolean owned = subscriptionRepository.findByIdAndDeletedFalse(log.getSubscriptionId())
+                .map(sub -> sub.getUserId().equals(currentUserId))
+                .orElse(false);
+        if (!owned) {
+            throw new NotificationSubscriptionNotValidException(
+                    messageSourceHelper.getMessage("notification.subscription.forbidden"));
+        }
+        return log;
     }
 }

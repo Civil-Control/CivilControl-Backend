@@ -13,5 +13,6 @@ public record NotificationInboxItemDTO(
         String subjectDisplayName,
         LocalDate dueDate,
         int daysUntilDue,
-        LocalDateTime sentAt
+        LocalDateTime sentAt,
+        boolean read
 ) {}

@@ -144,4 +144,30 @@ public class NotificationSubscriptionController {
             @RequestParam(defaultValue = "30") int limit) {
         return ResponseEntity.ok(subscriptionService.getInbox(Math.min(limit, 100)));
     }
+
+    @PatchMapping("/inbox/{logId}/read")
+    @Operation(
+        summary = "Marcar notificación como leída",
+        description = "Marca una notificación del inbox del usuario autenticado como leída.")
+    @ApiResponse(responseCode = "204", description = "Notificación marcada como leída")
+    @ApiResponse(responseCode = "403", description = "La notificación no pertenece al usuario")
+    @ApiResponse(responseCode = "404", description = "Notificación no encontrada")
+    public ResponseEntity<Void> markInboxItemRead(
+            @Parameter(description = "ID del log de notificación") @PathVariable Long logId) {
+        subscriptionService.markInboxItemRead(logId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/inbox/{logId}")
+    @Operation(
+        summary = "Eliminar notificación del inbox",
+        description = "Descarta una notificación del inbox del usuario autenticado (soft-dismiss; conserva la auditoría).")
+    @ApiResponse(responseCode = "204", description = "Notificación descartada")
+    @ApiResponse(responseCode = "403", description = "La notificación no pertenece al usuario")
+    @ApiResponse(responseCode = "404", description = "Notificación no encontrada")
+    public ResponseEntity<Void> dismissInboxItem(
+            @Parameter(description = "ID del log de notificación") @PathVariable Long logId) {
+        subscriptionService.dismissInboxItem(logId);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -24,6 +24,7 @@ public interface NotificationLogRepository extends JpaRepository<NotificationLog
            "WHERE l.subscriptionId IN :subscriptionIds " +
            "AND l.channel = 'SYSTEM' " +
            "AND l.status = 'SENT' " +
+           "AND l.dismissed = false " +
            "ORDER BY l.sentAt DESC")
     List<NotificationLog> findSystemInboxBySubscriptionIds(
             @Param("subscriptionIds") List<Long> subscriptionIds,
