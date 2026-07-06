@@ -1,58 +1,17 @@
-# Feature 21 — Sistema de Notificaciones (WebSocket, Email y WhatsApp)
+# Feature 21 — Sistema de Notificaciones (WebSocket y Email)
 
 ## Resumen
 
 Sistema de **notificaciones suscribibles multicanal** que alerta a los usuarios sobre fechas de vencimiento próximas en cinco módulos del sistema: VTV de vehículos, cheques pendientes, pólizas de seguro, afectaciones de servicios y contratos de obra.
 
-Cada usuario (o un usuario con permisos) puede suscribirse a un sujeto concreto o a todos los del tipo, configurar cuántos avisos desea recibir y con cuánta antelación, y elegir los canales de entrega: notificación en sistema (WebSocket), WhatsApp y/o email.
+Cada usuario (o un usuario con permisos) puede suscribirse a un sujeto concreto o a todos los del tipo, configurar cuántos avisos desea recibir y con cuánta antelación, y elegir los canales de entrega: notificación en sistema (WebSocket) y/o email.
 
 **Herramientas externas:**
 - **WebSocket:** STOMP sobre SockJS con autenticación JWT en el handshake.
 - **Email:** [Resend](https://resend.com) — SDK Java oficial, 3.000 emails/mes gratis, deliverability superior a Gmail SMTP.
-- **WhatsApp:** [WhatsApp Cloud API (Meta)](https://developers.facebook.com/docs/whatsapp/cloud-api) — API REST oficial sobre Graph API. Sin SDK de terceros, sin markup de intermediario. Entorno de pruebas gratuito con hasta 5 números en lista blanca permanente.
 
 **Dependencias del proyecto:**
-- Ninguna feature anterior es prerrequisito directo, pero se deben resolver las modificaciones al `User` (sección prerrequisito) antes de implementar el canal WhatsApp.
-
----
-
-## Prerrequisito: Modificación a `User`
-
-**Archivo:** `model/entity/security/User.java`
-
-Agregar al final de la clase (antes del cierre):
-
-```java
-@Column(name = "whatsapp_number", length = 20)
-private String whatsappNumber;
-```
-
-**Migración SQL (incluir en el script de esta feature):**
-
-```sql
-ALTER TABLE users ADD COLUMN whatsapp_number VARCHAR(20);
-```
-
-**Modificaciones a DTOs de User:**
-
-En `UserDTO` (record de request) agregar:
-```java
-@Schema(description = "Número de WhatsApp en formato E.164 (ej: +5491112345678). Requerido si el usuario quiere recibir notificaciones por WhatsApp.", nullable = true)
-@Pattern(regexp = "^\\+[1-9]\\d{7,14}$", message = "{user.whatsappNumber.format}", groups = {OnCreate.class, OnUpdate.class})
-String whatsappNumber
-```
-
-En `UserResponseDTO` agregar:
-```java
-String whatsappNumber
-```
-
-En `UserMapper` agregar los mappings correspondientes (MapStruct los resuelve por nombre de campo, no requiere anotación explícita si los nombres coinciden).
-
-En `messages.properties`:
-```properties
-user.whatsappNumber.format=El número de WhatsApp debe estar en formato E.164 (ej: +5491112345678)
-```
+- Ninguna feature anterior es prerrequisito directo.
 
 ---
 
@@ -85,8 +44,7 @@ public enum NotificationSubjectType {
 ```java
 public enum NotificationChannel {
     SYSTEM,
-    EMAIL,
-    WHATSAPP
+    EMAIL
 }
 ```
 
@@ -271,7 +229,6 @@ public record NotificationPayload(
     // Mapa canal → dirección de contacto. Aísla al payload de los canales concretos:
     // agregar un canal nuevo = una línea en el scheduler, cero cambios aquí.
     // EMAIL     → dirección de correo
-    // WHATSAPP  → número E.164
     // SYSTEM    → no requiere entrada (el routing se hace por userId vía WebSocket)
     Map<NotificationChannel, String> channelAddresses
 ) {}
@@ -282,9 +239,6 @@ public record NotificationPayload(
 ## 2. Migración SQL
 
 ```sql
--- Requisito previo: campo en users (ver sección Prerrequisito)
-ALTER TABLE users ADD COLUMN whatsapp_number VARCHAR(20);
-
 -- Tabla principal de suscripciones
 CREATE TABLE notification_subscriptions (
     id                    BIGINT        NOT NULL GENERATED ALWAYS AS IDENTITY,
@@ -368,9 +322,6 @@ Agregar dentro del bloque `<dependencies>`:
     <artifactId>resend-java</artifactId>
     <version>3.0.0</version>
 </dependency>
-
-<!-- WhatsApp Cloud API (Meta): no requiere dependencia adicional.
-     Se usa RestClient de Spring 6.1+ (incluido en spring-boot-starter-web). -->
 ```
 
 ---
@@ -386,12 +337,6 @@ resend:
   api-key: ${RESEND_API_KEY}
   from-address: ${RESEND_FROM_ADDRESS:noreply@civilcontrol.app}
   from-name: ${RESEND_FROM_NAME:CivilControl}
-
-whatsapp:
-  cloud-api:
-    url: ${WHATSAPP_API_URL:https://graph.facebook.com/v20.0}
-    phone-number-id: ${WHATSAPP_PHONE_ID}
-    access-token: ${WHATSAPP_ACCESS_TOKEN}
 ```
 
 ### 4.2 `WebSocketConfig`
@@ -492,7 +437,7 @@ public class AsyncConfig {
 }
 ```
 
-### 4.5 `ResendConfig` y `WhatsAppCloudApiConfig`
+### 4.5 `ResendConfig`
 
 **Ubicación:** `config/ResendConfig.java`
 
@@ -506,31 +451,6 @@ public class ResendConfig {
     @Bean
     public Resend resendClient() {
         return new Resend(apiKey);
-    }
-}
-```
-
-**Ubicación:** `config/WhatsAppCloudApiConfig.java`
-
-Crea un `RestClient` preconfigurado con la URL base de Graph API y el Bearer token. No requiere ningún SDK externo; `RestClient` está disponible desde Spring Boot 3.2 vía `spring-boot-starter-web`.
-
-```java
-@Configuration
-public class WhatsAppCloudApiConfig {
-
-    @Value("${whatsapp.cloud-api.url}")
-    private String apiUrl;
-
-    @Value("${whatsapp.cloud-api.access-token}")
-    private String accessToken;
-
-    @Bean
-    public RestClient whatsAppRestClient(RestClient.Builder builder) {
-        return builder
-                .baseUrl(apiUrl)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .build();
     }
 }
 ```
@@ -706,15 +626,15 @@ public interface NotificationAlertRepository extends JpaRepository<NotificationA
 @Repository
 public interface NotificationLogRepository extends JpaRepository<NotificationLog, Long> {
 
-    // Carga bulk de claves de deduplicación para un tenant en una fecha dada.
-    // Evita N+1 queries en el scheduler: se llama una sola vez por tenant por día.
-    @Query("SELECT CONCAT(CAST(l.subscriptionId AS string), '_', " +
-           "CAST(l.alertId AS string), '_', " +
-           "COALESCE(CAST(l.subjectId AS string), 'null')) " +
+    // Carga bulk de claves de ciclo ya enviadas (status SENT) de vencimientos vigentes.
+    // Clave por ciclo: (subscriptionId, alertId, subjectId, dueDate). Evita N+1 en el scheduler
+    // y permite envío único por ciclo dentro de la ventana de recuperación.
+    @Query("SELECT CONCAT(str(l.subscriptionId), '_', str(l.alertId), '_', " +
+           "COALESCE(str(l.subjectId), 'null'), '_', str(l.dueDate)) " +
            "FROM NotificationLog l " +
-           "WHERE l.tenantId = :tenantId AND l.logDate = :logDate")
-    Set<String> findSentKeysForTenantAndDate(@Param("tenantId") Long tenantId,
-                                              @Param("logDate") LocalDate logDate);
+           "WHERE l.tenantId = :tenantId AND l.status = 'SENT' AND l.dueDate >= :fromDate")
+    Set<String> findSentCycleKeysForTenant(@Param("tenantId") Long tenantId,
+                                           @Param("fromDate") LocalDate fromDate);
 
     // Bandeja de entrada del canal SYSTEM para un usuario (obtenido vía subscriptionId en subquery o join)
     @Query("SELECT l FROM NotificationLog l " +
@@ -1098,77 +1018,6 @@ public class EmailNotificationSender implements NotificationSender {
 }
 ```
 
-### 8.9 `WhatsAppNotificationSender`
-
-**Ubicación:** `service/notification/sender/WhatsAppNotificationSender.java`
-
-Llama directamente a la WhatsApp Cloud API de Meta. Los mensajes proactivos **deben** usar plantillas preaprobadas (políticas anti-spam de Meta B2B). Cada `NotificationSubjectType` se mapea a un `template_name` fijo; las variables dinámicas se inyectan como parámetros de componente.
-
-**Convención de plantillas:** cada plantilla debe tener exactamente 3 parámetros de cuerpo en este orden: `{{1}}` nombre del sujeto, `{{2}}` fecha de vencimiento (dd/MM/yyyy), `{{3}}` días restantes. Registrar y aprobar las 5 plantillas en el Business Manager de Meta antes de pasar a producción.
-
-```java
-@Component
-@RequiredArgsConstructor
-@Slf4j
-public class WhatsAppNotificationSender implements NotificationSender {
-
-    private final RestClient whatsAppRestClient;
-
-    @Value("${whatsapp.cloud-api.phone-number-id}")
-    private String phoneNumberId;
-
-    private static final Map<NotificationSubjectType, String> TEMPLATE_NAMES = Map.of(
-            NotificationSubjectType.VEHICLE_VTV,        "vtv_expiration_alert",
-            NotificationSubjectType.CHECK_PAYMENT,      "check_payment_alert",
-            NotificationSubjectType.INSURANCE_POLICY,   "insurance_policy_alert",
-            NotificationSubjectType.SERVICE_ASSIGNMENT, "service_assignment_alert",
-            NotificationSubjectType.WORK_CONTRACT,      "work_contract_alert"
-    );
-
-    @Override
-    public NotificationChannel getChannel() { return NotificationChannel.WHATSAPP; }
-
-    @Override
-    public void send(NotificationPayload payload) {
-        String phoneNumber = payload.channelAddresses().get(NotificationChannel.WHATSAPP);
-        if (phoneNumber == null || phoneNumber.isBlank()) {
-            log.warn("WhatsApp notification skipped for userId={}: no phone number", payload.userId());
-            return;
-        }
-
-        String templateName = TEMPLATE_NAMES.get(payload.subjectType());
-        String dueDateFormatted = payload.dueDate()
-                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-
-        Map<String, Object> requestBody = Map.of(
-                "messaging_product", "whatsapp",
-                "to", phoneNumber,
-                "type", "template",
-                "template", Map.of(
-                        "name", templateName,
-                        "language", Map.of("code", "es_AR"),
-                        "components", List.of(
-                                Map.of(
-                                        "type", "body",
-                                        "parameters", List.of(
-                                                Map.of("type", "text", "text", payload.subjectDisplayName()),
-                                                Map.of("type", "text", "text", dueDateFormatted),
-                                                Map.of("type", "text", "text", String.valueOf(payload.daysUntilDue()))
-                                        )
-                                )
-                        )
-                )
-        );
-
-        whatsAppRestClient.post()
-                .uri("/{phoneNumberId}/messages", phoneNumberId)
-                .body(requestBody)
-                .retrieve()
-                .toBodilessEntity();
-    }
-}
-```
-
 ### 8.10 `WebSocketNotificationSender`
 
 **Ubicación:** `service/notification/sender/WebSocketNotificationSender.java`
@@ -1420,9 +1269,9 @@ public class NotificationSchedulerService {
     private void processTenant(Long tenantId) {
         LocalDate today = LocalDate.now();
 
-        // Una sola query por tenant por día. Evita el problema N+1 que se genera al
-        // llamar existsBySubscriptionIdAndAlertIdAndSubjectIdAndLogDate() en cada iteración.
-        Set<String> sentToday = logRepository.findSentKeysForTenantAndDate(tenantId, today);
+        // Una sola query por tenant. Carga las claves de ciclo ya enviadas (status SENT)
+        // de vencimientos vigentes (dueDate >= hoy). Evita N+1 y garantiza envío único por ciclo.
+        Set<String> sentCycleKeys = logRepository.findSentCycleKeysForTenant(tenantId, today);
 
         List<NotificationSubscription> subscriptions = subscriptionRepository.findAllByDeletedFalseAndActiveTrue();
 
@@ -1436,7 +1285,7 @@ public class NotificationSchedulerService {
             for (SubjectDueDateInfo info : subjects) {
                 for (NotificationAlert alert : sub.getAlerts()) {
                     if (!alert.isActive()) continue;
-                    processAlert(sub, alert, info, today, sentToday);
+                    processAlert(sub, alert, info, today, sentCycleKeys);
                 }
             }
         }
@@ -1444,20 +1293,23 @@ public class NotificationSchedulerService {
 
     private void processAlert(NotificationSubscription sub, NotificationAlert alert,
                                SubjectDueDateInfo info, LocalDate today,
-                               Set<String> sentToday) {
+                               Set<String> sentCycleKeys) {
+        // Ventana de recuperación: dispara desde triggerDate hasta dueDate.
+        // La deduplicación por ciclo (dueDate) garantiza un único envío aunque el
+        // scheduler falle o la suscripción se cree con el vencimiento ya dentro de rango.
         LocalDate triggerDate = info.dueDate().minusDays(alert.getDaysBeforeAlert());
-        if (!today.equals(triggerDate)) return;
+        if (today.isBefore(triggerDate) || today.isAfter(info.dueDate())) return;
 
         String dedupKey = sub.getId() + "_" + alert.getId() + "_"
-                + (info.subjectId() != null ? info.subjectId() : "null");
-        if (sentToday.contains(dedupKey)) return;
+                + (info.subjectId() != null ? info.subjectId() : "null")
+                + "_" + info.dueDate();
+        if (sentCycleKeys.contains(dedupKey)) return;
 
         userRepository.findById(sub.getUserId()).ifPresent(user -> {
             // Construir el mapa de direcciones de contacto por canal.
             // Agregar un canal nuevo = añadir una línea aquí. Sin más cambios.
             Map<NotificationChannel, String> channelAddresses = new EnumMap<>(NotificationChannel.class);
             channelAddresses.put(NotificationChannel.EMAIL, user.getEmail());
-            channelAddresses.put(NotificationChannel.WHATSAPP, user.getWhatsappNumber());
 
             NotificationPayload payload = new NotificationPayload(
                     sub.getSubjectType(),
@@ -1533,7 +1385,6 @@ notification.subscription.immutableFields=Los campos userId, subjectType y subje
 notification.subscription.subjectNotFound=El sujeto indicado no existe o no pertenece al tenant actual
 notification.alert.daysBeforeAlert.min=La antelación del aviso debe ser de al menos 1 día
 notification.alert.daysBeforeAlert.max=La antelación del aviso no puede superar los 365 días
-user.whatsappNumber.format=El número de WhatsApp debe estar en formato E.164 (ej: +5491112345678)
 ```
 
 ---
@@ -1571,9 +1422,8 @@ export const NotificationSubjectTypeLabels: Record<NotificationSubjectType, stri
 };
 
 export enum NotificationChannel {
-  SYSTEM   = 'SYSTEM',
-  EMAIL    = 'EMAIL',
-  WHATSAPP = 'WHATSAPP',
+  SYSTEM = 'SYSTEM',
+  EMAIL  = 'EMAIL',
 }
 
 export interface NotificationAlertDto {
@@ -1777,7 +1627,7 @@ notifications/
 Campos:
 - `subjectType` — select con los 5 tipos (required)
 - `subjectId` — select dinámico según el tipo elegido, cargado via la API de referencia del módulo correspondiente. Toggle "Todos" que setea `subjectId = null`.
-- `channels` — checkboxes para SYSTEM, EMAIL, WHATSAPP. Al marcar WHATSAPP, si el usuario no tiene `whatsappNumber` configurado, mostrar advertencia "Configurá tu número en tu perfil".
+- `channels` — checkboxes para SYSTEM y EMAIL.
 - `alerts` — lista dinámica. Botón "Agregar aviso" añade un input numérico de días. Mínimo 1 aviso. Botón `×` por fila para eliminar.
 
 **Validaciones frontend:**
@@ -1795,14 +1645,12 @@ Campos:
 | Decisión | Elección | Motivo |
 |---|---|---|
 | Canal email | Resend SDK | 3.000 emails/mes gratis, mejor deliverability que Gmail SMTP, sin gestión de infraestructura |
-| Canal WhatsApp | WhatsApp Cloud API (Meta) | Conexión directa a Graph API: sin markup de intermediario (Twilio), menor latencia, sandbox con whitelist permanente de 5 números (sin sesión de 24 hs). Producción requiere verificación legal del negocio ante Meta; el switch es solo un cambio de credenciales en `.env` |
-| Contenido WhatsApp | Plantillas dinámicas (Templates) | Obligatorio por política anti-spam de Meta B2B. Cada `NotificationSubjectType` mapea a un `template_name` preaprobado; las variables (nombre, fecha, días) se inyectan como parámetros de componente |
 | WebSocket | STOMP + SockJS | Standard de facto en Spring Boot; SockJS provee fallback HTTP para redes restrictivas |
 | Autenticación WebSocket | JWT en header CONNECT | Misma estrategia que la API REST; sin cookies ni sesiones adicionales |
 | Canales por suscripción | Mismos canales para todos los avisos | Simplifica la UX; cambiar de canal requiere editar la suscripción, no cada aviso |
 | `subjectId = null` | Suscripción wildcard a todos los sujetos del tipo | Permite alertas globales ("avisar de cualquier VTV que venza") sin crear N suscripciones |
-| Scheduler | `today.equals(dueDate.minusDays(days))` | Un disparo exacto por día/aviso; sin notificaciones repetidas ante caída del scheduler |
-| Deduplicación | `NotificationLog` con clave `(subscriptionId, alertId, subjectId, logDate)` | Evita doble envío si el scheduler corre dos veces; también sirve como auditoría |
+| Scheduler | Ventana `triggerDate ≤ hoy ≤ dueDate` + dedup por ciclo | Se recupera de corridas perdidas o suscripciones creadas con el vencimiento ya dentro de rango; el log por ciclo (`dueDate`) evita reenvíos |
+| Deduplicación | `NotificationLog` con clave de ciclo `(subscriptionId, alertId, subjectId, dueDate)` | Un único envío por ciclo de vencimiento dentro de la ventana de recuperación; también sirve como auditoría |
 | `dueDate` en `NotificationLog` | Campo persistido | Evita re-resolver la fecha en el inbox; dato histórico útil aunque el sujeto cambie |
 | `NotificationAlert` sin `TenantEntity` | Entidad hijo simple | Siempre se accede a través de su suscripción padre; la tenencia queda garantizada por cascada |
 | Inbox SYSTEM | Endpoint REST + WebSocket | WebSocket para tiempo real; REST para histórico en login (usuario que estuvo offline) |
@@ -1814,16 +1662,9 @@ Campos:
 
 ## 15. Checklist de Implementación
 
-### Prerrequisito
-
-- [ ] Agregar `whatsappNumber` a `User.java`
-- [ ] Agregar `whatsappNumber` a `UserDTO.java` (con validación de formato E.164)
-- [ ] Agregar `whatsappNumber` a `UserResponseDTO.java`
-- [ ] Verificar que `UserMapper` mapea el campo correctamente
-
 ### Backend
 
-- [ ] Agregar 2 dependencias en `pom.xml` (websocket, resend) — WhatsApp Cloud API no requiere SDK externo
+- [ ] Agregar 2 dependencias en `pom.xml` (websocket, resend)
 - [ ] Crear enum `NotificationSubjectType.java`
 - [ ] Crear enum `NotificationChannel.java`
 - [ ] Crear enum `NotificationDeliveryStatus.java`
@@ -1832,7 +1673,7 @@ Campos:
 - [ ] Crear entidad `NotificationSubscription.java`
 - [ ] Crear entidad `NotificationAlert.java`
 - [ ] Crear entidad `NotificationLog.java` (incluir campo `dueDate`)
-- [ ] Ejecutar migración SQL completa (ALTER users, 4 tablas nuevas)
+- [ ] Ejecutar migración SQL completa (4 tablas nuevas)
 - [ ] Agregar `findAllByDeletedFalseAndActiveTrue()` a `TenantRepository`
 - [ ] Crear `NotificationSubscriptionRepository.java`
 - [ ] Crear `NotificationAlertRepository.java`
@@ -1848,10 +1689,7 @@ Campos:
 - [ ] Crear `WebSocketJwtInterceptor.java`
 - [ ] Crear `AsyncConfig.java` (con `@EnableAsync` y bean `notificationTaskExecutor`)
 - [ ] Crear `ResendConfig.java`
-- [ ] Crear `WhatsAppCloudApiConfig.java` (bean `RestClient` con Bearer token preconfigurado)
-- [ ] Agregar sección `resend` y `whatsapp.cloud-api` a `application.yml`
-- [ ] Agregar variables de entorno al `.env` / configuración de deploy (`WHATSAPP_PHONE_ID`, `WHATSAPP_ACCESS_TOKEN`, opcionales para sandbox: poner en whitelist hasta 5 números en Meta Business Manager)
-- [ ] Registrar y aprobar las 5 plantillas de WhatsApp en Meta Business Manager antes de pasar a producción (`vtv_expiration_alert`, `check_payment_alert`, `insurance_policy_alert`, `service_assignment_alert`, `work_contract_alert`)
+- [ ] Agregar sección `resend` a `application.yml`
 - [ ] Excluir `NotificationAlertRepository` del `TenantFilterAspect` (no extiende `TenantEntity`) agregando `&& !execution(* PSG.backEnd.repository.NotificationAlertRepository.*(..))` al pointcut
 - [ ] Crear interface `NextDueDateResolver.java`
 - [ ] Crear `VehicleVtvDueDateResolver.java`
@@ -1861,7 +1699,6 @@ Campos:
 - [ ] Crear `WorkContractDueDateResolver.java`
 - [ ] Crear interface `NotificationSender.java`
 - [ ] Crear `EmailNotificationSender.java`
-- [ ] Crear `WhatsAppNotificationSender.java`
 - [ ] Crear `WebSocketNotificationSender.java`
 - [ ] Crear `NotificationSenderRegistry.java`
 - [ ] Crear `INotificationSubscriptionService.java`

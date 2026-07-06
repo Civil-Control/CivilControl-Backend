@@ -14,11 +14,11 @@ import java.util.Set;
 @Repository
 public interface NotificationLogRepository extends JpaRepository<NotificationLog, Long> {
 
-    @Query("SELECT CONCAT(str(l.subscriptionId), '_', str(l.alertId), '_', COALESCE(str(l.subjectId), 'null')) " +
+    @Query("SELECT CONCAT(str(l.subscriptionId), '_', str(l.alertId), '_', COALESCE(str(l.subjectId), 'null'), '_', str(l.dueDate)) " +
            "FROM NotificationLog l " +
-           "WHERE l.tenantId = :tenantId AND l.logDate = :logDate")
-    Set<String> findSentKeysForTenantAndDate(@Param("tenantId") Long tenantId,
-                                              @Param("logDate") LocalDate logDate);
+           "WHERE l.tenantId = :tenantId AND l.status = 'SENT' AND l.dueDate >= :fromDate")
+    Set<String> findSentCycleKeysForTenant(@Param("tenantId") Long tenantId,
+                                           @Param("fromDate") LocalDate fromDate);
 
     @Query("SELECT l FROM NotificationLog l " +
            "WHERE l.subscriptionId IN :subscriptionIds " +

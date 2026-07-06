@@ -53,7 +53,7 @@ public class NotificationSchedulerService {
                         NextDueDateResolver::getSubjectType, Function.identity()));
     }
 
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 0 15 * * *")
     @Async
     public void runDailyCheck() {
         log.info("NotificationScheduler: starting daily run");
@@ -73,7 +73,7 @@ public class NotificationSchedulerService {
 
     private void processTenant(Long tenantId) {
         LocalDate today = LocalDate.now();
-        Set<String> sentToday = logRepository.findSentKeysForTenantAndDate(tenantId, today);
+        Set<String> sentCycleKeys = logRepository.findSentCycleKeysForTenant(tenantId, today);
         List<NotificationSubscription> subscriptions =
                 subscriptionRepository.findAllByDeletedFalseAndActiveTrue();
 
@@ -88,7 +88,7 @@ public class NotificationSchedulerService {
             for (SubjectDueDateInfo info : subjects) {
                 for (NotificationAlert alert : sub.getAlerts()) {
                     if (!alert.isActive()) continue;
-                    processAlert(sub, alert, info, today, sentToday, tenantId);
+                    processAlert(sub, alert, info, today, sentCycleKeys, tenantId);
                 }
             }
         }
@@ -98,14 +98,15 @@ public class NotificationSchedulerService {
                                NotificationAlert alert,
                                SubjectDueDateInfo info,
                                LocalDate today,
-                               Set<String> sentToday,
+                               Set<String> sentCycleKeys,
                                Long tenantId) {
         LocalDate triggerDate = info.dueDate().minusDays(alert.getDaysBeforeAlert());
-        if (!today.equals(triggerDate)) return;
+        if (today.isBefore(triggerDate) || today.isAfter(info.dueDate())) return;
 
         String dedupKey = sub.getId() + "_" + alert.getId() + "_"
-                + (info.subjectId() != null ? info.subjectId() : "null");
-        if (sentToday.contains(dedupKey)) return;
+                + (info.subjectId() != null ? info.subjectId() : "null")
+                + "_" + info.dueDate();
+        if (sentCycleKeys.contains(dedupKey)) return;
 
         userRepository.findByIdAndDeletedFalse(sub.getUserId()).ifPresent(user -> {
             Map<NotificationChannel, String> channelAddresses =
