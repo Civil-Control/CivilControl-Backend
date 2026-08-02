@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.NotFoundException;
+import PSG.backEnd.exception.item.ItemAlreadyExistsException;
 import PSG.backEnd.model.dto.item.ItemDTO;
 import PSG.backEnd.model.dto.item.ItemFilterDTO;
 import PSG.backEnd.model.dto.item.ItemResponseDTO;
@@ -16,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -29,6 +32,15 @@ public class ItemService implements IItemService {
     @Override
     @Transactional
     public ItemResponseDTO create(ItemDTO dto) {
+        if (itemRepository.existsByNameAndDeletedFalse(dto.name())) {
+            throw new ItemAlreadyExistsException(messageSourceHelper.getMessage("item.name.exists"));
+        }
+
+        Optional<Item> deletedItem = itemRepository.findByNameAndDeletedTrue(dto.name());
+        if (deletedItem.isPresent()) {
+            return reactivate(deletedItem.get(), dto);
+        }
+
         Item item = itemMapper.toEntity(dto);
         Item savedItem = itemRepository.save(item);
         return itemMapper.toResponse(savedItem);
@@ -37,11 +49,14 @@ public class ItemService implements IItemService {
     @Override
     @Transactional
     public ItemResponseDTO update(Long id, ItemDTO dto) {
-        Item existingItem = itemRepository.findById(id)
+        Item existingItem = itemRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", id)));
 
         // Update fields from DTO
-        if (dto.name() != null) {
+        if (dto.name() != null && !dto.name().equals(existingItem.getName())) {
+            if (itemRepository.existsByNameAndDeletedFalse(dto.name())) {
+                throw new ItemAlreadyExistsException(messageSourceHelper.getMessage("item.name.exists"));
+            }
             existingItem.setName(dto.name());
         }
         if (dto.description() != null) {
@@ -59,18 +74,27 @@ public class ItemService implements IItemService {
     @Override
     @Transactional
     public void delete(Long id) {
-        if (!itemRepository.existsById(id)) {
-            throw new NotFoundException(messageSourceHelper.getMessage("item.notFound", id));
-        }
-        itemRepository.deleteById(id);
+        Item item = itemRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", id)));
+        item.setDeleted(true);
+        itemRepository.save(item);
     }
 
     @Override
     @Transactional(readOnly = true)
     public ItemResponseDTO getById(Long id) {
-        Item item = itemRepository.findById(id)
+        Item item = itemRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", id)));
         return itemMapper.toResponse(item);
+    }
+
+    private ItemResponseDTO reactivate(Item item, ItemDTO dto) {
+        item.setName(dto.name());
+        item.setDescription(dto.description());
+        item.getItemTypes().clear();
+        item.getItemTypes().addAll(dto.itemTypes());
+        item.setDeleted(false);
+        return itemMapper.toResponse(itemRepository.save(item));
     }
 
     @Override

@@ -89,11 +89,10 @@ public class ItemController {
     @PreAuthorize("hasAuthority('" + AppPermissions.ITEM_DELETE + "')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete item",
-            description = "Performs a soft delete of an item from the catalog. The item is marked as deleted but remains in the database for historical purposes. " +
-                    "Cannot delete items that are referenced in existing transactional documents.")
+            description = "Performs a soft delete of an item from the catalog. The item is marked as deleted but remains in the database, " +
+                    "preserving references from existing transactional documents.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Item successfully deleted"),
-            @ApiResponse(responseCode = "400", description = "Cannot delete item with references in transactional documents"),
             @ApiResponse(responseCode = "404", description = "Item not found")
     })
     public ResponseEntity<Void> deleteItem(

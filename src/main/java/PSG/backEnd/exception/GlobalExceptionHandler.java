@@ -1,5 +1,6 @@
 package PSG.backEnd.exception;
 
+import PSG.backEnd.exception.item.ItemAlreadyExistsException;
 import PSG.backEnd.exception.notification.NotificationSubscriptionNotValidException;
 import PSG.backEnd.exception.security.ChannelVerificationNotValidException;
 import PSG.backEnd.exception.purchaseOrder.PurchaseOrderNotValidException;
@@ -374,6 +375,30 @@ public class GlobalExceptionHandler {
         ProblemDetail problemDetail = createProblemDetail(
                 HttpStatus.CONFLICT,
                 "Vehicle Already Exists",
+                ex.getMessage(),
+                request,
+                ex
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(problemDetail);
+    }
+
+    /**
+     * Handles item already exists conflicts (duplicate name)
+     * Returns 409 Conflict
+     */
+    @ExceptionHandler(ItemAlreadyExistsException.class)
+    public ResponseEntity<ProblemDetail> handleItemAlreadyExistsException(
+            ItemAlreadyExistsException ex,
+            WebRequest request) {
+
+        auditException(ex, request);
+
+        ProblemDetail problemDetail = createProblemDetail(
+                HttpStatus.CONFLICT,
+                "Item Already Exists",
                 ex.getMessage(),
                 request,
                 ex

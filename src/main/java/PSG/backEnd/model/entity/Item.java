@@ -8,7 +8,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "items")
+@Table(name = "items", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"tenant_id", "name"})
+})
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -36,4 +38,7 @@ public class Item extends TenantEntity {
     @Column(name = "item_type", nullable = false)
     @Builder.Default
     private Set<ItemType> itemTypes = new HashSet<>();
+
+    @Column(nullable = false)
+    private boolean deleted;
 }
