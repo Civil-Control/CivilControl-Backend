@@ -600,6 +600,7 @@ public class ReportService implements IReportService {
                 null, // supplierId
                 null, // supplierCuit
                 null, // supplierName
+                null, // supplierAlias
                 getEffectiveAreaId(filters), // projectAreaId - from filter
                 null, // projectAreaName
                 filters.maxAmount(), // maxTotalAmount
@@ -1497,14 +1498,14 @@ public class ReportService implements IReportService {
             allDocuments = new ArrayList<>();
             for (Long areaId : areaIds) {
                 allDocuments.addAll(transactionalDocumentRepository.findAllWithFilters(
-                        null, filters.documentType(), null, null, null, areaId, null,
+                        null, filters.documentType(), null, null, null, null, areaId, null,
                         filters.maxAmount(), filters.minAmount(), null,
                         filters.startDate(), filters.endDate(), filters.paid(), null, pageable
                 ).getContent());
             }
             if (wantUnassigned) {
                 transactionalDocumentRepository.findAllWithFilters(
-                        null, filters.documentType(), null, null, null, null, null,
+                        null, filters.documentType(), null, null, null, null, null, null,
                         filters.maxAmount(), filters.minAmount(), null,
                         filters.startDate(), filters.endDate(), filters.paid(), null, pageable
                 ).getContent().stream()
@@ -1513,7 +1514,7 @@ public class ReportService implements IReportService {
             }
         } else {
             allDocuments = new ArrayList<>(transactionalDocumentRepository.findAllWithFilters(
-                    null, filters.documentType(), null, null, null, effectiveAreaId, null,
+                    null, filters.documentType(), null, null, null, null, effectiveAreaId, null,
                     filters.maxAmount(), filters.minAmount(), null,
                     filters.startDate(), filters.endDate(), filters.paid(), null, pageable
             ).getContent());
