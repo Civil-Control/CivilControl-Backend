@@ -164,6 +164,7 @@ public class PolicyVehicleService implements IPolicyVehicleService {
         PaymentDetails pd = detail.getPaymentDetails();
         InsurancePolicy policy = detail.getInsurancePolicy();
         String paymentMethod;
+        Long bankAccountId = null;
         String bankName = null;
         String transactionNumber = null;
         String checkNumber = null;
@@ -172,11 +173,17 @@ public class PolicyVehicleService implements IPolicyVehicleService {
             paymentMethod = "CASH";
         } else if (pd.getTransferPayment() != null) {
             paymentMethod = "TRANSFER";
-            bankName = pd.getTransferPayment().getBankAccount() != null ? pd.getTransferPayment().getBankAccount().getBankName() : null;
+            if (pd.getTransferPayment().getBankAccount() != null) {
+                bankAccountId = pd.getTransferPayment().getBankAccount().getId();
+                bankName = pd.getTransferPayment().getBankAccount().getBankName();
+            }
             transactionNumber = pd.getTransferPayment().getTransactionNumber();
         } else if (pd.getCheckPayment() != null) {
             paymentMethod = "CHECK";
-            bankName = pd.getCheckPayment().getBankAccount() != null ? pd.getCheckPayment().getBankAccount().getBankName() : null;
+            if (pd.getCheckPayment().getBankAccount() != null) {
+                bankAccountId = pd.getCheckPayment().getBankAccount().getId();
+                bankName = pd.getCheckPayment().getBankAccount().getBankName();
+            }
             checkNumber = pd.getCheckPayment().getCheckNumber();
             checkDueDate = pd.getCheckPayment().getDueDate();
         } else {
@@ -185,7 +192,7 @@ public class PolicyVehicleService implements IPolicyVehicleService {
         return new InsurancePolicyPaymentResponseDTO(
                 detail.getId(), pd.getId(), policy.getId(), policy.getPolicyNumber(),
                 pd.getPaymentDate(), pd.getAmount(), detail.getPeriodFrom(), detail.getPeriodTo(),
-                pd.getComment(), paymentMethod, bankName, transactionNumber, checkNumber, checkDueDate
+                pd.getComment(), paymentMethod, bankAccountId, bankName, transactionNumber, checkNumber, checkDueDate
         );
     }
 

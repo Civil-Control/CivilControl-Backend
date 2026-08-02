@@ -17,6 +17,7 @@ public record InsurancePolicyPaymentResponseDTO(
         LocalDate periodTo,
         String notes,
         String paymentMethod,
+        Long bankAccountId,
         String bankName,
         String transactionNumber,
         String checkNumber,
