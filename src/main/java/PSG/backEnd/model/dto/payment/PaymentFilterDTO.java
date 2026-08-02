@@ -32,6 +32,9 @@ public record PaymentFilterDTO(
         @Size(max = 255, message = "{validation.size}")
         String supplierName,
 
+        @Size(max = 50, message = "{validation.size}")
+        String supplierAlias,
+
         Long supplierId,
 
         /**

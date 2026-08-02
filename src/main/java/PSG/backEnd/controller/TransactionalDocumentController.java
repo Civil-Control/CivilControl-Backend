@@ -86,6 +86,9 @@ public class TransactionalDocumentController {
             @Parameter(description = "Filter by supplier name (legal or trade name, partial match, case-insensitive)", example = "García")
             @RequestParam(required = false) String supplierName,
 
+            @Parameter(description = "Filter by supplier alias (partial match, case-insensitive)", example = "El Ferretero")
+            @RequestParam(required = false) String supplierAlias,
+
             @Parameter(description = "Filter by project area ID. References the organizational division.", example = "5")
             @RequestParam(required = false) Long projectAreaId,
 
@@ -110,7 +113,7 @@ public class TransactionalDocumentController {
             @Parameter(description = "Filter by payment status. True for paid documents, false for unpaid, omit for all.", example = "false")
             @RequestParam(required = false) Boolean paid,
 
-            @Parameter(description = "Generic search across supplier name and document number (partial match)")
+            @Parameter(description = "Generic search across supplier name, supplier alias and document number (partial match)")
             @RequestParam(required = false) String search,
 
             @Parameter(description = "Page number (0-indexed)", example = "0")
@@ -136,7 +139,7 @@ public class TransactionalDocumentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         TransactionalDocumentFilterDTO filter = new TransactionalDocumentFilterDTO(
-                documentNumber, documentType, supplierId, supplierCuit, supplierName, projectAreaId, projectAreaName,
+                documentNumber, documentType, supplierId, supplierCuit, supplierName, supplierAlias, projectAreaId, projectAreaName,
                 minTotalAmount, maxTotalAmount, totalAmount, fromDate, toDate, paid, search
         );
         return ResponseEntity.ok(iTransactionalDocumentService.getAllTransactionalDocuments(filter, pageable));
@@ -151,6 +154,7 @@ public class TransactionalDocumentController {
             case "supplierName", "supplierLegalName" -> "supplier.legalName";
             case "supplierTradeName" -> "supplier.tradeName";
             case "supplierCuit" -> "supplier.cuit";
+            case "supplierAlias" -> "supplier.alias";
             case "supplierId" -> "supplier.id";
             case "projectAreaName" -> "projectArea.name";
             case "projectAreaId" -> "projectArea.id";

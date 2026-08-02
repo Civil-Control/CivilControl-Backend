@@ -115,9 +115,10 @@ public class PaymentController {
             @Parameter(description = "Filter by check number. Substring match, only returns check payments.", example = "556") @RequestParam(required = false) String checkNumber,
             @Parameter(description = "Filter by transfer number. Substring match, only returns transfer payments.", example = "11445") @RequestParam(required = false) String transferNumber,
             @Parameter(description = "Filter by supplier name (partial match on legal or trade name)", example = "Proveedor SA") @RequestParam(required = false) String supplierName,
+            @Parameter(description = "Filter by supplier alias (partial match)", example = "El Ferretero") @RequestParam(required = false) String supplierAlias,
             @Parameter(description = "Filter by supplier ID who received the payment", example = "42") @RequestParam(required = false) Long supplierId,
             @Parameter(description = "Filter by payment amount as a substring/coincidence (e.g. '150' matches 1500, 21500.00).", example = "150") @RequestParam(required = false) String amount,
-            @Parameter(description = "Generic search across supplier name and amount (substring on either).", example = "1500") @RequestParam(required = false) String search,
+            @Parameter(description = "Generic search across supplier name, supplier alias and amount (substring on either).", example = "1500") @RequestParam(required = false) String search,
             @Parameter(description = "Page number (0-indexed)", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, paymentDate, amount, comment. " +
@@ -134,7 +135,7 @@ public class PaymentController {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         PaymentFilterDTO filter = new PaymentFilterDTO(
-                paymentMethod, startDate, endDate, minAmount, maxAmount, checkNumber, transferNumber, supplierName, supplierId, amount, search
+                paymentMethod, startDate, endDate, minAmount, maxAmount, checkNumber, transferNumber, supplierName, supplierAlias, supplierId, amount, search
         );
         return ResponseEntity.ok(paymentService.findAll(filter, pageable));
     }

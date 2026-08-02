@@ -147,6 +147,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                 filterDTO.supplierId(),
                 filterDTO.supplierCuit(),
                 filterDTO.supplierName(),
+                filterDTO.supplierAlias(),
                 filterDTO.projectAreaId(),
                 filterDTO.projectAreaName(),
                 filterDTO.maxTotalAmount(),

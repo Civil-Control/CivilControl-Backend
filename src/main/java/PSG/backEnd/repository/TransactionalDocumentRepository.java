@@ -33,9 +33,12 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             AND (:documentType IS NULL OR td.documentType = :documentType)
             AND (CAST(:supplierId AS long) IS NULL OR s.id = :supplierId)
             AND (:supplierCuit IS NULL OR s.cuit LIKE %:supplierCuit%)
-            AND (:supplierName IS NULL OR 
+            AND (:supplierName IS NULL OR
                  LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR
                  LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))
+            )
+            AND (:supplierAlias IS NULL OR
+                 LOWER(CAST(s.alias AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierAlias AS string), '%'))
             )
             AND (CAST(:projectAreaId AS long) IS NULL OR pa.id = :projectAreaId)
             AND (:projectAreaName IS NULL OR 
@@ -66,6 +69,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             AND (:search IS NULL OR (
                 LOWER(CAST(s.legalName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
                 LOWER(CAST(s.tradeName AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
+                LOWER(CAST(s.alias AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR
                 td.documentNumber LIKE CONCAT('%', CAST(:search AS string), '%')
             ))
             AND td.deleted = false
@@ -76,6 +80,7 @@ public interface TransactionalDocumentRepository extends JpaRepository<Transacti
             @Param("supplierId") Long supplierId,
             @Param("supplierCuit") String supplierCuit,
             @Param("supplierName") String supplierName,
+            @Param("supplierAlias") String supplierAlias,
             @Param("projectAreaId") Long projectAreaId,
             @Param("projectAreaName") String projectAreaName,
             @Param("maxTotalAmount") BigDecimal maxTotalAmount,

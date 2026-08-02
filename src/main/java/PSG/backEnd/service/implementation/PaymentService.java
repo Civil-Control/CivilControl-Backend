@@ -386,6 +386,7 @@ public class PaymentService implements IPaymentService {
                 filter.checkNumber(),
                 filter.transferNumber(),
                 filter.supplierName(),
+                filter.supplierAlias(),
                 filter.supplierId(),
                 normalizeOptional(filter.amount()),
                 normalizeOptional(filter.search()),

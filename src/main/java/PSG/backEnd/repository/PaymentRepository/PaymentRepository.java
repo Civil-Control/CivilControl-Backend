@@ -47,10 +47,12 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             "(:transferNumber IS NULL OR EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id " +
             "   AND LOWER(tp.transactionNumber) LIKE LOWER(CONCAT('%', CAST(:transferNumber AS string), '%')))) AND " +
             "(:supplierName IS NULL OR LOWER(pd.supplier.legalName) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%')) OR LOWER(pd.supplier.tradeName) LIKE LOWER(CONCAT('%', CAST(:supplierName AS string), '%'))) AND " +
+            "(:supplierAlias IS NULL OR LOWER(CAST(pd.supplier.alias AS string)) LIKE LOWER(CONCAT('%', CAST(:supplierAlias AS string), '%'))) AND " +
             "(:supplierId IS NULL OR pd.supplier.id = :supplierId) AND " +
             "(:search IS NULL OR " +
             "  LOWER(pd.supplier.legalName) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR " +
             "  LOWER(pd.supplier.tradeName) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR " +
+            "  LOWER(CAST(pd.supplier.alias AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR " +
             "  LOWER(CAST(pd.amount AS string)) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) AND " +
             "(NOT EXISTS (SELECT 1 FROM CashPayment cp WHERE cp.paymentDetails.id = pd.id AND cp.deleted = true) AND " +
             " NOT EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id AND chp.deleted = true) AND " +
@@ -64,6 +66,7 @@ public interface PaymentRepository extends JpaRepository<PaymentDetails, Long> {
             @Param("checkNumber") String checkNumber,
             @Param("transferNumber") String transferNumber,
             @Param("supplierName") String supplierName,
+            @Param("supplierAlias") String supplierAlias,
             @Param("supplierId") Long supplierId,
             @Param("amount") String amount,
             @Param("search") String search,

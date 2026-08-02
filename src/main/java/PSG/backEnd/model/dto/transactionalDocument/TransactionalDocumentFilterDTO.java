@@ -9,6 +9,7 @@ public record TransactionalDocumentFilterDTO(
     Long supplierId,
     String supplierCuit,
     String supplierName,
+    String supplierAlias,
     Long projectAreaId,
     String projectAreaName,
     BigDecimal minTotalAmount,
