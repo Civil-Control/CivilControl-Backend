@@ -13,13 +13,14 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * (tenant_id, branch_code, document_number, client_id) is unique among active
+ * (deleted = false) rows via a partial index created in V97 — not declared as a
+ * JPA @UniqueConstraint because those can't express the WHERE deleted = false
+ * scope this table needs (see V97 for why a blanket constraint doesn't work here).
+ */
 @Entity
-@Table(
-        name = "sales_documents",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"tenant_id", "branch_code", "document_number", "client_id"})
-        }
-)
+@Table(name = "sales_documents")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
