@@ -10,6 +10,11 @@ import java.math.BigDecimal;
 @Schema(description = "A single line item within a sales document.")
 public record SalesItemDetailDTO(
 
+    @Schema(description = "ID of the item detail row. Null on create; when present on update, " +
+            "identifies the existing row to update in place instead of recreating it.",
+            nullable = true)
+    Long id,
+
     @Schema(description = "ID of the item/product.", example = "1")
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     Long itemId,

@@ -518,5 +518,10 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ResponseMessage> handleSalesDocumentNotFoundException(PSG.backEnd.exception.client.SalesDocumentNotFoundException ex) {
         return buildResponse(ex, HttpStatus.NOT_FOUND);
     }
+
+    @ExceptionHandler(PSG.backEnd.exception.client.SalesDocumentAlreadyActiveException.class)
+    public ResponseEntity<ResponseMessage> handleSalesDocumentAlreadyActiveException(PSG.backEnd.exception.client.SalesDocumentAlreadyActiveException ex) {
+        return buildResponse(ex, HttpStatus.CONFLICT);
+    }
 }
 

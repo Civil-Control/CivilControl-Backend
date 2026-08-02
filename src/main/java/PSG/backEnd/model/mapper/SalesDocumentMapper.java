@@ -15,7 +15,7 @@ public interface SalesDocumentMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "paid", ignore = true)
     @Mapping(target = "items", ignore = true)
-    @Mapping(source = "clientId", target = "client.id")
+    @Mapping(target = "client", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
     @Mapping(target = "projectAreaTask", ignore = true)
     SalesDocument toEntity(SalesDocumentDTO dto);
@@ -32,14 +32,14 @@ public interface SalesDocumentMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "paid", ignore = true)
     @Mapping(target = "items", ignore = true)
-    @Mapping(source = "clientId", target = "client.id")
+    @Mapping(target = "client", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
     @Mapping(target = "projectAreaTask", ignore = true)
     void partialUpdate(SalesDocumentDTO dto, @MappingTarget SalesDocument salesDocument);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "salesDocument", ignore = true)
-    @Mapping(source = "itemId", target = "item.id")
+    @Mapping(target = "item", ignore = true)
     @Mapping(target = "totalAmount", ignore = true)
     SalesItemDetail toItemDetailEntity(SalesItemDetailDTO dto);
 

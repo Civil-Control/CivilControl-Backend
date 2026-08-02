@@ -14,7 +14,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "sales_documents")
+@Table(
+        name = "sales_documents",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"tenant_id", "branch_code", "document_number", "client_id"})
+        }
+)
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -46,22 +51,22 @@ public class SalesDocument extends TenantEntity {
     @Column(name = "purchase_order_reference", columnDefinition = "VARCHAR(100)")
     private String purchaseOrderReference;
 
-    @Column(name = "net_total", precision = 19, scale = 2)
+    @Column(name = "net_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal netTotal;
 
-    @Column(name = "iva_total", precision = 19, scale = 2)
+    @Column(name = "iva_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal ivaTotal;
 
-    @Column(name = "iva_exempt_total", precision = 19, scale = 2)
+    @Column(name = "iva_exempt_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal ivaExemptTotal;
 
-    @Column(name = "other_taxes", precision = 19, scale = 2)
+    @Column(name = "other_taxes", nullable = false, precision = 19, scale = 2)
     private BigDecimal otherTaxes;
 
-    @Column(precision = 19, scale = 2)
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal total;
 
-    @Column(name = "discount_percentage", precision = 5, scale = 2)
+    @Column(name = "discount_percentage", nullable = false, precision = 5, scale = 2)
     private BigDecimal discountPercentage;
 
     @ManyToOne(fetch = FetchType.LAZY)

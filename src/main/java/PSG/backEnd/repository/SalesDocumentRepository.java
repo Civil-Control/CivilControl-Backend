@@ -20,6 +20,12 @@ public interface SalesDocumentRepository extends JpaRepository<SalesDocument, Lo
 
     Optional<SalesDocument> findByIdAndDeletedFalse(Long id);
 
+    boolean existsByBranchCodeAndDocumentNumberAndClientIdAndDeletedFalse(
+            String branchCode, String documentNumber, Long clientId);
+
+    Optional<SalesDocument> findByBranchCodeAndDocumentNumberAndDeletedTrue(
+            String branchCode, String documentNumber);
+
     @Query("SELECT sd FROM SalesDocument sd " +
            "WHERE (:clientId IS NULL OR sd.client.id = :clientId) " +
            "AND (:documentType IS NULL OR sd.documentType = :documentType) " +
