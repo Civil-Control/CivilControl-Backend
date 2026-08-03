@@ -388,6 +388,21 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         return buildResponse(ex, HttpStatus.CONFLICT);
     }
 
+    // ==================== Item Exceptions ====================
+
+    @ExceptionHandler(PSG.backEnd.exception.item.ItemAlreadyExistsException.class)
+    public ResponseEntity<ResponseMessage> handleItemAlreadyExistsException(PSG.backEnd.exception.item.ItemAlreadyExistsException ex) {
+        return buildResponse(ex, HttpStatus.CONFLICT);
+    }
+
+    // ==================== Generic NotFoundException ====================
+    // Used by services (e.g. Item) that don't have a dedicated *NotFoundException type.
+
+    @ExceptionHandler(PSG.backEnd.exception.NotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleNotFoundException(PSG.backEnd.exception.NotFoundException ex) {
+        return buildResponse(ex, HttpStatus.NOT_FOUND);
+    }
+
     // ==================== EppDelivery Exceptions ====================
 
     @ExceptionHandler(EppDeliveryNotFoundException.class)
