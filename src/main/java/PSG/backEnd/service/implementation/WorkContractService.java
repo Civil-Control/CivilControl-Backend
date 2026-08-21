@@ -82,6 +82,7 @@ public class WorkContractService implements IWorkContractService {
         return workContractRepository.findAllWithFilters(
                 tenantId,
                 filterDTO.clientId(),
+                filterDTO.clientBusinessName(),
                 filterDTO.contractNumber(),
                 filterDTO.projectAreaId(),
                 filterDTO.status(),

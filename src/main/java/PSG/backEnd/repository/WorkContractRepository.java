@@ -29,6 +29,7 @@ public interface WorkContractRepository extends JpaRepository<WorkContract, Long
             WHERE wc.deleted = false
             AND wc.tenantId = :tenantId
             AND (:clientId IS NULL OR wc.client.id = :clientId)
+            AND (:clientBusinessName IS NULL OR LOWER(CAST(wc.client.businessName AS string)) LIKE LOWER(CONCAT('%', CAST(:clientBusinessName AS string), '%')))
             AND (:contractNumber IS NULL OR LOWER(CAST(wc.contractNumber AS string)) LIKE LOWER(CONCAT('%', CAST(:contractNumber AS string), '%')))
             AND (:projectAreaId IS NULL OR wc.projectArea.id = :projectAreaId)
             AND (:status IS NULL OR wc.status = :status)
@@ -45,6 +46,7 @@ public interface WorkContractRepository extends JpaRepository<WorkContract, Long
     Page<WorkContract> findAllWithFilters(
             @Param("tenantId") Long tenantId,
             @Param("clientId") Long clientId,
+            @Param("clientBusinessName") String clientBusinessName,
             @Param("contractNumber") String contractNumber,
             @Param("projectAreaId") Long projectAreaId,
             @Param("status") WorkContractStatus status,
