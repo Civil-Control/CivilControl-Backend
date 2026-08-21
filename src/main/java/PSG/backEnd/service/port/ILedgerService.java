@@ -29,6 +29,8 @@ public interface ILedgerService {
 
     BigDecimal getAvailableOnAccountBalance(Long supplierId, Long tenantId);
 
+    BigDecimal getSupplierLedgerBalance(Long supplierId, Long tenantId);
+
     List<OnAccountApplicationResponseDTO> applyOnAccountToDocument(TransactionalDocument doc, BigDecimal amount);
 
     void removeOnAccountImputation(Long imputationId, Long tenantId);

@@ -23,6 +23,7 @@ import PSG.backEnd.service.port.ITenantService;
 import PSG.backEnd.service.port.ITransactionalDocumentService;
 import PSG.backEnd.service.export.PaymentOrderPdfService;
 import PSG.backEnd.service.util.MessageSourceHelper;
+import PSG.backEnd.service.util.TenantContext;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.Hibernate;
@@ -763,8 +764,9 @@ public class PaymentService implements IPaymentService {
     @Override
     @Transactional(readOnly = true)
     public SupplierOnAccountDTO getSupplierOnAccount(Long supplierId) {
-        BigDecimal total = paymentApplicationRepository.sumOnAccountBySupplier(supplierId);
-        return new SupplierOnAccountDTO(supplierId, total == null ? BigDecimal.ZERO : total);
+        BigDecimal balance = ledgerService.getSupplierLedgerBalance(supplierId, TenantContext.getCurrentTenant());
+        BigDecimal onAccount = balance != null && balance.signum() < 0 ? balance.negate() : BigDecimal.ZERO;
+        return new SupplierOnAccountDTO(supplierId, onAccount);
     }
 
     @Override

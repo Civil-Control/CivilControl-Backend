@@ -201,6 +201,18 @@ public class LedgerService implements ILedgerService {
         return available;
     }
 
+    /**
+     * True supplier balance (debe − haber) across every ledger movement: invoices and debit
+     * notes are debits, credit notes and payments are credits. A negative result means the
+     * supplier is in the company's favor (saldo a favor). Mirrors the calculation used by the
+     * supplier detail screen so both surfaces always agree.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getSupplierLedgerBalance(Long supplierId, Long tenantId) {
+        return movementRepository.sumBalanceBySupplier(supplierId, tenantId);
+    }
+
     @Override
     @Transactional
     public List<OnAccountApplicationResponseDTO> applyOnAccountToDocument(TransactionalDocument doc, BigDecimal amount) {
