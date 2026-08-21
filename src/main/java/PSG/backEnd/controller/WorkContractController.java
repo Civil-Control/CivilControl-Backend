@@ -68,12 +68,24 @@ public class WorkContractController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "contractDate") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mapSortField(sortBy));
         Pageable pageable = PageRequest.of(page, size, sort);
         WorkContractFilterDTO filterDTO = new WorkContractFilterDTO(
                 clientId, clientBusinessName, contractNumber, projectAreaId, status, currency,
                 contractDateFrom, contractDateTo, minContractedAmount, maxContractedAmount, search);
         return ResponseEntity.ok(workContractService.getAllWorkContracts(filterDTO, pageable));
+    }
+
+    /**
+     * Maps simple field names used by the frontend table to their corresponding
+     * WorkContract entity paths, so sorting by a joined field (e.g. the client's
+     * business name) doesn't fail with an invalid JPQL property reference.
+     */
+    private String mapSortField(String sortBy) {
+        return switch (sortBy) {
+            case "clientBusinessName" -> "client.businessName";
+            default -> sortBy;
+        };
     }
 
     @GetMapping("/{id}")
