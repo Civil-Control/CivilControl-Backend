@@ -378,31 +378,6 @@ public class ReportService implements IReportService {
 
         List<Long> areaIds = filters.projectAreaIds();
         boolean hasAreaFilter = areaIds != null && !areaIds.isEmpty();
-        boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
-
-        if (hasAreaFilter) {
-            Map<Long, ReportItemDTO> merged = new LinkedHashMap<>();
-            for (Long areaId : areaIds) {
-                ReportFilterDTO singleAreaFilters = new ReportFilterDTO(
-                        filters.startDate(), filters.endDate(), filters.categories(),
-                        List.of(areaId), filters.minAmount(), filters.maxAmount(),
-                        filters.sortBy(), filters.sortOrder(), null
-                );
-                collectMoneyOutflows(singleAreaFilters).forEach(item -> merged.put(item.id(), item));
-            }
-            if (wantUnassigned) {
-                ReportFilterDTO noAreaFilters = new ReportFilterDTO(
-                        filters.startDate(), filters.endDate(), filters.categories(),
-                        null, filters.minAmount(), filters.maxAmount(),
-                        filters.sortBy(), filters.sortOrder(), null
-                );
-                collectMoneyOutflows(noAreaFilters).stream()
-                        .filter(item -> item.projectAreaName() == null)
-                        .forEach(item -> merged.putIfAbsent(item.id(), item));
-            }
-            log.debug("Collected {} money outflow items across {} areas", merged.size(), areaIds.size());
-            return new ArrayList<>(merged.values());
-        }
 
         List<ReportItemDTO> allItems = new ArrayList<>();
 
