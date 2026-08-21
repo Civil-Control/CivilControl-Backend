@@ -569,24 +569,26 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000); // Get all records
 
-        var documents = transactionalDocumentRepository.findAllWithFilters(
-                null, // documentNumber
-                null, // documentType
-                null, // supplierId
-                null, // supplierCuit
-                null, // supplierName
-                null, // supplierAlias
-                getEffectiveAreaId(filters), // projectAreaId - from filter
-                null, // projectAreaName
-                filters.maxAmount(), // maxTotalAmount
-                filters.minAmount(), // minTotalAmount
-                null, // totalAmount
-                filters.startDate(), // fromDate
-                filters.endDate(), // toDate
-                null, // paid
-                null, // search
-                pageable
-        ).getContent();
+        var documents = collectWithAreaFilter(filters,
+                areaId -> transactionalDocumentRepository.findAllWithFilters(
+                        null, // documentNumber
+                        null, // documentType
+                        null, // supplierId
+                        null, // supplierCuit
+                        null, // supplierName
+                        null, // supplierAlias
+                        areaId, // projectAreaId - from filter
+                        null, // projectAreaName
+                        filters.maxAmount(), // maxTotalAmount
+                        filters.minAmount(), // minTotalAmount
+                        null, // totalAmount
+                        filters.startDate(), // fromDate
+                        filters.endDate(), // toDate
+                        null, // paid
+                        null, // search
+                        pageable
+                ).getContent(),
+                doc -> doc.getProjectArea() == null);
 
         List<ReportItemDTO> items = new ArrayList<>();
 
@@ -649,22 +651,24 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        var salaryPayments = salaryPaymentRepository.findAllWithFilters(
-                null, // employeeId
-                null, // firstName
-                null, // lastName
-                null, // salaryFrequency
-                getEffectiveAreaId(filters), // projectAreaId - from filter
-                filters.startDate(),
-                filters.endDate(),
-                filters.minAmount(),
-                filters.maxAmount(),
-                null, // paymentMethod - not filtered in reports
-                null, // search
-                null, // transactionalDocumentId
-                false, // unlinked
-                pageable
-        ).getContent();
+        var salaryPayments = collectWithAreaFilter(filters,
+                areaId -> salaryPaymentRepository.findAllWithFilters(
+                        null, // employeeId
+                        null, // firstName
+                        null, // lastName
+                        null, // salaryFrequency
+                        areaId, // projectAreaId - from filter
+                        filters.startDate(),
+                        filters.endDate(),
+                        filters.minAmount(),
+                        filters.maxAmount(),
+                        null, // paymentMethod - not filtered in reports
+                        null, // search
+                        null, // transactionalDocumentId
+                        false, // unlinked
+                        pageable
+                ).getContent(),
+                sp -> sp.getProjectArea() == null);
 
         List<ReportItemDTO> items = new ArrayList<>();
 
@@ -683,7 +687,7 @@ public class ReportService implements IReportService {
                     .beneficiary(employeeName)
                     .reference("Salario " + sp.getPaymentDate().getMonthValue() + "/" + sp.getPaymentDate().getYear())
                     .comment(null)
-                    .projectAreaName(sp.getEmployee().getProjectArea() != null ? sp.getEmployee().getProjectArea().getName() : null)
+                    .projectAreaName(sp.getProjectArea() != null ? sp.getProjectArea().getName() : null)
                     .projectAreaTaskName(sp.getProjectAreaTask() != null ? sp.getProjectAreaTask().getName() : null)
                     .linkedDocumentId(linkedDocId)
                     .build());
@@ -701,25 +705,27 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        var servicePayments = servicePaymentRepository.findAllWithFilters(
-                SubjectType.BUILDING, // only building-based payments
-                null, // serviceAssignmentId
-                null, // serviceSupplierId
-                null, // buildingId
-                getEffectiveAreaId(filters), // projectAreaId - from filter
-                null, // serviceType
-                null, // vehicleId
-                null, // year
-                null, // period
-                filters.startDate(),
-                filters.endDate(),
-                filters.minAmount(),
-                filters.maxAmount(),
-                null, // referenceNumber
-                null, // supplierName
-                null, // search
-                pageable
-        ).getContent();
+        var servicePayments = collectWithAreaFilter(filters,
+                areaId -> servicePaymentRepository.findAllWithFilters(
+                        SubjectType.BUILDING, // only building-based payments
+                        null, // serviceAssignmentId
+                        null, // serviceSupplierId
+                        null, // buildingId
+                        areaId, // projectAreaId - from filter
+                        null, // serviceType
+                        null, // vehicleId
+                        null, // year
+                        null, // period
+                        filters.startDate(),
+                        filters.endDate(),
+                        filters.minAmount(),
+                        filters.maxAmount(),
+                        null, // referenceNumber
+                        null, // supplierName
+                        null, // search
+                        pageable
+                ).getContent(),
+                sp -> sp.getProjectArea() == null);
 
         List<ReportItemDTO> items = new ArrayList<>();
 
@@ -767,25 +773,27 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        var vehiclePayments = servicePaymentRepository.findAllWithFilters(
-                SubjectType.VEHICLE,
-                null, // serviceAssignmentId
-                null, // serviceSupplierId
-                null, // buildingId
-                getEffectiveAreaId(filters), // projectAreaId
-                null, // serviceType
-                null, // vehicleId
-                null, // year
-                null, // period
-                filters.startDate(),
-                filters.endDate(),
-                filters.minAmount(),
-                filters.maxAmount(),
-                null, // referenceNumber
-                null, // supplierName
-                null, // search
-                pageable
-        ).getContent();
+        var vehiclePayments = collectWithAreaFilter(filters,
+                areaId -> servicePaymentRepository.findAllWithFilters(
+                        SubjectType.VEHICLE,
+                        null, // serviceAssignmentId
+                        null, // serviceSupplierId
+                        null, // buildingId
+                        areaId, // projectAreaId
+                        null, // serviceType
+                        null, // vehicleId
+                        null, // year
+                        null, // period
+                        filters.startDate(),
+                        filters.endDate(),
+                        filters.minAmount(),
+                        filters.maxAmount(),
+                        null, // referenceNumber
+                        null, // supplierName
+                        null, // search
+                        pageable
+                ).getContent(),
+                sp -> sp.getProjectArea() == null);
 
         List<ReportItemDTO> items = new ArrayList<>();
 
@@ -826,26 +834,28 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        var fuelLoads = fuelLoadRepository.findAllWithFilters(
-                filters.startDate(),
-                filters.endDate(),
-                null, // branchCode
-                null, // ticketNumber
-                null, // fuelType
-                null, // vehicleId
-                null, // vehicleLicensePlate
-                getEffectiveAreaId(filters), // projectAreaId - from filter
-                null, // projectAreaName
-                null, // gasStationId
-                null, // search
-                null, // gasStationName
-                null, // totalAmountMin
-                null, // totalAmountMax
-                null, // transactionalDocumentId
-                null, // totalAmountLike
-                false, // unlinked
-                pageable
-        ).getContent();
+        var fuelLoads = collectWithAreaFilter(filters,
+                areaId -> fuelLoadRepository.findAllWithFilters(
+                        filters.startDate(),
+                        filters.endDate(),
+                        null, // branchCode
+                        null, // ticketNumber
+                        null, // fuelType
+                        null, // vehicleId
+                        null, // vehicleLicensePlate
+                        areaId, // projectAreaId - from filter
+                        null, // projectAreaName
+                        null, // gasStationId
+                        null, // search
+                        null, // gasStationName
+                        null, // totalAmountMin
+                        null, // totalAmountMax
+                        null, // transactionalDocumentId
+                        null, // totalAmountLike
+                        false, // unlinked
+                        pageable
+                ).getContent(),
+                fl -> fl.getProjectArea() == null);
 
         List<ReportItemDTO> items = new ArrayList<>();
 
@@ -940,26 +950,28 @@ public class ReportService implements IReportService {
 
         Pageable pageable = PageRequest.of(0, 10000);
 
-        var repairs = repairRepository.findAllWithFilters(
-                filters.startDate(),
-                filters.endDate(),
-                null, // exactDate
-                null, // vehicleId
-                null, // licensePlate
-                getEffectiveAreaId(filters), // projectAreaId - from filter
-                filters.minAmount(),
-                filters.maxAmount(),
-                null, // supplierId
-                null, // supplierName
-                null, // description
-                null, // itemDescription
-                null, // minMileage
-                null, // maxMileage
-                null, // search
-                null, // transactionalDocumentId
-                false, // unlinked
-                pageable
-        ).getContent();
+        var repairs = collectWithAreaFilter(filters,
+                areaId -> repairRepository.findAllWithFilters(
+                        filters.startDate(),
+                        filters.endDate(),
+                        null, // exactDate
+                        null, // vehicleId
+                        null, // licensePlate
+                        areaId, // projectAreaId - from filter
+                        filters.minAmount(),
+                        filters.maxAmount(),
+                        null, // supplierId
+                        null, // supplierName
+                        null, // description
+                        null, // itemDescription
+                        null, // minMileage
+                        null, // maxMileage
+                        null, // search
+                        null, // transactionalDocumentId
+                        false, // unlinked
+                        pageable
+                ).getContent(),
+                r -> r.getVehicle() == null || r.getVehicle().getProjectArea() == null);
 
         List<ReportItemDTO> items = new ArrayList<>();
 
@@ -1112,9 +1124,28 @@ public class ReportService implements IReportService {
      * Returns the single effective project area ID from the filter list, or null if no filter.
      * Only used when iterating with exactly one area ID (recursive single-area calls).
      */
-    private Long getEffectiveAreaId(ReportFilterDTO filters) {
-        List<Long> ids = filters.projectAreaIds();
-        return (ids != null && !ids.isEmpty()) ? ids.get(0) : null;
+    /**
+     * Fetches records honoring a multi-value projectAreaIds filter: runs one fetch per
+     * selected area (instead of only the first one) and, when includeUnassigned is set,
+     * appends the records with no area at all. A record belongs to exactly one area, so
+     * the per-area fetches never overlap and no de-duplication is needed.
+     */
+    private <T> List<T> collectWithAreaFilter(ReportFilterDTO filters,
+                                               java.util.function.Function<Long, List<T>> fetcher,
+                                               java.util.function.Predicate<T> isUnassigned) {
+        List<Long> areaIds = filters.projectAreaIds();
+        if (areaIds == null || areaIds.isEmpty()) {
+            return fetcher.apply(null);
+        }
+
+        List<T> result = new ArrayList<>();
+        for (Long areaId : areaIds) {
+            result.addAll(fetcher.apply(areaId));
+        }
+        if (Boolean.TRUE.equals(filters.includeUnassigned())) {
+            fetcher.apply(null).stream().filter(isUnassigned).forEach(result::add);
+        }
+        return result;
     }
 
     /**
