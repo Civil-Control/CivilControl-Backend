@@ -297,7 +297,6 @@ public class PolicyVehicleService implements IPolicyVehicleService {
             LocalDate effectiveFromEnd, LocalDate effectiveToStart, LocalDate effectiveToEnd,
             Boolean isCancelled, Pageable pageable) {
 
-        Long autoPolicyId = null;
         if (insurancePolicyId != null) {
 
             if (!insurancePolicyService.existsById(insurancePolicyId)) {
@@ -305,10 +304,16 @@ public class PolicyVehicleService implements IPolicyVehicleService {
             }
 
             Optional<AutoPolicy> autoPolicy = autoPolicyRepository.findByInsurancePolicyId(insurancePolicyId);
-            autoPolicyId = autoPolicy.map(AutoPolicy::getId).orElse(null);
+            if (autoPolicy.isEmpty()) {
+                return Page.empty(pageable);
+            }
+
+            return getAllPolicyVehicles(vehicleId, autoPolicy.get().getId(), licensePlate, vehicleBrand,
+                    vehicleModel, policyNumber, effectiveFromStart, effectiveFromEnd,
+                    effectiveToStart, effectiveToEnd, isCancelled, pageable);
         }
 
-        return getAllPolicyVehicles(vehicleId, autoPolicyId, licensePlate, vehicleBrand,
+        return getAllPolicyVehicles(vehicleId, null, licensePlate, vehicleBrand,
                 vehicleModel, policyNumber, effectiveFromStart, effectiveFromEnd,
                 effectiveToStart, effectiveToEnd, isCancelled, pageable);
     }
