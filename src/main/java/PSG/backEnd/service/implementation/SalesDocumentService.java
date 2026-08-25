@@ -15,6 +15,7 @@ import PSG.backEnd.model.entity.contracts.Certification;
 import PSG.backEnd.model.entity.sales.SalesDocument;
 import PSG.backEnd.model.entity.sales.SalesItemDetail;
 import PSG.backEnd.model.enums.contracts.CertificationStatus;
+import PSG.backEnd.model.enums.documents.SalesDocumentType;
 import PSG.backEnd.model.mapper.SalesDocumentMapper;
 import PSG.backEnd.repository.CertificationRepository;
 import PSG.backEnd.repository.ClientRepository;
@@ -204,7 +205,32 @@ public class SalesDocumentService implements ISalesDocumentService {
         SalesItemDetail detail = salesDocumentMapper.toItemDetailEntity(detailDto);
         detail.setItem(item);
         detail.setSalesDocument(document);
+        // Tipo B/C: forzar IVA a 0 (defensa server-side; el front ya lo bloquea).
+        if (isIvaExemptType(document.getDocumentType())) {
+            detail.setIvaPercentage(BigDecimal.ZERO);
+        }
         return detail;
+    }
+
+    /**
+     * Tipos B y C no dan derecho a cómputo de crédito fiscal de IVA para quien los recibe:
+     * <ul>
+     *   <li>Tipo C (FACTURA_C / NOTA_DEBITO_C / NOTA_CREDITO_C): emisor monotributista o
+     *       exento — no hay IVA en absoluto.</li>
+     *   <li>Tipo B (FACTURA_B / NOTA_DEBITO_B / NOTA_CREDITO_B): el IVA está incluido en el
+     *       precio pero no se discrimina en el comprobante (a diferencia del Tipo A), así que
+     *       a efectos contables de este sistema se trata igual que el Tipo C: la alícuota se
+     *       fuerza a 0% y todo el monto es neto.</li>
+     * </ul>
+     * Mirrors TransactionalDocumentService.isIvaExemptType for purchase documents.
+     */
+    private boolean isIvaExemptType(SalesDocumentType type) {
+        return type == SalesDocumentType.FACTURA_B
+                || type == SalesDocumentType.NOTA_DEBITO_B
+                || type == SalesDocumentType.NOTA_CREDITO_B
+                || type == SalesDocumentType.FACTURA_C
+                || type == SalesDocumentType.NOTA_DEBITO_C
+                || type == SalesDocumentType.NOTA_CREDITO_C;
     }
 
     private Item resolveSalesItem(Long itemId) {
@@ -259,6 +285,7 @@ public class SalesDocumentService implements ISalesDocumentService {
      */
     private void updateItemDetails(SalesDocument document, List<SalesItemDetailDTO> newItemDetailDTOs) {
         List<SalesItemDetail> existingItems = document.getItems();
+        boolean forceExempt = isIvaExemptType(document.getDocumentType());
 
         Map<Long, SalesItemDetail> existingItemsMap = existingItems.stream()
                 .filter(item -> item.getId() != null)
@@ -272,7 +299,8 @@ public class SalesDocumentService implements ISalesDocumentService {
                 existingItem.setItem(resolveSalesItem(detailDto.itemId()));
                 existingItem.setUnitAmount(detailDto.unitAmount());
                 existingItem.setQuantity(detailDto.quantity());
-                existingItem.setIvaPercentage(detailDto.ivaPercentage());
+                // Tipo B/C: forzar IVA a 0 (defensa server-side; el front ya lo bloquea).
+                existingItem.setIvaPercentage(forceExempt ? BigDecimal.ZERO : detailDto.ivaPercentage());
                 itemsToKeep.add(detailDto.id());
             } else {
                 existingItems.add(buildSingleItemDetail(detailDto, document));
