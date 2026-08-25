@@ -3,6 +3,7 @@ package PSG.backEnd.service.export;
 import PSG.backEnd.exception.report.ReportGenerationException;
 import PSG.backEnd.model.dto.report.fuelLoad.*;
 import PSG.backEnd.model.enums.vehicle.FuelType;
+import PSG.backEnd.service.port.IFuelTypeCatalogService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
@@ -35,11 +36,12 @@ public class FuelLoadReportPdfExporter {
     private static final DeviceRgb SUBTOTAL_COLOR = new DeviceRgb(220, 220, 220);
     private static final DeviceRgb TOTAL_COLOR = new DeviceRgb(243, 156, 18);
 
-    private static final List<FuelType> FUEL_TYPE_ORDER = List.of(
-            FuelType.INFINIA, FuelType.SUPER, FuelType.INFINIA_DIESEL,
-            FuelType.DIESEL_500, FuelType.GNC, FuelType.DISTILLED_WATER, FuelType.OIL);
+    private static final List<String> BUILT_IN_FUEL_TYPE_ORDER = List.of(
+            FuelType.INFINIA.name(), FuelType.SUPER.name(), FuelType.INFINIA_DIESEL.name(),
+            FuelType.DIESEL_500.name(), FuelType.GNC.name(), FuelType.DISTILLED_WATER.name(), FuelType.OIL.name());
 
     private final MessageSourceHelper messageSourceHelper;
+    private final IFuelTypeCatalogService fuelTypeCatalogService;
 
     public byte[] export(FuelLoadReportDTO report) {
         log.info("Exporting fuel load report to PDF: {} areas, {} total loads",
@@ -50,9 +52,7 @@ public class FuelLoadReportPdfExporter {
             PdfDocument pdfDoc = new PdfDocument(writer);
             Document document = new Document(pdfDoc);
 
-            List<FuelType> activeFuelTypes = FUEL_TYPE_ORDER.stream()
-                    .filter(ft -> report.totalsByFuelType().containsKey(ft.name()))
-                    .toList();
+            List<String> activeFuelTypes = activeFuelTypes(report);
 
             // Section 1: Area summary
             addSectionHeader(document, "REPORTE DE COMBUSTIBLE", "Resumen por Área", report);
@@ -82,12 +82,28 @@ public class FuelLoadReportPdfExporter {
         }
     }
 
+    /**
+     * Fuel type keys present in the report data: built-ins first in their fixed display
+     * order, followed by any other keys (custom fuel types) sorted by label.
+     */
+    private List<String> activeFuelTypes(FuelLoadReportDTO report) {
+        java.util.Set<String> present = report.totalsByFuelType().keySet();
+        List<String> ordered = new java.util.ArrayList<>(BUILT_IN_FUEL_TYPE_ORDER.stream()
+                .filter(present::contains)
+                .toList());
+        present.stream()
+                .filter(key -> !ordered.contains(key))
+                .sorted(java.util.Comparator.comparing(fuelTypeCatalogService::resolveLabel))
+                .forEach(ordered::add);
+        return ordered;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // SECTION 1: Resumen por Área
     // ═══════════════════════════════════════════════════════════════════════
 
     private void addAreaSummaryTable(Document document, FuelLoadReportDTO report,
-                                      List<FuelType> activeFuelTypes) {
+                                      List<String> activeFuelTypes) {
         int colCount = 4 + activeFuelTypes.size();
         float[] colWidths = new float[colCount];
         colWidths[0] = 3;   // Área
@@ -103,8 +119,8 @@ public class FuelLoadReportPdfExporter {
 
         table.addHeaderCell(headerCell("Área"));
         table.addHeaderCell(headerCell("Cargas"));
-        for (FuelType ft : activeFuelTypes) {
-            table.addHeaderCell(headerCell(ft.getDisplayName()));
+        for (String ft : activeFuelTypes) {
+            table.addHeaderCell(headerCell(fuelTypeCatalogService.resolveLabel(ft)));
         }
         table.addHeaderCell(headerCell("Total ($)"));
         table.addHeaderCell(headerCell("Total (L)"));
@@ -112,8 +128,8 @@ public class FuelLoadReportPdfExporter {
         for (FuelLoadReportAreaGroupDTO area : report.areaGroups()) {
             table.addCell(cell(area.projectAreaName()));
             table.addCell(cellCenter(String.valueOf(area.loadCount())));
-            for (FuelType ft : activeFuelTypes) {
-                BigDecimal val = area.subtotalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO);
+            for (String ft : activeFuelTypes) {
+                BigDecimal val = area.subtotalsByFuelType().getOrDefault(ft, BigDecimal.ZERO);
                 table.addCell(cellAmount(val));
             }
             table.addCell(cellAmount(area.subtotalAmount()));
@@ -123,8 +139,8 @@ public class FuelLoadReportPdfExporter {
         // Grand total row
         table.addCell(totalCell("TOTAL GENERAL"));
         table.addCell(totalCellCenter(String.valueOf(report.totalCount())));
-        for (FuelType ft : activeFuelTypes) {
-            BigDecimal val = report.totalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO);
+        for (String ft : activeFuelTypes) {
+            BigDecimal val = report.totalsByFuelType().getOrDefault(ft, BigDecimal.ZERO);
             table.addCell(totalCellAmount(val));
         }
         table.addCell(totalCellAmount(report.totalAmount()));
@@ -138,7 +154,7 @@ public class FuelLoadReportPdfExporter {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void addVehicleSummaryTable(Document document, FuelLoadReportDTO report,
-                                         List<FuelType> activeFuelTypes) {
+                                         List<String> activeFuelTypes) {
         int colCount = 4 + activeFuelTypes.size();
         float[] colWidths = new float[colCount];
         colWidths[0] = 2;
@@ -154,8 +170,8 @@ public class FuelLoadReportPdfExporter {
 
         table.addHeaderCell(headerCell("Vehículo"));
         table.addHeaderCell(headerCell("Descripción"));
-        for (FuelType ft : activeFuelTypes) {
-            table.addHeaderCell(headerCell(ft.getDisplayName()));
+        for (String ft : activeFuelTypes) {
+            table.addHeaderCell(headerCell(fuelTypeCatalogService.resolveLabel(ft)));
         }
         table.addHeaderCell(headerCell("Total ($)"));
         table.addHeaderCell(headerCell("Total (L)"));
@@ -169,8 +185,8 @@ public class FuelLoadReportPdfExporter {
             for (FuelLoadReportVehicleGroupDTO vehicle : area.vehicleGroups()) {
                 table.addCell(cell(vehicle.vehicleName()));
                 table.addCell(cell(vehicle.vehicleDescription() != null ? vehicle.vehicleDescription() : ""));
-                for (FuelType ft : activeFuelTypes) {
-                    BigDecimal val = vehicle.subtotalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO);
+                for (String ft : activeFuelTypes) {
+                    BigDecimal val = vehicle.subtotalsByFuelType().getOrDefault(ft, BigDecimal.ZERO);
                     table.addCell(cellAmount(val));
                 }
                 table.addCell(cellAmount(vehicle.totalAmount()));
@@ -182,8 +198,8 @@ public class FuelLoadReportPdfExporter {
                     .add(new Paragraph("Subtotal " + area.projectAreaName())
                             .setFontSize(9).setBold().setItalic())
                     .setBackgroundColor(SUBTOTAL_COLOR).setPadding(4));
-            for (FuelType ft : activeFuelTypes) {
-                BigDecimal val = area.subtotalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO);
+            for (String ft : activeFuelTypes) {
+                BigDecimal val = area.subtotalsByFuelType().getOrDefault(ft, BigDecimal.ZERO);
                 table.addCell(new Cell()
                         .add(new Paragraph(formatAmount(val)).setFontSize(9).setBold().setItalic())
                         .setBackgroundColor(SUBTOTAL_COLOR)
@@ -202,8 +218,8 @@ public class FuelLoadReportPdfExporter {
         // Grand total
         table.addCell(new Cell(1, 2).add(new Paragraph("TOTAL GENERAL").setBold())
                 .setBackgroundColor(TOTAL_COLOR).setFontColor(ColorConstants.WHITE).setPadding(5));
-        for (FuelType ft : activeFuelTypes) {
-            BigDecimal val = report.totalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO);
+        for (String ft : activeFuelTypes) {
+            BigDecimal val = report.totalsByFuelType().getOrDefault(ft, BigDecimal.ZERO);
             table.addCell(totalCellAmount(val));
         }
         table.addCell(totalCellAmount(report.totalAmount()));
@@ -354,11 +370,7 @@ public class FuelLoadReportPdfExporter {
     }
 
     private String getFuelTypeDisplayName(String fuelType) {
-        try {
-            return FuelType.valueOf(fuelType).getDisplayName();
-        } catch (IllegalArgumentException e) {
-            return fuelType;
-        }
+        return fuelTypeCatalogService.resolveLabel(fuelType);
     }
 
     private Cell headerCell(String text) {

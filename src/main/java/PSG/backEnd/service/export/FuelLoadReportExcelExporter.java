@@ -3,6 +3,7 @@ package PSG.backEnd.service.export;
 import PSG.backEnd.exception.report.ReportGenerationException;
 import PSG.backEnd.model.dto.report.fuelLoad.*;
 import PSG.backEnd.model.enums.vehicle.FuelType;
+import PSG.backEnd.service.port.IFuelTypeCatalogService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,11 +26,12 @@ public class FuelLoadReportExcelExporter {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
-    private static final List<FuelType> FUEL_TYPE_ORDER = List.of(
-            FuelType.INFINIA, FuelType.SUPER, FuelType.INFINIA_DIESEL,
-            FuelType.DIESEL_500, FuelType.GNC, FuelType.DISTILLED_WATER, FuelType.OIL);
+    private static final List<String> BUILT_IN_FUEL_TYPE_ORDER = List.of(
+            FuelType.INFINIA.name(), FuelType.SUPER.name(), FuelType.INFINIA_DIESEL.name(),
+            FuelType.DIESEL_500.name(), FuelType.GNC.name(), FuelType.DISTILLED_WATER.name(), FuelType.OIL.name());
 
     private final MessageSourceHelper messageSourceHelper;
+    private final IFuelTypeCatalogService fuelTypeCatalogService;
 
     public byte[] export(FuelLoadReportDTO report) {
         log.info("Exporting fuel load report to Excel: {} areas, {} total loads",
@@ -48,9 +50,7 @@ public class FuelLoadReportExcelExporter {
             CellStyle subtotalStyle = createSubtotalStyle(workbook);
             CellStyle subtotalLabelStyle = createSubtotalLabelStyle(workbook);
 
-            List<FuelType> activeFuelTypes = FUEL_TYPE_ORDER.stream()
-                    .filter(ft -> report.totalsByFuelType().containsKey(ft.name()))
-                    .toList();
+            List<String> activeFuelTypes = activeFuelTypes(report);
 
             createAreaSummarySheet(workbook, report, activeFuelTypes,
                     headerStyle, currencyStyle, numberStyle, totalStyle, totalLabelStyle, titleCellStyle);
@@ -73,12 +73,28 @@ public class FuelLoadReportExcelExporter {
         }
     }
 
+    /**
+     * Fuel type keys present in the report data: built-ins first in their fixed display
+     * order, followed by any other keys (custom fuel types) sorted by label.
+     */
+    private List<String> activeFuelTypes(FuelLoadReportDTO report) {
+        java.util.Set<String> present = report.totalsByFuelType().keySet();
+        List<String> ordered = new java.util.ArrayList<>(BUILT_IN_FUEL_TYPE_ORDER.stream()
+                .filter(present::contains)
+                .toList());
+        present.stream()
+                .filter(key -> !ordered.contains(key))
+                .sorted(java.util.Comparator.comparing(fuelTypeCatalogService::resolveLabel))
+                .forEach(ordered::add);
+        return ordered;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // SHEET 1: Resumen por Área
     // ═══════════════════════════════════════════════════════════════════════
 
     private void createAreaSummarySheet(Workbook workbook, FuelLoadReportDTO report,
-                                         List<FuelType> activeFuelTypes,
+                                         List<String> activeFuelTypes,
                                          CellStyle headerStyle, CellStyle currencyStyle, CellStyle numberStyle,
                                          CellStyle totalStyle, CellStyle totalLabelStyle,
                                          CellStyle titleCellStyle) {
@@ -94,9 +110,9 @@ public class FuelLoadReportExcelExporter {
         int col = 0;
         setCellWithStyle(headerRow, col++, "Área", headerStyle);
         setCellWithStyle(headerRow, col++, "Cant. Cargas", headerStyle);
-        for (FuelType ft : activeFuelTypes) {
-            setCellWithStyle(headerRow, col++, ft.getDisplayName() + " ($)", headerStyle);
-            setCellWithStyle(headerRow, col++, ft.getDisplayName() + " (L)", headerStyle);
+        for (String ft : activeFuelTypes) {
+            setCellWithStyle(headerRow, col++, fuelTypeCatalogService.resolveLabel(ft) + " ($)", headerStyle);
+            setCellWithStyle(headerRow, col++, fuelTypeCatalogService.resolveLabel(ft) + " (L)", headerStyle);
         }
         setCellWithStyle(headerRow, col++, "Total ($)", headerStyle);
         setCellWithStyle(headerRow, col++, "Total (L)", headerStyle);
@@ -106,12 +122,12 @@ public class FuelLoadReportExcelExporter {
             int c = 0;
             row.createCell(c++).setCellValue(area.projectAreaName());
             row.createCell(c++).setCellValue(area.loadCount());
-            for (FuelType ft : activeFuelTypes) {
+            for (String ft : activeFuelTypes) {
                 Cell amtCell = row.createCell(c++);
-                amtCell.setCellValue(area.subtotalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+                amtCell.setCellValue(area.subtotalsByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
                 amtCell.setCellStyle(currencyStyle);
                 Cell litCell = row.createCell(c++);
-                litCell.setCellValue(area.litersByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+                litCell.setCellValue(area.litersByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
                 litCell.setCellStyle(numberStyle);
             }
             Cell totalCell = row.createCell(c++);
@@ -131,12 +147,12 @@ public class FuelLoadReportExcelExporter {
         Cell totalCountCell = totalRow.createCell(tc++);
         totalCountCell.setCellValue(report.totalCount());
         totalCountCell.setCellStyle(totalStyle);
-        for (FuelType ft : activeFuelTypes) {
+        for (String ft : activeFuelTypes) {
             Cell cell = totalRow.createCell(tc++);
-            cell.setCellValue(report.totalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+            cell.setCellValue(report.totalsByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
             cell.setCellStyle(totalStyle);
             Cell litCell = totalRow.createCell(tc++);
-            litCell.setCellValue(report.litersByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+            litCell.setCellValue(report.litersByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
             litCell.setCellStyle(totalStyle);
         }
         Cell grandTotalCell = totalRow.createCell(tc++);
@@ -156,7 +172,7 @@ public class FuelLoadReportExcelExporter {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void createVehicleSummarySheet(Workbook workbook, FuelLoadReportDTO report,
-                                            List<FuelType> activeFuelTypes,
+                                            List<String> activeFuelTypes,
                                             CellStyle headerStyle, CellStyle currencyStyle, CellStyle numberStyle,
                                             CellStyle totalStyle, CellStyle totalLabelStyle,
                                             CellStyle titleCellStyle, CellStyle subtotalStyle,
@@ -172,9 +188,9 @@ public class FuelLoadReportExcelExporter {
         int col = 0;
         setCellWithStyle(headerRow, col++, "Vehículo", headerStyle);
         setCellWithStyle(headerRow, col++, "Descripción", headerStyle);
-        for (FuelType ft : activeFuelTypes) {
-            setCellWithStyle(headerRow, col++, ft.getDisplayName() + " ($)", headerStyle);
-            setCellWithStyle(headerRow, col++, ft.getDisplayName() + " (L)", headerStyle);
+        for (String ft : activeFuelTypes) {
+            setCellWithStyle(headerRow, col++, fuelTypeCatalogService.resolveLabel(ft) + " ($)", headerStyle);
+            setCellWithStyle(headerRow, col++, fuelTypeCatalogService.resolveLabel(ft) + " (L)", headerStyle);
         }
         setCellWithStyle(headerRow, col++, "Total ($)", headerStyle);
         setCellWithStyle(headerRow, col++, "Total (L)", headerStyle);
@@ -203,12 +219,12 @@ public class FuelLoadReportExcelExporter {
                 int c = 0;
                 row.createCell(c++).setCellValue(vehicle.vehicleName());
                 row.createCell(c++).setCellValue(vehicle.vehicleDescription() != null ? vehicle.vehicleDescription() : "");
-                for (FuelType ft : activeFuelTypes) {
+                for (String ft : activeFuelTypes) {
                     Cell amtCell = row.createCell(c++);
-                    amtCell.setCellValue(vehicle.subtotalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+                    amtCell.setCellValue(vehicle.subtotalsByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
                     amtCell.setCellStyle(currencyStyle);
                     Cell litCell = row.createCell(c++);
-                    litCell.setCellValue(vehicle.litersByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+                    litCell.setCellValue(vehicle.litersByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
                     litCell.setCellStyle(numberStyle);
                 }
                 Cell totalCell = row.createCell(c++);
@@ -225,12 +241,12 @@ public class FuelLoadReportExcelExporter {
             subtotalLabel.setCellStyle(subtotalLabelStyle);
             subtotalRow.createCell(1).setCellStyle(subtotalLabelStyle);
             int sc = 2;
-            for (FuelType ft : activeFuelTypes) {
+            for (String ft : activeFuelTypes) {
                 Cell cell = subtotalRow.createCell(sc++);
-                cell.setCellValue(area.subtotalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+                cell.setCellValue(area.subtotalsByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
                 cell.setCellStyle(subtotalStyle);
                 Cell litCell = subtotalRow.createCell(sc++);
-                litCell.setCellValue(area.litersByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+                litCell.setCellValue(area.litersByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
                 litCell.setCellStyle(subtotalStyle);
             }
             Cell subtotalAmount = subtotalRow.createCell(sc++);
@@ -249,12 +265,12 @@ public class FuelLoadReportExcelExporter {
         totalLabel.setCellValue("TOTAL GENERAL");
         totalLabel.setCellStyle(totalLabelStyle);
         totalRow.createCell(tc++).setCellStyle(totalLabelStyle);
-        for (FuelType ft : activeFuelTypes) {
+        for (String ft : activeFuelTypes) {
             Cell cell = totalRow.createCell(tc++);
-            cell.setCellValue(report.totalsByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+            cell.setCellValue(report.totalsByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
             cell.setCellStyle(totalStyle);
             Cell litCell = totalRow.createCell(tc++);
-            litCell.setCellValue(report.litersByFuelType().getOrDefault(ft.name(), BigDecimal.ZERO).doubleValue());
+            litCell.setCellValue(report.litersByFuelType().getOrDefault(ft, BigDecimal.ZERO).doubleValue());
             litCell.setCellStyle(totalStyle);
         }
         Cell grandTotalCell = totalRow.createCell(tc++);
@@ -433,11 +449,7 @@ public class FuelLoadReportExcelExporter {
     }
 
     private String getFuelTypeDisplayName(String fuelType) {
-        try {
-            return FuelType.valueOf(fuelType).getDisplayName();
-        } catch (IllegalArgumentException e) {
-            return fuelType;
-        }
+        return fuelTypeCatalogService.resolveLabel(fuelType);
     }
 
     private void setCellWithStyle(Row row, int col, String value, CellStyle style) {
