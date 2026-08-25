@@ -5,7 +5,6 @@ import PSG.backEnd.model.entity.ProjectAreaTask;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
-import PSG.backEnd.model.enums.vehicle.FuelType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,9 +33,9 @@ public class FuelLoad extends TenantEntity {
     @Column(name = "ticket_number", nullable = false, columnDefinition = "VARCHAR(50)")
     private String ticketNumber;
 
-    @Column(name = "fuel_type", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private FuelType fuelType;
+    /** Either a built-in FuelType enum constant name or a CustomFuelType key. */
+    @Column(name = "fuel_type", nullable = false, length = 50)
+    private String fuelType;
 
     @Column(nullable = false)
     private BigDecimal liters;

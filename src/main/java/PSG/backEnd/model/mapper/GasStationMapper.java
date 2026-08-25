@@ -58,7 +58,7 @@ public abstract class GasStationMapper {
         }
         return prices.stream()
                 .filter(price -> price.getFuelType() != null)
-                .map(price -> price.getFuelType().name())
+                .map(GasStationPrice::getFuelType)
                 .distinct()
                 .collect(Collectors.toList());
     }
@@ -75,7 +75,7 @@ public abstract class GasStationMapper {
                 .filter(price -> price.getFuelType() != null && price.getPrice() != null)
                 .map(price -> new GasStationPriceResponseDTO(
                     supplierName,
-                    price.getFuelType().name(),
+                    price.getFuelType(),
                     price.getPrice().doubleValue()
                 ))
                 .collect(Collectors.toList());

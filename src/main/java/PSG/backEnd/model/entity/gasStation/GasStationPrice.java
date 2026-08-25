@@ -1,6 +1,5 @@
 package PSG.backEnd.model.entity.gasStation;
 
-import PSG.backEnd.model.enums.vehicle.FuelType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,9 +13,9 @@ import java.math.BigDecimal;
 @Builder
 public class GasStationPrice {
 
-    @Column(name = "fuel_type", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private FuelType fuelType;
+    /** Either a built-in FuelType enum constant name or a CustomFuelType key. */
+    @Column(name = "fuel_type", nullable = false, length = 50)
+    private String fuelType;
 
     @Column(name = "price", nullable = false, precision = 10, scale = 3)
     private BigDecimal price;

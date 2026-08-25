@@ -1,6 +1,5 @@
 package PSG.backEnd.model.dto.gasStation;
 
-import PSG.backEnd.model.enums.vehicle.FuelType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -35,11 +34,11 @@ public record FuelLoadDTO(
         @Pattern(regexp = "\\d{8}", message = "{fuelLoad.ticketNumber.size}", groups = {OnCreate.class, OnUpdate.class})
         String ticketNumber,
 
-        @Schema(description = "Type of fuel loaded.",
+        @Schema(description = "Type of fuel loaded. Either a built-in FuelType enum constant name or a custom fuel type's key.",
                 example = "INFINIA",
                 requiredMode = Schema.RequiredMode.REQUIRED)
-        @NotNull(message = "{fuelLoad.fuelType.required}", groups = OnCreate.class)
-        FuelType fuelType,
+        @NotBlank(message = "{fuelLoad.fuelType.required}", groups = OnCreate.class)
+        String fuelType,
 
         @Schema(description = "Amount of fuel loaded in liters. Must be between 0.01 and 5000.",
                 example = "45.50",
