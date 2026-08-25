@@ -256,14 +256,14 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
 
         // Handle ItemDetails updates if provided
         if (dto.items() != null) {
-            updateItemDetails(document, dto.items());
+            updateItemDetails(document, dto.items(), isIvaExemptType(document.getDocumentType()));
         }
     }
 
     /**
      * Updates ItemDetails intelligently to avoid unnecessary deletions and recreations
      */
-    private void updateItemDetails(TransactionalDocument document, List<ItemDetailDTO> newItemDetailDTOs) {
+    private void updateItemDetails(TransactionalDocument document, List<ItemDetailDTO> newItemDetailDTOs, boolean forceExempt) {
         List<ItemDetail> existingItems = document.getItems();
 
         // Create a map of existing items by their ID for quick lookup
@@ -279,11 +279,11 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
             if (itemDetailDTO.id() != null && existingItemsMap.containsKey(itemDetailDTO.id())) {
                 // UPDATE: Item exists, update its fields
                 ItemDetail existingItem = existingItemsMap.get(itemDetailDTO.id());
-                updateExistingItemDetail(existingItem, itemDetailDTO);
+                updateExistingItemDetail(existingItem, itemDetailDTO, forceExempt);
                 itemsToKeep.add(itemDetailDTO.id());
             } else {
                 // CREATE: New item, add it to the document
-                ItemDetail newItem = createNewItemDetail(itemDetailDTO);
+                ItemDetail newItem = createNewItemDetail(itemDetailDTO, forceExempt);
                 document.addItemDetail(newItem);
             }
         }
@@ -296,7 +296,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     /**
      * Updates an existing ItemDetail with new values from DTO
      */
-    private void updateExistingItemDetail(ItemDetail existingItem, ItemDetailDTO dto) {
+    private void updateExistingItemDetail(ItemDetail existingItem, ItemDetailDTO dto, boolean forceExempt) {
         // Update item reference if changed
         if (dto.itemId() != null && !dto.itemId().equals(existingItem.getItem().getId())) {
             Item newItem = itemRepository.findById(dto.itemId())
@@ -311,23 +311,24 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
         if (dto.quantity() != null) {
             existingItem.setQuantity(dto.quantity());
         }
-        if (dto.ivaPercentage() != null) {
-            existingItem.setIvaPercentage(dto.ivaPercentage());
-        }
+        // Tipo B/C: forzar IVA a 0 (defensa server-side; el front ya lo bloquea).
+        BigDecimal effectiveIva = forceExempt ? BigDecimal.ZERO
+                : (dto.ivaPercentage() != null ? dto.ivaPercentage() : existingItem.getIvaPercentage());
+        existingItem.setIvaPercentage(effectiveIva);
         if (dto.documentSortOrder() != null) {
             existingItem.setDocumentSortOrder(dto.documentSortOrder());
         }
 
         // Handle total amount - use provided value or calculate it
-        if (dto.totalAmount() != null) {
+        if (dto.totalAmount() != null && !forceExempt) {
             // Use the provided total amount
             existingItem.setTotalAmount(dto.totalAmount());
         } else {
-            // Calculate total amount using current values
+            // Calculate total amount (recalculated when IVA was forced to 0)
             existingItem.setTotalAmount(computeTotal(
                 existingItem.getUnitAmount(),
                 existingItem.getQuantity(),
-                existingItem.getIvaPercentage()
+                effectiveIva
             ));
         }
     }
@@ -335,30 +336,33 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     /**
      * Creates a new ItemDetail from DTO
      */
-    private ItemDetail createNewItemDetail(ItemDetailDTO itemDetailDTO) {
+    private ItemDetail createNewItemDetail(ItemDetailDTO itemDetailDTO, boolean forceExempt) {
         // Load the complete Item from database
         Item item = itemRepository.findById(itemDetailDTO.itemId())
                 .orElseThrow(() -> new NotFoundException(messageSourceHelper.getMessage("item.notFound", itemDetailDTO.itemId())));
+
+        // Tipo B/C: forzar IVA a 0 (defensa server-side; el front ya lo bloquea).
+        BigDecimal effectiveIva = forceExempt ? BigDecimal.ZERO : itemDetailDTO.ivaPercentage();
 
         // Create ItemDetail manually to ensure Item reference is complete
         ItemDetail itemDetail = ItemDetail.builder()
                 .item(item)  // Complete Item with all fields loaded
                 .unitAmount(itemDetailDTO.unitAmount())
                 .quantity(itemDetailDTO.quantity())
-                .ivaPercentage(itemDetailDTO.ivaPercentage())
+                .ivaPercentage(effectiveIva)
                 .documentSortOrder(itemDetailDTO.documentSortOrder() != null ? itemDetailDTO.documentSortOrder() : 0)
                 .build();
 
         // Handle total amount - use provided value or calculate it
-        if (itemDetailDTO.totalAmount() != null) {
+        if (itemDetailDTO.totalAmount() != null && !forceExempt) {
             // Use the provided total amount
             itemDetail.setTotalAmount(itemDetailDTO.totalAmount());
         } else {
-            // Calculate total amount
+            // Calculate total amount (recalculated when IVA was forced to 0)
             itemDetail.setTotalAmount(computeTotal(
                 itemDetailDTO.unitAmount(),
                 itemDetailDTO.quantity(),
-                itemDetailDTO.ivaPercentage()
+                effectiveIva
             ));
         }
 
@@ -578,7 +582,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
      * Processes ItemDetails for a TransactionalDocument, validating items and calculating totals
      */
     private void processItemDetails(TransactionalDocument document, List<ItemDetailDTO> itemDetailDTOs) {
-        boolean forceExempt = isTypeC(document.getDocumentType());
+        boolean forceExempt = isIvaExemptType(document.getDocumentType());
         for (ItemDetailDTO itemDetailDTO : itemDetailDTOs) {
             // Load the complete Item from database (not just validate existence)
             Item item = itemRepository.findById(itemDetailDTO.itemId())
@@ -590,7 +594,7 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
                         messageSourceHelper.getMessage("item.type.invalid.purchase", item.getName()));
             }
 
-            // Tipo C: forzar IVA a 0 (defensa server-side; el front ya lo bloquea).
+            // Tipo B/C: forzar IVA a 0 (defensa server-side; el front ya lo bloquea).
             BigDecimal effectiveIva = forceExempt ? BigDecimal.ZERO : itemDetailDTO.ivaPercentage();
 
             // Create ItemDetail manually instead of using mapper to ensure Item reference is complete
@@ -659,11 +663,21 @@ public class TransactionalDocumentService implements ITransactionalDocumentServi
     }
 
     /**
-     * Tipo C (BILL_C / DEBIT_NOTE_C / CREDIT_NOTE_C): emisor monotributista o exento.
-     * No discrimina IVA — la alícuota debe ser siempre 0% Exento.
+     * Tipos B y C no dan derecho a cómputo de crédito fiscal de IVA para quien los recibe:
+     * <ul>
+     *   <li>Tipo C (BILL_C / DEBIT_NOTE_C / CREDIT_NOTE_C): emisor monotributista o exento —
+     *       no hay IVA en absoluto, la operación está fuera del régimen de IVA.</li>
+     *   <li>Tipo B (BILL_B / DEBIT_NOTE_B / CREDIT_NOTE_B): el IVA está incluido en el precio
+     *       pero no se discrimina en el comprobante (a diferencia del Tipo A) — el receptor no
+     *       puede computarlo como crédito fiscal, así que a efectos contables de este sistema
+     *       se trata igual que el Tipo C: la alícuota se fuerza a 0% y todo el monto es costo.</li>
+     * </ul>
      */
-    private boolean isTypeC(DocumentType type) {
-        return type == DocumentType.BILL_C
+    private boolean isIvaExemptType(DocumentType type) {
+        return type == DocumentType.BILL_B
+                || type == DocumentType.DEBIT_NOTE_B
+                || type == DocumentType.CREDIT_NOTE_B
+                || type == DocumentType.BILL_C
                 || type == DocumentType.DEBIT_NOTE_C
                 || type == DocumentType.CREDIT_NOTE_C;
     }
