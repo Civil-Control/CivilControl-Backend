@@ -454,6 +454,11 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         return buildResponse(ex, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(PSG.backEnd.exception.gasStation.CustomFuelTypeAlreadyExistsException.class)
+    public ResponseEntity<ResponseMessage> handleCustomFuelTypeAlreadyExistsException(PSG.backEnd.exception.gasStation.CustomFuelTypeAlreadyExistsException ex) {
+        return buildResponse(ex, HttpStatus.CONFLICT);
+    }
+
     // ==================== Vehicle Exceptions ====================
 
     @ExceptionHandler(PSG.backEnd.exception.vehicle.VehicleNotFoundException.class)
