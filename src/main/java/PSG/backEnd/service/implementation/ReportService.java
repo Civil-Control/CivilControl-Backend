@@ -161,6 +161,7 @@ public class ReportService implements IReportService {
     private final CertificationRepository certificationRepository;
     private final SupplierRepository supplierRepository;
     private final MessageSourceHelper messageSourceHelper;
+    private final PSG.backEnd.service.port.IFuelTypeCatalogService fuelTypeCatalogService;
 
     /**
      * Constructor that automatically maps exporters by their format.
@@ -201,7 +202,8 @@ public class ReportService implements IReportService {
             SalesDocumentRepository salesDocumentRepository,
             CertificationRepository certificationRepository,
             SupplierRepository supplierRepository,
-            MessageSourceHelper messageSourceHelper) {
+            MessageSourceHelper messageSourceHelper,
+            PSG.backEnd.service.port.IFuelTypeCatalogService fuelTypeCatalogService) {
 
         this.exporters = exporterList.stream()
                 .collect(Collectors.toMap(
@@ -243,6 +245,7 @@ public class ReportService implements IReportService {
         this.certificationRepository = certificationRepository;
         this.supplierRepository = supplierRepository;
         this.messageSourceHelper = messageSourceHelper;
+        this.fuelTypeCatalogService = fuelTypeCatalogService;
 
         log.info("ReportService initialized with {} exporters: {}",
                  exporters.size(),
@@ -868,7 +871,7 @@ public class ReportService implements IReportService {
                 continue;
             }
 
-            String description = "Carga de combustible: " + fl.getFuelType().getDisplayName() +
+            String description = "Carga de combustible: " + fuelTypeCatalogService.resolveLabel(fl.getFuelType()) +
                                " - " + fl.getLiters() + "L";
             String beneficiary = fl.getGasStation() != null ?
                                "Estación de servicio (ID: " + fl.getGasStation().getId() + ")" : "Estación de servicio";
@@ -2217,7 +2220,7 @@ public class ReportService implements IReportService {
         boolean hasAreaFilter = areaIds != null && !areaIds.isEmpty();
         boolean wantUnassigned = Boolean.TRUE.equals(filters.includeUnassigned());
         Long effectiveAreaId = hasAreaFilter ? areaIds.get(0) : null;
-        String fuelTypeStr = filters.fuelType() != null ? filters.fuelType().name() : null;
+        String fuelTypeStr = filters.fuelType();
 
         List<FuelLoad> allLoads;
         if (hasAreaFilter) {
@@ -2426,7 +2429,7 @@ public class ReportService implements IReportService {
                         return new FuelLoadReportItemDTO(
                                 fl.getId(),
                                 fl.getDate(),
-                                fl.getFuelType().name(),
+                                fl.getFuelType(),
                                 fl.getLiters(),
                                 fl.getPricePerLiter(),
                                 fl.getTotalAmount(),
@@ -2545,7 +2548,7 @@ public class ReportService implements IReportService {
     private Map<String, BigDecimal> buildFuelTypeAmountSubtotals(List<FuelLoad> loads) {
         Map<String, BigDecimal> subtotals = new LinkedHashMap<>();
         for (FuelLoad fl : loads) {
-            String key = fl.getFuelType().name();
+            String key = fl.getFuelType();
             subtotals.merge(key, fl.getTotalAmount(), BigDecimal::add);
         }
         return subtotals;
@@ -2554,7 +2557,7 @@ public class ReportService implements IReportService {
     private Map<String, BigDecimal> buildFuelTypeLiterSubtotals(List<FuelLoad> loads) {
         Map<String, BigDecimal> subtotals = new LinkedHashMap<>();
         for (FuelLoad fl : loads) {
-            String key = fl.getFuelType().name();
+            String key = fl.getFuelType();
             subtotals.merge(key, fl.getLiters(), BigDecimal::add);
         }
         return subtotals;

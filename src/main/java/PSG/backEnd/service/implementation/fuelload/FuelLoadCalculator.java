@@ -4,8 +4,8 @@ import PSG.backEnd.exception.gasStation.GasStationNotFoundException;
 import PSG.backEnd.model.dto.gasStation.FuelLoadDTO;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.entity.gasStation.GasStation;
-import PSG.backEnd.model.enums.vehicle.FuelType;
 import PSG.backEnd.repository.GasStationRepository;
+import PSG.backEnd.service.port.IFuelTypeCatalogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 public class FuelLoadCalculator {
 
     private final GasStationRepository gasStationRepository;
+    private final IFuelTypeCatalogService fuelTypeCatalogService;
 
     /**
      * Calculates the price per liter and total for a new FuelLoad.
@@ -47,7 +48,7 @@ public class FuelLoadCalculator {
             // Gas station or fuel type changed — recalculate from station prices
             Long gasStationId = fuelLoadDTO.gasStationId() != null ?
                 fuelLoadDTO.gasStationId() : fuelLoad.getGasStation().getId();
-            FuelType fuelType = fuelLoadDTO.fuelType() != null ?
+            String fuelType = fuelLoadDTO.fuelType() != null ?
                 fuelLoadDTO.fuelType() : fuelLoad.getFuelType();
 
             newPricePerLiter = getPricePerLiter(gasStationId, fuelType);
@@ -72,16 +73,16 @@ public class FuelLoadCalculator {
     /**
      * Gets the price per liter for a fuel type at a specific gas station.
      */
-    private BigDecimal getPricePerLiter(Long gasStationId, FuelType fuelType) {
+    private BigDecimal getPricePerLiter(Long gasStationId, String fuelType) {
         GasStation gasStation = gasStationRepository.findByIdAndDeletedFalse(gasStationId)
                 .orElseThrow(() -> new GasStationNotFoundException(gasStationId));
 
         return gasStation.getPrices().stream()
-                .filter(price -> price.getFuelType() == fuelType)
+                .filter(price -> price.getFuelType().equals(fuelType))
                 .map(PSG.backEnd.model.entity.gasStation.GasStationPrice::getPrice)
                 .findFirst()
                 .orElseThrow(() -> new PSG.backEnd.exception.gasStation.FuelTypeNotAvailableException(
-                        fuelType, gasStationId));
+                        fuelTypeCatalogService.resolveLabel(fuelType), gasStationId));
     }
 
     /**

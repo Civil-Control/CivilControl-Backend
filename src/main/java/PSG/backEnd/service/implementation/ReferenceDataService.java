@@ -123,7 +123,7 @@ public class ReferenceDataService implements IReferenceDataService {
                             : "Estación #" + gs.getId();
                     Map<String, java.math.BigDecimal> pricesMap = gs.getPrices().stream()
                             .collect(Collectors.toMap(
-                                    p -> p.getFuelType().name(),
+                                    PSG.backEnd.model.entity.gasStation.GasStationPrice::getFuelType,
                                     PSG.backEnd.model.entity.gasStation.GasStationPrice::getPrice));
                     Long supplierId = sup != null ? sup.getId() : null;
                     return new GasStationReferenceItem(gs.getId(), label, pricesMap, supplierId);

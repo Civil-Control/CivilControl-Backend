@@ -1,6 +1,5 @@
 package PSG.backEnd.model.dto.report.fuelLoad;
 
-import PSG.backEnd.model.enums.vehicle.FuelType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;
@@ -19,8 +18,8 @@ public record FuelLoadReportFilterDTO(
     @Schema(description = "Filter by project area IDs")
     List<Long> projectAreaIds,
 
-    @Schema(description = "Filter by fuel type")
-    FuelType fuelType,
+    @Schema(description = "Filter by fuel type (built-in FuelType constant name or custom fuel type key)")
+    String fuelType,
 
     @Schema(description = "Filter by gas station ID")
     Long gasStationId,

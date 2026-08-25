@@ -36,7 +36,6 @@ import PSG.backEnd.model.enums.SubjectType;
 import PSG.backEnd.model.enums.documents.DocumentType;
 import PSG.backEnd.model.enums.documents.PaymentMethod;
 import PSG.backEnd.model.enums.employee.SalaryFrecuency;
-import PSG.backEnd.model.enums.vehicle.FuelType;
 import PSG.backEnd.service.port.IReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -868,7 +867,7 @@ public class ReportController {
 
             @Parameter(description = "Filter by fuel type")
             @RequestParam(required = false)
-            FuelType fuelType,
+            String fuelType,
 
             @Parameter(description = "Filter by gas station ID")
             @RequestParam(required = false)
@@ -938,7 +937,7 @@ public class ReportController {
 
             @Parameter(description = "Filter by fuel type")
             @RequestParam(required = false)
-            FuelType fuelType,
+            String fuelType,
 
             @Parameter(description = "Filter by gas station ID")
             @RequestParam(required = false)
