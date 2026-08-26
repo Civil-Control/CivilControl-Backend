@@ -10,10 +10,11 @@ import lombok.experimental.SuperBuilder;
  * enum. GasStationPrice.fuelType and FuelLoad.fuelType are plain strings that can hold either
  * a built-in enum constant name or a custom type's {@code key}.
  */
+// Uniqueness on (tenant_id, key) is enforced by a partial index scoped to deleted = false
+// (see V100), so a soft-deleted row's key can be reused. JPA can't express a partial
+// unique constraint declaratively, so it isn't declared here.
 @Entity
-@Table(name = "custom_fuel_types", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"tenant_id", "key"})
-})
+@Table(name = "custom_fuel_types")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation;
 
 import PSG.backEnd.exception.gasStation.CustomFuelTypeAlreadyExistsException;
+import PSG.backEnd.exception.gasStation.CustomFuelTypeNotFoundException;
 import PSG.backEnd.model.dto.gasStation.FuelTypeOptionDTO;
 import PSG.backEnd.model.entity.gasStation.CustomFuelType;
 import PSG.backEnd.model.enums.vehicle.FuelType;
@@ -33,13 +34,16 @@ public class FuelTypeCatalogService implements IFuelTypeCatalogService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<FuelTypeOptionDTO> listAll() {
+    public List<FuelTypeOptionDTO> listAll(boolean includeDeleted) {
         List<FuelTypeOptionDTO> options = new ArrayList<>();
         for (FuelType ft : FuelType.values()) {
-            options.add(new FuelTypeOptionDTO(ft.name(), ft.getDisplayName(), false));
+            options.add(new FuelTypeOptionDTO(ft.name(), ft.getDisplayName(), false, false));
         }
-        customFuelTypeRepository.findAllByTenantIdAndDeletedFalseOrderByLabel(TenantContext.getCurrentTenant())
-                .forEach(c -> options.add(new FuelTypeOptionDTO(c.getKey(), c.getLabel(), true)));
+        Long tenantId = TenantContext.getCurrentTenant();
+        List<CustomFuelType> customs = includeDeleted
+                ? customFuelTypeRepository.findAllByTenantIdOrderByLabel(tenantId)
+                : customFuelTypeRepository.findAllByTenantIdAndDeletedFalseOrderByLabel(tenantId);
+        customs.forEach(c -> options.add(new FuelTypeOptionDTO(c.getKey(), c.getLabel(), true, c.isDeleted())));
         return options;
     }
 
@@ -49,7 +53,7 @@ public class FuelTypeCatalogService implements IFuelTypeCatalogService {
         if (key == null) return null;
         FuelType builtIn = builtInOrNull(key);
         if (builtIn != null) return builtIn.getDisplayName();
-        return customFuelTypeRepository.findByTenantIdAndKeyAndDeletedFalse(TenantContext.getCurrentTenant(), key)
+        return customFuelTypeRepository.findByTenantIdAndKey(TenantContext.getCurrentTenant(), key)
                 .map(CustomFuelType::getLabel)
                 .orElse(key);
     }
@@ -69,7 +73,17 @@ public class FuelTypeCatalogService implements IFuelTypeCatalogService {
                 .label(label.trim())
                 .deleted(false)
                 .build());
-        return new FuelTypeOptionDTO(saved.getKey(), saved.getLabel(), true);
+        return new FuelTypeOptionDTO(saved.getKey(), saved.getLabel(), true, false);
+    }
+
+    @Override
+    @Transactional
+    public void deleteCustom(String key) {
+        Long tenantId = TenantContext.getCurrentTenant();
+        CustomFuelType existing = customFuelTypeRepository.findByTenantIdAndKeyAndDeletedFalse(tenantId, key)
+                .orElseThrow(() -> new CustomFuelTypeNotFoundException(key));
+        existing.setDeleted(true);
+        customFuelTypeRepository.save(existing);
     }
 
     private FuelType builtInOrNull(String key) {

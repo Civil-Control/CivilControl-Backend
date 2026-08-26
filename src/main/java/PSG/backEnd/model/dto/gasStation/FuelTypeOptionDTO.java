@@ -14,5 +14,10 @@ public record FuelTypeOptionDTO(
         String label,
 
         @Schema(description = "True when this is a tenant-defined custom fuel type rather than a built-in FuelType constant.")
-        boolean custom
+        boolean custom,
+
+        @Schema(description = "True when this custom fuel type was deleted. Always false for built-ins. " +
+                "Excluded from selectable lists by default; included (via includeDeleted=true) so callers can still " +
+                "resolve the label of a value already assigned to an existing price or fuel load.")
+        boolean deleted
 ) {}

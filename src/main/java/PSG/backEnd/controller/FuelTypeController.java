@@ -28,11 +28,13 @@ public class FuelTypeController {
     @PreAuthorize("hasAuthority('" + AppPermissions.GAS_STATION_READ + "')")
     @GetMapping
     @Operation(summary = "List all selectable fuel types",
-            description = "Returns the built-in FuelType constants followed by the tenant's active custom fuel types. " +
-                    "Used to populate fuel type selectors for gas station prices and fuel loads.")
+            description = "Returns the built-in FuelType constants followed by the tenant's custom fuel types. Deleted custom " +
+                    "types are excluded unless includeDeleted=true (needed to resolve the label of a value already assigned " +
+                    "to an existing price or fuel load).")
     @ApiResponse(responseCode = "200", description = "Fuel type list retrieved successfully")
-    public ResponseEntity<List<FuelTypeOptionDTO>> getAllFuelTypes() {
-        return ResponseEntity.ok(fuelTypeCatalogService.listAll());
+    public ResponseEntity<List<FuelTypeOptionDTO>> getAllFuelTypes(
+            @RequestParam(defaultValue = "false") boolean includeDeleted) {
+        return ResponseEntity.ok(fuelTypeCatalogService.listAll(includeDeleted));
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.GAS_STATION_WRITE + "')")
@@ -47,5 +49,20 @@ public class FuelTypeController {
     public ResponseEntity<FuelTypeOptionDTO> createCustomFuelType(
             @Valid @RequestBody CreateCustomFuelTypeDTO dto) {
         return new ResponseEntity<>(fuelTypeCatalogService.createCustom(dto.label()), HttpStatus.CREATED);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.GAS_STATION_WRITE + "')")
+    @DeleteMapping("/{key}")
+    @Operation(summary = "Delete a custom fuel type",
+            description = "Soft-deletes a tenant-scoped custom fuel type so it stops appearing in selectable lists. " +
+                    "Existing prices/fuel loads that already reference it keep resolving its label; its key becomes free " +
+                    "to reuse for a new custom fuel type. Built-in FuelType constants cannot be deleted.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Custom fuel type deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "No custom fuel type with that key")
+    })
+    public ResponseEntity<Void> deleteCustomFuelType(@PathVariable String key) {
+        fuelTypeCatalogService.deleteCustom(key);
+        return ResponseEntity.noContent().build();
     }
 }

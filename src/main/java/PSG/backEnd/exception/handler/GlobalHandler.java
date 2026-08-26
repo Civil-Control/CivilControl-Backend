@@ -459,6 +459,11 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
         return buildResponse(ex, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(PSG.backEnd.exception.gasStation.CustomFuelTypeNotFoundException.class)
+    public ResponseEntity<ResponseMessage> handleCustomFuelTypeNotFoundException(PSG.backEnd.exception.gasStation.CustomFuelTypeNotFoundException ex) {
+        return buildResponse(ex, HttpStatus.NOT_FOUND);
+    }
+
     // ==================== Vehicle Exceptions ====================
 
     @ExceptionHandler(PSG.backEnd.exception.vehicle.VehicleNotFoundException.class)
