@@ -21,4 +21,6 @@ public interface IRepairOrderService {
     RepairOrderResponseDTO changeStatus(Long id, RepairOrderStatusDTO statusDTO);
 
     RepairOrderResponseDTO completeRepairOrder(Long id, RepairOrderCompleteDTO completeDTO);
+
+    byte[] generateRepairOrderPdf(Long id);
 }
