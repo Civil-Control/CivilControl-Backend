@@ -15,7 +15,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -163,6 +165,23 @@ public class RepairOrderController {
             @Parameter(description = "Repair order unique identifier") @PathVariable Long id,
             @Validated @RequestBody RepairOrderCompleteDTO completeDTO) {
         return ResponseEntity.ok(repairOrderService.completeRepairOrder(id, completeDTO));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.REPAIR_ORDER_CREATE + "') or hasAuthority('" + AppPermissions.REPAIR_ORDER_READ + "')")
+    @GetMapping("/{id}/pdf")
+    @Operation(summary = "Generate repair order PDF",
+               description = "Generates a printable A4 PDF of the repair order (large type, checklist, signature area) for the workshop.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "PDF generated successfully"),
+            @ApiResponse(responseCode = "404", description = "Repair order not found")
+    })
+    public ResponseEntity<byte[]> generateRepairOrderPdf(
+            @Parameter(description = "Repair order unique identifier") @PathVariable Long id) {
+        byte[] pdf = repairOrderService.generateRepairOrderPdf(id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "orden-de-reparacion-" + id + ".pdf");
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
     }
 
     private Pageable buildPageable(int page, int size, String sortBy, String sortDir) {

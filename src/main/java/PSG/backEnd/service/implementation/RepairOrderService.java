@@ -11,14 +11,18 @@ import PSG.backEnd.model.entity.vehicle.RepairOrder;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
 import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.model.enums.vehicle.RepairOrderStatus;
+import PSG.backEnd.model.entity.Tenant;
 import PSG.backEnd.model.mapper.RepairOrderMapper;
 import PSG.backEnd.repository.RepairOrderRepository;
 import PSG.backEnd.repository.RepairRepository;
 import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.repository.VehicleRepository;
+import PSG.backEnd.service.export.RepairOrderPdfService;
 import PSG.backEnd.service.port.IRepairOrderService;
+import PSG.backEnd.service.port.ITenantService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,6 +42,8 @@ public class RepairOrderService implements IRepairOrderService {
     private final RepairOrderMapper repairOrderMapper;
     private final VehicleRepository vehicleRepository;
     private final SupplierRepository supplierRepository;
+    private final RepairOrderPdfService repairOrderPdfService;
+    private final ITenantService iTenantService;
 
     @Override
     @Transactional
@@ -183,6 +189,19 @@ public class RepairOrderService implements IRepairOrderService {
 
         order.setStatus(RepairOrderStatus.COMPLETADA);
         return repairOrderMapper.toResponseDto(repairOrderRepository.save(order));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generateRepairOrderPdf(Long id) {
+        RepairOrder order = findOrderById(id);
+        validateOwnership(order);
+        Hibernate.initialize(order.getVehicle());
+        Hibernate.initialize(order.getItems());
+
+        Tenant tenant = iTenantService.getEntityById(order.getTenantId());
+
+        return repairOrderPdfService.generate(order, tenant);
     }
 
     // ── Private helpers ──────────────────────────────────────────────
