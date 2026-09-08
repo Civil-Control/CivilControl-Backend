@@ -1002,9 +1002,22 @@ public class ReportService implements IReportService {
             String description = "Reparación: " + itemDescriptions +
                                " - Vehículo: " + vehiclePlate;
 
+            // Repair.supplier is only set when chosen explicitly at completion time.
+            // Most repairs are instead linked to a purchase invoice via their items,
+            // so fall back to the linked document's supplier before using a placeholder.
+            Supplier linkedSupplier = r.getItems() != null ? r.getItems().stream()
+                    .map(RepairItem::getTransactionalDocument)
+                    .filter(java.util.Objects::nonNull)
+                    .map(TransactionalDocument::getSupplier)
+                    .filter(java.util.Objects::nonNull)
+                    .findFirst()
+                    .orElse(null) : null;
+
             String beneficiary;
             if (r.getSupplier() != null) {
                 beneficiary = r.getSupplier().getLegalName();
+            } else if (linkedSupplier != null) {
+                beneficiary = linkedSupplier.getLegalName();
             } else {
                 // Use first MANO_DE_OBRA item description as beneficiary
                 beneficiary = r.getItems() != null ? r.getItems().stream()
@@ -2835,6 +2848,10 @@ public class ReportService implements IReportService {
                         BigDecimal labCost = BigDecimal.ZERO;
                         BigDecimal totalIva = BigDecimal.ZERO;
                         boolean hasLinked = false;
+                        // Repair.supplier is only set when chosen explicitly at completion time.
+                        // Most repairs are instead linked to a purchase invoice via their items,
+                        // so fall back to the linked document's supplier before calling it "Interno".
+                        Supplier linkedSupplier = null;
                         for (RepairItem ri : r.getItems()) {
                             BigDecimal amt = ri.getAmount() != null ? ri.getAmount() : BigDecimal.ZERO;
                             BigDecimal qty = ri.getQuantity() != null ? ri.getQuantity() : BigDecimal.ONE;
@@ -2845,6 +2862,9 @@ public class ReportService implements IReportService {
                             }
                             if (ri.getTransactionalDocument() != null) {
                                 hasLinked = true;
+                                if (linkedSupplier == null && ri.getTransactionalDocument().getSupplier() != null) {
+                                    linkedSupplier = ri.getTransactionalDocument().getSupplier();
+                                }
                                 if (ri.getIvaPercentage() != null && ri.getIvaPercentage().compareTo(BigDecimal.ZERO) > 0) {
                                     boolean isCredit = ri.getTransactionalDocument().getDocumentType() != null
                                             && ri.getTransactionalDocument().getDocumentType().name().startsWith("CREDIT_NOTE");
@@ -2856,6 +2876,9 @@ public class ReportService implements IReportService {
                             }
                         }
                         BigDecimal totalCost = matCost.add(labCost);
+                        String supplierName = r.getSupplier() != null
+                                ? r.getSupplier().getLegalName()
+                                : (linkedSupplier != null ? linkedSupplier.getLegalName() : null);
                         return new RepairReportItemDTO(
                                 r.getId(),
                                 r.getDate(),
@@ -2866,7 +2889,7 @@ public class ReportService implements IReportService {
                                 totalCost,
                                 totalIva,
                                 totalCost.add(totalIva),
-                                r.getSupplier() != null ? r.getSupplier().getLegalName() : null,
+                                supplierName,
                                 r.getItems().size(),
                                 hasLinked,
                                 r.getVehicle() != null ? r.getVehicle().getLicensePlate() : null,
