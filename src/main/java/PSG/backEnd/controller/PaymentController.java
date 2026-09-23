@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -123,15 +124,12 @@ public class PaymentController {
             @Parameter(description = "Number of items per page", example = "10") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, paymentDate, amount, comment. " +
                     "For supplier use: supplierId, supplierLegalName, supplierTradeName, supplierCuit. " +
-                    "Example: sortBy=paymentDate",
+                    "For payment method use: type (or paymentMethod). Example: sortBy=paymentDate",
                     example = "paymentDate")
             @RequestParam(defaultValue = "id") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)", example = "desc") @RequestParam(defaultValue = "asc") String sortDir) {
 
-        // Map simple field names to entity paths
-        String mappedSortBy = mapSortField(sortBy);
-
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mappedSortBy);
+        Sort sort = buildSort(sortBy, sortDir);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         PaymentFilterDTO filter = new PaymentFilterDTO(
@@ -141,12 +139,26 @@ public class PaymentController {
     }
 
     /**
-     * Maps simple field names to their corresponding entity paths.
-     * This allows the frontend to use intuitive field names without knowing the internal entity structure.
-     * Note: The query works directly with PaymentDetails entity, so we don't need paymentDetails prefix.
+     * Builds the Sort for GET /payments. Maps simple field names to their corresponding entity
+     * paths so the frontend can use intuitive field names without knowing the internal entity
+     * structure. Note: the query works directly with PaymentDetails (alias pd), so no
+     * "paymentDetails." prefix is needed.
+     * <p>
+     * "type"/"paymentMethod" is a special case: PaymentDetails has no direct column for it
+     * (the method is derived from which of CashPayment/TransferPayment/CheckPayment references
+     * it), so it's sorted via an unsafe CASE expression evaluated against the same query alias.
      */
-    private String mapSortField(String sortBy) {
-        return switch (sortBy) {
+    private Sort buildSort(String sortBy, String sortDir) {
+        Sort.Direction direction = Sort.Direction.fromString(sortDir);
+        if ("type".equals(sortBy) || "paymentMethod".equals(sortBy)) {
+            String caseExpr = "(CASE " +
+                    "WHEN EXISTS (SELECT 1 FROM CashPayment cp WHERE cp.paymentDetails.id = pd.id) THEN 0 " +
+                    "WHEN EXISTS (SELECT 1 FROM TransferPayment tp WHERE tp.paymentDetails.id = pd.id) THEN 1 " +
+                    "WHEN EXISTS (SELECT 1 FROM CheckPayment chp WHERE chp.paymentDetails.id = pd.id) THEN 2 " +
+                    "ELSE 3 END)";
+            return JpaSort.unsafe(direction, caseExpr);
+        }
+        String mappedSortBy = switch (sortBy) {
             case "supplierId" -> "supplier.id";
             case "supplierLegalName" -> "supplier.legalName";
             case "supplierTradeName" -> "supplier.tradeName";
@@ -154,6 +166,7 @@ public class PaymentController {
             // paymentDate and amount are direct fields of PaymentDetails, no mapping needed
             default -> sortBy; // For 'id', 'paymentDate', 'amount', etc.
         };
+        return Sort.by(direction, mappedSortBy);
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.PAYMENT_READ + "')")
