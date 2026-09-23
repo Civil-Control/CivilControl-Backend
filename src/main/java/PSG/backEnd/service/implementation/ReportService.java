@@ -1567,6 +1567,16 @@ public class ReportService implements IReportService {
                 .map(td -> signed(td, td.getIibbPerception() != null ? td.getIibbPerception() : BigDecimal.ZERO))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        BigDecimal totalPaidAmount = allDocuments.stream()
+                .filter(td -> Boolean.TRUE.equals(td.getPaid()))
+                .map(td -> signed(td, td.getTotal()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalUnpaidAmount = allDocuments.stream()
+                .filter(td -> !Boolean.TRUE.equals(td.getPaid()))
+                .map(td -> signed(td, td.getTotal()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         Map<DocumentType, BigDecimal> totalsByDocType = buildDocumentTypeSubtotals(allDocuments);
         Map<String, BigDecimal> totalsByIvaRate = buildIvaRateSubtotals(allDocuments);
 
@@ -1581,6 +1591,8 @@ public class ReportService implements IReportService {
                 .totalIvaExempt(totalIvaExempt)
                 .totalOtherTaxes(totalOtherTaxes)
                 .totalIibbPerception(totalIibbPerception)
+                .totalPaidAmount(totalPaidAmount)
+                .totalUnpaidAmount(totalUnpaidAmount)
                 .totalCount(allDocuments.size())
                 .totalsByDocumentType(totalsByDocType)
                 .totalsByIvaRate(totalsByIvaRate)
@@ -1819,10 +1831,9 @@ public class ReportService implements IReportService {
             }
 
             if (td.getIvaTotal() == null || td.getIvaTotal().compareTo(BigDecimal.ZERO) <= 0) {
-                // No IVA on this document — skip to other taxes
-                if (td.getOtherTaxes() != null && td.getOtherTaxes().compareTo(BigDecimal.ZERO) > 0) {
-                    result.merge("Otros tributos", td.getOtherTaxes(), BigDecimal::add);
-                }
+                // No IVA on this document — nothing to add to the rate breakdown.
+                // (otherTaxes is reported separately as InvoiceReportDTO.totalOtherTaxes,
+                // not mixed into this IVA-rate map — see note below.)
                 continue;
             }
 
@@ -1857,11 +1868,6 @@ public class ReportService implements IReportService {
             for (Map.Entry<BigDecimal, BigDecimal> entry : ivaByRate.entrySet()) {
                 String label = "IVA " + entry.getKey().stripTrailingZeros().toPlainString() + "%";
                 result.merge(label, entry.getValue().setScale(2, java.math.RoundingMode.HALF_UP), BigDecimal::add);
-            }
-
-            // Other taxes
-            if (td.getOtherTaxes() != null && td.getOtherTaxes().compareTo(BigDecimal.ZERO) > 0) {
-                result.merge("Otros tributos", td.getOtherTaxes(), BigDecimal::add);
             }
         }
 

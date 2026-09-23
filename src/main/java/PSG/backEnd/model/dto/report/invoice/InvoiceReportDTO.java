@@ -20,6 +20,8 @@ public record InvoiceReportDTO(
     BigDecimal totalIvaExempt,
     BigDecimal totalOtherTaxes,
     BigDecimal totalIibbPerception,
+    BigDecimal totalPaidAmount,
+    BigDecimal totalUnpaidAmount,
     int totalCount,
     Map<DocumentType, BigDecimal> totalsByDocumentType,
     Map<String, BigDecimal> totalsByIvaRate,
