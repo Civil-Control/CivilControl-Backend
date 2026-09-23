@@ -212,30 +212,51 @@ public class RepairService implements IRepairService {
 
     /**
      * Applies items from DTOs to the repair entity, handling orphan removal.
+     * <p>
+     * Matches each DTO to its existing {@link RepairItem} by {@code id} and mutates that
+     * managed entity in place, instead of discarding the whole collection and rebuilding it
+     * from scratch. Rebuilding unconditionally (the previous behavior) made Hibernate delete
+     * and re-insert every item on every update — even ones the caller didn't touch — so their
+     * database id churned on each save. That broke anything that identifies a repair item by
+     * id across requests: in particular, the "add item to an existing repair" flow in the
+     * transactional-document picker diffs the response's item ids against the ids it sent to
+     * detect which item is newly created, and with id churn every existing item looked new,
+     * causing already-linked items to be wrongly treated as pending selection.
      */
     public void applyItems(Repair repair, List<RepairItemDTO> itemDTOs) {
         if (itemDTOs == null) return;
 
-        repair.getItems().clear();
+        Map<Long, RepairItem> existingById = repair.getItems().stream()
+                .filter(i -> i.getId() != null)
+                .collect(Collectors.toMap(RepairItem::getId, i -> i));
 
+        List<RepairItem> updatedItems = new ArrayList<>();
         int sortOrder = 0;
         for (RepairItemDTO itemDTO : itemDTOs) {
-            RepairItem item = RepairItem.builder()
-                    .repair(repair)
-                    .itemType(itemDTO.itemType())
-                    .description(itemDTO.description())
-                    .amount(itemDTO.amount())
-                    .quantity(itemDTO.quantity() != null
-                            ? itemDTO.quantity()
-                            : java.math.BigDecimal.ONE)
-                    .ivaPercentage(itemDTO.ivaPercentage() != null
-                            ? itemDTO.ivaPercentage()
-                            : new java.math.BigDecimal("21.00"))
-                    .transactionalDocument(resolveDocument(itemDTO.transactionalDocumentId()))
-                    .sortOrder(sortOrder++)
-                    .build();
-            repair.getItems().add(item);
+            RepairItem item = itemDTO.id() != null ? existingById.get(itemDTO.id()) : null;
+            if (item == null) {
+                item = RepairItem.builder().repair(repair).build();
+            }
+            item.setItemType(itemDTO.itemType());
+            item.setDescription(itemDTO.description());
+            item.setAmount(itemDTO.amount());
+            item.setQuantity(itemDTO.quantity() != null
+                    ? itemDTO.quantity()
+                    : java.math.BigDecimal.ONE);
+            item.setIvaPercentage(itemDTO.ivaPercentage() != null
+                    ? itemDTO.ivaPercentage()
+                    : new java.math.BigDecimal("21.00"));
+            item.setTransactionalDocument(resolveDocument(itemDTO.transactionalDocumentId()));
+            item.setSortOrder(sortOrder++);
+            updatedItems.add(item);
         }
+
+        // Replacing the collection's contents (not the collection instance) lets Hibernate's
+        // dirty-checking diff the previous vs. new state at flush time: items still present
+        // (matched above) are updated, items dropped are orphan-removed, and only genuinely
+        // new items (null id, or an id that no longer matches) get inserted.
+        repair.getItems().clear();
+        repair.getItems().addAll(updatedItems);
     }
 
     private void recalculateItemDocuments(Repair repair) {
