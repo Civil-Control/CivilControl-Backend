@@ -22,6 +22,8 @@ public record InvoiceReportDTO(
     BigDecimal totalIibbPerception,
     BigDecimal totalPaidAmount,
     BigDecimal totalUnpaidAmount,
+    /** Value Recovery (hidden Feature 18): sum of every area group's recoveryTotalRecovered. */
+    BigDecimal totalRecoveredAmount,
     int totalCount,
     Map<DocumentType, BigDecimal> totalsByDocumentType,
     Map<String, BigDecimal> totalsByIvaRate,

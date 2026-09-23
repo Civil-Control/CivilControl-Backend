@@ -162,6 +162,7 @@ public class ReportService implements IReportService {
     private final SupplierRepository supplierRepository;
     private final MessageSourceHelper messageSourceHelper;
     private final PSG.backEnd.service.port.IFuelTypeCatalogService fuelTypeCatalogService;
+    private final PSG.backEnd.service.port.IRecoveryService recoveryService;
 
     /**
      * Constructor that automatically maps exporters by their format.
@@ -203,7 +204,8 @@ public class ReportService implements IReportService {
             CertificationRepository certificationRepository,
             SupplierRepository supplierRepository,
             MessageSourceHelper messageSourceHelper,
-            PSG.backEnd.service.port.IFuelTypeCatalogService fuelTypeCatalogService) {
+            PSG.backEnd.service.port.IFuelTypeCatalogService fuelTypeCatalogService,
+            PSG.backEnd.service.port.IRecoveryService recoveryService) {
 
         this.exporters = exporterList.stream()
                 .collect(Collectors.toMap(
@@ -246,6 +248,7 @@ public class ReportService implements IReportService {
         this.supplierRepository = supplierRepository;
         this.messageSourceHelper = messageSourceHelper;
         this.fuelTypeCatalogService = fuelTypeCatalogService;
+        this.recoveryService = recoveryService;
 
         log.info("ReportService initialized with {} exporters: {}",
                  exporters.size(),
@@ -273,6 +276,13 @@ public class ReportService implements IReportService {
         // Calculate duplicated amount (items linked to an invoice whose amount is already in the invoice total)
         BigDecimal duplicatedAmount = calculateDuplicatedAmount(items);
 
+        // Value Recovery (hidden Feature 18): sum of every item's recoveryAdjustment, i.e. the
+        // portion of invoiced amounts already recovered for the tenant's recovery sector.
+        BigDecimal totalRecoveryAdjustment = items.stream()
+                .map(ReportItemDTO::recoveryAdjustment)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         // Get project area name if filtered
         String projectAreaName = getProjectAreaName(filters.projectAreaIds());
 
@@ -288,6 +298,7 @@ public class ReportService implements IReportService {
                 .periodDescription(buildPeriodDescription(filters))
                 .projectAreaName(projectAreaName)
                 .duplicatedAmount(duplicatedAmount)
+                .totalRecoveryAdjustment(totalRecoveryAdjustment)
                 .build();
 
         log.info("Report generated successfully with {} items, total amount: ${}",
@@ -593,6 +604,15 @@ public class ReportService implements IReportService {
                 ).getContent(),
                 doc -> doc.getProjectArea() == null);
 
+        // Batch-resolve recovered amounts for documents in the recovery sector (Value Recovery,
+        // hidden Feature 18) so the report can show the real net outflow alongside the invoiced
+        // total, without reimplementing the recovery formula here — the ledger is authoritative.
+        List<Long> recoverySectorDocIds = documents.stream()
+                .filter(doc -> doc.getProjectArea() != null && Boolean.TRUE.equals(doc.getProjectArea().getIsRecoverySector()))
+                .map(TransactionalDocument::getId)
+                .toList();
+        Map<Long, BigDecimal> recoveredByDocId = recoveryService.getRecoveredAmountsByDocumentIds(recoverySectorDocIds);
+
         List<ReportItemDTO> items = new ArrayList<>();
 
         for (TransactionalDocument doc : documents) {
@@ -614,6 +634,7 @@ public class ReportService implements IReportService {
                     .projectAreaName(doc.getProjectArea() != null ? doc.getProjectArea().getName() : null)
                     .projectAreaTaskName(doc.getProjectAreaTask() != null ? doc.getProjectAreaTask().getName() : null)
                     .linkedDocumentId(null)
+                    .recoveryAdjustment(recoveredByDocId.get(doc.getId()))
                     .build());
         }
 
@@ -1582,6 +1603,13 @@ public class ReportService implements IReportService {
 
         String periodDesc = buildInvoicePeriodDescription(filters);
 
+        // Value Recovery (hidden Feature 18): grand total is the sum of each area's recovered
+        // amount — in practice only the recovery-sector area contributes a non-null value.
+        BigDecimal totalRecoveredAmount = areaGroups.stream()
+                .map(InvoiceReportAreaGroupDTO::recoveryTotalRecovered)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         return InvoiceReportDTO.builder()
                 .filters(filters)
                 .areaGroups(areaGroups)
@@ -1593,6 +1621,7 @@ public class ReportService implements IReportService {
                 .totalIibbPerception(totalIibbPerception)
                 .totalPaidAmount(totalPaidAmount)
                 .totalUnpaidAmount(totalUnpaidAmount)
+                .totalRecoveredAmount(totalRecoveredAmount)
                 .totalCount(allDocuments.size())
                 .totalsByDocumentType(totalsByDocType)
                 .totalsByIvaRate(totalsByIvaRate)
@@ -1685,6 +1714,22 @@ public class ReportService implements IReportService {
 
             Map<DocumentType, BigDecimal> areaDocTypeSubtotals = buildDocumentTypeSubtotals(areaDocs);
 
+            // Value Recovery (hidden Feature 18): only the sector flagged isRecoverySector ever
+            // has recovery events, so this is null for every other area. recoveryNetOutflow is
+            // the real cash outflow (subtotal minus what's already recovered) — the ledger
+            // (recovery_events) is the source of truth, not a reimplementation of the formula.
+            BigDecimal recoveryTotalRecovered = null;
+            BigDecimal recoveryNetOutflow = null;
+            boolean isRecoverySector = areaIdDTO != null
+                    && Boolean.TRUE.equals(areaDocs.get(0).getProjectArea().getIsRecoverySector());
+            if (isRecoverySector) {
+                List<Long> areaDocIds = areaDocs.stream().map(TransactionalDocument::getId).toList();
+                Map<Long, BigDecimal> recoveredByDocId = recoveryService.getRecoveredAmountsByDocumentIds(areaDocIds);
+                recoveryTotalRecovered = recoveredByDocId.values().stream()
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                recoveryNetOutflow = subtotal.subtract(recoveryTotalRecovered);
+            }
+
             groups.add(InvoiceReportAreaGroupDTO.builder()
                     .projectAreaId(areaIdDTO)
                     .projectAreaName(areaName)
@@ -1698,6 +1743,8 @@ public class ReportService implements IReportService {
                     .documentCount(areaDocs.size())
                     .subtotalsByDocumentType(areaDocTypeSubtotals)
                     .supplierGroups(supplierGroups)
+                    .recoveryTotalRecovered(recoveryTotalRecovered)
+                    .recoveryNetOutflow(recoveryNetOutflow)
                     .build());
         }
 

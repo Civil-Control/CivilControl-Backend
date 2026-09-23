@@ -1,6 +1,7 @@
 package PSG.backEnd.service.implementation.recovery;
 
 import PSG.backEnd.exception.NotFoundException;
+import PSG.backEnd.model.dto.recovery.RecoveryEventFilterDTO;
 import PSG.backEnd.model.dto.recovery.RecoveryEventResponseDTO;
 import PSG.backEnd.model.dto.recovery.RecoverySupplierConfigDTO;
 import PSG.backEnd.model.dto.recovery.RecoverySupplierConfigResponseDTO;
@@ -430,6 +431,32 @@ public class RecoveryService implements IRecoveryService {
                 .stream()
                 .map(recoveryAssembler::toResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, BigDecimal> getRecoveredAmountsByDocumentIds(java.util.Collection<Long> documentIds) {
+        if (documentIds == null || documentIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+        java.util.Map<Long, BigDecimal> result = new java.util.HashMap<>();
+        for (Object[] row : eventRepository.sumRecoveredAmountGroupedByDocumentIds(documentIds)) {
+            result.put((Long) row[0], (BigDecimal) row[1]);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<RecoveryEventResponseDTO> listAllEvents(
+            Long projectAreaId, RecoveryEventFilterDTO filters, org.springframework.data.domain.Pageable pageable) {
+        requireRecoverySector(projectAreaId);
+        RecoveryEventFilterDTO f = filters != null
+                ? filters
+                : new RecoveryEventFilterDTO(null, null, null, null, null);
+        return eventRepository
+                .findAllForSector(projectAreaId, f.fromDate(), f.toDate(), f.cashBoxId(), f.supplierId(), f.eventType(), pageable)
+                .map(recoveryAssembler::toResponse);
     }
 
     private ProjectArea requireRecoverySector(Long projectAreaId) {

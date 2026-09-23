@@ -1,12 +1,18 @@
 package PSG.backEnd.service.port;
 
+import PSG.backEnd.model.dto.recovery.RecoveryEventFilterDTO;
 import PSG.backEnd.model.dto.recovery.RecoveryEventResponseDTO;
 import PSG.backEnd.model.dto.recovery.RecoverySupplierConfigDTO;
 import PSG.backEnd.model.dto.recovery.RecoverySupplierConfigResponseDTO;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.recovery.RecoveryEvent;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -89,4 +95,18 @@ public interface IRecoveryService {
 
     /** Returns the full event timeline for a supplier config, oldest first. */
     List<RecoveryEventResponseDTO> listEventsForConfig(Long configId);
+
+    /**
+     * Net recovered amount per document id, resolved in a single batch query. Missing ids
+     * (no recovery events, e.g. documents outside the recovery sector) are simply absent from
+     * the returned map — callers should default to {@link BigDecimal#ZERO}.
+     */
+    Map<Long, BigDecimal> getRecoveredAmountsByDocumentIds(Collection<Long> documentIds);
+
+    /**
+     * Full recovery ledger for a sector (every supplier config), paginated and optionally
+     * filtered. Powers the "Todos los movimientos" view — as opposed to
+     * {@link #listEventsForConfig(Long)}, which is scoped to a single supplier.
+     */
+    Page<RecoveryEventResponseDTO> listAllEvents(Long projectAreaId, RecoveryEventFilterDTO filters, Pageable pageable);
 }
