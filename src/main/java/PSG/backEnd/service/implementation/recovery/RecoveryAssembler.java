@@ -72,6 +72,7 @@ public class RecoveryAssembler {
                 event.getDocumentIva(),
                 event.getRecoveredAmount(),
                 event.getCashBoxMovement() != null ? event.getCashBoxMovement().getId() : null,
+                event.getCashBoxMovement() != null ? event.getCashBoxMovement().getMovementDate() : null,
                 event.getOccurredAt(),
                 event.getTriggeredByUserId(),
                 lookupUserName(event.getTriggeredByUserId())
@@ -80,7 +81,7 @@ public class RecoveryAssembler {
 
     private static String documentReference(TransactionalDocument doc) {
         if (doc == null) return null;
-        String type = doc.getDocumentType() != null ? doc.getDocumentType().name() : "";
+        String type = doc.getDocumentType() != null ? doc.getDocumentType().getDisplayName() : "";
         String branch = doc.getBranchCode() != null ? doc.getBranchCode() : "";
         String number = doc.getDocumentNumber() != null ? doc.getDocumentNumber() : "";
         return (type + " " + branch + "-" + number).trim();

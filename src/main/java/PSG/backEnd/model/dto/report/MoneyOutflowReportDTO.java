@@ -53,7 +53,13 @@ public record MoneyOutflowReportDTO(
     @Schema(description = "Total amount of items whose amounts are already included in an invoice (linked items). " +
             "The effective total without duplication = totalAmount - duplicatedAmount.",
             example = "350000.00")
-    BigDecimal duplicatedAmount
+    BigDecimal duplicatedAmount,
+
+    @Schema(description = "Sum of every item's recoveryAdjustment (Value Recovery, hidden Feature 18): the portion " +
+            "of the invoiced amount already recovered for documents in the tenant's recovery sector. " +
+            "The real net outflow = totalAmount - duplicatedAmount - totalRecoveryAdjustment.",
+            example = "45000.00")
+    BigDecimal totalRecoveryAdjustment
 ) {
 
     /**

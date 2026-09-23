@@ -70,7 +70,14 @@ public record ReportItemDTO(
             "Used to detect and handle duplicate counting between invoices and their linked sub-items.",
             example = "42",
             nullable = true)
-    Long linkedDocumentId
+    Long linkedDocumentId,
+
+    @Schema(description = "Portion of `amount` already recovered via the Value Recovery feature (hidden Feature 18), " +
+            "populated only for INVOICE items whose project area is the tenant's recovery sector. " +
+            "The real cash outflow for this item is `amount - recoveryAdjustment`. Null/zero for every other item.",
+            example = "125000.00",
+            nullable = true)
+    BigDecimal recoveryAdjustment
 ) {
 
     /**

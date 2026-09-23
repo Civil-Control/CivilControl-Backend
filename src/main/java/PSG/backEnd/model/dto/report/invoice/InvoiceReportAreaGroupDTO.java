@@ -22,5 +22,14 @@ public record InvoiceReportAreaGroupDTO(
     BigDecimal subtotalIibbPerception,
     int documentCount,
     Map<DocumentType, BigDecimal> subtotalsByDocumentType,
-    List<InvoiceReportSupplierGroupDTO> supplierGroups
+    List<InvoiceReportSupplierGroupDTO> supplierGroups,
+
+    /**
+     * Value Recovery (hidden Feature 18): total recovered for this area's documents, from the
+     * recovery_events ledger. Non-null only when this area is the tenant's recovery sector.
+     */
+    BigDecimal recoveryTotalRecovered,
+
+    /** {@code subtotalAmount - recoveryTotalRecovered} — the real cash outflow. Same nullability. */
+    BigDecimal recoveryNetOutflow
 ) {}
