@@ -983,9 +983,7 @@ public class ReportService implements IReportService {
             java.math.BigDecimal totalCost = java.math.BigDecimal.ZERO;
             if (r.getItems() != null) {
                 for (RepairItem item : r.getItems()) {
-                    if (item.getAmount() != null) {
-                        totalCost = totalCost.add(item.getAmount());
-                    }
+                    totalCost = totalCost.add(repairItemLineTotal(item));
                 }
             }
             if (totalCost.compareTo(java.math.BigDecimal.ZERO) == 0) {
@@ -2676,7 +2674,7 @@ public class ReportService implements IReportService {
         BigDecimal totalLaborCost = BigDecimal.ZERO;
         for (Repair r : allRepairs) {
             for (RepairItem item : r.getItems()) {
-                BigDecimal amt = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+                BigDecimal amt = repairItemLineTotal(item);
                 if (item.getItemType() == RepairItemType.MATERIAL) {
                     totalMaterialCost = totalMaterialCost.add(amt);
                 } else if (item.getItemType() == RepairItemType.MANO_DE_OBRA) {
@@ -2731,6 +2729,17 @@ public class ReportService implements IReportService {
                 .body(content);
     }
 
+    /**
+     * Line total of a repair item: unit amount * quantity, same formula used by
+     * {@code RepairMapper} for the repair detail view. Report aggregations must use this
+     * instead of the raw {@code amount} (unit price), otherwise multi-unit items are undercounted.
+     */
+    private static BigDecimal repairItemLineTotal(RepairItem item) {
+        BigDecimal amt = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+        BigDecimal qty = item.getQuantity() != null ? item.getQuantity() : BigDecimal.ONE;
+        return amt.multiply(qty).setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
     private List<RepairReportAreaGroupDTO> buildRepairAreaGroups(List<Repair> repairs) {
         Map<Long, List<Repair>> byArea = new LinkedHashMap<>();
 
@@ -2767,7 +2776,7 @@ public class ReportService implements IReportService {
             BigDecimal laborSubtotal = BigDecimal.ZERO;
             for (Repair r : areaRepairs) {
                 for (RepairItem item : r.getItems()) {
-                    BigDecimal amt = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+                    BigDecimal amt = repairItemLineTotal(item);
                     if (item.getItemType() == RepairItemType.MATERIAL) {
                         materialSubtotal = materialSubtotal.add(amt);
                     } else if (item.getItemType() == RepairItemType.MANO_DE_OBRA) {
@@ -2832,7 +2841,7 @@ public class ReportService implements IReportService {
             BigDecimal laborSubtotal = BigDecimal.ZERO;
             for (Repair r : vehicleRepairs) {
                 for (RepairItem item : r.getItems()) {
-                    BigDecimal amt = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+                    BigDecimal amt = repairItemLineTotal(item);
                     if (item.getItemType() == RepairItemType.MATERIAL) {
                         materialSubtotal = materialSubtotal.add(amt);
                     } else if (item.getItemType() == RepairItemType.MANO_DE_OBRA) {
@@ -2856,9 +2865,9 @@ public class ReportService implements IReportService {
                             BigDecimal amt = ri.getAmount() != null ? ri.getAmount() : BigDecimal.ZERO;
                             BigDecimal qty = ri.getQuantity() != null ? ri.getQuantity() : BigDecimal.ONE;
                             if (ri.getItemType() == RepairItemType.MATERIAL) {
-                                matCost = matCost.add(amt);
+                                matCost = matCost.add(repairItemLineTotal(ri));
                             } else if (ri.getItemType() == RepairItemType.MANO_DE_OBRA) {
-                                labCost = labCost.add(amt);
+                                labCost = labCost.add(repairItemLineTotal(ri));
                             }
                             if (ri.getTransactionalDocument() != null) {
                                 hasLinked = true;
