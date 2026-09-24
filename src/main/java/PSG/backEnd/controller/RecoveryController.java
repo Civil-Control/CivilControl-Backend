@@ -5,7 +5,6 @@ import PSG.backEnd.model.dto.recovery.RecoveryEventFilterDTO;
 import PSG.backEnd.model.dto.recovery.RecoveryEventResponseDTO;
 import PSG.backEnd.model.dto.recovery.RecoverySupplierConfigDTO;
 import PSG.backEnd.model.dto.recovery.RecoverySupplierConfigResponseDTO;
-import PSG.backEnd.model.enums.recovery.RecoveryEventType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
 import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.IRecoveryService;
@@ -98,9 +97,11 @@ public class RecoveryController {
     // ── Sector-wide ledger ("Todos los movimientos") ────────────────────────
 
     /**
-     * Full recovery ledger for the sector — every supplier's events, not just one — with
-     * optional filters. Powers the "Todos los movimientos" view, as opposed to
-     * {@link #listEventsForConfig}, which is scoped to a single supplier config.
+     * Active recovery ledger for the sector — every supplier's currently-active GENERATED event
+     * (at most one per document), with optional filters. Powers the "Movimientos" view. Reversed
+     * and superseded events are deliberately excluded — see {@link RecoveryEventFilterDTO}. The
+     * full per-document history (including reversals) is still available via
+     * {@link #listEventsForDocument}.
      */
     @GetMapping("/sectors/{projectAreaId}/events")
     @PreAuthorize("hasAuthority('" + AppPermissions.RECOVERY_VIEW + "')")
@@ -110,14 +111,13 @@ public class RecoveryController {
             @Parameter(description = "Filter movements to this date (inclusive)") @RequestParam(required = false) LocalDate toDate,
             @Parameter(description = "Filter by destination cash box") @RequestParam(required = false) Long cashBoxId,
             @Parameter(description = "Filter by supplier") @RequestParam(required = false) Long supplierId,
-            @Parameter(description = "Filter by event type (GENERATED, REVERSED, ADJUSTED_CREDIT_NOTE)") @RequestParam(required = false) RecoveryEventType eventType,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "Field to sort by: movementDate, occurredAt, recoveredAmount") @RequestParam(defaultValue = "movementDate") String sortBy,
             @Parameter(description = "Sort direction (asc or desc)") @RequestParam(defaultValue = "desc") String sortDir) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), mapEventSortField(sortBy));
         Pageable pageable = PageRequest.of(page, size, sort);
-        RecoveryEventFilterDTO filters = new RecoveryEventFilterDTO(fromDate, toDate, cashBoxId, supplierId, eventType);
+        RecoveryEventFilterDTO filters = new RecoveryEventFilterDTO(fromDate, toDate, cashBoxId, supplierId);
         return recoveryService.listAllEvents(projectAreaId, filters, pageable);
     }
 
