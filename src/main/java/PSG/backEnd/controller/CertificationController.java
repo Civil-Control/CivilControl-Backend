@@ -57,6 +57,7 @@ public class CertificationController {
             @RequestParam(required = false) LocalDate dateTo,
             @RequestParam(required = false) Boolean hasInvoice,
             @RequestParam(required = false) Long salesDocumentId,
+            @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "certificationDate") String sortBy,
@@ -64,7 +65,7 @@ public class CertificationController {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
         CertificationFilterDTO filterDTO = new CertificationFilterDTO(
-                workContractId, clientId, status, dateFrom, dateTo, hasInvoice, salesDocumentId);
+                workContractId, clientId, status, dateFrom, dateTo, hasInvoice, salesDocumentId, search);
         return ResponseEntity.ok(certificationService.getAllCertifications(filterDTO, pageable));
     }
 
@@ -113,5 +114,33 @@ public class CertificationController {
     @PreAuthorize("hasAuthority('" + AppPermissions.CERTIFICATION_WRITE + "')")
     public ResponseEntity<CertificationResponseDTO> markAsCobrado(@PathVariable Long id) {
         return ResponseEntity.ok(certificationService.markAsCobrado(id));
+    }
+
+    // ── Linking from the sales-document side ────────────────────────────────
+    // Mirrors createCertification/updateCertification's salesDocumentId field (the existing
+    // link driven from the certification side) — same status transition, invoked here from the
+    // opposite direction so the sales-document form can link/unlink too.
+
+    @PatchMapping("/{id}/link/{salesDocumentId}")
+    @Operation(summary = "Link a certification to a sales-document from the sales-document side")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Certification linked successfully"),
+        @ApiResponse(responseCode = "404", description = "Certification or sales-document not found")
+    })
+    @PreAuthorize("hasAuthority('" + AppPermissions.CERTIFICATION_WRITE + "')")
+    public ResponseEntity<CertificationResponseDTO> linkToSalesDocument(
+            @PathVariable Long id, @PathVariable Long salesDocumentId) {
+        return ResponseEntity.ok(certificationService.linkToSalesDocument(id, salesDocumentId));
+    }
+
+    @PatchMapping("/{id}/unlink")
+    @Operation(summary = "Unlink a certification from its sales-document")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Certification unlinked successfully"),
+        @ApiResponse(responseCode = "404", description = "Certification not found")
+    })
+    @PreAuthorize("hasAuthority('" + AppPermissions.CERTIFICATION_WRITE + "')")
+    public ResponseEntity<CertificationResponseDTO> unlinkFromSalesDocument(@PathVariable Long id) {
+        return ResponseEntity.ok(certificationService.unlinkFromSalesDocument(id));
     }
 }

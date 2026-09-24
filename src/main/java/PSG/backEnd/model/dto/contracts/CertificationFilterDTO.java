@@ -11,5 +11,6 @@ public record CertificationFilterDTO(
     LocalDate dateFrom,
     LocalDate dateTo,
     Boolean hasInvoice,
-    Long salesDocumentId
+    Long salesDocumentId,
+    String search
 ) {}

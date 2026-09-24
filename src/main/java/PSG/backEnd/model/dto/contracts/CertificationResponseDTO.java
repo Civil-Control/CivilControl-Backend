@@ -12,6 +12,7 @@ public record CertificationResponseDTO(
     Integer certificationNumber,
     Long workContractId,
     String contractNumber,
+    String clientName,
     LocalDate certificationDate,
     BigDecimal certifiedAmount,
     Long salesDocumentId,
