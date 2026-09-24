@@ -12,6 +12,7 @@ import PSG.backEnd.model.entity.sales.SalesDocument;
 import PSG.backEnd.model.enums.contracts.CertificationStatus;
 import PSG.backEnd.model.mapper.CertificationMapper;
 import PSG.backEnd.repository.CertificationRepository;
+import PSG.backEnd.repository.CertificationSpecifications;
 import PSG.backEnd.repository.SalesDocumentRepository;
 import PSG.backEnd.repository.WorkContractRepository;
 import PSG.backEnd.service.port.ICertificationService;
@@ -71,17 +72,17 @@ public class CertificationService implements ICertificationService {
     @Override
     @Transactional(readOnly = true)
     public Page<CertificationResponseDTO> getAllCertifications(CertificationFilterDTO filterDTO, Pageable pageable) {
-        Long tenantId = TenantContext.getCurrentTenant();
-        return certificationRepository.findAllWithFilters(
-                tenantId,
-                filterDTO.workContractId(),
-                filterDTO.clientId(),
-                filterDTO.status(),
-                filterDTO.dateFrom(),
-                filterDTO.dateTo(),
-                filterDTO.hasInvoice(),
-                filterDTO.salesDocumentId(),
-                filterDTO.search(),
+        return certificationRepository.findAll(
+                CertificationSpecifications.forFilters(
+                        filterDTO.workContractId(),
+                        filterDTO.clientId(),
+                        filterDTO.status(),
+                        filterDTO.dateFrom(),
+                        filterDTO.dateTo(),
+                        filterDTO.hasInvoice(),
+                        filterDTO.salesDocumentId(),
+                        filterDTO.search()
+                ),
                 pageable
         ).map(c -> {
             CertificationResponseDTO dto2 = certificationMapper.toResponseDto(c);
