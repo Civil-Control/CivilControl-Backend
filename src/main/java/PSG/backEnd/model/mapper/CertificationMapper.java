@@ -17,6 +17,7 @@ public interface CertificationMapper {
 
     @Mapping(source = "contract.id", target = "workContractId")
     @Mapping(source = "contract.contractNumber", target = "contractNumber")
+    @Mapping(source = "contract.client.businessName", target = "clientName")
     @Mapping(source = "salesDocument.id", target = "salesDocumentId")
     @Mapping(target = "salesDocumentLabel", ignore = true)
     CertificationResponseDTO toResponseDto(Certification entity);

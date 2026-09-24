@@ -1,5 +1,6 @@
 package PSG.backEnd.service.implementation;
 
+import PSG.backEnd.exception.client.SalesDocumentNotFoundException;
 import PSG.backEnd.exception.contracts.CertificationNotFoundException;
 import PSG.backEnd.exception.contracts.WorkContractNotFoundException;
 import PSG.backEnd.model.dto.contracts.CertificationDTO;
@@ -52,12 +53,8 @@ public class CertificationService implements ICertificationService {
 
         SalesDocument salesDocument = null;
         if (dto.salesDocumentId() != null) {
-            salesDocument = salesDocumentRepository.findByIdAndDeletedFalse(dto.salesDocumentId())
-                    .orElseThrow(() -> new RuntimeException("SalesDocument not found: " + dto.salesDocumentId()));
-            entity.setSalesDocument(salesDocument);
-            entity.setStatus(Boolean.TRUE.equals(salesDocument.getPaid())
-                    ? CertificationStatus.COBRADO
-                    : CertificationStatus.FACTURADO);
+            salesDocument = requireSalesDocument(dto.salesDocumentId());
+            applySalesDocumentLink(entity, salesDocument);
         } else {
             entity.setSalesDocument(null);
         }
@@ -84,6 +81,7 @@ public class CertificationService implements ICertificationService {
                 filterDTO.dateTo(),
                 filterDTO.hasInvoice(),
                 filterDTO.salesDocumentId(),
+                filterDTO.search(),
                 pageable
         ).map(c -> {
             CertificationResponseDTO dto2 = certificationMapper.toResponseDto(c);
@@ -122,19 +120,10 @@ public class CertificationService implements ICertificationService {
 
         SalesDocument salesDocument = null;
         if (dto.salesDocumentId() != null) {
-            salesDocument = salesDocumentRepository.findByIdAndDeletedFalse(dto.salesDocumentId())
-                    .orElseThrow(() -> new RuntimeException("SalesDocument not found: " + dto.salesDocumentId()));
-            existing.setSalesDocument(salesDocument);
-            existing.setStatus(Boolean.TRUE.equals(salesDocument.getPaid())
-                    ? CertificationStatus.COBRADO
-                    : CertificationStatus.FACTURADO);
+            salesDocument = requireSalesDocument(dto.salesDocumentId());
+            applySalesDocumentLink(existing, salesDocument);
         } else {
-            existing.setSalesDocument(null);
-            // If invoice removed and status was auto-set, revert to APROBADO
-            if (existing.getStatus() == CertificationStatus.FACTURADO
-                    || existing.getStatus() == CertificationStatus.COBRADO) {
-                existing.setStatus(CertificationStatus.APROBADO);
-            }
+            applySalesDocumentUnlink(existing);
         }
 
         Certification saved = certificationRepository.save(existing);
@@ -156,6 +145,27 @@ public class CertificationService implements ICertificationService {
 
     @Override
     @Transactional
+    public CertificationResponseDTO linkToSalesDocument(Long certificationId, Long salesDocumentId) {
+        Certification existing = certificationRepository.findByIdAndDeletedFalse(certificationId)
+                .orElseThrow(() -> new CertificationNotFoundException(certificationId));
+        SalesDocument salesDocument = requireSalesDocument(salesDocumentId);
+        applySalesDocumentLink(existing, salesDocument);
+        Certification saved = certificationRepository.save(existing);
+        return buildWithLabel(certificationMapper.toResponseDto(saved), salesDocument);
+    }
+
+    @Override
+    @Transactional
+    public CertificationResponseDTO unlinkFromSalesDocument(Long certificationId) {
+        Certification existing = certificationRepository.findByIdAndDeletedFalse(certificationId)
+                .orElseThrow(() -> new CertificationNotFoundException(certificationId));
+        applySalesDocumentUnlink(existing);
+        Certification saved = certificationRepository.save(existing);
+        return certificationMapper.toResponseDto(saved);
+    }
+
+    @Override
+    @Transactional
     public CertificationResponseDTO markAsCobrado(Long id) {
         Certification existing = certificationRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new CertificationNotFoundException(id));
@@ -170,6 +180,32 @@ public class CertificationService implements ICertificationService {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
+    private SalesDocument requireSalesDocument(Long salesDocumentId) {
+        return salesDocumentRepository.findByIdAndDeletedFalse(salesDocumentId)
+                .orElseThrow(() -> new SalesDocumentNotFoundException(salesDocumentId));
+    }
+
+    /**
+     * Sets the certification's sales-document and bumps its status — shared by both directions
+     * of the link (from the certification side via create/update, and from the sales-document
+     * side via {@link #linkToSalesDocument}), so the status rule can never drift between them.
+     */
+    private void applySalesDocumentLink(Certification certification, SalesDocument salesDocument) {
+        certification.setSalesDocument(salesDocument);
+        certification.setStatus(Boolean.TRUE.equals(salesDocument.getPaid())
+                ? CertificationStatus.COBRADO
+                : CertificationStatus.FACTURADO);
+    }
+
+    /** Clears the link and reverts an auto-set status — shared by both directions of the unlink. */
+    private void applySalesDocumentUnlink(Certification certification) {
+        certification.setSalesDocument(null);
+        if (certification.getStatus() == CertificationStatus.FACTURADO
+                || certification.getStatus() == CertificationStatus.COBRADO) {
+            certification.setStatus(CertificationStatus.APROBADO);
+        }
+    }
+
     private CertificationResponseDTO buildWithLabel(CertificationResponseDTO dto, SalesDocument sd) {
         String label = buildSalesDocumentLabel(sd);
         return new CertificationResponseDTO(
@@ -177,6 +213,7 @@ public class CertificationService implements ICertificationService {
                 dto.certificationNumber(),
                 dto.workContractId(),
                 dto.contractNumber(),
+                dto.clientName(),
                 dto.certificationDate(),
                 dto.certifiedAmount(),
                 dto.salesDocumentId(),

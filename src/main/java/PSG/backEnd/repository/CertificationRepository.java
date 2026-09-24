@@ -59,6 +59,10 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
                 (:hasInvoice = TRUE AND c.salesDocument IS NOT NULL) OR
                 (:hasInvoice = FALSE AND c.salesDocument IS NULL))
             AND (:salesDocumentId IS NULL OR c.salesDocument.id = :salesDocumentId)
+            AND (:search IS NULL OR
+                LOWER(c.contract.contractNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                LOWER(c.contract.client.businessName) LIKE LOWER(CONCAT('%', :search, '%')) OR
+                CAST(c.certificationNumber AS string) LIKE CONCAT('%', :search, '%'))
             """)
     Page<Certification> findAllWithFilters(
             @Param("tenantId") Long tenantId,
@@ -69,6 +73,7 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
             @Param("dateTo") LocalDate dateTo,
             @Param("hasInvoice") Boolean hasInvoice,
             @Param("salesDocumentId") Long salesDocumentId,
+            @Param("search") String search,
             Pageable pageable
     );
 
