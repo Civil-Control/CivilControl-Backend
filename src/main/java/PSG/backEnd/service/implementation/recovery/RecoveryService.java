@@ -108,6 +108,30 @@ public class RecoveryService implements IRecoveryService {
         }
 
         CashBox box = config.getCashBox();
+
+        // Idempotency guard: several independent flows can end up calling this for the same
+        // document within one logical operation (e.g. the document's own create/update path
+        // plus a linked-record's recalculateAndRecover firing separately). Without this, each
+        // call would blindly insert another GENERATED event, leaving two active, un-reversed
+        // ledger rows for the same document (visible as a literal duplicate row in "Todos los
+        // movimientos", though the underlying total can still look right or wrong depending on
+        // how a caller aggregates it). If an active GENERATED event already exists: reuse it
+        // unchanged when the recomputed amount is identical (no-op call), otherwise reverse it
+        // before creating the fresh one so the ledger never carries two active rows at once.
+        Optional<RecoveryEvent> existingActive = eventRepository.findLastActiveGeneratedForDocument(document.getId());
+        if (existingActive.isPresent()) {
+            RecoveryEvent existing = existingActive.get();
+            boolean unchanged = existing.getDocumentNet().compareTo(net) == 0
+                    && existing.getDocumentIva().compareTo(iva) == 0
+                    && existing.getRecoveredAmount().compareTo(recovered) == 0
+                    && existing.getSnapshotCashBox() != null
+                    && existing.getSnapshotCashBox().getId().equals(box.getId());
+            if (unchanged) {
+                return Optional.of(existing);
+            }
+            buildReverseFromGenerated(existing, RecoveryEventType.REVERSED, null);
+        }
+
         CashBoxMovement movement = ((CashBoxService) cashBoxService).applySignedMovement(
                 box,
                 CashBoxMovementType.RECUPERO_AUTOMATICO,
