@@ -1,20 +1,17 @@
 package PSG.backEnd.repository.recovery;
 
 import PSG.backEnd.model.entity.recovery.RecoveryEvent;
-import PSG.backEnd.model.enums.recovery.RecoveryEventType;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
-public interface RecoveryEventRepository extends JpaRepository<RecoveryEvent, Long> {
+public interface RecoveryEventRepository extends JpaRepository<RecoveryEvent, Long>, JpaSpecificationExecutor<RecoveryEvent> {
 
     List<RecoveryEvent> findByTransactionalDocumentIdOrderByOccurredAtAscIdAsc(Long transactionalDocumentId);
 
@@ -31,31 +28,6 @@ public interface RecoveryEventRepository extends JpaRepository<RecoveryEvent, Lo
         GROUP BY e.transactionalDocument.id
         """)
     List<Object[]> sumRecoveredAmountGroupedByDocumentIds(@Param("documentIds") Collection<Long> documentIds);
-
-    /**
-     * Full recovery ledger for a sector, across every supplier config, with optional filters.
-     * Dated by the paired {@link PSG.backEnd.model.entity.treasury.CashBoxMovement#getMovementDate()}
-     * (the operative date: the document's date on GENERATED, today on REVERSED, the credit note's
-     * date on ADJUSTED_CREDIT_NOTE) rather than {@code occurredAt} (mere event-processing timestamp).
-     */
-    @Query("""
-        SELECT e FROM RecoveryEvent e
-        JOIN e.cashBoxMovement m
-        WHERE e.supplierConfig.projectArea.id = :projectAreaId
-          AND (:fromDate IS NULL OR m.movementDate >= :fromDate)
-          AND (:toDate IS NULL OR m.movementDate <= :toDate)
-          AND (:cashBoxId IS NULL OR e.snapshotCashBox.id = :cashBoxId)
-          AND (:supplierId IS NULL OR e.supplierConfig.supplier.id = :supplierId)
-          AND (:eventType IS NULL OR e.eventType = :eventType)
-        """)
-    Page<RecoveryEvent> findAllForSector(
-            @Param("projectAreaId") Long projectAreaId,
-            @Param("fromDate") LocalDate fromDate,
-            @Param("toDate") LocalDate toDate,
-            @Param("cashBoxId") Long cashBoxId,
-            @Param("supplierId") Long supplierId,
-            @Param("eventType") RecoveryEventType eventType,
-            Pageable pageable);
 
     /**
      * Returns the most recent {@link RecoveryEventType#GENERATED} event for a document
