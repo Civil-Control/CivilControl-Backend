@@ -136,4 +136,21 @@ public class RecoveryController {
     public List<RecoveryEventResponseDTO> listEventsForDocument(@PathVariable Long documentId) {
         return recoveryService.listEventsForDocument(documentId);
     }
+
+    // ── One-time data cleanup ────────────────────────────────────────────────
+
+    /**
+     * Reverses every duplicate active GENERATED event left over from before
+     * {@code RecoveryService.generateForDocument} became idempotent. Keeps the most recent
+     * active event per affected document, reverses the rest (cash box balance corrected too).
+     * Idempotent — safe to call more than once; a no-op once there's nothing left to fix.
+     */
+    @PostMapping("/admin/dedupe-generated-events")
+    @PreAuthorize("hasAuthority('" + AppPermissions.RECOVERY_MANAGE + "')")
+    public ResponseEntity<Map<String, Object>> dedupeGeneratedEvents() {
+        List<Long> fixedDocumentIds = recoveryService.dedupeDuplicateGeneratedEvents();
+        return ResponseEntity.ok(Map.of(
+                "fixedDocumentCount", fixedDocumentIds.size(),
+                "documentIds", fixedDocumentIds));
+    }
 }

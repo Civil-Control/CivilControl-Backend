@@ -51,6 +51,25 @@ public interface RecoveryEventRepository extends JpaRepository<RecoveryEvent, Lo
         return findActiveGeneratedForDocument(documentId).stream().findFirst();
     }
 
+    /**
+     * Ids of documents left with more than one active (un-reversed) {@code GENERATED} event —
+     * the data-integrity gap {@code RecoveryService.generateForDocument} now prevents going
+     * forward. Feeds the one-time cleanup ({@code dedupeDuplicateGeneratedEvents}).
+     */
+    @Query("""
+        SELECT e.transactionalDocument.id
+        FROM RecoveryEvent e
+        WHERE e.eventType = PSG.backEnd.model.enums.recovery.RecoveryEventType.GENERATED
+          AND NOT EXISTS (
+              SELECT 1 FROM RecoveryEvent r
+              WHERE r.reversesEvent.id = e.id
+                AND r.eventType = PSG.backEnd.model.enums.recovery.RecoveryEventType.REVERSED
+          )
+        GROUP BY e.transactionalDocument.id
+        HAVING COUNT(e) > 1
+        """)
+    List<Long> findDocumentIdsWithDuplicateActiveGeneratedEvents();
+
     @Query("""
         SELECT COALESCE(SUM(e.recoveredAmount), 0) FROM RecoveryEvent e
         WHERE e.supplierConfig.id = :configId
