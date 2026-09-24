@@ -109,4 +109,16 @@ public interface IRecoveryService {
      * {@link #listEventsForConfig(Long)}, which is scoped to a single supplier.
      */
     Page<RecoveryEventResponseDTO> listAllEvents(Long projectAreaId, RecoveryEventFilterDTO filters, Pageable pageable);
+
+    /**
+     * One-time cleanup for documents left with more than one active (un-reversed) GENERATED
+     * event — the failure mode {@link #generateForDocument} now prevents going forward, but
+     * doesn't retroactively fix. For each affected document, keeps the most recent active event
+     * and reverses every earlier duplicate through the normal REVERSED ledger flow (so the cash
+     * box balance is corrected too, not just the read model). Idempotent: safe to call more than
+     * once, a no-op once nothing is left to dedupe.
+     *
+     * @return the ids of the documents that had at least one duplicate reversed.
+     */
+    List<Long> dedupeDuplicateGeneratedEvents();
 }

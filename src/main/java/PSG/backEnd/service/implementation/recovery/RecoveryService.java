@@ -163,6 +163,23 @@ public class RecoveryService implements IRecoveryService {
 
     @Override
     @Transactional
+    public List<Long> dedupeDuplicateGeneratedEvents() {
+        List<Long> affectedDocIds = eventRepository.findDocumentIdsWithDuplicateActiveGeneratedEvents();
+        List<Long> fixed = new java.util.ArrayList<>();
+        for (Long docId : affectedDocIds) {
+            // Most-recent-first (see findActiveGeneratedForDocument's ORDER BY); keep index 0,
+            // reverse every older duplicate so exactly one active event remains per document.
+            List<RecoveryEvent> actives = eventRepository.findActiveGeneratedForDocument(docId);
+            for (int i = 1; i < actives.size(); i++) {
+                buildReverseFromGenerated(actives.get(i), RecoveryEventType.REVERSED, null);
+            }
+            fixed.add(docId);
+        }
+        return fixed;
+    }
+
+    @Override
+    @Transactional
     public Optional<RecoveryEvent> reverseForDocument(TransactionalDocument document) {
         if (document == null) return Optional.empty();
         Optional<RecoveryEvent> last = eventRepository.findLastActiveGeneratedForDocument(document.getId());
