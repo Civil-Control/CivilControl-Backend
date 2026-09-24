@@ -3,9 +3,8 @@ package PSG.backEnd.repository;
 import PSG.backEnd.model.dto.contracts.CertificationStatsProjection;
 import PSG.backEnd.model.entity.contracts.Certification;
 import PSG.backEnd.model.enums.contracts.CertificationStatus;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface CertificationRepository extends JpaRepository<Certification, Long> {
+public interface CertificationRepository extends JpaRepository<Certification, Long>, JpaSpecificationExecutor<Certification> {
 
     List<Certification> findBySalesDocumentIdAndDeletedFalse(Long salesDocumentId);
 
@@ -45,37 +44,6 @@ public interface CertificationRepository extends JpaRepository<Certification, Lo
             """)
     CertificationStatsProjection getStatsByContractId(@Param("contractId") Long contractId,
                                                       @Param("tenantId") Long tenantId);
-
-    @Query("""
-            SELECT c FROM Certification c
-            WHERE c.deleted = false
-            AND c.tenantId = :tenantId
-            AND (:workContractId IS NULL OR c.contract.id = :workContractId)
-            AND (:clientId IS NULL OR c.contract.client.id = :clientId)
-            AND (:status IS NULL OR c.status = :status)
-            AND (CAST(:dateFrom AS LocalDate) IS NULL OR c.certificationDate >= :dateFrom)
-            AND (CAST(:dateTo AS LocalDate) IS NULL OR c.certificationDate <= :dateTo)
-            AND (:hasInvoice IS NULL OR
-                (:hasInvoice = TRUE AND c.salesDocument IS NOT NULL) OR
-                (:hasInvoice = FALSE AND c.salesDocument IS NULL))
-            AND (:salesDocumentId IS NULL OR c.salesDocument.id = :salesDocumentId)
-            AND (:search IS NULL OR
-                LOWER(c.contract.contractNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR
-                LOWER(c.contract.client.businessName) LIKE LOWER(CONCAT('%', :search, '%')) OR
-                CAST(c.certificationNumber AS string) LIKE CONCAT('%', :search, '%'))
-            """)
-    Page<Certification> findAllWithFilters(
-            @Param("tenantId") Long tenantId,
-            @Param("workContractId") Long workContractId,
-            @Param("clientId") Long clientId,
-            @Param("status") CertificationStatus status,
-            @Param("dateFrom") LocalDate dateFrom,
-            @Param("dateTo") LocalDate dateTo,
-            @Param("hasInvoice") Boolean hasInvoice,
-            @Param("salesDocumentId") Long salesDocumentId,
-            @Param("search") String search,
-            Pageable pageable
-    );
 
     /**
      * Find all certifications linked to any of the given sales document ids,
