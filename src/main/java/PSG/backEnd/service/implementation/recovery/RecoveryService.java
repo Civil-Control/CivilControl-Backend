@@ -495,11 +495,11 @@ public class RecoveryService implements IRecoveryService {
         requireRecoverySector(projectAreaId);
         RecoveryEventFilterDTO f = filters != null
                 ? filters
-                : new RecoveryEventFilterDTO(null, null, null, null, null);
+                : new RecoveryEventFilterDTO(null, null, null, null);
         return eventRepository
                 .findAll(
                         RecoveryEventSpecifications.forSector(
-                                projectAreaId, f.fromDate(), f.toDate(), f.cashBoxId(), f.supplierId(), f.eventType()),
+                                projectAreaId, f.fromDate(), f.toDate(), f.cashBoxId(), f.supplierId()),
                         pageable)
                 .map(recoveryAssembler::toResponse);
     }
