@@ -21,6 +21,7 @@ import PSG.backEnd.model.enums.treasury.CashBoxMovementType;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.repository.recovery.RecoveryEventRepository;
+import PSG.backEnd.repository.recovery.RecoveryEventSpecifications;
 import PSG.backEnd.repository.recovery.RecoverySupplierConfigRepository;
 import PSG.backEnd.repository.treasury.CashBoxRepository;
 import PSG.backEnd.service.implementation.treasury.CashBoxService;
@@ -455,7 +456,10 @@ public class RecoveryService implements IRecoveryService {
                 ? filters
                 : new RecoveryEventFilterDTO(null, null, null, null, null);
         return eventRepository
-                .findAllForSector(projectAreaId, f.fromDate(), f.toDate(), f.cashBoxId(), f.supplierId(), f.eventType(), pageable)
+                .findAll(
+                        RecoveryEventSpecifications.forSector(
+                                projectAreaId, f.fromDate(), f.toDate(), f.cashBoxId(), f.supplierId(), f.eventType()),
+                        pageable)
                 .map(recoveryAssembler::toResponse);
     }
 
