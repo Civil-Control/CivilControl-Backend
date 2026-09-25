@@ -78,6 +78,17 @@ public interface SalesDocumentRepository extends JpaRepository<SalesDocument, Lo
                                                   @Param("fromDate") LocalDate fromDate,
                                                   @Param("toDate") LocalDate toDate);
 
+    @Query("SELECT COALESCE(SUM(sd.total), 0) FROM SalesDocument sd " +
+           "WHERE sd.client.id = :clientId AND sd.deleted = false " +
+           "AND sd.documentType IN (PSG.backEnd.model.enums.documents.SalesDocumentType.NOTA_CREDITO_A, " +
+           "                        PSG.backEnd.model.enums.documents.SalesDocumentType.NOTA_CREDITO_B, " +
+           "                        PSG.backEnd.model.enums.documents.SalesDocumentType.NOTA_CREDITO_C) " +
+           "AND (CAST(:fromDate AS date) IS NULL OR sd.date >= :fromDate) " +
+           "AND (CAST(:toDate AS date) IS NULL OR sd.date <= :toDate)")
+    BigDecimal sumCreditedByClientIdAndDateRange(@Param("clientId") Long clientId,
+                                                 @Param("fromDate") LocalDate fromDate,
+                                                 @Param("toDate") LocalDate toDate);
+
     /**
      * Report-oriented finder that loads all matching SalesDocuments without pagination.
      * Supports multi-area, multi-client filtering and IVA condition filter, eagerly fetching

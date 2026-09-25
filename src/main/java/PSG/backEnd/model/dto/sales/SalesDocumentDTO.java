@@ -92,5 +92,12 @@ public record SalesDocumentDTO(
     String comment,
 
     @Schema(description = "Whether this document is soft-deleted.", example = "false")
-    Boolean deleted
+    Boolean deleted,
+
+    @Schema(description = "Credit-note-to-invoice applications. Only valid for NOTA_CREDITO_* " +
+            "documents. Optional: if omitted, the credit note is recorded as an unapplied " +
+            "credit that simply reduces the client's pending balance. Each invoice must belong " +
+            "to the same client and be of type FACTURA_*/NOTA_DEBITO_*.")
+    @Valid
+    List<SalesCreditNoteApplicationInputDTO> creditApplications
 ) {}

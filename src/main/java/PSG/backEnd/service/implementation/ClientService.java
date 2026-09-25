@@ -13,6 +13,7 @@ import PSG.backEnd.model.mapper.ClientMapper;
 import PSG.backEnd.model.mapper.ContactInfoMapper;
 import PSG.backEnd.repository.ClientRepository;
 import PSG.backEnd.repository.SalesDocumentRepository;
+import PSG.backEnd.service.port.IClientLedgerService;
 import PSG.backEnd.service.port.IClientService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class ClientService implements IClientService {
     private final ClientMapper clientMapper;
     private final ContactInfoMapper contactInfoMapper;
     private final MessageSourceHelper messageSourceHelper;
+    private final IClientLedgerService clientLedgerService;
 
     @Override
     @Transactional
@@ -67,12 +69,14 @@ public class ClientService implements IClientService {
     @Override
     @Transactional(readOnly = true)
     public ClientStatsDTO getClientStats(Long id, LocalDate fromDate, LocalDate toDate) {
-        clientRepository.findByIdAndDeletedFalse(id)
+        Client client = clientRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ClientNotFoundException(id));
         BigDecimal totalInvoiced = salesDocumentRepository.sumTotalByClientIdAndDateRange(id, fromDate, toDate);
         BigDecimal totalCollected = salesDocumentRepository.sumCollectedByClientIdAndDateRange(id, fromDate, toDate);
-        BigDecimal totalPending = totalInvoiced.subtract(totalCollected);
-        return new ClientStatsDTO(totalInvoiced, totalCollected, totalPending);
+        BigDecimal totalCredited = salesDocumentRepository.sumCreditedByClientIdAndDateRange(id, fromDate, toDate);
+        BigDecimal totalPending = clientLedgerService.getClientLedgerBalance(id, client.getTenantId());
+        if (totalPending.signum() < 0) totalPending = BigDecimal.ZERO;
+        return new ClientStatsDTO(totalInvoiced, totalCollected, totalCredited, totalPending);
     }
 
     @Override
