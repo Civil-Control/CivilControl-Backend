@@ -30,5 +30,12 @@ public record SalesDocumentResponseDTO(
     List<SalesItemDetailResponseDTO> items,
     Boolean paid,
     String comment,
-    Boolean deleted
+    Boolean deleted,
+    String status,
+    BigDecimal creditApplied,
+    BigDecimal pendingAmount,
+    BigDecimal remainingBalance,
+    List<SalesCreditNoteApplicationResponseDTO> creditApplications,
+    List<SalesCreditNoteApplicationResponseDTO> appliedCredits,
+    Boolean manuallyApplied
 ) {}

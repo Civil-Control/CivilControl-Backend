@@ -19,4 +19,6 @@ public interface ISalesDocumentService {
     SalesDocumentResponseDTO markAsPaid(Long id, boolean paid);
 
     void deleteSalesDocument(Long id);
+
+    SalesDocumentResponseDTO markCreditNoteApplied(Long id, boolean applied);
 }

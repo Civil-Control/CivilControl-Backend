@@ -3,6 +3,7 @@ package PSG.backEnd.model.entity.sales;
 import PSG.backEnd.model.entity.Client;
 import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.ProjectAreaTask;
+import PSG.backEnd.model.entity.SalesCreditNoteApplication;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.enums.documents.SalesDocumentType;
 import jakarta.persistence.*;
@@ -11,7 +12,9 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * (tenant_id, branch_code, document_number, client_id) is unique among active
@@ -86,10 +89,35 @@ public class SalesDocument extends TenantEntity {
     @Builder.Default
     private Boolean paid = false;
 
+    /**
+     * Manual "applied" flag for credit notes. Mirrors TransactionalDocument.manuallyApplied.
+     * Always false for non credit-note types.
+     */
+    @Column(name = "manually_applied", nullable = false)
+    @Builder.Default
+    private Boolean manuallyApplied = false;
+
     @Column(columnDefinition = "VARCHAR(500)")
     private String comment;
 
     @Column(nullable = false)
     @Builder.Default
     private Boolean deleted = false;
+
+    /**
+     * Credit note applications where this document IS the credit note. Populated for
+     * NOTA_CREDITO_* documents; empty otherwise. Cascade ALL + orphanRemoval lets the service
+     * replace the entire set on update. Mirrors TransactionalDocument.creditNoteApplications.
+     */
+    @OneToMany(mappedBy = "creditNote", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<SalesCreditNoteApplication> creditNoteApplications = new HashSet<>();
+
+    /**
+     * Credit note applications where this document IS the invoice/debit note being credited.
+     * Read-only from this side; managed via the credit note's {@link #creditNoteApplications}.
+     */
+    @OneToMany(mappedBy = "invoice", fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<SalesCreditNoteApplication> appliedCredits = new HashSet<>();
 }

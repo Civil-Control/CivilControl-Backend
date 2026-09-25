@@ -115,4 +115,34 @@ public class SalesDocumentController {
         salesDocumentService.deleteSalesDocument(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.SALES_DOCUMENT_WRITE + "')")
+    @PostMapping("/{id}/mark-applied")
+    @Operation(summary = "Mark a credit note as manually applied",
+            description = "Flags a credit note as APPLIED without linking any invoice/debit-note. " +
+                    "The client balance is not modified (it was already adjusted at creation time): " +
+                    "only the document's status changes so it stops appearing as available credit. " +
+                    "Only valid for NOTA_CREDITO_* documents that have no invoice links.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Credit note marked as applied"),
+            @ApiResponse(responseCode = "400", description = "Document is not a credit note or already has applications"),
+            @ApiResponse(responseCode = "404", description = "Document not found")
+    })
+    public ResponseEntity<SalesDocumentResponseDTO> markCreditNoteApplied(@PathVariable Long id) {
+        return ResponseEntity.ok(salesDocumentService.markCreditNoteApplied(id, true));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.SALES_DOCUMENT_WRITE + "')")
+    @PostMapping("/{id}/mark-unapplied")
+    @Operation(summary = "Revert a credit note's manual-applied flag",
+            description = "Clears the manual-applied flag on a credit note, returning it to UNAPPLIED " +
+                    "(\"Crédito disponible\") so it can again be linked to invoices/debit-notes.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Credit note marked as unapplied"),
+            @ApiResponse(responseCode = "400", description = "Document is not a credit note"),
+            @ApiResponse(responseCode = "404", description = "Document not found")
+    })
+    public ResponseEntity<SalesDocumentResponseDTO> markCreditNoteUnapplied(@PathVariable Long id) {
+        return ResponseEntity.ok(salesDocumentService.markCreditNoteApplied(id, false));
+    }
 }
