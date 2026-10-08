@@ -60,14 +60,35 @@ public class RecoveryEvent extends TenantEntity {
     @JoinColumn(name = "supplier_config_id", nullable = false)
     private RecoverySupplierConfig supplierConfig;
 
-    @Column(name = "snapshot_percentage", nullable = false, precision = 5, scale = 2)
+    /**
+     * Legacy single-percentage snapshot, kept only for events generated before the
+     * per-component percentages model (V102). Never written for new events — use the
+     * {@code snapshot*Percentage} fields below instead.
+     */
+    @Column(name = "snapshot_percentage", precision = 5, scale = 2)
     private BigDecimal snapshotPercentage;
 
-    /** Calculation base used when this event was generated. Frozen at event creation time. */
+    /** Legacy calculation base snapshot. Same deal as {@link #snapshotPercentage} — historic only. */
     @Enumerated(EnumType.STRING)
-    @Column(name = "snapshot_base", nullable = false, length = 10)
+    @Column(name = "snapshot_base", length = 10)
+    private RecoveryBase snapshotBase;
+
+    /** Per-component percentage snapshots. Frozen at event creation time (see class javadoc). */
+    @Column(name = "snapshot_net_percentage", nullable = false, precision = 5, scale = 2)
     @Builder.Default
-    private RecoveryBase snapshotBase = RecoveryBase.NET;
+    private BigDecimal snapshotNetPercentage = BigDecimal.ZERO;
+
+    @Column(name = "snapshot_iva_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal snapshotIvaPercentage = BigDecimal.ZERO;
+
+    @Column(name = "snapshot_iibb_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal snapshotIibbPercentage = BigDecimal.ZERO;
+
+    @Column(name = "snapshot_other_taxes_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal snapshotOtherTaxesPercentage = BigDecimal.ZERO;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "snapshot_cash_box_id", nullable = false)
@@ -78,6 +99,14 @@ public class RecoveryEvent extends TenantEntity {
 
     @Column(name = "document_iva", nullable = false, precision = 19, scale = 2)
     private BigDecimal documentIva;
+
+    @Column(name = "document_iibb", nullable = false, precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal documentIibb = BigDecimal.ZERO;
+
+    @Column(name = "document_other_taxes", nullable = false, precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal documentOtherTaxes = BigDecimal.ZERO;
 
     /** Signed amount applied to the cash box. Positive on GENERATED, negative on REVERSED / ADJUSTED. */
     @Column(name = "recovered_amount", nullable = false, precision = 19, scale = 2)
