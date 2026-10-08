@@ -10,6 +10,7 @@ public interface EmployeeMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", constant = "false")
+    @Mapping(target = "active", ignore = true)
     @Mapping(target = "projectArea.id", source = "projectAreaId")
     @Mapping(target = "projectAreaTask", ignore = true)
     Employee toEntity(EmployeeDTO employeeDTO);
@@ -22,6 +23,7 @@ public interface EmployeeMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_NULL)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
+    @Mapping(target = "active", ignore = true)
     @Mapping(target = "projectArea", ignore = true)
     @Mapping(target = "projectAreaTask", ignore = true)
     void partialUpdate(EmployeeDTO updateDTO, @MappingTarget Employee employee);

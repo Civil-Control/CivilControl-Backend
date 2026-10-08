@@ -88,4 +88,9 @@ public class Employee extends TenantEntity {
 
     @Column(nullable = false)
     private Boolean deleted;
+
+    /** Operational status — false means the employee is temporarily disabled. Separate from soft-delete. */
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
 }

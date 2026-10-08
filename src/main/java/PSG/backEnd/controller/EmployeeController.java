@@ -75,6 +75,8 @@ public class EmployeeController {
             @Parameter(description = "Filter by minimum hire date") @RequestParam(required = false) LocalDate hireDateFrom,
             @Parameter(description = "Filter by maximum hire date") @RequestParam(required = false) LocalDate hireDateTo,
             @Parameter(description = "Generic search across name, lastName and DNI (partial match)") @RequestParam(required = false) String search,
+            @Parameter(description = "Include deactivated employees in results (default: false)") @RequestParam(defaultValue = "false") boolean includeInactive,
+            @Parameter(description = "Filter by active status (null=all, true=only active, false=only inactive)") @RequestParam(required = false) Boolean active,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Field to sort by. Direct fields: id, name, lastName, dni, cuil, birthDate, hireDate, endDate, " +
@@ -91,7 +93,8 @@ public class EmployeeController {
         EmployeeFilterDTO filterDTO = new EmployeeFilterDTO(
                 name, lastName, dni, cuil, projectAreaId, city,
                 employmentType, employeeStatus, employeeRole,
-                hireDateFrom, hireDateTo, search
+                hireDateFrom, hireDateTo, search,
+                includeInactive, active
         );
 
         return ResponseEntity.ok(iEmployeeService.getAllEmployees(filterDTO, pageable));
@@ -142,6 +145,32 @@ public class EmployeeController {
             @Parameter(description = "Employee unique identifier", required = true) @PathVariable Long id) {
         iEmployeeService.deleteEmployee(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_WRITE + "')")
+    @PatchMapping("/{id}/activate")
+    @Operation(summary = "Set employee as active",
+            description = "Marks an inactive employee as active. This is an operational status change, not a soft-delete restore.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee successfully activated"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
+    public ResponseEntity<EmployeeResponseDTO> activateEmployee(
+            @Parameter(description = "Employee unique identifier", required = true) @PathVariable Long id) {
+        return ResponseEntity.ok(iEmployeeService.activateEmployee(id));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.EMPLOYEE_WRITE + "')")
+    @PatchMapping("/{id}/deactivate")
+    @Operation(summary = "Set employee as inactive",
+            description = "Marks an employee as inactive. The record is preserved and can be reactivated. This is NOT a soft-delete.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Employee successfully deactivated"),
+            @ApiResponse(responseCode = "404", description = "Employee not found")
+    })
+    public ResponseEntity<EmployeeResponseDTO> deactivateEmployee(
+            @Parameter(description = "Employee unique identifier", required = true) @PathVariable Long id) {
+        return ResponseEntity.ok(iEmployeeService.deactivateEmployee(id));
     }
 }
 

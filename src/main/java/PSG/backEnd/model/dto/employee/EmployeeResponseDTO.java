@@ -79,6 +79,10 @@ public record EmployeeResponseDTO(
     @Schema(description = "Date when the employee's employment ended. Null for currently employed personnel.",
             example = "2025-12-31",
             nullable = true)
-    LocalDate endDate
+    LocalDate endDate,
+
+    @Schema(description = "Operational status: false means the employee is temporarily disabled.",
+            example = "true")
+    boolean active
 ) {}
 
