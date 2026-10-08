@@ -4,7 +4,6 @@ import PSG.backEnd.model.entity.ProjectArea;
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.treasury.CashBox;
-import PSG.backEnd.model.enums.recovery.RecoveryBase;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,9 +13,11 @@ import java.time.LocalDateTime;
 /**
  * Per-supplier configuration for the hidden Feature 18 (Value Recovery).
  * <p>Belongs to a {@link ProjectArea} flagged as the tenant's recovery sector
- * ({@code isRecoverySector = true}). Defines the percentage of the invoice's net to
- * recover and the destination {@link CashBox} where the automatic movement will be
- * registered. The IVA portion is always recovered at 100 %.
+ * ({@code isRecoverySector = true}). Defines an independent recovery percentage for each
+ * recoverable component of the invoice (net, IVA, IIBB, other taxes) and the destination
+ * {@link CashBox} where the automatic movement will be registered. The recovered amount is
+ * {@code net*netPercentage% + iva*ivaPercentage% + iibb*iibbPercentage% + otherTaxes*otherTaxesPercentage%}
+ * — each percentage is independent, so e.g. "IVA only" is simply netPercentage=0, ivaPercentage=X.
  *
  * <p>Configurations are soft-deleted via the {@code deleted} flag and can be temporarily
  * disabled by flipping {@code active} to {@code false} without losing historic events.
@@ -52,21 +53,25 @@ public class RecoverySupplierConfig extends TenantEntity {
     @JoinColumn(name = "cash_box_id", nullable = false)
     private CashBox cashBox;
 
-    /** Percentage to recover, applied over {@link #recoveryBase}. Range [0.00, 100.00]. */
-    @Column(name = "recovery_percentage", nullable = false, precision = 5, scale = 2)
-    private BigDecimal recoveryPercentage;
-
-    /**
-     * Calculation base the {@link #recoveryPercentage} applies to. Defaults to
-     * {@link RecoveryBase#NET} (legacy formula: {@code (net * %) + iva}). Switching to
-     * {@link RecoveryBase#TOTAL} produces a flat {@code (net + iva) * %} computation.
-     * The chosen base is snapshotted on each generated event so historic recoveries are
-     * never affected by later edits to this config.
-     */
-    @Enumerated(EnumType.STRING)
-    @Column(name = "recovery_base", nullable = false, length = 10)
+    /** Percentage of the invoice's net to recover. Range [0.00, 100.00]. */
+    @Column(name = "net_percentage", nullable = false, precision = 5, scale = 2)
     @Builder.Default
-    private RecoveryBase recoveryBase = RecoveryBase.NET;
+    private BigDecimal netPercentage = BigDecimal.ZERO;
+
+    /** Percentage of the invoice's IVA to recover. Range [0.00, 100.00]. */
+    @Column(name = "iva_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal ivaPercentage = BigDecimal.ZERO;
+
+    /** Percentage of the invoice's IIBB perception ({@code TransactionalDocument.iibbPerception}) to recover. */
+    @Column(name = "iibb_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal iibbPercentage = BigDecimal.ZERO;
+
+    /** Percentage of the invoice's other taxes ({@code TransactionalDocument.otherTaxes}) to recover. */
+    @Column(name = "other_taxes_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal otherTaxesPercentage = BigDecimal.ZERO;
 
     @Column(nullable = false)
     @Builder.Default

@@ -15,7 +15,6 @@ import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.model.entity.treasury.CashBox;
 import PSG.backEnd.model.entity.treasury.CashBoxMovement;
 import PSG.backEnd.model.enums.documents.DocumentType;
-import PSG.backEnd.model.enums.recovery.RecoveryBase;
 import PSG.backEnd.model.enums.recovery.RecoveryEventType;
 import PSG.backEnd.model.enums.treasury.CashBoxMovementType;
 import PSG.backEnd.repository.ProjectAreaRepository;
@@ -99,8 +98,9 @@ public class RecoveryService implements IRecoveryService {
 
         BigDecimal net = nullToZero(document.getNetTotal());
         BigDecimal iva = nullToZero(document.getIvaTotal());
-        RecoveryBase base = config.getRecoveryBase() != null ? config.getRecoveryBase() : RecoveryBase.NET;
-        BigDecimal recovered = computeRecoveredAmount(net, iva, config.getRecoveryPercentage(), base);
+        BigDecimal iibb = nullToZero(document.getIibbPerception());
+        BigDecimal otherTaxes = nullToZero(document.getOtherTaxes());
+        BigDecimal recovered = computeRecoveredAmount(net, iva, iibb, otherTaxes, config);
 
         if (recovered.signum() == 0) {
             // Edge case: zero-value invoice. Skip movement to avoid noise.
@@ -123,6 +123,8 @@ public class RecoveryService implements IRecoveryService {
             RecoveryEvent existing = existingActive.get();
             boolean unchanged = existing.getDocumentNet().compareTo(net) == 0
                     && existing.getDocumentIva().compareTo(iva) == 0
+                    && existing.getDocumentIibb().compareTo(iibb) == 0
+                    && existing.getDocumentOtherTaxes().compareTo(otherTaxes) == 0
                     && existing.getRecoveredAmount().compareTo(recovered) == 0
                     && existing.getSnapshotCashBox() != null
                     && existing.getSnapshotCashBox().getId().equals(box.getId());
@@ -148,11 +150,15 @@ public class RecoveryService implements IRecoveryService {
                 .creditNoteDocument(null)
                 .reversesEvent(null)
                 .supplierConfig(config)
-                .snapshotPercentage(config.getRecoveryPercentage())
-                .snapshotBase(base)
+                .snapshotNetPercentage(config.getNetPercentage())
+                .snapshotIvaPercentage(config.getIvaPercentage())
+                .snapshotIibbPercentage(config.getIibbPercentage())
+                .snapshotOtherTaxesPercentage(config.getOtherTaxesPercentage())
                 .snapshotCashBox(box)
                 .documentNet(net)
                 .documentIva(iva)
+                .documentIibb(iibb)
+                .documentOtherTaxes(otherTaxes)
                 .recoveredAmount(recovered)
                 .cashBoxMovement(movement)
                 .occurredAt(LocalDateTime.now())
@@ -218,6 +224,8 @@ public class RecoveryService implements IRecoveryService {
 
         BigDecimal cnNet = nullToZero(creditNote.getNetTotal());
         BigDecimal cnIva = nullToZero(creditNote.getIvaTotal());
+        BigDecimal cnIibb = nullToZero(creditNote.getIibbPerception());
+        BigDecimal cnOtherTaxes = nullToZero(creditNote.getOtherTaxes());
 
         for (CreditNoteApplication app : creditNote.getCreditNoteApplications()) {
             TransactionalDocument invoice = app.getInvoice();
@@ -226,15 +234,20 @@ public class RecoveryService implements IRecoveryService {
             if (originalOpt.isEmpty()) continue;
             RecoveryEvent original = originalOpt.get();
 
-            // Distribute the credit note's net + iva proportionally to this application's amount.
+            // Distribute the credit note's net/iva/iibb/other-taxes proportionally to this
+            // application's amount.
             BigDecimal fraction = nullToZero(app.getAmountApplied())
                     .divide(cnTotal, 10, RoundingMode.HALF_UP);
             BigDecimal portionNet = cnNet.multiply(fraction);
             BigDecimal portionIva = cnIva.multiply(fraction);
-            // Use the snapshot base of the original event so the adjustment mirrors how the
-            // recovery was originally computed — even if the config base has changed since.
+            BigDecimal portionIibb = cnIibb.multiply(fraction);
+            BigDecimal portionOtherTaxes = cnOtherTaxes.multiply(fraction);
+            // Use the snapshot percentages of the original event so the adjustment mirrors how
+            // the recovery was originally computed — even if the config has changed since.
             BigDecimal adjustment = computeRecoveredAmount(
-                    portionNet, portionIva, original.getSnapshotPercentage(), original.getSnapshotBase())
+                    portionNet, portionIva, portionIibb, portionOtherTaxes,
+                    original.getSnapshotNetPercentage(), original.getSnapshotIvaPercentage(),
+                    original.getSnapshotIibbPercentage(), original.getSnapshotOtherTaxesPercentage())
                     .negate();
             if (adjustment.signum() == 0) continue;
 
@@ -254,11 +267,15 @@ public class RecoveryService implements IRecoveryService {
                     .creditNoteDocument(creditNote)
                     .reversesEvent(original)
                     .supplierConfig(original.getSupplierConfig())
-                    .snapshotPercentage(original.getSnapshotPercentage())
-                    .snapshotBase(original.getSnapshotBase())
+                    .snapshotNetPercentage(original.getSnapshotNetPercentage())
+                    .snapshotIvaPercentage(original.getSnapshotIvaPercentage())
+                    .snapshotIibbPercentage(original.getSnapshotIibbPercentage())
+                    .snapshotOtherTaxesPercentage(original.getSnapshotOtherTaxesPercentage())
                     .snapshotCashBox(original.getSnapshotCashBox())
                     .documentNet(portionNet.setScale(2, RoundingMode.HALF_UP))
                     .documentIva(portionIva.setScale(2, RoundingMode.HALF_UP))
+                    .documentIibb(portionIibb.setScale(2, RoundingMode.HALF_UP))
+                    .documentOtherTaxes(portionOtherTaxes.setScale(2, RoundingMode.HALF_UP))
                     .recoveredAmount(adjustment)
                     .cashBoxMovement(movement)
                     .occurredAt(LocalDateTime.now())
@@ -290,11 +307,15 @@ public class RecoveryService implements IRecoveryService {
                 .creditNoteDocument(creditNoteContext)
                 .reversesEvent(original)
                 .supplierConfig(original.getSupplierConfig())
-                .snapshotPercentage(original.getSnapshotPercentage())
-                .snapshotBase(original.getSnapshotBase())
+                .snapshotNetPercentage(original.getSnapshotNetPercentage())
+                .snapshotIvaPercentage(original.getSnapshotIvaPercentage())
+                .snapshotIibbPercentage(original.getSnapshotIibbPercentage())
+                .snapshotOtherTaxesPercentage(original.getSnapshotOtherTaxesPercentage())
                 .snapshotCashBox(original.getSnapshotCashBox())
                 .documentNet(original.getDocumentNet())
                 .documentIva(original.getDocumentIva())
+                .documentIibb(original.getDocumentIibb())
+                .documentOtherTaxes(original.getDocumentOtherTaxes())
                 .recoveredAmount(reverseAmount)
                 .cashBoxMovement(movement)
                 .occurredAt(LocalDateTime.now())
@@ -316,25 +337,34 @@ public class RecoveryService implements IRecoveryService {
     }
 
     /**
-     * Recovery formula:
-     * <ul>
-     *   <li>{@link RecoveryBase#NET} — {@code (net * percentage / 100) + iva}.
-     *       Applies the percentage to the net only and recovers the IVA at 100 %.</li>
-     *   <li>{@link RecoveryBase#TOTAL} — {@code (net + iva) * percentage / 100}.
-     *       Flat percentage of the full invoice total.</li>
-     * </ul>
+     * Recovery formula: each component (net, IVA, IIBB, other taxes) is recovered
+     * independently at its own configured percentage, then summed.
+     * {@code net*netPct% + iva*ivaPct% + iibb*iibbPct% + otherTaxes*otherTaxesPct%}.
      * Result is rounded HALF_UP to 2 decimals to match cash-box scale.
      */
     private static BigDecimal computeRecoveredAmount(BigDecimal net, BigDecimal iva,
-                                                     BigDecimal percentage, RecoveryBase base) {
+                                                      BigDecimal iibb, BigDecimal otherTaxes,
+                                                      RecoverySupplierConfig config) {
+        return computeRecoveredAmount(net, iva, iibb, otherTaxes,
+                config.getNetPercentage(), config.getIvaPercentage(),
+                config.getIibbPercentage(), config.getOtherTaxesPercentage());
+    }
+
+    private static BigDecimal computeRecoveredAmount(BigDecimal net, BigDecimal iva,
+                                                      BigDecimal iibb, BigDecimal otherTaxes,
+                                                      BigDecimal netPct, BigDecimal ivaPct,
+                                                      BigDecimal iibbPct, BigDecimal otherTaxesPct) {
+        BigDecimal raw = applyPct(net, netPct)
+                .add(applyPct(iva, ivaPct))
+                .add(applyPct(iibb, iibbPct))
+                .add(applyPct(otherTaxes, otherTaxesPct));
+        return raw.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal applyPct(BigDecimal amount, BigDecimal percentage) {
         BigDecimal pct = nullToZero(percentage)
                 .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP);
-        BigDecimal n = nullToZero(net);
-        BigDecimal i = nullToZero(iva);
-        BigDecimal raw = (base == RecoveryBase.TOTAL)
-                ? n.add(i).multiply(pct)
-                : n.multiply(pct).add(i);
-        return raw.setScale(2, RoundingMode.HALF_UP);
+        return nullToZero(amount).multiply(pct);
     }
 
     private static BigDecimal nullToZero(BigDecimal v) {
@@ -400,15 +430,21 @@ public class RecoveryService implements IRecoveryService {
             throw new IllegalArgumentException(messages.getMessage(
                     "recovery.supplier.alreadyConfigured", supplier.getLegalName()));
         }
-        validatePercentage(dto.recoveryPercentage());
+        validatePercentage(dto.netPercentage());
+        validatePercentage(dto.ivaPercentage());
+        validatePercentage(dto.iibbPercentage());
+        validatePercentage(dto.otherTaxesPercentage());
+        validateNotAllZero(dto.netPercentage(), dto.ivaPercentage(), dto.iibbPercentage(), dto.otherTaxesPercentage());
         CashBox cashBox = requireActiveCashBox(dto.cashBoxId());
 
         RecoverySupplierConfig config = RecoverySupplierConfig.builder()
                 .projectArea(sector)
                 .supplier(supplier)
                 .cashBox(cashBox)
-                .recoveryPercentage(dto.recoveryPercentage())
-                .recoveryBase(dto.recoveryBase() == null ? RecoveryBase.NET : dto.recoveryBase())
+                .netPercentage(dto.netPercentage())
+                .ivaPercentage(dto.ivaPercentage())
+                .iibbPercentage(dto.iibbPercentage())
+                .otherTaxesPercentage(dto.otherTaxesPercentage())
                 .active(dto.active() == null ? Boolean.TRUE : dto.active())
                 .deleted(false)
                 .createdAt(LocalDateTime.now())
@@ -424,13 +460,26 @@ public class RecoveryService implements IRecoveryService {
                 .orElseThrow(() -> new NotFoundException(messages.getMessage(
                         "recovery.config.notFound", String.valueOf(configId))));
 
-        if (dto.recoveryPercentage() != null) {
-            validatePercentage(dto.recoveryPercentage());
-            config.setRecoveryPercentage(dto.recoveryPercentage());
+        if (dto.netPercentage() != null) {
+            validatePercentage(dto.netPercentage());
+            config.setNetPercentage(dto.netPercentage());
         }
-        if (dto.recoveryBase() != null) {
-            config.setRecoveryBase(dto.recoveryBase());
+        if (dto.ivaPercentage() != null) {
+            validatePercentage(dto.ivaPercentage());
+            config.setIvaPercentage(dto.ivaPercentage());
         }
+        if (dto.iibbPercentage() != null) {
+            validatePercentage(dto.iibbPercentage());
+            config.setIibbPercentage(dto.iibbPercentage());
+        }
+        if (dto.otherTaxesPercentage() != null) {
+            validatePercentage(dto.otherTaxesPercentage());
+            config.setOtherTaxesPercentage(dto.otherTaxesPercentage());
+        }
+        // Validate against the EFFECTIVE state (already-applied overrides merged onto the
+        // existing config), not just whatever happened to be present in this partial request.
+        validateNotAllZero(config.getNetPercentage(), config.getIvaPercentage(),
+                config.getIibbPercentage(), config.getOtherTaxesPercentage());
         if (dto.cashBoxId() != null) {
             config.setCashBox(requireActiveCashBox(dto.cashBoxId()));
         }
@@ -535,6 +584,16 @@ public class RecoveryService implements IRecoveryService {
                 || pct.compareTo(BigDecimal.ZERO) < 0
                 || pct.compareTo(BigDecimal.valueOf(100)) > 0) {
             throw new IllegalArgumentException(messages.getMessage("recovery.percentage.range"));
+        }
+    }
+
+    private void validateNotAllZero(BigDecimal net, BigDecimal iva, BigDecimal iibb, BigDecimal otherTaxes) {
+        boolean allZero = nullToZero(net).signum() == 0
+                && nullToZero(iva).signum() == 0
+                && nullToZero(iibb).signum() == 0
+                && nullToZero(otherTaxes).signum() == 0;
+        if (allZero) {
+            throw new IllegalArgumentException(messages.getMessage("recovery.percentage.allZero"));
         }
     }
 }

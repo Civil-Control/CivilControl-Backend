@@ -1,7 +1,5 @@
 package PSG.backEnd.model.dto.recovery;
 
-import PSG.backEnd.model.enums.recovery.RecoveryBase;
-
 import java.math.BigDecimal;
 
 /**
@@ -16,8 +14,10 @@ public record RecoverySupplierConfigResponseDTO(
     Long supplierId,
     String supplierName,
     String supplierCuit,
-    BigDecimal recoveryPercentage,
-    RecoveryBase recoveryBase,
+    BigDecimal netPercentage,
+    BigDecimal ivaPercentage,
+    BigDecimal iibbPercentage,
+    BigDecimal otherTaxesPercentage,
     Long cashBoxId,
     String cashBoxName,
     BigDecimal cashBoxCurrentBalance,

@@ -23,12 +23,20 @@ public record RecoveryEventResponseDTO(
     Long reversesEventId,
     Long supplierId,
     String supplierName,
+    /** Legacy single-percentage snapshot. Only populated on events generated before V102; null on newer ones. */
     BigDecimal snapshotPercentage,
+    /** Legacy calculation-base snapshot. Only populated on events generated before V102; null on newer ones. */
     RecoveryBase snapshotBase,
+    BigDecimal snapshotNetPercentage,
+    BigDecimal snapshotIvaPercentage,
+    BigDecimal snapshotIibbPercentage,
+    BigDecimal snapshotOtherTaxesPercentage,
     Long snapshotCashBoxId,
     String snapshotCashBoxName,
     BigDecimal documentNet,
     BigDecimal documentIva,
+    BigDecimal documentIibb,
+    BigDecimal documentOtherTaxes,
     BigDecimal recoveredAmount,
     Long cashBoxMovementId,
     /**
