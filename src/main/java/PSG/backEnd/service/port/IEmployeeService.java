@@ -12,6 +12,8 @@ public interface IEmployeeService {
     EmployeeResponseDTO getEmployeeById(Long id);
     EmployeeResponseDTO updateEmployee(Long id, EmployeeDTO employeeDTO);
     void deleteEmployee(Long id);
+    EmployeeResponseDTO activateEmployee(Long id);
+    EmployeeResponseDTO deactivateEmployee(Long id);
     Page<EmployeeResponseDTO> getAllEmployees(EmployeeFilterDTO filterDTO, Pageable pageable);
     Employee getEntityById(Long id);
     boolean existsById(Long id);

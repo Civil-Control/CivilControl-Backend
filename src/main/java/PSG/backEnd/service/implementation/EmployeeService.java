@@ -71,6 +71,8 @@ public class EmployeeService implements IEmployeeService {
                 filterDTO.hireDateFrom(),
                 filterDTO.hireDateTo(),
                 filterDTO.search(),
+                filterDTO.includeInactive() != null ? filterDTO.includeInactive() : false,
+                filterDTO.active(),
                 pageable
         ).map(employeeMapper::toResponseDto);
     }
@@ -121,6 +123,24 @@ public class EmployeeService implements IEmployeeService {
             handleDataIntegrityViolation(e, employeeDTO);
             throw e; // This line won't be reached but is needed for compilation
         }
+    }
+
+    @Override
+    @Transactional
+    public EmployeeResponseDTO activateEmployee(Long id) {
+        Employee employee = employeeRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new EmployeeNotFoundException(id));
+        employee.setActive(true);
+        return employeeMapper.toResponseDto(employeeRepository.save(employee));
+    }
+
+    @Override
+    @Transactional
+    public EmployeeResponseDTO deactivateEmployee(Long id) {
+        Employee employee = employeeRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new EmployeeNotFoundException(id));
+        employee.setActive(false);
+        return employeeMapper.toResponseDto(employeeRepository.save(employee));
     }
 
     @Override
@@ -249,6 +269,7 @@ public class EmployeeService implements IEmployeeService {
         clearSoftDeletedConflicts(employeeDTO, employee.getId());
         employeeMapper.partialUpdate(employeeDTO, employee);
         employee.setDeleted(false);
+        employee.setActive(true);
         employee.setEndDate(null);
         return employeeMapper.toResponseDto(employeeRepository.save(employee));
     }
@@ -270,6 +291,7 @@ public class EmployeeService implements IEmployeeService {
 
         clearSoftDeletedConflicts(employeeDTO, null);
         employee.setDeleted(false);
+        employee.setActive(true);
         return employeeMapper.toResponseDto(employeeRepository.save(employee));
     }
 

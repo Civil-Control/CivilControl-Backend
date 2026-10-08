@@ -70,6 +70,7 @@ public class ReferenceDataService implements IReferenceDataService {
     @Override
     public List<EmployeeReferenceItem> getEmployeeReferences() {
         return employeeRepository.findByDeletedFalse().stream()
+                .filter(Employee::isActive)
                 .map(e -> new EmployeeReferenceItem(
                         e.getId(),
                         nullSafe(e.getLastName()) + ", " + nullSafe(e.getName()),

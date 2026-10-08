@@ -67,6 +67,14 @@ public record EmployeeFilterDTO(
 
     @Schema(description = "Generic search across name, last name and DNI (case-insensitive partial match).",
             nullable = true)
-    String search
+    String search,
+
+    @Schema(description = "Include deactivated employees in results (default: false).",
+            nullable = true)
+    Boolean includeInactive,
+
+    @Schema(description = "Filter by active status (null=all, true=only active, false=only inactive).",
+            nullable = true)
+    Boolean active
 ) {}
 
