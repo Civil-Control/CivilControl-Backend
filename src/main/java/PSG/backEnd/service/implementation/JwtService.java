@@ -1,5 +1,6 @@
 package PSG.backEnd.service.implementation;
 
+import PSG.backEnd.model.entity.TenantEntity;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -28,6 +29,8 @@ import java.util.stream.Collectors;
 @Getter
 public class JwtService {
 
+    private static final String TENANT_CLAIM = "tenantId";
+
     @Value("${jwt.secret}")
     private String secretKey;
 
@@ -48,8 +51,7 @@ public class JwtService {
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
 
-        // Add tenant ID to token (default to 1L if not present)
-        extraClaims.put("tenantId", 1L);
+        extraClaims.put(TENANT_CLAIM, requireTenantId(userDetails));
 
         return generateToken(extraClaims, userDetails, accessTokenExpiration);
     }
@@ -58,7 +60,16 @@ public class JwtService {
      * Generates a refresh token for the user.
      */
     public String generateRefreshToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails, refreshTokenExpiration);
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put(TENANT_CLAIM, requireTenantId(userDetails));
+        return generateToken(extraClaims, userDetails, refreshTokenExpiration);
+    }
+
+    private Long requireTenantId(UserDetails userDetails) {
+        if (userDetails instanceof TenantEntity tenantEntity && tenantEntity.getTenantId() != null) {
+            return tenantEntity.getTenantId();
+        }
+        throw new IllegalStateException("Cannot issue a token for a user without tenant");
     }
 
     /**
@@ -91,22 +102,19 @@ public class JwtService {
 
     /**
      * Extracts tenant ID from token.
-     * Returns 1L as default if tenantId claim is not present.
+     * Returns null if the tenantId claim is not present or invalid.
      */
     public Long extractTenantId(String token) {
         try {
             Claims claims = extractAllClaims(token);
-            Object tenantId = claims.get("tenantId");
-            if (tenantId != null) {
-                if (tenantId instanceof Number) {
-                    return ((Number) tenantId).longValue();
-                }
-                return Long.parseLong(tenantId.toString());
+            Object tenantId = claims.get(TENANT_CLAIM);
+            if (tenantId instanceof Number number) {
+                return number.longValue();
             }
-            return 1L;
+            return tenantId != null ? Long.parseLong(tenantId.toString()) : null;
         } catch (Exception e) {
-            log.warn("Could not extract tenantId from token, using default: 1L");
-            return 1L;
+            log.warn("Could not extract tenantId from token");
+            return null;
         }
     }
 
@@ -141,7 +149,12 @@ public class JwtService {
      */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        final Long tenantId = extractTenantId(token);
+        return username.equals(userDetails.getUsername())
+                && userDetails instanceof TenantEntity tenantEntity
+                && tenantId != null
+                && tenantId.equals(tenantEntity.getTenantId())
+                && !isTokenExpired(token);
     }
 
     /**

@@ -44,6 +44,11 @@ import PSG.backEnd.exception.supplier.SupplierNotFoundException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentAlreadyActiveException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotDeletedException;
 import PSG.backEnd.exception.transactionalDocument.TransactionalDocumentNotFoundException;
+import PSG.backEnd.exception.tenant.TenantAccessViolationException;
+import PSG.backEnd.exception.tenant.TenantAlreadyExistsException;
+import PSG.backEnd.exception.tenant.TenantDataConflictException;
+import PSG.backEnd.exception.tenant.TenantNotFoundException;
+import PSG.backEnd.exception.tenant.TenantNotValidException;
 import PSG.backEnd.exception.user.UserAlreadyExistsException;
 import PSG.backEnd.exception.user.UserDataConflictException;
 import PSG.backEnd.exception.user.UserNotFoundException;
@@ -219,6 +224,23 @@ public class GlobalHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RoleDataConflictException.class)
     public ResponseEntity<ResponseMessage> handleRoleDataConflictException(RoleDataConflictException ex) {
         return buildResponse(ex, HttpStatus.CONFLICT);
+    }
+
+    // ==================== Tenant Exceptions ====================
+
+    @ExceptionHandler({TenantNotFoundException.class, TenantAccessViolationException.class})
+    public ResponseEntity<ResponseMessage> handleTenantNotFoundException(RuntimeException ex) {
+        return buildResponse(ex, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler({TenantAlreadyExistsException.class, TenantDataConflictException.class})
+    public ResponseEntity<ResponseMessage> handleTenantConflictException(RuntimeException ex) {
+        return buildResponse(ex, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(TenantNotValidException.class)
+    public ResponseEntity<ResponseMessage> handleTenantNotValidException(TenantNotValidException ex) {
+        return buildResponse(ex, HttpStatus.FORBIDDEN);
     }
 
     // ==================== Permission Exceptions ====================

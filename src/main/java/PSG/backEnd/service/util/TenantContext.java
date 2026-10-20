@@ -14,7 +14,7 @@ public class TenantContext {
 
     private static final ThreadLocal<Long> CURRENT_TENANT = new ThreadLocal<>();
 
-    private static final Long DEFAULT_TENANT = 1L;
+    public static final Long PLATFORM_TENANT_ID = 1L;
 
     /**
      * Sets the current tenant ID for the current thread.
@@ -23,22 +23,24 @@ public class TenantContext {
      */
     public static void setCurrentTenant(Long tenantId) {
         log.debug("Setting tenant context to: {}", tenantId);
+        if (tenantId == null) {
+            CURRENT_TENANT.remove();
+            return;
+        }
         CURRENT_TENANT.set(tenantId);
     }
 
     /**
      * Gets the current tenant ID from the thread context.
-     * Returns the default tenant if none is set.
      *
-     * @return the current tenant ID or default tenant
+     * @return the current tenant ID or {@code null} if none is bound
      */
     public static Long getCurrentTenant() {
-        Long tenant = CURRENT_TENANT.get();
-        if (tenant == null) {
-            log.debug("No tenant in context, using default: {}", DEFAULT_TENANT);
-            return DEFAULT_TENANT;
-        }
-        return tenant;
+        return CURRENT_TENANT.get();
+    }
+
+    public static boolean isPlatformTenant() {
+        return PLATFORM_TENANT_ID.equals(CURRENT_TENANT.get());
     }
 
     /**
@@ -49,15 +51,4 @@ public class TenantContext {
         log.debug("Clearing tenant context");
         CURRENT_TENANT.remove();
     }
-
-    /**
-     * Gets the default tenant ID.
-     *
-     * @return the default tenant identifier
-     */
-    public static Long getDefaultTenant() {
-        return DEFAULT_TENANT;
-    }
 }
-
-

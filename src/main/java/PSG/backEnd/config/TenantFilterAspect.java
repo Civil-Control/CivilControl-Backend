@@ -25,6 +25,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class TenantFilterAspect {
 
+    private static final Long NO_TENANT = -1L;
+
     private final EntityManager entityManager;
 
     /**
@@ -38,11 +40,11 @@ public class TenantFilterAspect {
             "&& !execution(* PSG.backEnd.repository.OrphanBiometricLogRepository.*(..)) " +
             "&& !execution(* PSG.backEnd.repository.NotificationAlertRepository.*(..))")
     public void enableTenantFilter() {
-        Long tenantId = TenantContext.getCurrentTenant();
+        Long currentTenant = TenantContext.getCurrentTenant();
+        Long tenantId = currentTenant != null ? currentTenant : NO_TENANT;
 
         Session session = entityManager.unwrap(Session.class);
 
-        // Enable the filter and set the parameter
         session.enableFilter("tenantFilter")
                .setParameter("tenantId", tenantId);
 

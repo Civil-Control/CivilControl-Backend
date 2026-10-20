@@ -58,6 +58,14 @@ public class UserService implements IUserService {
     private final JwtService jwtService;
     private final ApplicationEventPublisher eventPublisher;
 
+    private static final Long NO_USER_ID = -1L;
+
+    private void assertUsernameAvailableGlobally(String username, Long excludedUserId) {
+        if (credentialsRepository.existsActiveUsernameInAnyTenant(username, excludedUserId)) {
+            throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.username.exists", username));
+        }
+    }
+
     @Override
     @Transactional
     public UserResponseDTO createUser(UserRequestDTO requestDTO) {
@@ -295,6 +303,7 @@ public class UserService implements IUserService {
         if (credentialsRepository.existsByUsernameAndDeletedFalse(requestDTO.credentials().username())) {
             throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.username.exists"));
         }
+        assertUsernameAvailableGlobally(requestDTO.credentials().username(), NO_USER_ID);
 
         // Validate email
         if (requestDTO.email() == null || requestDTO.email().trim().isEmpty()) {
@@ -371,6 +380,7 @@ public class UserService implements IUserService {
                             throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.username.exists"));
                         }
                     });
+            assertUsernameAvailableGlobally(requestDTO.credentials().username().trim(), id);
         }
 
         // Validate email if provided
@@ -486,6 +496,7 @@ public class UserService implements IUserService {
                 throw new UserAlreadyExistsException(messageSourceHelper.getMessage("user.username.exists"));
             }
         });
+        assertUsernameAvailableGlobally(requestDTO.credentials().username(), deletedUser.getId());
 
         // Check email uniqueness (excluding this user and deleted users)
         userRepository.findByEmail(requestDTO.email()).ifPresent(existing -> {
@@ -710,6 +721,7 @@ public class UserService implements IUserService {
                     throw new UserAlreadyExistsException(
                         messageSourceHelper.getMessage("user.username.exists", requestDTO.credentials().username()));
                 }
+                assertUsernameAvailableGlobally(requestDTO.credentials().username(), existingUser.getId());
                 credentials.setUsername(requestDTO.credentials().username());
             }
 

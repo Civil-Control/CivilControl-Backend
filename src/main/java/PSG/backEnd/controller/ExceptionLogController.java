@@ -37,7 +37,7 @@ public class ExceptionLogController {
      * GET /api/exception-logs?page=0&size=20&sort=timestamp,desc
      */
     @GetMapping
-    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "') and T(PSG.backEnd.service.util.TenantContext).isPlatformTenant()")
     public ResponseEntity<Page<ExceptionLog>> getAllExceptions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -58,7 +58,7 @@ public class ExceptionLogController {
      * GET /api/exception-logs/1
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "') and T(PSG.backEnd.service.util.TenantContext).isPlatformTenant()")
     public ResponseEntity<ExceptionLog> getExceptionById(@PathVariable Long id) {
         return exceptionLogRepository.findById(id)
                 .map(ResponseEntity::ok)
@@ -70,7 +70,7 @@ public class ExceptionLogController {
      * GET /api/exception-logs/by-type/NotFoundException?page=0&size=10
      */
     @GetMapping("/by-type/{exceptionName}")
-    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "') and T(PSG.backEnd.service.util.TenantContext).isPlatformTenant()")
     public ResponseEntity<List<ExceptionLog>> getExceptionsByType(
             @PathVariable String exceptionName) {
 
@@ -83,7 +83,7 @@ public class ExceptionLogController {
      * GET /api/exception-logs/by-date-range?start=2026-02-01T00:00:00&end=2026-02-17T23:59:59
      */
     @GetMapping("/by-date-range")
-    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "') and T(PSG.backEnd.service.util.TenantContext).isPlatformTenant()")
     public ResponseEntity<List<ExceptionLog>> getExceptionsByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
@@ -97,7 +97,7 @@ public class ExceptionLogController {
      * GET /api/exception-logs/by-path?path=/api/vehicles
      */
     @GetMapping("/by-path")
-    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "') and T(PSG.backEnd.service.util.TenantContext).isPlatformTenant()")
     public ResponseEntity<List<ExceptionLog>> getExceptionsByPath(
             @RequestParam String path) {
 
@@ -110,7 +110,7 @@ public class ExceptionLogController {
      * GET /api/exception-logs/stats
      */
     @GetMapping("/stats")
-    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "') and T(PSG.backEnd.service.util.TenantContext).isPlatformTenant()")
     public ResponseEntity<Map<String, Object>> getExceptionStats() {
         Map<String, Object> stats = new HashMap<>();
 
@@ -142,7 +142,7 @@ public class ExceptionLogController {
      * GET /api/exception-logs/types-summary
      */
     @GetMapping("/types-summary")
-    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_READ + "') and T(PSG.backEnd.service.util.TenantContext).isPlatformTenant()")
     public ResponseEntity<Map<String, Long>> getExceptionTypesSummary() {
         List<ExceptionLog> allExceptions = exceptionLogRepository.findAll();
 
@@ -160,7 +160,7 @@ public class ExceptionLogController {
      * DELETE /api/exception-logs/cleanup?daysToKeep=90
      */
     @DeleteMapping("/cleanup")
-    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_WRITE + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_WRITE + "') and T(PSG.backEnd.service.util.TenantContext).isPlatformTenant()")
     public ResponseEntity<Map<String, Object>> cleanupOldExceptions(
             @RequestParam(defaultValue = "90") int daysToKeep) {
 
@@ -187,7 +187,7 @@ public class ExceptionLogController {
      * DELETE /api/exception-logs/1
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_WRITE + "')")
+    @PreAuthorize("hasAuthority('" + AppPermissions.EXCEPTION_LOG_WRITE + "') and T(PSG.backEnd.service.util.TenantContext).isPlatformTenant()")
     public ResponseEntity<Map<String, String>> deleteExceptionById(@PathVariable Long id) {
         if (!exceptionLogRepository.existsById(id)) {
             return ResponseEntity.notFound().build();

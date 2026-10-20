@@ -15,6 +15,7 @@ import java.util.Optional;
 public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
     List<Tenant> findAllByDeletedFalseAndActiveTrue();
+    List<Tenant> findAllByDeletedFalse();
 
     Optional<Tenant> findByIdAndDeletedFalse(Long id);
     Optional<Tenant> findByWebhookTokenAndDeletedFalse(String webhookToken);
@@ -23,6 +24,7 @@ public interface TenantRepository extends JpaRepository<Tenant, Long> {
     Optional<Tenant> findByCuitAndDeletedTrue(String cuit);
     boolean existsByCuitAndDeletedFalse(String cuit);
     boolean existsByIdAndDeletedFalse(Long id);
+    boolean existsByIdAndDeletedFalseAndActiveTrue(Long id);
 
     @Query("SELECT t FROM Tenant t " +
             "WHERE t.deleted = false " +

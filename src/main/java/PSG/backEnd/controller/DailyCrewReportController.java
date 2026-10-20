@@ -1,5 +1,6 @@
 package PSG.backEnd.controller;
 
+import PSG.backEnd.exception.NotFoundException;
 import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.crewAssignment.*;
 import PSG.backEnd.repository.CrewScheduleDefaultRepository;
@@ -126,7 +127,8 @@ public class DailyCrewReportController {
             CrewScheduleDefault entity = scheduleDefaultRepo.findByProjectAreaId(dto.projectAreaId())
                     .orElseGet(() -> {
                         CrewScheduleDefault d = new CrewScheduleDefault();
-                        ProjectArea pa = projectAreaRepo.getReferenceById(dto.projectAreaId());
+                        ProjectArea pa = projectAreaRepo.findByIdAndDeletedFalse(dto.projectAreaId())
+                                .orElseThrow(() -> new NotFoundException("Project area not found: " + dto.projectAreaId()));
                         d.setProjectArea(pa);
                         return d;
                     });

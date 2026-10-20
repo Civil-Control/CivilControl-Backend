@@ -1,5 +1,6 @@
 package PSG.backEnd.repository;
 
+import PSG.backEnd.service.util.TenantContext;
 import PSG.backEnd.model.entity.vehicle.CrewAssignment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -79,8 +80,12 @@ public interface CrewAssignmentRepository extends JpaRepository<CrewAssignment, 
             Pageable pageable);
 
     @Modifying
-    @Query("UPDATE CrewAssignment ca SET ca.deleted = true WHERE ca.date = :date AND ca.deleted = false")
-    int softDeleteByDate(@Param("date") LocalDate date);
+    @Query("UPDATE CrewAssignment ca SET ca.deleted = true WHERE ca.date = :date AND ca.deleted = false AND ca.tenantId = :tenantId")
+    int softDeleteByDateForTenant(@Param("date") LocalDate date, @Param("tenantId") Long tenantId);
+
+    default int softDeleteByDate(LocalDate date) {
+        return softDeleteByDateForTenant(date, TenantContext.getCurrentTenant());
+    }
 
     @Query("SELECT ca.employee.id FROM CrewAssignment ca WHERE ca.date = :date AND ca.deleted = false")
     List<Long> findAssignedEmployeeIdsByDate(@Param("date") LocalDate date);
@@ -93,8 +98,12 @@ public interface CrewAssignmentRepository extends JpaRepository<CrewAssignment, 
     List<CrewAssignment> findByReportIdAndDeletedFalseOrdered(@Param("reportId") Long reportId);
 
     @Modifying
-    @Query("UPDATE CrewAssignment ca SET ca.deleted = true WHERE ca.crewReport.id = :reportId AND ca.deleted = false")
-    int softDeleteByReportId(@Param("reportId") Long reportId);
+    @Query("UPDATE CrewAssignment ca SET ca.deleted = true WHERE ca.crewReport.id = :reportId AND ca.deleted = false AND ca.tenantId = :tenantId")
+    int softDeleteByReportIdForTenant(@Param("reportId") Long reportId, @Param("tenantId") Long tenantId);
+
+    default int softDeleteByReportId(Long reportId) {
+        return softDeleteByReportIdForTenant(reportId, TenantContext.getCurrentTenant());
+    }
 
     @Query("SELECT ca FROM CrewAssignment ca WHERE ca.vehicle.id = :vehicleId " +
            "AND ca.crewReport.id = :reportId AND ca.driver = true AND ca.deleted = false")

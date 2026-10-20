@@ -64,6 +64,11 @@ public class RoleAndUserSeeder implements CommandLineRunner {
                     "System",
                     "Administrator"
             );
+
+            tenantRepository.findAllByDeletedFalse().stream()
+                    .map(Tenant::getId)
+                    .filter(id -> !DEFAULT_TENANT_ID.equals(id))
+                    .forEach(tenantProvisioningService::syncSystemRoles);
         } finally {
             TenantContext.clear();
         }

@@ -40,13 +40,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
+        TenantContext.clear();
+        try {
+            authenticate(request);
+            filterChain.doFilter(request, response);
+        } finally {
+            TenantContext.clear();
+        }
+    }
+
+    private void authenticate(HttpServletRequest request) {
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String username;
 
         // Check if Authorization header exists and starts with Bearer
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
             return;
         }
 
@@ -58,11 +67,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             username = jwtService.extractUsername(jwt);
             Long tenantId = jwtService.extractTenantId(jwt);
 
+            if (tenantId == null) {
+                log.warn("Rejected JWT without tenant (user={})", username);
+                return;
+            }
+
             // Reject revoked tokens (logged-out users, rotated refresh tokens, etc.)
             String jti = jwtService.extractJti(jwt);
             if (jti != null && tokenBlacklist.isRevoked(jti)) {
                 log.warn("Rejected revoked JWT (jti={}, user={})", jti, username);
-                filterChain.doFilter(request, response);
                 return;
             }
 
@@ -94,18 +107,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
 
                     log.debug("User '{}' authenticated successfully for tenant '{}'", username, tenantId);
+                } else {
+                    TenantContext.clear();
                 }
             }
         } catch (Exception e) {
+            TenantContext.clear();
+            SecurityContextHolder.clearContext();
             log.error("Cannot set user authentication: {}", e.getMessage());
-        } finally {
-            // Always continue the filter chain
-            try {
-                filterChain.doFilter(request, response);
-            } finally {
-                // Clear tenant context after request processing to prevent memory leaks
-                TenantContext.clear();
-            }
         }
     }
 }

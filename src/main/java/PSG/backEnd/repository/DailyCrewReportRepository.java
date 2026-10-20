@@ -1,5 +1,6 @@
 package PSG.backEnd.repository;
 
+import PSG.backEnd.service.util.TenantContext;
 import PSG.backEnd.model.entity.vehicle.DailyCrewReport;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -23,8 +24,12 @@ public interface DailyCrewReportRepository extends JpaRepository<DailyCrewReport
     List<DailyCrewReport> findByDateAndDeletedFalse(@Param("date") LocalDate date);
 
     @Modifying
-    @Query("UPDATE DailyCrewReport r SET r.deleted = true WHERE r.id = :id AND r.deleted = false")
-    int softDeleteById(@Param("id") Long id);
+    @Query("UPDATE DailyCrewReport r SET r.deleted = true WHERE r.id = :id AND r.deleted = false AND r.tenantId = :tenantId")
+    int softDeleteByIdForTenant(@Param("id") Long id, @Param("tenantId") Long tenantId);
+
+    default int softDeleteById(Long id) {
+        return softDeleteByIdForTenant(id, TenantContext.getCurrentTenant());
+    }
 
     @Query("SELECT r.date, COUNT(DISTINCT r.id), " +
            "(SELECT COUNT(ca.id) FROM CrewAssignment ca WHERE ca.crewReport.id IN " +

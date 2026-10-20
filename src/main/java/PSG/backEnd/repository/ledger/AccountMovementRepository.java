@@ -1,5 +1,6 @@
 package PSG.backEnd.repository.ledger;
 
+import PSG.backEnd.service.util.TenantContext;
 import PSG.backEnd.model.entity.ledger.AccountMovement;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -45,6 +46,10 @@ public interface AccountMovementRepository extends JpaRepository<AccountMovement
     Optional<AccountMovement> findOriginalBySourcePaymentWithLock(@Param("paymentId") Long paymentId);
 
     @Modifying
-    @Query("DELETE FROM AccountMovement m WHERE m.sourceDocument.id = :documentId AND m.movementType = PSG.backEnd.model.enums.ledger.AccountMovementType.REVERSAL")
-    void deleteReversalsBySourceDocument(@Param("documentId") Long documentId);
+    @Query("DELETE FROM AccountMovement m WHERE m.sourceDocument.id = :documentId AND m.movementType = PSG.backEnd.model.enums.ledger.AccountMovementType.REVERSAL AND m.tenantId = :tenantId")
+    void deleteReversalsBySourceDocumentForTenant(@Param("documentId") Long documentId, @Param("tenantId") Long tenantId);
+
+    default void deleteReversalsBySourceDocument(Long documentId) {
+        deleteReversalsBySourceDocumentForTenant(documentId, TenantContext.getCurrentTenant());
+    }
 }

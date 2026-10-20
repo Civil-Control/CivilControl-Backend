@@ -1,5 +1,9 @@
 package PSG.backEnd.service.implementation;
 
+import PSG.backEnd.exception.tenant.TenantAlreadyExistsException;
+import PSG.backEnd.service.util.MessageSourceHelper;
+import PSG.backEnd.service.util.TenantContext;
+import jakarta.persistence.EntityManager;
 import PSG.backEnd.model.entity.security.Credentials;
 import PSG.backEnd.model.entity.security.Permission;
 import PSG.backEnd.model.entity.security.Role;
@@ -44,6 +48,10 @@ public class TenantProvisioningService {
     private final PermissionRepository permissionRepository;
     private final CredentialsRepository credentialsRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MessageSourceHelper messageSourceHelper;
+    private final EntityManager entityManager;
+
+    private static final Long NO_USER_ID = -1L;
 
     /**
      * Provisions a new tenant with system roles and the owner user.
@@ -65,16 +73,41 @@ public class TenantProvisioningService {
 
         log.info("=== Starting tenant provisioning for Tenant ID: {} ===", tenantId);
 
-        // Create immutable system roles
-        Role ownerRole = createOwnerRole(tenantId);
-        Role adminRole = createAdminRole(tenantId);
-        Role lectorRole = createLectorRole(tenantId);
+        Long previousTenant = TenantContext.getCurrentTenant();
+        TenantContext.setCurrentTenant(tenantId);
+        try {
+            Role ownerRole = createOwnerRole(tenantId);
+            createAdminRole(tenantId);
+            createLectorRole(tenantId);
 
-        // Create owner user with OWNER role
-        createOwnerUser(tenantId, ownerEmail, ownerUsername, ownerPassword,
-                ownerFirstName, ownerLastName, ownerRole);
+            createOwnerUser(tenantId, ownerEmail, ownerUsername, ownerPassword,
+                    ownerFirstName, ownerLastName, ownerRole);
+
+            entityManager.flush();
+        } finally {
+            TenantContext.setCurrentTenant(previousTenant);
+        }
 
         log.info("=== Tenant provisioning completed for Tenant ID: {} ===", tenantId);
+    }
+
+    @Transactional
+    public void syncSystemRoles(Long tenantId) {
+        Long previousTenant = TenantContext.getCurrentTenant();
+        TenantContext.setCurrentTenant(tenantId);
+        try {
+            createOwnerRole(tenantId);
+            createAdminRole(tenantId);
+            createLectorRole(tenantId);
+            entityManager.flush();
+        } finally {
+            TenantContext.setCurrentTenant(previousTenant);
+        }
+    }
+
+    private static boolean isPlatformOnlyPermission(Permission permission) {
+        String name = permission.getName();
+        return name.contains("SYSTEM_") || name.contains("AUDIT_") || name.contains("EXCEPTION_LOG_");
     }
 
     /**
@@ -83,15 +116,21 @@ public class TenantProvisioningService {
      */
     private Role createOwnerRole(Long tenantId) {
         List<Permission> allPermissions = permissionRepository.findAll();
-        Set<Permission> allPermsSet = new HashSet<>(allPermissions);
+        boolean platformTenant = TenantContext.PLATFORM_TENANT_ID.equals(tenantId);
+        Set<Permission> allPermsSet = new HashSet<>();
+        for (Permission permission : allPermissions) {
+            if (platformTenant || !isPlatformOnlyPermission(permission)) {
+                allPermsSet.add(permission);
+            }
+        }
 
         if (roleRepository.existsByNameAndTenantId(ROLE_OWNER, tenantId)) {
             Role existingRole = roleRepository.findByNameAndTenantId(ROLE_OWNER, tenantId)
                     .orElseThrow(() -> new IllegalStateException("Role exists but cannot be retrieved"));
-            if (!existingRole.getPermissions().containsAll(allPermsSet)) {
+            if (!existingRole.getPermissions().equals(allPermsSet)) {
                 existingRole.setPermissions(allPermsSet);
                 existingRole = roleRepository.save(existingRole);
-                log.info("OWNER role synced for tenant {} with {} permissions", tenantId, allPermissions.size());
+                log.info("OWNER role synced for tenant {} with {} permissions", tenantId, allPermsSet.size());
             } else {
                 log.info("OWNER role already up-to-date for tenant {}", tenantId);
             }
@@ -112,7 +151,7 @@ public class TenantProvisioningService {
 
         ownerRole.setTenantId(tenantId);
         ownerRole = roleRepository.save(ownerRole);
-        log.info("OWNER role created for tenant {} with {} permissions", tenantId, allPermissions.size());
+        log.info("OWNER role created for tenant {} with {} permissions", tenantId, allPermsSet.size());
 
         return ownerRole;
     }
@@ -125,9 +164,7 @@ public class TenantProvisioningService {
         List<Permission> allPermissions = permissionRepository.findAll();
         Set<Permission> adminPermissions = new HashSet<>();
         for (Permission permission : allPermissions) {
-            if (!permission.getName().contains("SYSTEM_") &&
-                !permission.getName().contains("AUDIT_") &&
-                !permission.getName().contains("EXCEPTION_LOG_")) {
+            if (!isPlatformOnlyPermission(permission)) {
                 adminPermissions.add(permission);
             }
         }
@@ -218,6 +255,10 @@ public class TenantProvisioningService {
         if (credentialsRepository.existsByUsernameAndTenantId(username, tenantId)) {
             log.info("Owner user '{}' already exists for tenant {}, skipping...", username, tenantId);
             return;
+        }
+        if (credentialsRepository.existsActiveUsernameInAnyTenant(username, NO_USER_ID)) {
+            throw new TenantAlreadyExistsException(
+                    messageSourceHelper.getMessage("tenant.owner.username.exists", username));
         }
 
         log.info("Creating owner user '{}' for tenant {}...", username, tenantId);

@@ -31,11 +31,15 @@ public class WebSocketJwtInterceptor implements ChannelInterceptor {
                 try {
                     String username = jwtService.extractUsername(jwt);
                     Long tenantId  = jwtService.extractTenantId(jwt);
-                    TenantContext.setCurrentTenant(tenantId);
-                    userRepository.findByCredentialsUsernameAndDeletedFalse(username)
-                            .ifPresent(user -> accessor.setUser(() -> user.getId().toString()));
+                    if (tenantId != null) {
+                        TenantContext.setCurrentTenant(tenantId);
+                        userRepository.findByCredentialsUsernameAndDeletedFalse(username)
+                                .ifPresent(user -> accessor.setUser(() -> user.getId().toString()));
+                    }
                 } catch (Exception ignored) {
                     // JWT inválido: el broker rechazará la conexión
+                } finally {
+                    TenantContext.clear();
                 }
             }
         }

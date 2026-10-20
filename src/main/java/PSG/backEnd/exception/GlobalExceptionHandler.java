@@ -1,6 +1,11 @@
 package PSG.backEnd.exception;
 
 import PSG.backEnd.exception.item.ItemAlreadyExistsException;
+import PSG.backEnd.exception.tenant.TenantAccessViolationException;
+import PSG.backEnd.exception.tenant.TenantAlreadyExistsException;
+import PSG.backEnd.exception.tenant.TenantDataConflictException;
+import PSG.backEnd.exception.tenant.TenantNotFoundException;
+import PSG.backEnd.exception.tenant.TenantNotValidException;
 import PSG.backEnd.exception.notification.NotificationSubscriptionNotValidException;
 import PSG.backEnd.exception.security.ChannelVerificationNotValidException;
 import PSG.backEnd.exception.purchaseOrder.PurchaseOrderNotValidException;
@@ -315,6 +320,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(problemDetail);
+    }
+
+    @ExceptionHandler({TenantNotFoundException.class, TenantAccessViolationException.class})
+    public ResponseEntity<ProblemDetail> handleTenantNotFoundException(RuntimeException ex, WebRequest request) {
+        auditException(ex, request);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(createProblemDetail(HttpStatus.NOT_FOUND, "Resource Not Found", ex.getMessage(), request, ex));
+    }
+
+    @ExceptionHandler({TenantAlreadyExistsException.class, TenantDataConflictException.class})
+    public ResponseEntity<ProblemDetail> handleTenantConflictException(RuntimeException ex, WebRequest request) {
+        auditException(ex, request);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(createProblemDetail(HttpStatus.CONFLICT, "Tenant Conflict", ex.getMessage(), request, ex));
+    }
+
+    @ExceptionHandler(TenantNotValidException.class)
+    public ResponseEntity<ProblemDetail> handleTenantNotValidException(TenantNotValidException ex, WebRequest request) {
+        auditException(ex, request);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(createProblemDetail(HttpStatus.FORBIDDEN, "Tenant Operation Not Allowed", ex.getMessage(), request, ex));
     }
 
     @ExceptionHandler(PurchaseOrderNotValidException.class)

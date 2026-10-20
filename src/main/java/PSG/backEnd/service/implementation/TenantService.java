@@ -35,6 +35,7 @@ public class TenantService implements ITenantService {
     @Override
     @Transactional
     public TenantResponseDTO createTenant(TenantCreateDTO createDTO) {
+        requirePlatformTenant();
         TenantDTO tenantDTO = createDTO.tenant();
         validateNewTenant(tenantDTO);
         Optional<Tenant> deletedTenant = findDeletedTenant(tenantDTO);
@@ -47,6 +48,7 @@ public class TenantService implements ITenantService {
     @Override
     @Transactional(readOnly = true)
     public Page<TenantResponseDTO> getAllTenants(TenantFilterDTO filterDTO, Pageable pageable) {
+        requirePlatformTenant();
         return tenantRepository.findAllWithFilters(
                 filterDTO.name(),
                 filterDTO.cuit(),
@@ -66,6 +68,9 @@ public class TenantService implements ITenantService {
     @Override
     @Transactional(readOnly = true)
     public TenantResponseDTO getTenantById(Long id) {
+        if (!TenantContext.isPlatformTenant() && !id.equals(TenantContext.getCurrentTenant())) {
+            throw new TenantNotFoundException(id);
+        }
         return tenantRepository.findByIdAndDeletedFalse(id)
                 .map(tenantMapper::toResponseDto)
                 .orElseThrow(() -> new TenantNotFoundException(id));
@@ -94,6 +99,10 @@ public class TenantService implements ITenantService {
     @Override
     @Transactional
     public void deleteTenant(Long id) {
+        requirePlatformTenant();
+        if (TenantContext.PLATFORM_TENANT_ID.equals(id)) {
+            throw new TenantNotValidException(messageSourceHelper.getMessage("tenant.delete.platformForbidden"));
+        }
         Tenant tenant = tenantRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new TenantNotFoundException(id));
         tenant.setDeleted(true);
@@ -112,6 +121,12 @@ public class TenantService implements ITenantService {
     public Tenant getEntityById(Long id) {
         return tenantRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new TenantNotFoundException(id));
+    }
+
+    private void requirePlatformTenant() {
+        if (!TenantContext.isPlatformTenant()) {
+            throw new TenantNotValidException(messageSourceHelper.getMessage("tenant.platform.forbidden"));
+        }
     }
 
     private void validateNewTenant(TenantDTO tenantDTO) {

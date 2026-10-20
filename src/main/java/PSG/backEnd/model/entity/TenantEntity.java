@@ -1,5 +1,6 @@
 package PSG.backEnd.model.entity;
 
+import PSG.backEnd.exception.tenant.TenantAccessViolationException;
 import PSG.backEnd.service.util.TenantContext;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -35,7 +36,7 @@ import org.hibernate.annotations.ParamDef;
 @NoArgsConstructor
 public abstract class TenantEntity {
 
-    @Column(name = "tenant_id", nullable = false)
+    @Column(name = "tenant_id", nullable = false, updatable = false)
     private Long tenantId;
 
     /**
@@ -44,8 +45,19 @@ public abstract class TenantEntity {
      */
     @PrePersist
     public void onPrePersist() {
+        Long currentTenant = TenantContext.getCurrentTenant();
         if (this.tenantId == null) {
-            this.tenantId = TenantContext.getCurrentTenant();
+            this.tenantId = currentTenant;
+        }
+        if (this.tenantId == null || !this.tenantId.equals(currentTenant)) {
+            throw new TenantAccessViolationException("Entity tenant does not match the current tenant context");
+        }
+    }
+
+    @PostLoad
+    public void onPostLoad() {
+        if (this.tenantId == null || !this.tenantId.equals(TenantContext.getCurrentTenant())) {
+            throw new TenantAccessViolationException("Resource not found");
         }
     }
 }

@@ -1,5 +1,6 @@
 package PSG.backEnd.repository;
 
+import PSG.backEnd.service.util.TenantContext;
 import PSG.backEnd.model.entity.notification.NotificationSubscription;
 import PSG.backEnd.model.enums.notification.NotificationSubjectType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,6 +31,10 @@ public interface NotificationSubscriptionRepository extends JpaRepository<Notifi
             Long userId, NotificationSubjectType subjectType);
 
     @Modifying
-    @Query("UPDATE NotificationSubscription s SET s.deleted = true WHERE s.userId = :userId")
-    void markDeletedByUserId(@Param("userId") Long userId);
+    @Query("UPDATE NotificationSubscription s SET s.deleted = true WHERE s.userId = :userId AND s.tenantId = :tenantId")
+    void markDeletedByUserIdForTenant(@Param("userId") Long userId, @Param("tenantId") Long tenantId);
+
+    default void markDeletedByUserId(Long userId) {
+        markDeletedByUserIdForTenant(userId, TenantContext.getCurrentTenant());
+    }
 }

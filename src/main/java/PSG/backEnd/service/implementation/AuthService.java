@@ -11,11 +11,14 @@ import PSG.backEnd.model.dto.security.UserLocationDTO;
 import PSG.backEnd.model.entity.security.User;
 import PSG.backEnd.model.mapper.RoleMapper;
 import PSG.backEnd.model.mapper.UserLocationMapper;
+import PSG.backEnd.repository.CredentialsRepository;
+import PSG.backEnd.repository.TenantRepository;
 import PSG.backEnd.repository.UserRepository;
 import PSG.backEnd.service.port.IAuthService;
 import PSG.backEnd.service.security.AuthRateLimiter;
 import PSG.backEnd.service.security.JwtTokenBlacklist;
 import PSG.backEnd.service.util.MessageSourceHelper;
+import PSG.backEnd.service.util.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,6 +30,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,6 +52,17 @@ public class AuthService implements IAuthService {
     private final MessageSourceHelper messageSourceHelper;
     private final AuthRateLimiter rateLimiter;
     private final JwtTokenBlacklist tokenBlacklist;
+    private final CredentialsRepository credentialsRepository;
+    private final TenantRepository tenantRepository;
+
+    private boolean bindTenantForUsername(String username) {
+        List<Long> tenantIds = credentialsRepository.findActiveTenantIdsByUsername(username);
+        if (tenantIds.size() != 1 || !tenantRepository.existsByIdAndDeletedFalseAndActiveTrue(tenantIds.get(0))) {
+            return false;
+        }
+        TenantContext.setCurrentTenant(tenantIds.get(0));
+        return true;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -60,6 +75,12 @@ public class AuthService implements IAuthService {
         if (rateLimiter.isLockedOut(username)) {
             long secs = rateLimiter.lockoutRemainingSeconds(username);
             log.warn("Login blocked: account in lockout window for {} ({}s remaining)", username, secs);
+            throw new InvalidCredentialsException(messageSourceHelper.getMessage("auth.invalidCredentials"));
+        }
+
+        if (!bindTenantForUsername(username)) {
+            rateLimiter.recordFailure(username);
+            log.warn("Login rejected: username {} not bound to a single active tenant", username);
             throw new InvalidCredentialsException(messageSourceHelper.getMessage("auth.invalidCredentials"));
         }
 
@@ -124,6 +145,12 @@ public class AuthService implements IAuthService {
             if (username == null) {
                 throw new InvalidTokenException(messageSourceHelper.getMessage("auth.invalidRefreshToken"));
             }
+
+            Long tenantId = jwtService.extractTenantId(oldRefreshToken);
+            if (tenantId == null || !tenantRepository.existsByIdAndDeletedFalseAndActiveTrue(tenantId)) {
+                throw new InvalidTokenException(messageSourceHelper.getMessage("auth.invalidRefreshToken"));
+            }
+            TenantContext.setCurrentTenant(tenantId);
 
             // Load user details
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);

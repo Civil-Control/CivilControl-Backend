@@ -1,5 +1,6 @@
 package PSG.backEnd.repository;
 
+import PSG.backEnd.service.util.TenantContext;
 import PSG.backEnd.model.entity.employee.DisciplinaryAction;
 import PSG.backEnd.model.enums.employee.ActionType;
 import org.springframework.data.domain.Page;
@@ -37,6 +38,10 @@ public interface DisciplinaryActionRepository extends JpaRepository<Disciplinary
     );
 
     @Modifying
-    @Query("UPDATE DisciplinaryAction da SET da.laborIncident = null WHERE da.laborIncident.id = :incidentId")
-    void nullifyLaborIncident(@Param("incidentId") Long incidentId);
+    @Query("UPDATE DisciplinaryAction da SET da.laborIncident = null WHERE da.laborIncident.id = :incidentId AND da.tenantId = :tenantId")
+    void nullifyLaborIncidentForTenant(@Param("incidentId") Long incidentId, @Param("tenantId") Long tenantId);
+
+    default void nullifyLaborIncident(Long incidentId) {
+        nullifyLaborIncidentForTenant(incidentId, TenantContext.getCurrentTenant());
+    }
 }

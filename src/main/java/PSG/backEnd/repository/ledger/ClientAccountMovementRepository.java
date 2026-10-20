@@ -1,5 +1,6 @@
 package PSG.backEnd.repository.ledger;
 
+import PSG.backEnd.service.util.TenantContext;
 import PSG.backEnd.model.entity.ledger.ClientAccountMovement;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -30,6 +31,10 @@ public interface ClientAccountMovementRepository extends JpaRepository<ClientAcc
     BigDecimal sumBalanceByClient(@Param("clientId") Long clientId, @Param("tenantId") Long tenantId);
 
     @Modifying
-    @Query("DELETE FROM ClientAccountMovement m WHERE m.sourceDocument.id = :documentId AND m.movementType = PSG.backEnd.model.enums.ledger.ClientAccountMovementType.REVERSAL")
-    void deleteReversalsBySourceDocument(@Param("documentId") Long documentId);
+    @Query("DELETE FROM ClientAccountMovement m WHERE m.sourceDocument.id = :documentId AND m.movementType = PSG.backEnd.model.enums.ledger.ClientAccountMovementType.REVERSAL AND m.tenantId = :tenantId")
+    void deleteReversalsBySourceDocumentForTenant(@Param("documentId") Long documentId, @Param("tenantId") Long tenantId);
+
+    default void deleteReversalsBySourceDocument(Long documentId) {
+        deleteReversalsBySourceDocumentForTenant(documentId, TenantContext.getCurrentTenant());
+    }
 }

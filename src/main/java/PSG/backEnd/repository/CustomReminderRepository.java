@@ -1,5 +1,6 @@
 package PSG.backEnd.repository;
 
+import PSG.backEnd.service.util.TenantContext;
 import PSG.backEnd.model.entity.notification.CustomReminder;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -20,6 +21,10 @@ public interface CustomReminderRepository extends JpaRepository<CustomReminder, 
     List<CustomReminder> findAllByDeletedFalse();
 
     @Modifying
-    @Query("UPDATE CustomReminder r SET r.deleted = true WHERE r.userId = :userId")
-    void markDeletedByUserId(@Param("userId") Long userId);
+    @Query("UPDATE CustomReminder r SET r.deleted = true WHERE r.userId = :userId AND r.tenantId = :tenantId")
+    void markDeletedByUserIdForTenant(@Param("userId") Long userId, @Param("tenantId") Long tenantId);
+
+    default void markDeletedByUserId(Long userId) {
+        markDeletedByUserIdForTenant(userId, TenantContext.getCurrentTenant());
+    }
 }
