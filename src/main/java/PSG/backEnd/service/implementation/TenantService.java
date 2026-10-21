@@ -12,6 +12,7 @@ import PSG.backEnd.model.entity.Tenant;
 import PSG.backEnd.model.mapper.TenantMapper;
 import PSG.backEnd.repository.TenantRepository;
 import PSG.backEnd.service.port.ITenantService;
+import PSG.backEnd.service.security.PasswordPolicyService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import PSG.backEnd.service.util.TenantContext;
 import lombok.RequiredArgsConstructor;
@@ -31,11 +32,13 @@ public class TenantService implements ITenantService {
     private final TenantMapper tenantMapper;
     private final MessageSourceHelper messageSourceHelper;
     private final TenantProvisioningService tenantProvisioningService;
+    private final PasswordPolicyService passwordPolicyService;
 
     @Override
     @Transactional
     public TenantResponseDTO createTenant(TenantCreateDTO createDTO) {
         requirePlatformTenant();
+        passwordPolicyService.validate(createDTO.ownerPassword(), createDTO.ownerUsername(), createDTO.ownerEmail());
         TenantDTO tenantDTO = createDTO.tenant();
         validateNewTenant(tenantDTO);
         Optional<Tenant> deletedTenant = findDeletedTenant(tenantDTO);

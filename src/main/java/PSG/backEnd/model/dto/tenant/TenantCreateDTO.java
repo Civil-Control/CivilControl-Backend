@@ -26,7 +26,7 @@ public record TenantCreateDTO(
     String ownerUsername,
 
     @NotBlank(message = "{validation.required}")
-    @Size(min = 6, max = 100, message = "{tenant.owner.password.size}")
+    @Size(min = 8, max = 100, message = "{tenant.owner.password.size}")
     @Schema(description = "Password of the owner user")
     String ownerPassword,
 
