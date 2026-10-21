@@ -5,6 +5,7 @@ import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.Tenant;
 import PSG.backEnd.model.entity.TransactionalDocument;
 import PSG.backEnd.model.entity.payment.CheckPayment;
+import PSG.backEnd.model.entity.payment.PaymentApplication;
 import PSG.backEnd.model.entity.payment.PaymentDetails;
 import PSG.backEnd.model.entity.payment.TransferPayment;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -23,7 +24,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -45,6 +48,8 @@ public class PaymentOrderPdfService {
     private static final float BOLD_SPACING = 0.4f;
     private static final float TITLE_SPACING = 0.6f;
 
+    private record ImputedDocument(TransactionalDocument document, BigDecimal amountApplied) {}
+
     // ────────────────────────────────────────────────────────────────
     // Public API
     // ────────────────────────────────────────────────────────────────
@@ -59,8 +64,9 @@ public class PaymentOrderPdfService {
             addHeader(doc, payment, tenant);
             addBeneficiary(doc, payment.getSupplier());
             addConcept(doc, payment.getComment());
-            addBody(doc, payment);
-            addTotals(doc, payment);
+            List<ImputedDocument> imputed = resolveImputedDocuments(payment);
+            addBody(doc, payment, imputed);
+            addTotals(doc, payment, imputed);
 
             doc.close();
             return baos.toByteArray();
@@ -181,14 +187,28 @@ public class PaymentOrderPdfService {
     // Both share the same outer border
     // ────────────────────────────────────────────────────────────────
 
-    private void addBody(Document doc, PaymentDetails payment) {
+    private List<ImputedDocument> resolveImputedDocuments(PaymentDetails payment) {
+        if (payment.getApplications() != null && !payment.getApplications().isEmpty()) {
+            return payment.getApplications().stream()
+                    .filter(a -> a.getDocument() != null)
+                    .sorted(Comparator.comparing(PaymentApplication::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .map(a -> new ImputedDocument(a.getDocument(), a.getAmountApplied()))
+                    .toList();
+        }
+        if (payment.getPaidDocuments() == null) return List.of();
+        return payment.getPaidDocuments().stream()
+                .map(d -> new ImputedDocument(d, d.getTotal()))
+                .toList();
+    }
+
+    private void addBody(Document doc, PaymentDetails payment, List<ImputedDocument> imputed) {
         Table wrapper = new Table(new float[]{1, 1});
         wrapper.setWidth(UnitValue.createPercentValue(100));
         wrapper.setBorder(THIN);
 
         // Left: Comprobantes Imputados
         Cell leftCell = new Cell().setBorder(THIN).setPadding(0);
-        leftCell.add(buildDocumentsTable(payment.getPaidDocuments()));
+        leftCell.add(buildDocumentsTable(imputed));
         wrapper.addCell(leftCell);
 
         // Right: Payment method
@@ -199,7 +219,7 @@ public class PaymentOrderPdfService {
         doc.add(wrapper);
     }
 
-    private Table buildDocumentsTable(List<TransactionalDocument> documents) {
+    private Table buildDocumentsTable(List<ImputedDocument> documents) {
         // Columns: date | reference + amount original | amount paid
         Table t = new Table(new float[]{2, 4, 2.5f, 2.5f});
         t.setWidth(UnitValue.createPercentValue(100));
@@ -213,7 +233,8 @@ public class PaymentOrderPdfService {
         t.addCell(title);
 
         if (documents != null && !documents.isEmpty()) {
-            for (TransactionalDocument d : documents) {
+            for (ImputedDocument item : documents) {
+                TransactionalDocument d = item.document();
                 t.addCell(dataCell(d.getDate().format(DATE_FMT), TextAlignment.LEFT));
 
                 String ref = shortDocType(d.getDocumentType().getDisplayName())
@@ -221,7 +242,7 @@ public class PaymentOrderPdfService {
                 t.addCell(dataCell(ref, TextAlignment.LEFT));
 
                 t.addCell(dataCell(fmt(d.getTotal()), TextAlignment.RIGHT));
-                t.addCell(dataCell(fmt(d.getTotal()), TextAlignment.RIGHT));
+                t.addCell(dataCell(fmt(item.amountApplied()), TextAlignment.RIGHT));
             }
         }
 
@@ -303,14 +324,13 @@ public class PaymentOrderPdfService {
     // Right area: Total Neto / Total Bruto / Total Retenciones / Total Neto
     // ────────────────────────────────────────────────────────────────
 
-    private void addTotals(Document doc, PaymentDetails payment) {
+    private void addTotals(Document doc, PaymentDetails payment, List<ImputedDocument> imputed) {
         BigDecimal totalDocs = BigDecimal.ZERO;
         BigDecimal totalNet = BigDecimal.ZERO;
-        if (payment.getPaidDocuments() != null) {
-            for (TransactionalDocument d : payment.getPaidDocuments()) {
-                totalDocs = totalDocs.add(d.getTotal());
-                totalNet = totalNet.add(d.getNetTotal());
-            }
+        for (ImputedDocument item : imputed) {
+            BigDecimal applied = item.amountApplied() != null ? item.amountApplied() : BigDecimal.ZERO;
+            totalDocs = totalDocs.add(applied);
+            totalNet = totalNet.add(proportionalNet(item.document(), applied));
         }
         BigDecimal totalPayment = payment.getAmount();
         BigDecimal notAllocated = totalPayment.subtract(totalDocs).max(BigDecimal.ZERO);
@@ -369,6 +389,14 @@ public class PaymentOrderPdfService {
     // ────────────────────────────────────────────────────────────────
     // Helpers
     // ────────────────────────────────────────────────────────────────
+
+    private BigDecimal proportionalNet(TransactionalDocument d, BigDecimal applied) {
+        BigDecimal total = d.getTotal();
+        BigDecimal net = d.getNetTotal();
+        if (net == null || total == null || total.signum() == 0) return BigDecimal.ZERO;
+        if (applied.compareTo(total) == 0) return net;
+        return net.multiply(applied).divide(total, 2, RoundingMode.HALF_UP);
+    }
 
     private Paragraph labelValue(String label, String value) {
         return new Paragraph()

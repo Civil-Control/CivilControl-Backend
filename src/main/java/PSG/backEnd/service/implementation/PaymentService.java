@@ -1123,6 +1123,8 @@ public class PaymentService implements IPaymentService {
         PaymentDetails paymentDetails = paymentRepository.findByIdWithPaymentType(id)
                 .orElseThrow(() -> new PaymentNotFoundException(messageSourceHelper.getMessage("payment.notFoundGeneric", id)));
         Hibernate.initialize(paymentDetails.getPaidDocuments());
+        Hibernate.initialize(paymentDetails.getApplications());
+        paymentDetails.getApplications().forEach(a -> Hibernate.initialize(a.getDocument()));
         Hibernate.initialize(paymentDetails.getSupplier());
 
         var tenant = iTenantService.getEntityById(paymentDetails.getTenantId());
