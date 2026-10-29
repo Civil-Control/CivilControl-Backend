@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.Locale;
 
@@ -34,6 +35,7 @@ public class CertificationService implements ICertificationService {
     private final WorkContractRepository workContractRepository;
     private final SalesDocumentRepository salesDocumentRepository;
     private final CertificationMapper certificationMapper;
+    private final SalesDocumentTotalRecalculator salesDocumentTotalRecalculator;
 
     @Override
     @Transactional
@@ -61,6 +63,7 @@ public class CertificationService implements ICertificationService {
         }
 
         Certification saved = certificationRepository.save(entity);
+        recalculateSalesDocuments(salesDocument != null ? salesDocument.getId() : null);
         CertificationResponseDTO response = certificationMapper.toResponseDto(saved);
 
         if (salesDocument != null) {
@@ -111,6 +114,7 @@ public class CertificationService implements ICertificationService {
         Certification existing = certificationRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new CertificationNotFoundException(id));
 
+        Long previousSalesDocumentId = linkedSalesDocumentId(existing);
         certificationMapper.partialUpdate(dto, existing);
 
         if (dto.workContractId() != null) {
@@ -128,6 +132,7 @@ public class CertificationService implements ICertificationService {
         }
 
         Certification saved = certificationRepository.save(existing);
+        recalculateSalesDocuments(previousSalesDocumentId, salesDocument != null ? salesDocument.getId() : null);
         CertificationResponseDTO response = certificationMapper.toResponseDto(saved);
         if (salesDocument != null) {
             return buildWithLabel(response, salesDocument);
@@ -142,17 +147,44 @@ public class CertificationService implements ICertificationService {
                 .orElseThrow(() -> new CertificationNotFoundException(id));
         existing.setDeleted(true);
         certificationRepository.save(existing);
+        recalculateSalesDocuments(linkedSalesDocumentId(existing));
     }
 
     @Override
     @Transactional
     public CertificationResponseDTO linkToSalesDocument(Long certificationId, Long salesDocumentId) {
+        return linkToSalesDocument(certificationId, salesDocumentId, null);
+    }
+
+    @Override
+    @Transactional
+    public CertificationResponseDTO linkToSalesDocument(Long certificationId, Long salesDocumentId, BigDecimal ivaPercentage) {
         Certification existing = certificationRepository.findByIdAndDeletedFalse(certificationId)
                 .orElseThrow(() -> new CertificationNotFoundException(certificationId));
+        Long previousSalesDocumentId = linkedSalesDocumentId(existing);
         SalesDocument salesDocument = requireSalesDocument(salesDocumentId);
         applySalesDocumentLink(existing, salesDocument);
+        if (ivaPercentage != null) {
+            existing.setIvaPercentage(ivaPercentage);
+        }
         Certification saved = certificationRepository.save(existing);
+        recalculateSalesDocuments(previousSalesDocumentId, salesDocumentId);
         return buildWithLabel(certificationMapper.toResponseDto(saved), salesDocument);
+    }
+
+    @Override
+    @Transactional
+    public CertificationResponseDTO updateCertifiedAmount(Long certificationId, BigDecimal certifiedAmount) {
+        Certification existing = certificationRepository.findByIdAndDeletedFalse(certificationId)
+                .orElseThrow(() -> new CertificationNotFoundException(certificationId));
+        existing.setCertifiedAmount(certifiedAmount);
+        Certification saved = certificationRepository.save(existing);
+        recalculateSalesDocuments(linkedSalesDocumentId(saved));
+        CertificationResponseDTO response = certificationMapper.toResponseDto(saved);
+        if (saved.getSalesDocument() != null) {
+            return buildWithLabel(response, saved.getSalesDocument());
+        }
+        return response;
     }
 
     @Override
@@ -160,8 +192,10 @@ public class CertificationService implements ICertificationService {
     public CertificationResponseDTO unlinkFromSalesDocument(Long certificationId) {
         Certification existing = certificationRepository.findByIdAndDeletedFalse(certificationId)
                 .orElseThrow(() -> new CertificationNotFoundException(certificationId));
+        Long previousSalesDocumentId = linkedSalesDocumentId(existing);
         applySalesDocumentUnlink(existing);
         Certification saved = certificationRepository.save(existing);
+        recalculateSalesDocuments(previousSalesDocumentId);
         return certificationMapper.toResponseDto(saved);
     }
 
@@ -180,6 +214,17 @@ public class CertificationService implements ICertificationService {
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    private Long linkedSalesDocumentId(Certification certification) {
+        return certification.getSalesDocument() != null ? certification.getSalesDocument().getId() : null;
+    }
+
+    private void recalculateSalesDocuments(Long... salesDocumentIds) {
+        java.util.Arrays.stream(salesDocumentIds)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .forEach(salesDocumentTotalRecalculator::recalculate);
+    }
 
     private SalesDocument requireSalesDocument(Long salesDocumentId) {
         return salesDocumentRepository.findByIdAndDeletedFalse(salesDocumentId)
@@ -217,6 +262,7 @@ public class CertificationService implements ICertificationService {
                 dto.clientName(),
                 dto.certificationDate(),
                 dto.certifiedAmount(),
+                dto.ivaPercentage(),
                 dto.salesDocumentId(),
                 label,
                 dto.status(),

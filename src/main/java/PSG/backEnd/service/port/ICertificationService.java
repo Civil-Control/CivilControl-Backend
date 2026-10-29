@@ -6,6 +6,8 @@ import PSG.backEnd.model.dto.contracts.CertificationResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
+
 public interface ICertificationService {
 
     CertificationResponseDTO createCertification(CertificationDTO dto);
@@ -28,6 +30,12 @@ public interface ICertificationService {
      * paid) — same rule, same code path, either direction.
      */
     CertificationResponseDTO linkToSalesDocument(Long certificationId, Long salesDocumentId);
+
+    /** Same as {@link #linkToSalesDocument(Long, Long)} but also persists the IVA rate used on the sales-document. */
+    CertificationResponseDTO linkToSalesDocument(Long certificationId, Long salesDocumentId, BigDecimal ivaPercentage);
+
+    /** Updates the certified amount and recalculates the linked sales-document totals. */
+    CertificationResponseDTO updateCertifiedAmount(Long certificationId, BigDecimal certifiedAmount);
 
     /**
      * Clears the certification's sales-document link. Reverts status to {@code APROBADO} when it

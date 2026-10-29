@@ -36,6 +36,10 @@ public class Certification extends TenantEntity {
     @Column(name = "certified_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal certifiedAmount;
 
+    @Column(name = "iva_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal ivaPercentage = new BigDecimal("21.00");
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sales_document_id")
     private SalesDocument salesDocument;
