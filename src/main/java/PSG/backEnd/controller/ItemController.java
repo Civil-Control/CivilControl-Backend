@@ -2,6 +2,7 @@ package PSG.backEnd.controller;
 
 import PSG.backEnd.model.dto.item.ItemDTO;
 import PSG.backEnd.model.dto.item.ItemFilterDTO;
+import PSG.backEnd.model.dto.item.ItemLinkedDocumentsResponseDTO;
 import PSG.backEnd.model.dto.item.ItemResponseDTO;
 import PSG.backEnd.model.enums.ItemType;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
@@ -96,9 +97,24 @@ public class ItemController {
             @ApiResponse(responseCode = "404", description = "Item not found")
     })
     public ResponseEntity<Void> deleteItem(
-            @Parameter(description = "Item unique identifier", required = true, example = "1") @PathVariable Long id) {
-        itemService.delete(id);
+            @Parameter(description = "Item unique identifier", required = true, example = "1") @PathVariable Long id,
+            @Parameter(description = "When true, the item is also removed from every active purchase and sales document that uses it, and their totals are recalculated.")
+            @RequestParam(defaultValue = "false") boolean unlinkDocuments) {
+        itemService.delete(id, unlinkDocuments);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.ITEM_DELETE + "')")
+    @GetMapping("/{id}/linked-documents")
+    @Operation(summary = "List documents linked to an item",
+            description = "Returns the active purchase and sales documents that have lines using this item. Used to preview a cascade delete.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Linked documents retrieved"),
+            @ApiResponse(responseCode = "404", description = "Item not found")
+    })
+    public ResponseEntity<ItemLinkedDocumentsResponseDTO> getLinkedDocuments(
+            @Parameter(description = "Item unique identifier", required = true, example = "1") @PathVariable Long id) {
+        return ResponseEntity.ok(itemService.getLinkedDocuments(id));
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.ITEM_READ + "')")
