@@ -37,7 +37,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -61,6 +60,7 @@ public class SalesDocumentService implements ISalesDocumentService {
     private final SalesDocumentMapper salesDocumentMapper;
     private final IClientLedgerService clientLedgerService;
     private final MessageSourceHelper messageSourceHelper;
+    private final SalesDocumentTotalRecalculator salesDocumentTotalRecalculator;
 
     @Override
     @Transactional
@@ -208,55 +208,8 @@ public class SalesDocumentService implements ISalesDocumentService {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Recomputes netTotal/ivaTotal/ivaExemptTotal/total from the document's items,
-     * discountPercentage and otherTaxes, mirroring the calculation performed client-side
-     * in the sales document form. Keeps totals authoritative and self-healing instead of
-     * trusting whatever the client happened to send.
-     */
     private void recalculateTotals(SalesDocument document) {
-        BigDecimal net = BigDecimal.ZERO;
-        BigDecimal iva = BigDecimal.ZERO;
-        BigDecimal exempt = BigDecimal.ZERO;
-
-        for (SalesItemDetail item : document.getItems()) {
-            BigDecimal unitAmount = item.getUnitAmount();
-            Integer quantity = item.getQuantity();
-            if (unitAmount == null || quantity == null) continue;
-
-            BigDecimal rawSubtotal = unitAmount.multiply(BigDecimal.valueOf(quantity));
-            BigDecimal ivaPct = item.getIvaPercentage();
-            if (ivaPct != null && ivaPct.compareTo(BigDecimal.ZERO) > 0) {
-                net = net.add(rawSubtotal.setScale(2, RoundingMode.HALF_UP));
-                BigDecimal ivaAmount = rawSubtotal.multiply(ivaPct)
-                        .divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP)
-                        .setScale(2, RoundingMode.HALF_UP);
-                iva = iva.add(ivaAmount);
-            } else {
-                exempt = exempt.add(rawSubtotal.setScale(2, RoundingMode.HALF_UP));
-            }
-        }
-
-        BigDecimal netTotal = net.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal ivaTotal = iva.setScale(2, RoundingMode.HALF_UP);
-        BigDecimal ivaExemptTotal = exempt.setScale(2, RoundingMode.HALF_UP);
-
-        BigDecimal discountPct = document.getDiscountPercentage() != null ? document.getDiscountPercentage() : BigDecimal.ZERO;
-        BigDecimal otherTaxes = document.getOtherTaxes() != null ? document.getOtherTaxes() : BigDecimal.ZERO;
-        // Normalize back onto the entity: a PATCH that omits these leaves them null via the
-        // mapper's SET_TO_NULL strategy, which would violate the NOT NULL columns on save.
-        document.setDiscountPercentage(discountPct);
-        document.setOtherTaxes(otherTaxes);
-
-        BigDecimal subtotal = netTotal.add(ivaTotal).add(ivaExemptTotal);
-        BigDecimal discountFactor = BigDecimal.ONE.subtract(
-                discountPct.divide(BigDecimal.valueOf(100), 10, RoundingMode.HALF_UP));
-        BigDecimal total = subtotal.multiply(discountFactor).add(otherTaxes).setScale(2, RoundingMode.HALF_UP);
-
-        document.setNetTotal(netTotal);
-        document.setIvaTotal(ivaTotal);
-        document.setIvaExemptTotal(ivaExemptTotal);
-        document.setTotal(total);
+        salesDocumentTotalRecalculator.applyTotals(document);
     }
 
     private List<SalesItemDetail> buildItemDetails(List<SalesItemDetailDTO> dtos, SalesDocument document) {

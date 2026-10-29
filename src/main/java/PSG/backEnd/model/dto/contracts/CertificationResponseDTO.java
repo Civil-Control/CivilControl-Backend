@@ -15,6 +15,7 @@ public record CertificationResponseDTO(
     String clientName,
     LocalDate certificationDate,
     BigDecimal certifiedAmount,
+    BigDecimal ivaPercentage,
     Long salesDocumentId,
     String salesDocumentLabel,
     CertificationStatus status,

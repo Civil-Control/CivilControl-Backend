@@ -13,6 +13,7 @@ public interface CertificationMapper {
     @Mapping(target = "certificationNumber", ignore = true)
     @Mapping(target = "contract", ignore = true)
     @Mapping(target = "salesDocument", ignore = true)
+    @Mapping(target = "ivaPercentage", ignore = true)
     Certification toEntity(CertificationDTO dto);
 
     @Mapping(source = "contract.id", target = "workContractId")
@@ -27,5 +28,6 @@ public interface CertificationMapper {
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "contract", ignore = true)
     @Mapping(target = "salesDocument", ignore = true)
+    @Mapping(target = "ivaPercentage", ignore = true)
     void partialUpdate(CertificationDTO dto, @MappingTarget Certification entity);
 }

@@ -1,8 +1,10 @@
 package PSG.backEnd.controller;
 
 import PSG.backEnd.model.constants.AppPermissions;
+import PSG.backEnd.model.dto.contracts.CertificationAmountDTO;
 import PSG.backEnd.model.dto.contracts.CertificationDTO;
 import PSG.backEnd.model.dto.contracts.CertificationFilterDTO;
+import PSG.backEnd.model.dto.contracts.CertificationLinkDTO;
 import PSG.backEnd.model.dto.contracts.CertificationResponseDTO;
 import PSG.backEnd.model.enums.contracts.CertificationStatus;
 import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
@@ -129,8 +131,22 @@ public class CertificationController {
     })
     @PreAuthorize("hasAuthority('" + AppPermissions.CERTIFICATION_WRITE + "')")
     public ResponseEntity<CertificationResponseDTO> linkToSalesDocument(
-            @PathVariable Long id, @PathVariable Long salesDocumentId) {
-        return ResponseEntity.ok(certificationService.linkToSalesDocument(id, salesDocumentId));
+            @PathVariable Long id, @PathVariable Long salesDocumentId,
+            @Validated @RequestBody(required = false) CertificationLinkDTO body) {
+        return ResponseEntity.ok(certificationService.linkToSalesDocument(
+                id, salesDocumentId, body != null ? body.ivaPercentage() : null));
+    }
+
+    @PatchMapping("/{id}/amount")
+    @Operation(summary = "Update the certified amount and recalculate the linked sales-document totals")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Amount updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Certification not found")
+    })
+    @PreAuthorize("hasAuthority('" + AppPermissions.CERTIFICATION_WRITE + "')")
+    public ResponseEntity<CertificationResponseDTO> updateCertifiedAmount(
+            @PathVariable Long id, @Validated @RequestBody CertificationAmountDTO body) {
+        return ResponseEntity.ok(certificationService.updateCertifiedAmount(id, body.certifiedAmount()));
     }
 
     @PatchMapping("/{id}/unlink")
