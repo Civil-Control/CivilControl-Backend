@@ -40,7 +40,12 @@ public interface InsurancePolicyRepository extends JpaRepository<InsurancePolicy
             "     (:isCancelled = true AND ip.cancellationDate IS NOT NULL) OR " +
             "     (:isCancelled = false AND ip.cancellationDate IS NULL)) " +
             "AND ip.deleted = false " +
-            "ORDER BY ip.id DESC")
+            "ORDER BY CASE ip.policyStatus " +
+            "WHEN PSG.backEnd.model.enums.vehicle.PolicyStatus.ACTIVO THEN 0 " +
+            "WHEN PSG.backEnd.model.enums.vehicle.PolicyStatus.COTIZADO THEN 1 " +
+            "WHEN PSG.backEnd.model.enums.vehicle.PolicyStatus.VENCIDO THEN 2 " +
+            "WHEN PSG.backEnd.model.enums.vehicle.PolicyStatus.EXPIRADO THEN 3 " +
+            "ELSE 4 END")
     Page<InsurancePolicy> findAllWithFilters(
             @Param("policyNumber") String policyNumber,
             @Param("termNumber") String termNumber,
