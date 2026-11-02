@@ -89,6 +89,7 @@ public class SalesDocumentService implements ISalesDocumentService {
         }
 
         recalculateTotals(document);
+        validateNonNegativeTotal(document);
         SalesDocument saved = salesDocumentRepository.save(document);
 
         clientLedgerService.recordDocumentMovement(saved);
@@ -141,6 +142,7 @@ public class SalesDocumentService implements ISalesDocumentService {
         }
 
         recalculateTotals(saved);
+        validateNonNegativeTotal(saved);
         saved = salesDocumentRepository.save(saved);
 
         clientLedgerService.syncDocumentMovement(saved);
@@ -156,6 +158,10 @@ public class SalesDocumentService implements ISalesDocumentService {
     public SalesDocumentResponseDTO markAsPaid(Long id, boolean paid) {
         SalesDocument document = salesDocumentRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new SalesDocumentNotFoundException(id));
+        if (!isInvoice(document.getDocumentType()) && !isDebitNote(document.getDocumentType())) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                    "salesDocument.markPaid.notInvoiceOrDebit", id));
+        }
         document.setPaid(paid);
 
         // Propagate paid status to linked certifications
@@ -210,6 +216,13 @@ public class SalesDocumentService implements ISalesDocumentService {
 
     private void recalculateTotals(SalesDocument document) {
         salesDocumentTotalRecalculator.applyTotals(document);
+    }
+
+    private void validateNonNegativeTotal(SalesDocument document) {
+        if (document.getTotal() != null && document.getTotal().signum() < 0) {
+            throw new IllegalArgumentException(
+                    messageSourceHelper.getMessage("salesDocument.negativeTotalNotAllowed"));
+        }
     }
 
     private List<SalesItemDetail> buildItemDetails(List<SalesItemDetailDTO> dtos, SalesDocument document) {
@@ -355,7 +368,7 @@ public class SalesDocumentService implements ISalesDocumentService {
 
         List<SalesItemDetail> items = buildItemDetails(dto.items(), document);
         document.setItems(items);
-        document.setPaid(Boolean.TRUE.equals(dto.paid()));
+        document.setPaid(!isCreditNote(document.getDocumentType()) && Boolean.TRUE.equals(dto.paid()));
 
         return document;
     }
@@ -363,7 +376,7 @@ public class SalesDocumentService implements ISalesDocumentService {
     private SalesDocument reactivateExistingDocument(SalesDocument document, SalesDocumentDTO dto) {
         updateDocumentFromDTO(document, dto);
         document.setDeleted(false);
-        document.setPaid(Boolean.TRUE.equals(dto.paid()));
+        document.setPaid(!isCreditNote(document.getDocumentType()) && Boolean.TRUE.equals(dto.paid()));
         return document;
     }
 

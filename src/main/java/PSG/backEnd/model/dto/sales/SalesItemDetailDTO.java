@@ -19,9 +19,8 @@ public record SalesItemDetailDTO(
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
     Long itemId,
 
-    @Schema(description = "Unit price before IVA.", example = "100.00")
+    @Schema(description = "Unit price before IVA. May be negative to represent a discount line; the document total must stay non-negative.", example = "100.00")
     @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
-    @DecimalMin(value = "0.0", inclusive = true, message = "{validation.decimalMin}", groups = {OnCreate.class, OnUpdate.class})
     BigDecimal unitAmount,
 
     @Schema(description = "Quantity of items.", example = "10")

@@ -34,7 +34,22 @@ public interface SalesDocumentRepository extends JpaRepository<SalesDocument, Lo
            "AND (CAST(:dateTo AS LocalDate) IS NULL OR sd.date <= :dateTo) " +
            "AND (CAST(:minTotal AS BigDecimal) IS NULL OR sd.total >= :minTotal) " +
            "AND (CAST(:maxTotal AS BigDecimal) IS NULL OR sd.total <= :maxTotal) " +
-           "AND (:paid IS NULL OR sd.paid = :paid) " +
+           "AND (:paid IS NULL OR (" +
+           "     sd.documentType IN (PSG.backEnd.model.enums.documents.SalesDocumentType.FACTURA_A, " +
+           "                         PSG.backEnd.model.enums.documents.SalesDocumentType.FACTURA_B, " +
+           "                         PSG.backEnd.model.enums.documents.SalesDocumentType.FACTURA_C, " +
+           "                         PSG.backEnd.model.enums.documents.SalesDocumentType.NOTA_DEBITO_A, " +
+           "                         PSG.backEnd.model.enums.documents.SalesDocumentType.NOTA_DEBITO_B, " +
+           "                         PSG.backEnd.model.enums.documents.SalesDocumentType.NOTA_DEBITO_C) " +
+           "     AND ( " +
+           "       (:paid = true AND (sd.paid = true OR sd.total <= COALESCE( " +
+           "           (SELECT SUM(a.amountApplied) FROM SalesCreditNoteApplication a " +
+           "            WHERE a.invoice = sd AND a.creditNote.deleted = false), 0))) " +
+           "       OR " +
+           "       (:paid = false AND sd.paid = false AND sd.total > COALESCE( " +
+           "           (SELECT SUM(a.amountApplied) FROM SalesCreditNoteApplication a " +
+           "            WHERE a.invoice = sd AND a.creditNote.deleted = false), 0)) " +
+           "     ))) " +
            "AND (:projectAreaId IS NULL OR sd.projectArea.id = :projectAreaId) " +
            "AND sd.deleted = false " +
            "AND (:search IS NULL OR (" +
