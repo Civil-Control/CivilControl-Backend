@@ -12,9 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "insurance_policies", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"tenant_id", "policy_number"})
-})
+@Table(name = "insurance_policies")
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -78,6 +76,9 @@ public class InsurancePolicy extends TenantEntity {
     @Builder.Default
     @Column(name = "due_at_start_of_period", nullable = false)
     private Boolean dueAtStartOfPeriod = false;
+
+    @Column(name = "renewed_from_policy_id")
+    private Long renewedFromPolicyId;
 
     @Builder.Default
     @Column(name = "deleted", nullable = false)

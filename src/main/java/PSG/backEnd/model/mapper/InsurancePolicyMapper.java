@@ -12,6 +12,7 @@ public interface InsurancePolicyMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "autoPolicy", ignore = true)
+    @Mapping(target = "renewedFromPolicyId", ignore = true)
     @Mapping(target = "supplier", source = "supplierId", qualifiedByName = "supplierIdToEntity")
     InsurancePolicy toEntity(InsurancePolicyDTO insurancePolicyDTO);
 
@@ -20,12 +21,14 @@ public interface InsurancePolicyMapper {
     @Mapping(target = "paymentFrequency", source = "insurancePolicy.paymentFrequency")
     @Mapping(target = "supplierId", source = "insurancePolicy.supplier.id")
     @Mapping(target = "supplierName", source = "insurancePolicy.supplier.legalName")
+    @Mapping(target = "renewedByPolicyId", ignore = true)
     InsurancePolicyResponseDTO toResponseDto(InsurancePolicy insurancePolicy);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "autoPolicy", ignore = true)
+    @Mapping(target = "renewedFromPolicyId", ignore = true)
     @Mapping(target = "supplier", ignore = true)
     void partialUpdate(InsurancePolicyDTO updateDTO, @MappingTarget InsurancePolicy insurancePolicy);
 

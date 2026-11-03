@@ -4,6 +4,8 @@ import PSG.backEnd.model.entity.insurance.InsurancePolicy;
 import PSG.backEnd.model.enums.vehicle.PolicyStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,9 +21,29 @@ public interface InsurancePolicyRepository extends JpaRepository<InsurancePolicy
     List<InsurancePolicy> findAllByOrderByIdDesc();
     Optional<InsurancePolicy> findByIdAndDeletedFalse(Long id);
     List<InsurancePolicy> findAllByDeletedFalseAndPolicyStatus(PolicyStatus policyStatus);
-    Optional<InsurancePolicy> findByPolicyNumberAndDeletedFalse(String policyNumber);
-    Optional<InsurancePolicy> findByPolicyNumberAndDeletedTrue(String policyNumber);
-    boolean existsByPolicyNumberAndDeletedFalse(String policyNumber);
+
+    @Query("SELECT ip FROM InsurancePolicy ip WHERE ip.policyNumber = :policyNumber " +
+            "AND COALESCE(ip.termNumber, '') = :termNumber AND ip.deleted = false")
+    Optional<InsurancePolicy> findActiveByNumberAndTerm(@Param("policyNumber") String policyNumber,
+                                                        @Param("termNumber") String termNumber);
+
+    @Query("SELECT ip FROM InsurancePolicy ip WHERE ip.policyNumber = :policyNumber " +
+            "AND COALESCE(ip.termNumber, '') = :termNumber AND ip.deleted = true")
+    Optional<InsurancePolicy> findDeletedByNumberAndTerm(@Param("policyNumber") String policyNumber,
+                                                         @Param("termNumber") String termNumber);
+
+    Optional<InsurancePolicy> findFirstByDeletedFalseOrderByEffectiveToDescIdDesc();
+
+    Optional<InsurancePolicy> findFirstByRenewedFromPolicyIdAndDeletedFalse(Long renewedFromPolicyId);
+
+    @Transactional
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE InsurancePolicy ip SET ip.policyStatus = PSG.backEnd.model.enums.vehicle.PolicyStatus.VENCIDO " +
+            "WHERE ip.deleted = false " +
+            "AND ip.policyStatus = PSG.backEnd.model.enums.vehicle.PolicyStatus.ACTIVO " +
+            "AND ip.effectiveTo < :today " +
+            "AND ip.tenantId = :tenantId")
+    int expireOverdueActivePolicies(@Param("today") LocalDate today, @Param("tenantId") Long tenantId);
     boolean existsByIdAndDeletedFalse(Long id);
 
     @Query("SELECT ip FROM InsurancePolicy ip " +

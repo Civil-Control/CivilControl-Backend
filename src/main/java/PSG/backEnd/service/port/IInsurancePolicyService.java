@@ -15,5 +15,6 @@ public interface IInsurancePolicyService {
     Page<InsurancePolicyResponseDTO> getAllInsurancePolicies(InsurancePolicyFilterDTO filterDTO, Pageable pageable);
     InsurancePolicy getEntityById(Long id);
     boolean existsById(Long id);
-    void validatePolicyNumber(String policyNumber, Long excludeId);
+    void validatePolicyNumber(String policyNumber, String termNumber, Long excludeId);
+    InsurancePolicy createRenewalPolicy(InsurancePolicyDTO insurancePolicyDTO, Long sourcePolicyId);
 }
