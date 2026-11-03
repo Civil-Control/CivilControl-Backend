@@ -1,6 +1,8 @@
 package PSG.backEnd.controller;
 
 import PSG.backEnd.model.dto.insurance.InsurancePolicyDTO;
+import PSG.backEnd.model.dto.insurance.InsurancePolicyRenewalDTO;
+import PSG.backEnd.model.dto.insurance.InsurancePolicyRenewalDraftDTO;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyFilterDTO;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyResponseDTO;
 import PSG.backEnd.model.dto.insurance.InsurancePolicyPaymentCreateDTO;
@@ -16,6 +18,7 @@ import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
 import PSG.backEnd.service.port.IInsurancePolicyService;
 import PSG.backEnd.service.implementation.InsurancePolicyPaymentService;
 import PSG.backEnd.service.port.IPolicyVehicleService;
+import PSG.backEnd.service.port.IInsurancePolicyRenewalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -47,6 +50,7 @@ public class InsurancePolicyController {
     private final IInsurancePolicyService insurancePolicyService;
     private final IPolicyVehicleService policyVehicleService;
     private final InsurancePolicyPaymentService insurancePolicyPaymentService;
+    private final IInsurancePolicyRenewalService insurancePolicyRenewalService;
 
     // ========== INSURANCE POLICY ENDPOINTS ==========
 
@@ -62,6 +66,39 @@ public class InsurancePolicyController {
             @Validated(OnCreate.class) @RequestBody InsurancePolicyDTO insurancePolicyDTO) {
         InsurancePolicyResponseDTO createdPolicy = insurancePolicyService.createInsurancePolicy(insurancePolicyDTO);
         return new ResponseEntity<>(createdPolicy, HttpStatus.CREATED);
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_WRITE + "')")
+    @GetMapping("/renewal-base")
+    @Operation(summary = "Get the default base policy for a renewal",
+            description = "Returns the non-deleted policy with the latest end date, regardless of its status. 204 when there are no policies.")
+    public ResponseEntity<InsurancePolicyResponseDTO> getRenewalBase() {
+        return insurancePolicyRenewalService.findDefaultBasePolicy()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_WRITE + "')")
+    @GetMapping("/{id}/renewal-draft")
+    @Operation(summary = "Build the pre-filled data to renew a policy",
+            description = "Copies the policy's data and vehicles into a draft for the next period. Amounts are left empty (previous values are returned for reference). Nothing is persisted.")
+    public ResponseEntity<InsurancePolicyRenewalDraftDTO> getRenewalDraft(@PathVariable Long id) {
+        return ResponseEntity.ok(insurancePolicyRenewalService.buildDraft(id));
+    }
+
+    @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_WRITE + "')")
+    @PostMapping("/{id}/renew")
+    @Operation(summary = "Renew an insurance policy",
+            description = "Creates the renewed policy and its vehicles in a single transaction, linked to the policy it renews.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Policy renewed"),
+            @ApiResponse(responseCode = "400", description = "Invalid data, or the policy was already renewed"),
+            @ApiResponse(responseCode = "409", description = "Policy number and renewal number already exist")
+    })
+    public ResponseEntity<InsurancePolicyResponseDTO> renewInsurancePolicy(
+            @PathVariable Long id,
+            @Validated(OnCreate.class) @RequestBody InsurancePolicyRenewalDTO renewalDTO) {
+        return new ResponseEntity<>(insurancePolicyRenewalService.renew(id, renewalDTO), HttpStatus.CREATED);
     }
 
     @PreAuthorize("hasAuthority('" + AppPermissions.INSURANCE_POLICY_READ + "')")

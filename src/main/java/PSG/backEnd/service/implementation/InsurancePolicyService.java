@@ -34,7 +34,7 @@ public class InsurancePolicyService implements IInsurancePolicyService {
     public InsurancePolicyResponseDTO createInsurancePolicy(InsurancePolicyDTO insurancePolicyDTO) {
         // Check if there's a deleted policy with the same number to reactivate it
         Optional<InsurancePolicy> deletedPolicy = insurancePolicyRepository
-                .findByPolicyNumberAndDeletedTrue(insurancePolicyDTO.policyNumber());
+                .findDeletedByNumberAndTerm(insurancePolicyDTO.policyNumber(), normalizeTerm(insurancePolicyDTO.termNumber()));
 
         if (deletedPolicy.isPresent()) {
             // Reactivate existing policy
@@ -42,7 +42,7 @@ public class InsurancePolicyService implements IInsurancePolicyService {
         }
 
         // If no deleted policy exists, validate there are no active duplicates
-        validatePolicyNumber(insurancePolicyDTO.policyNumber(), null);
+        validatePolicyNumber(insurancePolicyDTO.policyNumber(), insurancePolicyDTO.termNumber(), null);
         validateBusinessRules(insurancePolicyDTO);
 
         // Create new policy
@@ -87,17 +87,40 @@ public class InsurancePolicyService implements IInsurancePolicyService {
     @Transactional(readOnly = true)
     public InsurancePolicyResponseDTO getInsurancePolicyById(Long id) {
         InsurancePolicy insurancePolicy = getEntityById(id);
-        return insurancePolicyMapper.toResponseDto(insurancePolicy);
+        Long renewedBy = insurancePolicyRepository.findFirstByRenewedFromPolicyIdAndDeletedFalse(id)
+                .map(InsurancePolicy::getId)
+                .orElse(null);
+        return insurancePolicyMapper.toResponseDto(insurancePolicy).withRenewedByPolicyId(renewedBy);
+    }
+
+    @Override
+    public InsurancePolicy createRenewalPolicy(InsurancePolicyDTO insurancePolicyDTO, Long sourcePolicyId) {
+        if (insurancePolicyRepository.findDeletedByNumberAndTerm(
+                insurancePolicyDTO.policyNumber(), normalizeTerm(insurancePolicyDTO.termNumber())).isPresent()) {
+            throw new IllegalArgumentException(messageSourceHelper.getMessage(
+                    "insurancePolicy.renew.deletedNumberTerm",
+                    insurancePolicyDTO.policyNumber(), normalizeTerm(insurancePolicyDTO.termNumber())));
+        }
+        validatePolicyNumber(insurancePolicyDTO.policyNumber(), insurancePolicyDTO.termNumber(), null);
+        validateBusinessRules(insurancePolicyDTO);
+
+        InsurancePolicy renewal = insurancePolicyMapper.toEntity(insurancePolicyDTO);
+        renewal.setRenewedFromPolicyId(sourcePolicyId);
+        return insurancePolicyRepository.save(renewal);
     }
 
     @Override
     public InsurancePolicyResponseDTO updateInsurancePolicy(Long id, InsurancePolicyDTO insurancePolicyDTO) {
         InsurancePolicy existingPolicy = getEntityById(id);
 
-        // Validate policy number if it changed (skip if not provided in partial update)
-        if (insurancePolicyDTO.policyNumber() != null
-                && !existingPolicy.getPolicyNumber().equals(insurancePolicyDTO.policyNumber())) {
-            validatePolicyNumber(insurancePolicyDTO.policyNumber(), id);
+        // Validate policy number + renewal number if either changed (skip fields not provided in a partial update)
+        String effectiveNumber = insurancePolicyDTO.policyNumber() != null
+                ? insurancePolicyDTO.policyNumber() : existingPolicy.getPolicyNumber();
+        String effectiveTerm = insurancePolicyDTO.termNumber() != null
+                ? insurancePolicyDTO.termNumber() : existingPolicy.getTermNumber();
+        if (!existingPolicy.getPolicyNumber().equals(effectiveNumber)
+                || !normalizeTerm(existingPolicy.getTermNumber()).equals(normalizeTerm(effectiveTerm))) {
+            validatePolicyNumber(effectiveNumber, effectiveTerm, id);
         }
 
         validateBusinessRules(insurancePolicyDTO);
@@ -180,21 +203,16 @@ public class InsurancePolicyService implements IInsurancePolicyService {
     }
 
     @Override
-    public void validatePolicyNumber(String policyNumber, Long excludeId) {
-        // Check if there's an active policy (not deleted) with the same number
-        boolean exists = insurancePolicyRepository.existsByPolicyNumberAndDeletedFalse(policyNumber);
-        if (exists) {
-            // If there's an ID to exclude, verify it's not the same record
-            if (excludeId != null) {
-                // Find the specific active policy with that number
-                Optional<InsurancePolicy> existing = insurancePolicyRepository.findByPolicyNumberAndDeletedFalse(policyNumber);
-                if (existing.isPresent() && !existing.get().getId().equals(excludeId)) {
-                    throw new DuplicatePolicyNumberException(policyNumber);
-                }
-            } else {
-                throw new DuplicatePolicyNumberException(policyNumber);
-            }
+    public void validatePolicyNumber(String policyNumber, String termNumber, Long excludeId) {
+        Optional<InsurancePolicy> existing = insurancePolicyRepository
+                .findActiveByNumberAndTerm(policyNumber, normalizeTerm(termNumber));
+        if (existing.isPresent() && (excludeId == null || !existing.get().getId().equals(excludeId))) {
+            throw new DuplicatePolicyNumberException(policyNumber);
         }
+    }
+
+    private static String normalizeTerm(String termNumber) {
+        return termNumber == null ? "" : termNumber;
     }
 
     private void validateBusinessRules(InsurancePolicyDTO dto) {

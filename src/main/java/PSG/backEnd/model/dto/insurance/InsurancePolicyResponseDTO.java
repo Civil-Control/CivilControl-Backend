@@ -84,5 +84,18 @@ public record InsurancePolicyResponseDTO(
         Long supplierId,
 
         @Schema(description = "Name of the supplier (insurance company).")
-        String supplierName
-) {}
+        String supplierName,
+
+        @Schema(description = "Id of the policy this one was renewed from, if any.")
+        Long renewedFromPolicyId,
+
+        @Schema(description = "Id of the policy that renewed this one, if any. Only filled when reading a single policy.")
+        Long renewedByPolicyId
+) {
+    public InsurancePolicyResponseDTO withRenewedByPolicyId(Long renewedBy) {
+        return new InsurancePolicyResponseDTO(id, policyNumber, termNumber, endorsementSecuence, policyType,
+                policyStatus, paymentFrequency, sumInsured, issueDate, effectiveFrom, effectiveTo, cancellationDate,
+                numberOfInstallments, premioTotal, premioMensual, periodicDueDay, dueAtStartOfPeriod, supplierId,
+                supplierName, renewedFromPolicyId, renewedBy);
+    }
+}

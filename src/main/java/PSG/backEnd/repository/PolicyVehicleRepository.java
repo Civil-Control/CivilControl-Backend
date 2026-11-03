@@ -20,6 +20,18 @@ public interface PolicyVehicleRepository extends JpaRepository<PolicyVehicle, Lo
     List<PolicyVehicle> findByAutoPolicyId(Long autoPolicyId);
     List<PolicyVehicle> findByVehicleId(Long vehicleId);
     List<PolicyVehicle> findByVehicleIdAndDeletedFalse(Long vehicleId);
+
+    @Query("SELECT pv FROM PolicyVehicle pv " +
+           "JOIN FETCH pv.vehicle v " +
+           "JOIN FETCH pv.autoPolicy ap " +
+           "JOIN FETCH ap.insurancePolicy ip " +
+           "WHERE pv.deleted = false AND pv.cancellationDate IS NULL " +
+           "AND pv.effectiveTo >= :date " +
+           "AND ap.deleted = false AND ip.deleted = false " +
+           "AND ip.policyStatus <> PSG.backEnd.model.enums.vehicle.PolicyStatus.CANCELADO " +
+           "AND ip.id <> :excludePolicyId")
+    List<PolicyVehicle> findActiveCoverageExcludingPolicy(@Param("date") java.time.LocalDate date,
+                                                          @Param("excludePolicyId") Long excludePolicyId);
     Optional<PolicyVehicle> findByVehicleIdAndAutoPolicyIdAndDeletedTrue(Long vehicleId, Long autoPolicyId);
     boolean existsByIdAndDeletedFalse(Long id);
     boolean existsByVehicleIdAndAutoPolicyId(Long vehicleId, Long autoPolicyId);
