@@ -95,8 +95,19 @@ public record VehicleResponseDTO(
                 allowableValues = {"NADA", "HIDROELEVADOR", "HIDROGRUA"})
         String truckEquipment,
 
-        @Schema(description = "Current mileage of the vehicle (km). Synced from the latest crew assignment.",
+        @Schema(description = "Current mileage of the vehicle (km). Taken from the record with the latest date among daily crew reports, repairs and manual edits.",
                 example = "45000",
                 nullable = true)
-        Integer km
+        Integer km,
+
+        @Schema(description = "Date of the record the current km comes from.",
+                example = "2025-11-05",
+                nullable = true)
+        LocalDate kmDate,
+
+        @Schema(description = "Origin of the current km.",
+                example = "PARTE_DIARIO",
+                allowableValues = {"PARTE_DIARIO", "REPARACION", "MANUAL"},
+                nullable = true)
+        String kmSource
 ) {}

@@ -6,6 +6,7 @@ import PSG.backEnd.model.constants.AppPermissions;
 import PSG.backEnd.model.dto.vehicle.*;
 import PSG.backEnd.model.entity.Supplier;
 import PSG.backEnd.model.entity.vehicle.Repair;
+import PSG.backEnd.service.port.IVehicleKmService;
 import PSG.backEnd.model.entity.vehicle.RepairItem;
 import PSG.backEnd.model.entity.vehicle.RepairOrder;
 import PSG.backEnd.model.entity.vehicle.Vehicle;
@@ -39,6 +40,7 @@ public class RepairOrderService implements IRepairOrderService {
 
     private final RepairOrderRepository repairOrderRepository;
     private final RepairRepository repairRepository;
+    private final IVehicleKmService vehicleKmService;
     private final RepairOrderMapper repairOrderMapper;
     private final VehicleRepository vehicleRepository;
     private final SupplierRepository supplierRepository;
@@ -186,6 +188,7 @@ public class RepairOrderService implements IRepairOrderService {
         }
 
         repairRepository.save(repair);
+        vehicleKmService.recalculate(order.getVehicle().getId());
 
         order.setStatus(RepairOrderStatus.COMPLETADA);
         return repairOrderMapper.toResponseDto(repairOrderRepository.save(order));

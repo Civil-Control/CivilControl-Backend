@@ -111,6 +111,14 @@ public interface CrewAssignmentRepository extends JpaRepository<CrewAssignment, 
             @Param("vehicleId") Long vehicleId,
             @Param("reportId") Long reportId);
 
+    List<CrewAssignment> findByVehicleIdAndDeletedFalseAndKmIsNotNull(Long vehicleId);
+
+    @Query("SELECT DISTINCT ca.vehicle.id FROM CrewAssignment ca WHERE ca.date = :date AND ca.deleted = false")
+    List<Long> findVehicleIdsByDate(@Param("date") LocalDate date);
+
+    @Query("SELECT DISTINCT ca.vehicle.id FROM CrewAssignment ca WHERE ca.crewReport.id = :reportId AND ca.deleted = false")
+    List<Long> findVehicleIdsByReportId(@Param("reportId") Long reportId);
+
     long countByVehicleIdAndCrewReportIdAndDeletedFalse(Long vehicleId, Long crewReportId);
 
     @Query("SELECT ca.employee.id FROM CrewAssignment ca " +

@@ -17,6 +17,8 @@ public interface RepairRepository extends JpaRepository<Repair, Long> {
 
     List<Repair> findByVehicleId(Long vehicleId);
 
+    List<Repair> findByVehicleIdAndMileageIsNotNull(Long vehicleId);
+
     List<Repair> findBySupplierId(Long supplierId);
 
     @Query("SELECT DISTINCT r FROM Repair r " +

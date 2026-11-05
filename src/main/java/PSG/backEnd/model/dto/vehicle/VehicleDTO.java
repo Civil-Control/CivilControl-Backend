@@ -103,5 +103,12 @@ public record VehicleDTO(
                 example = "NADA",
                 allowableValues = {"NADA", "HIDROELEVADOR", "HIDROGRUA"},
                 nullable = true)
-        String truckEquipment
+        String truckEquipment,
+
+        @Schema(description = "Manual mileage override (km). When it differs from the current km it is stored as a manual record dated today. " +
+                "Daily crew reports and repairs with the same or a later date replace it.",
+                example = "45000",
+                nullable = true)
+        @Min(value = 0, message = "{validation.pattern}", groups = {OnCreate.class, OnUpdate.class})
+        Integer km
 ) {}

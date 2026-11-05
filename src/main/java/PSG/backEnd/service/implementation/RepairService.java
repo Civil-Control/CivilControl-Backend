@@ -18,6 +18,7 @@ import PSG.backEnd.repository.SupplierRepository;
 import PSG.backEnd.repository.TransactionalDocumentRepository;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.service.port.IRepairService;
+import PSG.backEnd.service.port.IVehicleKmService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +39,7 @@ public class RepairService implements IRepairService {
     private final TransactionalDocumentRepository transactionalDocumentRepository;
     private final DocumentTotalRecalculator documentTotalRecalculator;
     private final RepairItemRepository repairItemRepository;
+    private final IVehicleKmService vehicleKmService;
 
     @Override
     @Transactional
@@ -52,6 +54,7 @@ public class RepairService implements IRepairService {
 
         Repair savedRepair = repairRepository.save(repair);
         recalculateItemDocuments(savedRepair);
+        vehicleKmService.recalculate(savedRepair.getVehicle().getId());
 
         return repairMapper.toResponseDto(savedRepair);
     }
@@ -105,6 +108,8 @@ public class RepairService implements IRepairService {
         Repair existingRepair = repairRepository.findById(id)
                 .orElseThrow(() -> new RepairNotFoundException(id));
 
+        Long previousVehicleId = existingRepair.getVehicle().getId();
+
         // Collect old document IDs from items before update
         Set<Long> oldDocIds = existingRepair.getItems().stream()
                 .filter(i -> i.getTransactionalDocument() != null)
@@ -135,6 +140,10 @@ public class RepairService implements IRepairService {
                 .filter(docId -> !newDocIds.contains(docId))
                 .forEach(documentTotalRecalculator::recalculateAndRecover);
         recalculateItemDocuments(updatedRepair);
+        vehicleKmService.recalculate(updatedRepair.getVehicle().getId());
+        if (!previousVehicleId.equals(updatedRepair.getVehicle().getId())) {
+            vehicleKmService.recalculate(previousVehicleId);
+        }
 
         return repairMapper.toResponseDto(updatedRepair);
     }
@@ -150,7 +159,9 @@ public class RepairService implements IRepairService {
                 .map(i -> i.getTransactionalDocument().getId())
                 .collect(Collectors.toSet());
 
+        Long vehicleId = repair.getVehicle().getId();
         repairRepository.delete(repair);
+        vehicleKmService.recalculate(vehicleId);
         docIds.forEach(documentTotalRecalculator::recalculateAndRecover);
     }
 

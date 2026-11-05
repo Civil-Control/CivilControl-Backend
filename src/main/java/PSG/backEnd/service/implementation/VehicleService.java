@@ -15,6 +15,7 @@ import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.repository.VehicleTypeRepository;
 import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.repository.ProjectAreaTaskRepository;
+import PSG.backEnd.service.port.IVehicleKmService;
 import PSG.backEnd.service.port.IVehicleService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -37,6 +38,7 @@ public class VehicleService implements IVehicleService {
     private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final MessageSourceHelper messageSourceHelper;
+    private final IVehicleKmService vehicleKmService;
 
     @Override
     @Transactional
@@ -117,6 +119,7 @@ public class VehicleService implements IVehicleService {
         try {
             vehicleMapper.partialUpdate(vehicleDTO, existingVehicle);
             Vehicle updatedVehicle = vehicleRepository.save(existingVehicle);
+            vehicleKmService.applyManualKm(updatedVehicle, vehicleDTO.km());
             return vehicleMapper.toResponseDto(updatedVehicle);
         } catch (DataIntegrityViolationException e) {
             handleDataIntegrityViolation(e, vehicleDTO);
@@ -202,14 +205,18 @@ public class VehicleService implements IVehicleService {
     private VehicleResponseDTO reactivateVehicle(Vehicle vehicle, VehicleDTO vehicleDTO) {
         vehicleMapper.partialUpdate(vehicleDTO, vehicle);
         vehicle.setDeleted(false);
-        return vehicleMapper.toResponseDto(vehicleRepository.save(vehicle));
+        Vehicle saved = vehicleRepository.save(vehicle);
+        vehicleKmService.applyManualKm(saved, vehicleDTO.km());
+        return vehicleMapper.toResponseDto(saved);
     }
 
     private VehicleResponseDTO createNewVehicle(VehicleDTO vehicleDTO) {
         Vehicle vehicle = vehicleMapper.toEntity(vehicleDTO);
         vehicle.setDeleted(false);
         vehicle.setActive(true);
-        return vehicleMapper.toResponseDto(vehicleRepository.save(vehicle));
+        Vehicle saved = vehicleRepository.save(vehicle);
+        vehicleKmService.applyManualKm(saved, vehicleDTO.km());
+        return vehicleMapper.toResponseDto(saved);
     }
 
     private void validateUniqueFieldsForUpdate(VehicleDTO vehicleDTO, Vehicle existingVehicle) {
