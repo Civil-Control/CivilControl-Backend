@@ -7,6 +7,7 @@ import PSG.backEnd.model.entity.TenantEntity;
 import PSG.backEnd.model.entity.gasStation.FuelLoad;
 import PSG.backEnd.model.enums.vehicle.JurisdictionType;
 import PSG.backEnd.model.enums.vehicle.TruckEquipment;
+import PSG.backEnd.model.enums.vehicle.VehicleKmSource;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -76,6 +77,19 @@ public class Vehicle extends TenantEntity {
 
     @Column
     private Integer km;
+
+    @Column(name = "km_date")
+    private LocalDate kmDate;
+
+    @Column(name = "km_source")
+    @Enumerated(EnumType.STRING)
+    private VehicleKmSource kmSource;
+
+    @Column(name = "manual_km")
+    private Integer manualKm;
+
+    @Column(name = "manual_km_date")
+    private LocalDate manualKmDate;
 
     /** Soft-delete flag — set to true only for permanent record removal. Never use for operational status. */
     @Column

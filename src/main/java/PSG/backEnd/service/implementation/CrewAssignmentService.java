@@ -23,6 +23,7 @@ import PSG.backEnd.repository.ProjectAreaRepository;
 import PSG.backEnd.repository.ProjectAreaTaskRepository;
 import PSG.backEnd.repository.VehicleRepository;
 import PSG.backEnd.service.port.ICrewAssignmentService;
+import PSG.backEnd.service.port.IVehicleKmService;
 import PSG.backEnd.service.util.MessageSourceHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -48,6 +49,7 @@ public class CrewAssignmentService implements ICrewAssignmentService {
     private final ProjectAreaTaskRepository projectAreaTaskRepository;
     private final CrewAssignmentMapper crewAssignmentMapper;
     private final MessageSourceHelper messageSourceHelper;
+    private final IVehicleKmService vehicleKmService;
 
     @Override
     @Transactional
@@ -274,6 +276,7 @@ public class CrewAssignmentService implements ICrewAssignmentService {
         }
 
         CrewAssignment updated = crewAssignmentRepository.save(existing);
+        vehicleKmService.recalculate(updated.getVehicle().getId());
         return crewAssignmentMapper.toResponseDto(updated);
     }
 
@@ -311,12 +314,16 @@ public class CrewAssignmentService implements ICrewAssignmentService {
                 .orElseThrow(() -> new CrewAssignmentNotFoundException(id));
         existing.setDeleted(true);
         crewAssignmentRepository.save(existing);
+        vehicleKmService.recalculate(existing.getVehicle().getId());
     }
 
     @Override
     @Transactional
     public int deleteDailyAssignments(LocalDate date) {
-        return crewAssignmentRepository.softDeleteByDate(date);
+        List<Long> vehicleIds = crewAssignmentRepository.findVehicleIdsByDate(date);
+        int deleted = crewAssignmentRepository.softDeleteByDate(date);
+        vehicleIds.forEach(vehicleKmService::recalculate);
+        return deleted;
     }
 
     // ── Report-level operations ────────────────────────────────────
@@ -356,8 +363,11 @@ public class CrewAssignmentService implements ICrewAssignmentService {
         report = dailyCrewReportRepository.save(report);
 
         // Delete old assignments, then re-create
+        List<Long> previousVehicleIds = crewAssignmentRepository.findVehicleIdsByReportId(reportId);
         crewAssignmentRepository.softDeleteByReportId(reportId);
-        return saveReportAssignments(report, dto, reportId);
+        DailyCrewReportResponseDTO response = saveReportAssignments(report, dto, reportId);
+        previousVehicleIds.forEach(vehicleKmService::recalculate);
+        return response;
     }
 
     @Override
@@ -420,9 +430,11 @@ public class CrewAssignmentService implements ICrewAssignmentService {
     public void deleteReport(Long reportId) {
         DailyCrewReport report = dailyCrewReportRepository.findByIdAndDeletedFalse(reportId)
                 .orElseThrow(() -> new CrewAssignmentNotFoundException(reportId));
+        List<Long> vehicleIds = crewAssignmentRepository.findVehicleIdsByReportId(reportId);
         crewAssignmentRepository.softDeleteByReportId(reportId);
         report.setDeleted(true);
         dailyCrewReportRepository.save(report);
+        vehicleIds.forEach(vehicleKmService::recalculate);
     }
 
     // ── Private helpers ────────────────────────────────────────────────
@@ -466,10 +478,7 @@ public class CrewAssignmentService implements ICrewAssignmentService {
     }
 
     private void syncVehicleKm(Vehicle vehicle, Integer km) {
-        if (km != null) {
-            vehicle.setKm(km);
-            vehicleRepository.save(vehicle);
-        }
+        vehicleKmService.recalculate(vehicle.getId());
     }
 
     private void validateDriverUniqueness(Long vehicleId, LocalDate date, Boolean isDriver) {
