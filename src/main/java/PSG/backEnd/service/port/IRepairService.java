@@ -1,0 +1,21 @@
+package PSG.backEnd.service.port;
+
+import PSG.backEnd.model.dto.vehicle.RepairDTO;
+import PSG.backEnd.model.dto.vehicle.RepairFilterDTO;
+import PSG.backEnd.model.dto.vehicle.RepairResponseDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+public interface IRepairService {
+    RepairResponseDTO createRepair(RepairDTO repairDTO);
+    RepairResponseDTO getRepairById(Long id);
+    RepairResponseDTO updateRepair(Long id, RepairDTO repairDTO);
+    void deleteRepair(Long id);
+    Page<RepairResponseDTO> getAllRepairs(RepairFilterDTO filterDTO, Pageable pageable);
+    void linkItemToDocument(Long itemId, Long documentId);
+    void linkItemToDocument(Long itemId, Long documentId, java.math.BigDecimal ivaPercentage, Integer sortOrder);
+    void unlinkItem(Long itemId);
+    void updateItemAmount(Long itemId, java.math.BigDecimal amount);
+    void updateItemAmount(Long itemId, java.math.BigDecimal amount, java.math.BigDecimal quantity);
+}
+

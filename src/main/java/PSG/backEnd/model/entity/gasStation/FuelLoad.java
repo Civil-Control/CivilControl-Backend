@@ -1,0 +1,78 @@
+package PSG.backEnd.model.entity.gasStation;
+
+import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
+import PSG.backEnd.model.entity.TenantEntity;
+import PSG.backEnd.model.entity.TransactionalDocument;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "fuel_loads")
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class FuelLoad extends TenantEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private LocalDate date;
+
+    @Column(name = "branch_code", nullable = false, columnDefinition = "VARCHAR(10)")
+    private String branchCode;
+
+    @Column(name = "ticket_number", nullable = false, columnDefinition = "VARCHAR(50)")
+    private String ticketNumber;
+
+    /** Either a built-in FuelType enum constant name or a CustomFuelType key. */
+    @Column(name = "fuel_type", nullable = false, length = 50)
+    private String fuelType;
+
+    @Column(nullable = false)
+    private BigDecimal liters;
+
+    @Column(nullable = false)
+    private BigDecimal pricePerLiter;
+
+    @Column(nullable = false)
+    private BigDecimal totalAmount;
+
+    /** IVA percentage applied to this fuel load (default 21). */
+    @Column(name = "iva_percentage", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal ivaPercentage = new BigDecimal("21.00");
+
+    @ManyToOne(optional = true, fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_id", nullable = true)
+    private Vehicle vehicle;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_id")
+    private ProjectArea projectArea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_area_task_id")
+    private ProjectAreaTask projectAreaTask;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "gas_station_id")
+    private GasStation gasStation;
+
+    /** Nullable — linked purchase document for this fuel load. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transactional_document_id")
+    private TransactionalDocument transactionalDocument;
+
+    @Column(name = "document_sort_order", nullable = false)
+    @Builder.Default
+    private Integer documentSortOrder = 0;
+}

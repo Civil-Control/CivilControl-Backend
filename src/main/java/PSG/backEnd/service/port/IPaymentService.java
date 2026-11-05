@@ -1,0 +1,59 @@
+package PSG.backEnd.service.port;
+
+import PSG.backEnd.model.dto.payment.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+public interface IPaymentService {
+    CashPaymentResponseDTO createCash(CashPaymentDTO dto);
+    TransferPaymentResponseDTO createTransfer(TransferPaymentDTO dto);
+    CheckPaymentResponseDTO createCheck(CheckPaymentDTO dto);
+
+    Page<PaymentResponseDTO> findAll(PaymentFilterDTO filter, Pageable pageable);
+
+    PaymentResponseDTO getById(Long id);
+
+    CashPaymentResponseDTO getCash(Long id);
+    TransferPaymentResponseDTO getTransfer(Long id);
+    CheckPaymentResponseDTO getCheck(Long id);
+
+    CashPaymentResponseDTO updateCash(Long id, CashPaymentDTO dto);
+    TransferPaymentResponseDTO updateTransfer(Long id, TransferPaymentDTO dto);
+    CheckPaymentResponseDTO updateCheck(Long id, CheckPaymentDTO dto);
+
+    /**
+     * Transitions the operational status of a check payment, registering the matching
+     * treasury movement and audit fields. See {@link CheckStatusUpdateDTO} for the rules.
+     */
+    CheckPaymentResponseDTO updateCheckStatus(Long checkPaymentId, CheckStatusUpdateDTO dto);
+
+    void deleteCash(Long id);
+    void deleteTransfer(Long id);
+    void deleteCheck(Long id);
+    void deleteById(Long id);
+
+    /** Returns the payment-details ID for the payment that covers the given document, or empty if none. */
+    java.util.Optional<Long> findPaymentIdByDocumentId(Long documentId);
+
+    /**
+     * Returns the on-account credit (saldo a favor) currently parked at the supplier across
+     * all non-deleted payments. Used by the frontend to offer a "use available credit" toggle
+     * when registering a new payment for the same supplier.
+     */
+    SupplierOnAccountDTO getSupplierOnAccount(Long supplierId);
+
+    /**
+     * Returns all active, not-fully-applied credit notes for the given supplier.
+     * Used by the payment form to let the user offset invoices with credit notes.
+     */
+    java.util.List<AvailableCreditNoteDTO> getAvailableCreditNotes(Long supplierId);
+
+    /**
+     * Returns the per-payment imputations (active applications) registered against the given
+     * document, ordered most-recent first. Used by the document detail / form to render the
+     * "Imputaciones recibidas" mini-table when more than one payment touches the same document.
+     */
+    java.util.List<DocumentPaymentApplicationDTO> getDocumentPayments(Long documentId);
+
+    byte[] generatePaymentOrderPdf(Long id);
+}

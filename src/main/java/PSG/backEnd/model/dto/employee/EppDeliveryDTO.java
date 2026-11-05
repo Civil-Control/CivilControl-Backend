@@ -1,0 +1,72 @@
+package PSG.backEnd.model.dto.employee;
+
+import PSG.backEnd.model.validation.ValidationGroups.OnCreate;
+import PSG.backEnd.model.validation.ValidationGroups.OnUpdate;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.*;
+
+import java.time.LocalDate;
+
+@Schema(description = "Data Transfer Object for creating or updating an EPP (Personal Protective Equipment) delivery. " +
+        "Represents the delivery of safety equipment to an employee, including item details and quantity.")
+public record EppDeliveryDTO(
+    @Schema(description = "Unique identifier of the employee receiving the EPP. " +
+            "Must reference an existing employee in the system.",
+            example = "25",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
+    Long employeeId,
+
+    @Schema(description = "Date when the EPP was delivered to the employee. " +
+            "Cannot be in the future. Must be today or a past date for accurate tracking.",
+            example = "2025-11-10",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
+    @PastOrPresent(message = "{eppDelivery.deliveryDate.pastOrPresent}", groups = {OnCreate.class, OnUpdate.class})
+    LocalDate deliveryDate,
+
+    @Schema(description = "Name of the EPP item delivered. Must be between 2 and 150 characters. " +
+            "Should be descriptive and specific (e.g., 'Safety Helmet', 'Steel-Toe Boots', 'High-Visibility Vest').",
+            example = "Casco de seguridad",
+            minLength = 2,
+            maxLength = 150,
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
+    @Size(min = 2, max = 150, message = "{eppDelivery.itemName.size}", groups = {OnCreate.class, OnUpdate.class})
+    String itemName,
+
+    @Schema(description = "Type or category of the EPP item. Must be between 2 and 100 characters. " +
+            "Indicates the protection category (e.g., 'Head Protection', 'Foot Protection', 'Respiratory Protection').",
+            example = "Protección craneal",
+            minLength = 2,
+            maxLength = 100,
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "{validation.notBlank}", groups = OnCreate.class)
+    @Size(min = 2, max = 100, message = "{eppDelivery.itemType.length}", groups = {OnCreate.class, OnUpdate.class})
+    String itemType,
+
+    @Schema(description = "Brand or manufacturer of the EPP item. Optional field, maximum 100 characters. " +
+            "Useful for quality control and warranty tracking.",
+            example = "3M",
+            maxLength = 100,
+            nullable = true)
+    @Size(max = 100, message = "{validation.size}", groups = {OnCreate.class, OnUpdate.class})
+    String brand,
+
+    @Schema(description = "Quantity of items delivered. Must be a positive integer greater than zero. " +
+            "Represents the number of units of the same EPP item delivered.",
+            example = "2",
+            minimum = "1",
+            requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "{validation.notNull}", groups = OnCreate.class)
+    @Min(value = 1, message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+    Integer quantity,
+
+    @Schema(description = "Optional identifier of the linked stock item. When provided, the delivered quantity is " +
+            "discounted from that stock item's available quantity. Leave null for a quick, unlinked delivery.",
+            example = "5",
+            nullable = true)
+    @Positive(message = "{validation.positive}", groups = {OnCreate.class, OnUpdate.class})
+    Long stockId
+) {}
+

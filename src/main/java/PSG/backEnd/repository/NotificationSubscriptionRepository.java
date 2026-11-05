@@ -1,0 +1,40 @@
+package PSG.backEnd.repository;
+
+import PSG.backEnd.service.util.TenantContext;
+import PSG.backEnd.model.entity.notification.NotificationSubscription;
+import PSG.backEnd.model.enums.notification.NotificationSubjectType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface NotificationSubscriptionRepository extends JpaRepository<NotificationSubscription, Long> {
+
+    @Query("SELECT DISTINCT s FROM NotificationSubscription s LEFT JOIN FETCH s.alerts WHERE s.deleted = false AND s.active = true")
+    List<NotificationSubscription> findAllByDeletedFalseAndActiveTrue();
+
+    List<NotificationSubscription> findAllByDeletedFalse();
+
+    Optional<NotificationSubscription> findByIdAndDeletedFalse(Long id);
+
+    List<NotificationSubscription> findAllByUserIdAndDeletedFalse(Long userId);
+
+    boolean existsByUserIdAndSubjectTypeAndSubjectIdAndDeletedFalse(
+            Long userId, NotificationSubjectType subjectType, Long subjectId);
+
+    boolean existsByUserIdAndSubjectTypeAndSubjectIdIsNullAndDeletedFalse(
+            Long userId, NotificationSubjectType subjectType);
+
+    @Modifying
+    @Query("UPDATE NotificationSubscription s SET s.deleted = true WHERE s.userId = :userId AND s.tenantId = :tenantId")
+    void markDeletedByUserIdForTenant(@Param("userId") Long userId, @Param("tenantId") Long tenantId);
+
+    default void markDeletedByUserId(Long userId) {
+        markDeletedByUserIdForTenant(userId, TenantContext.getCurrentTenant());
+    }
+}

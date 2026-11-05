@@ -32,6 +32,19 @@ build/
 ### VS Code ###
 .vscode/
 
+### Environment Variables & Secrets ###
+.env
+.env.prod
+.env.local
+.env.*.local
+*.env
+!.env.*.template
+secrets/
+*.secret
+*.key
+*.pem
+**/application-local.properties
+
 # Compiled class file
 *.class
 
@@ -56,3 +69,21 @@ build/
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+### Temporary Repair & Solution Files ###
+# These files are for local troubleshooting only
+repair_*.sql
+repair_*.ps1
+MANUAL_REPAIR_*.sql
+SOLUCION_*.md
+*_REPAIR_*.sql
+# Never ignore Flyway versioned migrations (Windows case-insensitive matching workaround)
+!src/main/resources/db/migration/V*.sql
+
+### Credentials and Sensitive Information ###
+# NEVER commit credentials files
+CREDENCIALES_SISTEMA.md
+CREDENTIALS*.md
+*CREDENCIALES*.md
+passwords.txt
+

@@ -1,0 +1,121 @@
+package PSG.backEnd.model.mapper;
+
+import PSG.backEnd.model.dto.gasStation.FuelLoadDTO;
+import PSG.backEnd.model.dto.gasStation.FuelLoadResponseDTO;
+import PSG.backEnd.model.dto.transactionalDocument.TransactionalDocumentSummaryDTO;
+import PSG.backEnd.model.entity.TransactionalDocument;
+import PSG.backEnd.model.entity.gasStation.FuelLoad;
+import PSG.backEnd.model.entity.gasStation.GasStation;
+import PSG.backEnd.model.entity.vehicle.Vehicle;
+import PSG.backEnd.model.entity.ProjectArea;
+import PSG.backEnd.model.entity.ProjectAreaTask;
+import org.mapstruct.*;
+
+@Mapper(componentModel = "spring")
+public interface FuelLoadMapper {
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "pricePerLiter", ignore = true)
+    @Mapping(target = "totalAmount", ignore = true)
+    @Mapping(target = "vehicle", source = "vehicleId", qualifiedByName = "vehicleIdToEntity")
+    @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
+    @Mapping(target = "projectAreaTask", source = "projectAreaTaskId", qualifiedByName = "projectAreaTaskIdToEntity")
+    @Mapping(target = "gasStation", source = "gasStationId", qualifiedByName = "gasStationIdToEntity")
+    @Mapping(target = "fuelType", source = "fuelType")
+    @Mapping(target = "transactionalDocument", ignore = true)
+    @Mapping(target = "documentSortOrder", defaultExpression = "java(0)")
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage", defaultExpression = "java(new java.math.BigDecimal(\"21.00\"))")
+    FuelLoad toEntity(FuelLoadDTO fuelLoadDTO);
+
+    @Mapping(target = "date", source = "date", dateFormat = "yyyy-MM-dd")
+    @Mapping(target = "fuelType", source = "fuelType")
+    @Mapping(target = "vehicleId", source = "vehicle.id")
+    @Mapping(target = "vehicleLicensePlate", expression = "java(fuelLoad.getVehicle() != null ? fuelLoad.getVehicle().getLicensePlate() : \"Bidón\")")
+    @Mapping(target = "projectAreaId", source = "projectArea.id")
+    @Mapping(target = "projectAreaName", source = "projectArea.name")
+    @Mapping(target = "projectAreaColor", source = "projectArea.color")
+    @Mapping(target = "projectAreaTaskId", source = "projectAreaTask.id")
+    @Mapping(target = "projectAreaTaskName", source = "projectAreaTask.name")
+    @Mapping(target = "gasStationId", source = "gasStation.id")
+    @Mapping(target = "gasStationName", expression = "java(fuelLoad.getGasStation() != null ? fuelLoad.getGasStation().getSupplier().getLegalName() : null)")
+    @Mapping(target = "transactionalDocument", source = "transactionalDocument", qualifiedByName = "documentToSummaryDto")
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage")
+    @Mapping(target = "totalWithIva", expression = "java(computeTotalWithIva(fuelLoad))")
+    FuelLoadResponseDTO toResponseDto(FuelLoad fuelLoad);
+
+    default java.math.BigDecimal computeTotalWithIva(FuelLoad fl) {
+        if (fl.getTransactionalDocument() == null || fl.getTotalAmount() == null) return null;
+        java.math.BigDecimal iva = fl.getIvaPercentage();
+        if (iva == null || iva.compareTo(java.math.BigDecimal.ZERO) <= 0) return fl.getTotalAmount();
+        return fl.getTotalAmount()
+                .multiply(iva.divide(new java.math.BigDecimal("100"), 6, java.math.RoundingMode.HALF_UP)
+                        .add(java.math.BigDecimal.ONE))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "pricePerLiter", ignore = true)
+    @Mapping(target = "totalAmount", ignore = true)
+    @Mapping(target = "vehicle", source = "vehicleId", qualifiedByName = "vehicleIdToEntity")
+    @Mapping(target = "projectArea", source = "projectAreaId", qualifiedByName = "projectAreaIdToEntity")
+    @Mapping(target = "projectAreaTask", source = "projectAreaTaskId", qualifiedByName = "projectAreaTaskIdToEntity")
+    @Mapping(target = "gasStation", source = "gasStationId", qualifiedByName = "gasStationIdToEntity")
+    @Mapping(target = "transactionalDocument", ignore = true)
+    @Mapping(target = "ivaPercentage", source = "ivaPercentage")
+    void partialUpdate(FuelLoadDTO updateDTO, @MappingTarget FuelLoad fuelLoad);
+
+    @Named("vehicleIdToEntity")
+    default Vehicle vehicleIdToEntity(Long vehicleId) {
+        if (vehicleId == null) {
+            return null;
+        }
+        Vehicle vehicle = new Vehicle();
+        vehicle.setId(vehicleId);
+        return vehicle;
+    }
+
+    @Named("projectAreaIdToEntity")
+    default ProjectArea projectAreaIdToEntity(Long projectAreaId) {
+        if (projectAreaId == null) {
+            return null;
+        }
+        ProjectArea projectArea = new ProjectArea();
+        projectArea.setId(projectAreaId);
+        return projectArea;
+    }
+
+    @Named("projectAreaTaskIdToEntity")
+    default ProjectAreaTask projectAreaTaskIdToEntity(Long projectAreaTaskId) {
+        if (projectAreaTaskId == null) {
+            return null;
+        }
+        ProjectAreaTask task = new ProjectAreaTask();
+        task.setId(projectAreaTaskId);
+        return task;
+    }
+
+    @Named("gasStationIdToEntity")
+    default GasStation gasStationIdToEntity(Long gasStationId) {
+        if (gasStationId == null) {
+            return null;
+        }
+        GasStation gasStation = new GasStation();
+        gasStation.setId(gasStationId);
+        return gasStation;
+    }
+
+    @Named("documentToSummaryDto")
+    default TransactionalDocumentSummaryDTO documentToSummaryDto(TransactionalDocument doc) {
+        if (doc == null) return null;
+        return new TransactionalDocumentSummaryDTO(
+                doc.getId(),
+                doc.getDocumentType() != null ? doc.getDocumentType().name() : null,
+                doc.getBranchCode(),
+                doc.getDocumentNumber(),
+                doc.getSupplier() != null ? doc.getSupplier().getLegalName() : null,
+                doc.getTotal(),
+                doc.getDate()
+        );
+    }
+}

@@ -1,0 +1,2 @@
+ALTER TABLE certifications
+    ADD COLUMN IF NOT EXISTS iva_percentage NUMERIC(5, 2) NOT NULL DEFAULT 21.00;

@@ -1,0 +1,55 @@
+package PSG.backEnd.repository.ledger;
+
+import PSG.backEnd.service.util.TenantContext;
+import PSG.backEnd.model.entity.ledger.AccountMovement;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface AccountMovementRepository extends JpaRepository<AccountMovement, Long> {
+
+    List<AccountMovement> findBySupplier_IdOrderByMovementDateAscIdAsc(Long supplierId);
+
+    List<AccountMovement> findBySourceDocument_Id(Long documentId);
+
+    @Query("SELECT m FROM AccountMovement m WHERE m.sourceDocument.id = :documentId AND m.movementType <> PSG.backEnd.model.enums.ledger.AccountMovementType.REVERSAL")
+    Optional<AccountMovement> findOriginalBySourceDocument(@Param("documentId") Long documentId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM AccountMovement m WHERE m.sourceDocument.id = :documentId AND m.movementType <> PSG.backEnd.model.enums.ledger.AccountMovementType.REVERSAL")
+    Optional<AccountMovement> findOriginalBySourceDocumentWithLock(@Param("documentId") Long documentId);
+
+    @Query("SELECT m FROM AccountMovement m WHERE m.sourcePayment.id = :paymentId AND m.movementType <> PSG.backEnd.model.enums.ledger.AccountMovementType.REVERSAL")
+    Optional<AccountMovement> findOriginalBySourcePayment(@Param("paymentId") Long paymentId);
+
+    @Query("SELECT COALESCE(SUM(m.amount), 0) FROM AccountMovement m WHERE m.supplier.id = :supplierId AND m.tenantId = :tenantId")
+    BigDecimal sumBalanceBySupplier(@Param("supplierId") Long supplierId, @Param("tenantId") Long tenantId);
+
+    @Query("SELECT m FROM AccountMovement m WHERE m.supplier.id = :supplierId AND m.tenantId = :tenantId AND m.movementType = PSG.backEnd.model.enums.ledger.AccountMovementType.PAYMENT ORDER BY m.movementDate ASC, m.id ASC")
+    List<AccountMovement> findPaymentMovementsBySupplier(@Param("supplierId") Long supplierId, @Param("tenantId") Long tenantId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM AccountMovement m WHERE m.supplier.id = :supplierId AND m.tenantId = :tenantId AND m.movementType = PSG.backEnd.model.enums.ledger.AccountMovementType.PAYMENT ORDER BY m.movementDate ASC, m.id ASC")
+    List<AccountMovement> findPaymentMovementsBySupplierWithLock(@Param("supplierId") Long supplierId, @Param("tenantId") Long tenantId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM AccountMovement m WHERE m.sourcePayment.id = :paymentId AND m.movementType <> PSG.backEnd.model.enums.ledger.AccountMovementType.REVERSAL")
+    Optional<AccountMovement> findOriginalBySourcePaymentWithLock(@Param("paymentId") Long paymentId);
+
+    @Modifying
+    @Query("DELETE FROM AccountMovement m WHERE m.sourceDocument.id = :documentId AND m.movementType = PSG.backEnd.model.enums.ledger.AccountMovementType.REVERSAL AND m.tenantId = :tenantId")
+    void deleteReversalsBySourceDocumentForTenant(@Param("documentId") Long documentId, @Param("tenantId") Long tenantId);
+
+    default void deleteReversalsBySourceDocument(Long documentId) {
+        deleteReversalsBySourceDocumentForTenant(documentId, TenantContext.getCurrentTenant());
+    }
+}

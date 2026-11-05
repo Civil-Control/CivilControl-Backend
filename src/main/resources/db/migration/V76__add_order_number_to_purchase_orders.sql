@@ -1,0 +1,1 @@
+ALTER TABLE purchase_orders ADD COLUMN order_number BIGINT NOT NULL DEFAULT 0;
